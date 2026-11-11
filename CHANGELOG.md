@@ -1,6 +1,6 @@
 # Changelog
 
-Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
+Version history is kept here. For current usage, see the [user guide](docs/USER-GUIDE.md) / [사용 설명서](docs/USER-GUIDE.ko.md).
 
 ## Storage
 

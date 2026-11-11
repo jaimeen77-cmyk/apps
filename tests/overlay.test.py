@@ -31,6 +31,10 @@ with tempfile.TemporaryDirectory(prefix='jam-overlay-test-') as temporary:
     shutil.copy2(UPSTREAM / 'kit/runtime/mgu.js', target / 'kit/runtime/mgu.js')
     locale = target / 'kit/runtime/locales/ko.json'
     locale.write_text('{"Existing":"기존"}', encoding='utf-8')
+    # Storage needs the kit's widget build and canvas helpers; refused before any copy without them.
+    assert run(target, '--apps', 'storage').returncode != 0
+    assert not (target / 'apps/storage').exists()
+    shutil.copy2(UPSTREAM / 'kit/runtime/canvas.js', target / 'kit/runtime/canvas.js')
     assert run(target, '--apps', 'cluster_redline').returncode == 0
     assert (target / 'apps/cluster_redline/app.json').is_file()
     assert '// Jam custom settings isolation v1' in (target / 'kit/runtime/mgu.js').read_text()
@@ -46,7 +50,9 @@ with tempfile.TemporaryDirectory(prefix='jam-overlay-test-') as temporary:
     assert run(target, '--force').returncode == 0
     assert source.read_bytes() == (ROOT / 'apps/cluster_redline/main.js').read_bytes()
     assert (target / 'apps/idrive_circuit/app.json').is_file()
+    assert (target / 'apps/storage/sysinfo.js').is_file() and not (target / 'apps/storage/screenshots').exists()
+    assert json.loads(locale.read_text(encoding='utf-8'))['Free for apps'] == '앱 설치 여유 공간'
     before = locale.read_bytes()
     assert run(target, '--no-ko').returncode == 0
     assert locale.read_bytes() == before
-print('PASS: selected overlay, Korean prerequisites before writes, idempotency, no partial conflict copy, explicit replacement and --no-ko')
+print('PASS: selected overlay (Circuit, Cluster Redline, Storage), Storage kit check, Korean prerequisites before writes, idempotency, no partial conflict copy, explicit replacement and --no-ko')

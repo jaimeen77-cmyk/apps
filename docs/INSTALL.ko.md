@@ -1,84 +1,134 @@
-# 설치 안내 · MGU Store / iDrive 7
+# 설치 설명서
 
-[English](INSTALL.md) · [레드라인 사용 설명서](CLUSTER-REDLINE.ko.md) · [스크린샷](../screenshots/README.md)
+[English](INSTALL.md) · [사용 설명서](USER-GUIDE.ko.md) · [스크린샷](../screenshots/README.md) · [업데이트 이력](../CHANGELOG.md)
 
-이 저장소는 **계기판 레드라인 1.2.0**과 **아이드라이브 회로 1.0.0**을 한국어·영어로 배포합니다. 이 문서는 앱 설치 안내입니다. 헤드유닛 플래시·코딩 작업은 포함하지 않습니다.
+BMW iDrive 7(MGU)에 MGU Store로 이 저장소의 앱을 설치하는 방법입니다. 헤드유닛 플래시·코딩은 다루지 않습니다.
+
+## 제공 앱
+
+| Store 표시 이름 | 설치 ID | 버전 | 필요 조건 | 시작 방식 |
+|---|---|---|---|---|
+| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.6 | mgu-deploy 0.7.17+, cluster-render 0.4.0+ | 백그라운드 자동 시작 |
+| Cluster Redline (English) | `cluster_redline_en` | 1.2.6 | 위와 같음 | 백그라운드 자동 시작 |
+| 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 | mgu-deploy 0.7.17+ | 앱 목록에서 직접 실행 |
+| iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 | 위와 같음 | 앱 목록에서 직접 실행 |
+| 저장공간 (한국어) | `storage` | 1.0.1 | mgu-deploy 0.7.17+ | 앱 목록에서 직접 실행 |
+| Storage (English) | `storage_en` | 1.0.1 | 위와 같음 | 앱 목록에서 직접 실행 |
+
+일반 한국어 iDrive 앱 15개는 별도 저장소 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)에서 설치합니다.
 
 ## 준비
 
-- MGU Store가 설치된 iDrive 7과 인터넷 연결
-- 레드라인을 사용할 경우 **Cluster renderer (`cluster-render`) 0.4.0 이상**
-- 설치를 마칠 때까지 주차 상태와 안정적인 차량 전원
+- MGU Store가 설치된 iDrive 7과 인터넷 연결. Store 자체 설치는 [MGU Store 안내](https://github.com/robertnisipeanu/mgu-store)를 따릅니다.
+- 설치하는 동안 주차 상태와 안정적인 차량 전원.
+- 레드라인을 쓸 경우 Store 소스 목록에 기본 소스 **`robertnisipeanu/idrive-apps`**가 있어야 합니다. 레드라인에 필요한 계기판 렌더러(`cluster-render`)를 여기서 받습니다. 지웠다면 다시 추가하고 **Releases → Check now**를 실행합니다.
 
-Store의 일반 화면용 렌더러와 레드라인의 `cluster-render`는 별도 구성 요소입니다. Circuit만 사용할 때는 `cluster-render`가 필요하지 않습니다. 등록된 소스가 필요한 렌더러를 제공하면 Store가 의존성을 확인하며, 제공하지 않으면 해당 렌더러 소스를 먼저 등록해야 합니다.
+## 1. 소스 추가
 
-MGU Store 자체 설치는 [개발자 안내](https://github.com/robertnisipeanu/mgu-store)를 따릅니다.
+1. MGU Store에서 **Settings → Add source**를 엽니다.
+2. 저장소에 **`jaimeen77-cmyk/apps`**를 입력합니다. `https://github.com/jaimeen77-cmyk/apps`도 됩니다.
+3. 채널은 **main** 브랜치를 선택합니다. Releases가 아닙니다.
+4. **Check now**를 실행합니다. Offline이면 Settings에서 인터넷 연결부터 확인합니다.
 
-## MGU Store에서 설치
+## 2. 앱 설치
 
-1. Store의 **Settings → 소스 추가(Add source)**를 엽니다.
-2. 저장소에 `jaimeen77-cmyk/apps`, 브랜치에 `main`을 입력합니다.
-3. **새로고침 / Check now**를 실행합니다. Offline이면 먼저 Settings에서 인터넷 연결을 확인합니다.
-4. 아래 목록에서 원하는 언어의 앱을 선택하고 **Install**을 누릅니다.
-5. 함께 표시되는 필수 도구의 설치 안내를 따릅니다. 재시작이 필요하다고 표시되면 설치가 끝난 뒤 안내에 따라 진행합니다.
-6. 차량 앱 목록에서 앱을 엽니다.
+1. Store 목록에서 원하는 언어의 앱을 고르고 **Install**을 누릅니다.
+2. 레드라인은 필요한 렌더러를 Store가 먼저 처리합니다.
 
-| 표시 이름 | 설치 ID | 버전 |
-|---|---|---|
-| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.0 |
-| Cluster Redline (English) | `cluster_redline_en` | 1.2.0 |
-| 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 |
-| iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 |
+   | 렌더러 상태 | Store 동작 |
+   |---|---|
+   | 설치되지 않음 | cluster-render 설치 → 레드라인 설치 |
+   | 0.4.0보다 낮음 | cluster-render 업데이트 → 레드라인 설치 |
+   | 0.4.0 이상 | 그대로 사용하고 레드라인만 설치 |
+   | 소스에서 찾지 못함 | 설치를 멈추고 필요한 버전을 안내 → 위 준비의 소스를 확인 |
 
-스토어에서 언어가 표시된 목록을 선택하면 됩니다. PC에서 언어 옵션을 입력할 필요는 없습니다. Store는 저장소의 SDK 없는 UI·런타임과 현재 앱 코드를 조립하고, 필요한 차량 SDK는 기존 설치 절차에서 준비합니다.
+3. 재시작 안내가 나오면 설치가 끝난 뒤 안내대로 진행합니다.
+4. 차량 앱 목록에서 앱을 열고 화면 위쪽 버전(레드라인은 오른쪽 위 **v1.2.6**)을 확인합니다.
 
-## 레드라인 첫 설정
+![설치 후 기본설정 화면](../screenshots/cluster_redline/settings-basic-ko.png)
 
-1. 앱 위쪽의 버전이 **v1.2.0**인지 확인합니다.
-2. **기본설정 → 차량 프리셋·단위·변속 알림 RPM**을 선택합니다.
-3. **HUD 표시 설정 / CLUSTER 표시 설정**에서 원하는 모드의 RPM 출력을 **레드라인 앱**으로 선택합니다. 기본 HUD RPM은 순정입니다.
-4. **앱 켜기**로 현재 출력을 시작합니다. 자동 실행을 원하면 **앱 자동 켜짐**도 켭니다.
-5. 클러스터 출력은 BMW **계기판 → 중심 표시 영역**을 **지도 보기 또는 꺼짐**으로 설정해 확인합니다. Assist나 다른 앱의 화면 우선순위에 따라 가려질 수 있습니다.
-6. NAV 설정을 확인한 뒤 휴대전화 길안내를 시작합니다. 방향·거리·문구는 차량에서 실제 수신한 지원 안내가 있을 때 표시합니다.
+## 3. 레드라인 처음 켜기
 
-한국어판과 영어판은 별도 앱입니다. 두 판을 모두 설치했다면 사용하지 않는 판에서 **앱 끄기 + 앱 자동 켜짐 끄기**를 설정해 출력 경쟁을 피합니다.
+레드라인은 설치하면 백그라운드에서 자동으로 시작합니다. 기본값은 **스포츠 모드에서 계기판에만** 표시이고 HUD RPM은 순정입니다.
 
-## 업데이트·중지·삭제
+1. **기본설정**에서 **차량 프리셋**(가솔린·디젤·eDrive·M)을 고릅니다.
+2. HUD에도 띄우려면 **HUD 표시 설정 → 스포츠 모드 RPM 표시**를 **레드라인 앱**으로 바꿉니다.
+3. 계기판에 보이지 않으면 BMW 설정에서 **계기판 → 중심 표시 영역**을 **지도 보기** 또는 **꺼짐**으로 둡니다. 주행 보조 화면이나 경로 미리보기가 위에 올라오면 가려질 수 있습니다.
+4. 스포츠 모드로 바꿔 RPM이 나오는지 봅니다.
 
-- 같은 소스의 `main`을 새로고침한 뒤 **Installed → Update**를 실행합니다. 업데이트 후 버전을 다시 확인합니다.
-- **앱 끄기**는 현재 표시 작업과 구독·연결을 종료합니다. 설정 화면은 다시 켤 수 있도록 유지됩니다.
-- **앱 자동 켜짐**은 다음 앱 프로세스 시작 때의 동작을 정합니다. 업데이트·재시작 후에도 자동 시작을 원하지 않으면 이 항목을 끕니다.
-- 삭제는 Store의 **Installed**에서 해당 앱을 선택해 진행합니다. 설정 보존 여부는 Store의 삭제 안내를 확인하세요.
+자세한 설정은 [사용 설명서](USER-GUIDE.ko.md)를 보세요.
 
-1.2.0 첫 실행에서는 새 NAV 기본 위치·크기와 부가정보 좌우 설정을 한 번 적용합니다. 기존 클러스터의 50px 이동을 두 번 더하지 않으며, 이후 저장한 새 위치는 유지합니다. 다른 화면을 가리는 경우 표시 출력을 순정으로 바꾸거나 앱을 끌 수 있습니다.
+## 업데이트
 
-## 설치·표시 문제 확인
+1. Store에서 이 소스를 **Check now**로 새로고침합니다.
+2. **Installed**에서 앱을 고르고 **Update**를 누릅니다.
+3. 앱을 열어 버전이 바뀌었는지 확인합니다. 설정과 저장한 위치는 그대로 유지됩니다.
 
-| 증상 | 먼저 확인할 부분 |
+## 끄기와 삭제
+
+- **앱 끄기**(레드라인 기본설정 → 앱 실행): 지금 표시를 멈추고 차량 신호 구독을 끝냅니다. 설정 화면에서 다시 켤 수 있습니다.
+- **앱 자동 켜짐**: 다음 시동·재시작 때 자동으로 켤지 정합니다. 업데이트 뒤에도 꺼 두려면 이것도 끕니다.
+- **삭제**: Store의 **Installed**에서 앱을 골라 삭제합니다.
+
+## 한국어판과 영문판
+
+- 두 판은 서로 다른 앱입니다. Store 목록에서 원하는 언어가 붙은 항목을 설치하면 되고, 따로 언어를 입력할 필요는 없습니다.
+- 차량이나 Store의 언어를 바꿔도 설치된 앱의 언어는 바뀌지 않습니다.
+- 설정과 저장한 위치는 판끼리 옮겨지지 않습니다.
+- 레드라인 두 판을 모두 설치했다면 쓰지 않는 쪽에서 **앱 끄기**와 **앱 자동 켜짐 꺼짐**을 설정하세요. 둘이 같은 화면을 두고 경쟁합니다.
+
+## 문제 해결
+
+| 증상 | 확인할 것 |
 |---|---|
-| 앱 목록이 비어 있음 | 인터넷 연결, 저장소 철자, `main`, 소스 새로고침 |
-| 업데이트 후 예전 화면 | 실제 앱의 상단 버전, 설치한 언어·ID, 다른 판의 실행 여부 |
-| 클러스터/HUD에 RPM이 안 보임 | 앱 켜짐, 해당 모드의 출력 선택, 렌더러 버전, 실제 차량 신호 |
-| Assist/다른 앱에 가림 | BMW 중심 표시 영역과 다른 앱의 출력 선택 |
-| 전압·잔량·연비가 `--` | 선택한 값의 차량 지원·신선도. 지원되지 않는 값을 추정해 채우지 않습니다. |
-| 길안내가 순정으로 전환됨 | 지원하는 최신 안내를 받지 못하면 순정에 양보합니다. 모든 지도 앱·버전의 안내 전달을 보장하지 않습니다. |
-| install failed / interface 오류 | 오류 문구와 버전을 보관하고 [설치 오류 진단](REDLINE-INSTALL-FAILED.ko.md)을 참고하세요. |
+| Store 목록에 앱이 없음 | 인터넷 연결, 저장소 철자, **main** 브랜치, Check now |
+| 렌더러를 찾을 수 없다는 오류 | 소스 목록의 `robertnisipeanu/idrive-apps`, Releases → Check now |
+| 업데이트했는데 예전 화면 | 앱 오른쪽 위 버전, 설치한 언어판, 다른 언어판이 켜져 있는지 |
+| 계기판·HUD에 RPM이 안 나옴 | 앱 실행 상태, 해당 모드의 RPM 표시가 **레드라인 앱**인지, 지금 주행 모드 |
+| 계기판에서 가려짐 | 중심 표시 영역(지도 보기/꺼짐), 주행 보조 화면, 다른 앱의 출력 |
+| 음악·전화 때 HUD에서 사라짐 | 순정 HUD 팝업이 우선입니다(렌더러 정책). 팝업이 닫히면 돌아옵니다. |
+| 부가정보 값이 `--` | 차량이 그 값을 보내지 않거나 오래된 값입니다. 추정해서 채우지 않습니다. 외부 온도는 차가 첫 값을 보낸 뒤 나타납니다. |
+| 길안내가 순정으로 바뀜 | 읽을 수 있는 최신 안내가 없으면 순정 안내에 양보합니다. |
+| `UPDATE_FAILED` / install failed | 이전 버전이 유지된 상태입니다. 오류 문구와 버전을 적어 두고 아래 로그를 수집합니다. |
 
-계속되는 문제는 [로그 수집 안내](COLLECT-CLUSTER-REDLINE.ko.md)에 따라 로그와 설정 화면을 함께 확인합니다. 화면 예시는 모의 데이터로 실제 앱을 렌더링한 것이며 실차 촬영본이 아닙니다. 이번 버전의 차량별 설치·신호 수신·화면 복귀는 실차 확인이 필요합니다.
+## 로그 수집 (Windows PC, SSH 사용자)
 
-## 고급: PC에서 직접 빌드
+차량에 SSH로 접속할 수 있는 경우에만 해당합니다. 두 도구 모두 차량 파일을 바꾸거나 서비스를 재시작하지 않으며, 키 파일은 결과에 넣지 않습니다.
 
-소스 오버레이를 전체 원본에 합치는 과정은 [통합 안내](JAM-INTEGRATION.ko.md)를 참고합니다. 아래 명령은 **합쳐진 원본 프로젝트 폴더**에서, 본인 차량에서 추출한 SDK가 준비된 상태로 실행합니다.
+| 상황 | 도구 | 결과 파일 |
+|---|---|---|
+| 설치·업데이트 실패 | `tools/collect-redline-install.ps1` | `cluster-redline-install-report-날짜-시간.txt` |
+| 화면 깜빡임·표시 문제 | `tools/collect-cluster-redline.ps1` | `cluster-redline-report-날짜-시간.txt` |
 
 ```powershell
-python kit/tools/make_kit.py --language ko cluster_redline
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\collect-redline-install.ps1 -CarIp "차량IP" -IdentityFile "C:\경로\id_rsa"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\collect-cluster-redline.ps1 -CarIp "차량IP" -IdentityFile "C:\경로\id_rsa"
 ```
 
-한국어 결과는 `dist/mgu-custom-apps-ko.tar.gz`입니다. 기본 영어는 `--language ko`를 생략하며 결과는 `dist/mgu-custom-apps.tar.gz`입니다. Circuit도 넣으려면 앱 ID를 뒤에 추가합니다.
+표시 문제 수집 중 안내가 나오면 스포츠 모드로 한 번 바꾸고 끝날 때까지(약 55초) 기다립니다. 만들어진 TXT 파일만 보내 주세요. 키 파일은 보내지 마세요.
 
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File ".\deploy\push-to-car.ps1" check -Key "C:\keys\id_rsa" -Ip "헤드유닛IP" -Kit ".\dist\mgu-custom-apps-ko.tar.gz"
-powershell.exe -ExecutionPolicy Bypass -File ".\deploy\push-to-car.ps1" install -Key "C:\keys\id_rsa" -Ip "헤드유닛IP" -Kit ".\dist\mgu-custom-apps-ko.tar.gz"
-```
+## 고급: PC에서 직접 빌드해 설치
 
-키와 IP를 본인 환경으로 바꾸고, 키트에 필요한 `cluster-render`도 별도로 준비합니다. 생성된 PC 패키지는 SDK를 포함할 수 있으므로 공개하지 않습니다.
+Store 대신 기존 idrive7-apps 방식(`make_kit` + `push-to-car`)을 쓰는 경우입니다. 본인 차량에서 추출한 SDK가 필요합니다.
+
+1. 이 저장소와 원본 `idrive7-apps`를 나란히 두고, 이 저장소 폴더에서 세 앱(회로·레드라인·저장공간)을 합칩니다.
+
+   ```powershell
+   python tools/install-overlay.py ../idrive7-apps
+   ```
+
+   일부만 넣으려면 `--apps cluster_redline storage`처럼 고릅니다. 원본 파일과 내용이 다르면 아무것도 바꾸지 않고 멈추며, 확인 뒤 `--force`로 덮어씁니다. 저장공간은 홈 위젯을 만들 수 있는 키트(appsKOR 등)가 필요하며, 지원하지 않는 키트면 복사 전에 알려 줍니다.
+2. 합쳐진 `idrive7-apps` 폴더에서 키트를 만듭니다. `--language ko`를 빼면 영어입니다.
+
+   ```powershell
+   python kit/tools/make_kit.py --language ko cluster_redline idrive_circuit storage
+   ```
+
+3. 검사한 뒤 설치합니다.
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 check -Kit dist\mgu-custom-apps-ko.tar.gz -Key <SSH키경로> -Ip <헤드유닛IP>
+   powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 install -Kit dist\mgu-custom-apps-ko.tar.gz -Key <SSH키경로> -Ip <헤드유닛IP>
+   ```
+
+이 방식은 렌더러를 자동으로 설치하지 않으므로 `cluster-render`를 먼저 준비해야 합니다. 만든 키트에는 SDK가 들어갈 수 있으니 공개하지 마세요.

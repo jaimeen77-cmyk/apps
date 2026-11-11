@@ -1,84 +1,134 @@
-# Installation · MGU Store / iDrive 7
+# Installation guide
 
-[한국어](INSTALL.ko.md) · [Redline user guide](CLUSTER-REDLINE.md) · [Screenshots](../screenshots/README.md)
+[한국어](INSTALL.ko.md) · [User guide](USER-GUIDE.md) · [Screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
-This repository distributes **Cluster Redline 1.2.0** and **iDrive Circuit 1.0.0**, each in Korean and English. This guide covers app installation; it does not perform head-unit flashing or coding.
+How to install the apps in this repository on a BMW iDrive 7 (MGU) head unit with MGU Store. Flashing and coding the head unit are not covered.
 
-## Prerequisites
+## Apps
 
-- iDrive 7 with MGU Store installed and online
-- **Cluster renderer (`cluster-render`) 0.4.0 or newer** for Redline
-- A parked vehicle with stable power through installation
+| Store name | Install ID | Version | Requires | Starts |
+|---|---|---|---|---|
+| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.6 | mgu-deploy 0.7.17+, cluster-render 0.4.0+ | automatically, in the background |
+| Cluster Redline (English) | `cluster_redline_en` | 1.2.6 | same | automatically, in the background |
+| 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 | mgu-deploy 0.7.17+ | from the app list |
+| iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 | same | from the app list |
+| 저장공간 (한국어) | `storage` | 1.0.1 | mgu-deploy 0.7.17+ | from the app list |
+| Storage (English) | `storage_en` | 1.0.1 | same | from the app list |
 
-The Store's normal screen renderer and Redline's `cluster-render` are separate components. Circuit alone does not need `cluster-render`. Store resolves requirements when a registered source provides them; otherwise register the appropriate renderer source first.
+The 15 general Korean iDrive apps are installed from the separate [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR) repository.
 
-For MGU Store itself, follow [its developer's installation guide](https://github.com/robertnisipeanu/mgu-store).
+## Before you start
 
-## Install through MGU Store
+- iDrive 7 with MGU Store and an internet connection. To install MGU Store itself, follow the [MGU Store instructions](https://github.com/robertnisipeanu/mgu-store).
+- Keep the car parked with stable power while installing.
+- For Cluster Redline, the default source **`robertnisipeanu/idrive-apps`** must be in the Store's source list: the cluster renderer (`cluster-render`) comes from it. If you removed it, add it again and run **Releases → Check now**.
 
-1. Open **Settings → Add source**.
-2. Enter repository `jaimeen77-cmyk/apps` and branch `main`.
-3. Run **Check now / Refresh**. If Offline, connect the head unit to the internet in Settings first.
-4. Choose the desired language listing below and select **Install**.
-5. Follow the dependency-tool prompts. Restart the head unit after installation only when instructed.
-6. Open the app from the vehicle's app list.
+## 1. Add the source
 
-| Listing | Installed ID | Version |
-|---|---|---|
-| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.0 |
-| Cluster Redline (English) | `cluster_redline_en` | 1.2.0 |
-| 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 |
-| iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 |
+1. In MGU Store open **Settings → Add source**.
+2. Enter **`jaimeen77-cmyk/apps`** (or `https://github.com/jaimeen77-cmyk/apps`).
+3. Choose the **main** branch as the channel, not Releases.
+4. Run **Check now**. If the Store shows Offline, check the internet connection in Settings first.
 
-Select the language in the listing; no PC language flag is needed. Store assembles the SDK-free UI/runtime with current app code and prepares the vehicle SDK through its existing installation process.
+## 2. Install
 
-## First Redline setup
+1. Pick the app in the language you want and press **Install**.
+2. For Cluster Redline the Store handles the renderer first:
 
-1. Confirm **v1.2.0** at the top of the app.
-2. In **Basic settings**, choose the vehicle preset, units and shift-alert RPM.
-3. In **HUD display setting / CLUSTER display setting**, select **Redline app** for the modes you want. HUD RPM defaults to Stock.
-4. Use **Start app** for current output. Enable **App auto start** if it should run at the next process launch.
-5. For cluster output, use BMW **Instrument cluster → Central display area → Map view or Off**. Assist and other apps may cover it.
-6. Configure NAV and start phone guidance. Supported direction, distance and description appear only when received from the vehicle.
+   | Renderer | What the Store does |
+   |---|---|
+   | not installed | installs cluster-render, then Cluster Redline |
+   | older than 0.4.0 | updates cluster-render, then Cluster Redline |
+   | 0.4.0 or newer | keeps it and installs Cluster Redline only |
+   | not found in any source | stops and names the version needed; check the source above |
 
-Korean and English are separate apps. If both are installed, use **Stop app** and turn **App auto start Off** in the unused edition to avoid output contention.
+3. If a restart is requested, follow the prompt after installation finishes.
+4. Open the app from the car's app list and check the version (Cluster Redline shows **v1.2.6** at the top right).
 
-## Update, stop and remove
+![Basic settings after installation](../screenshots/cluster_redline/settings-basic-en.png)
 
-- Refresh the same `main` source, then use **Installed → Update**. Check the visible app version afterward.
-- **Stop app** stops the live worker, subscriptions and rendering connections, keeping settings available for restarting.
-- **App auto start** controls the next process launch, including after an update/restart. Turn it Off if output should remain stopped.
-- Remove an app from **Installed**. Check Store's removal prompt for setting-retention behavior.
+## 3. First start of Cluster Redline
 
-On its first launch, 1.2.0 applies the new NAV defaults and separates auxiliary placement into left/right controls. An existing 50px cluster adjustment is not applied twice. Subsequent component adjustments persist. Select Stock output or Stop app if an output covers another view.
+Cluster Redline starts on its own after installation. By default it shows **on the cluster in Sport only**, and the HUD keeps the stock RPM.
+
+1. In **Basic settings** choose the **Vehicle preset** (Petrol, Diesel, eDrive (PHEV), M).
+2. To show it on the HUD too, set **HUD display setting → Sport mode RPM display** to **Redline app**.
+3. If nothing appears on the cluster, set the BMW **Instrument cluster → Central display area** to **Map view** or **Off**. Driving assistant views or route previews can cover it.
+4. Switch to Sport and check the RPM display.
+
+See the [user guide](USER-GUIDE.md) for every setting.
+
+## Updating
+
+1. Refresh this source in the Store with **Check now**.
+2. In **Installed**, pick the app and press **Update**.
+3. Open the app and check the new version. Settings and saved positions are kept.
+
+## Stopping and removing
+
+- **Stop app** (Basic settings → App operation): stops the display now and ends the vehicle subscriptions. You can start it again from the settings screen.
+- **App auto start**: whether the app starts on the next ignition or restart. Turn it off too if you want it to stay off after updates.
+- **Remove**: in the Store, open **Installed**, pick the app and remove it.
+
+## Korean and English editions
+
+- The two editions are separate apps. Install the entry with the language you want; nothing else needs to be typed.
+- Changing the car or Store language does not change an installed app's language.
+- Settings and saved positions are not shared between editions.
+- If both Cluster Redline editions are installed, set **Stop app** and **App auto start: Off** in the one you don't use. Otherwise both compete for the same screen.
 
 ## Troubleshooting
 
-| Symptom | First checks |
+| Symptom | Check |
 |---|---|
-| Empty listing | Internet connection, repository spelling, `main`, source refresh |
-| Old settings after update | Visible version, installed language/ID and another edition running |
-| Missing RPM | Start app, output choices for the current mode, renderer version and live vehicle signals |
-| Covered by Assist/another app | BMW central-display choice and competing app output |
-| Battery/voltage/economy shows `--` | Vehicle support and freshness; missing measurements are not estimated |
-| HUD returns to stock guidance | Unsupported or stale guidance yields to stock. Delivery varies with phone/map app/version. |
-| install failed / interface error | Keep the exact error/version; see the [installation diagnostics](REDLINE-INSTALL-FAILED.ko.md) |
+| The apps are not listed | internet connection, repository spelling, **main** branch, Check now |
+| "renderer not found" | `robertnisipeanu/idrive-apps` in the source list, Releases → Check now |
+| Old screens after updating | version at the top right of the app, which edition you installed, whether the other edition is running |
+| No RPM on the cluster or HUD | app running, **Redline app** selected for the current drive mode, the drive mode itself |
+| Covered on the cluster | Central display area (Map view/Off), driving assistant view, other apps' output |
+| Disappears from the HUD during music or calls | stock HUD pop-ups take priority (renderer policy); it returns when the pop-up closes |
+| An auxiliary value shows `--` | the car does not send it or the value is stale; values are never guessed. Outside temperature appears after the car sends its first value. |
+| Navigation switches to stock | without current guidance the app gives way to the stock guidance |
+| `UPDATE_FAILED` / install failed | the previous version was kept; note the message and version and collect the logs below |
 
-For persistent issues, collect logs using the [log guide](COLLECT-CLUSTER-REDLINE.ko.md) and include settings screenshots. Gallery images are real app renders with example data, not vehicle captures. Vehicle-specific installation, signal delivery and display recovery still need real-car verification.
+## Collecting logs (Windows PC, SSH users)
 
-## Advanced: build on a PC
+Only if you can reach the car over SSH. Neither tool changes files on the car or restarts services, and your key file is never included in the report.
 
-Merge the source overlay into a full upstream project using the [integration guide](JAM-INTEGRATION.ko.md). Run these commands **from the merged upstream project**, with your own extracted SDK available.
+| Situation | Tool | Report |
+|---|---|---|
+| Install or update failed | `tools/collect-redline-install.ps1` | `cluster-redline-install-report-<date>-<time>.txt` |
+| Flicker or display problems | `tools/collect-cluster-redline.ps1` | `cluster-redline-report-<date>-<time>.txt` |
 
 ```powershell
-python kit/tools/make_kit.py --language ko cluster_redline
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\collect-redline-install.ps1 -CarIp "CAR_IP" -IdentityFile "C:\path\id_rsa"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\collect-cluster-redline.ps1 -CarIp "CAR_IP" -IdentityFile "C:\path\id_rsa"
 ```
 
-Korean output is `dist/mgu-custom-apps-ko.tar.gz`. Omit `--language ko` for English (`dist/mgu-custom-apps.tar.gz`). Add `idrive_circuit` to include Circuit.
+When the display tool asks, switch to Sport once and wait until it finishes (about 55 s). Send only the TXT report, never the key file.
 
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File ".\deploy\push-to-car.ps1" check -Key "C:\keys\id_rsa" -Ip "HEAD_UNIT_IP" -Kit ".\dist\mgu-custom-apps-ko.tar.gz"
-powershell.exe -ExecutionPolicy Bypass -File ".\deploy\push-to-car.ps1" install -Key "C:\keys\id_rsa" -Ip "HEAD_UNIT_IP" -Kit ".\dist\mgu-custom-apps-ko.tar.gz"
-```
+## Advanced: build on a PC and install
 
-Replace the key/IP and install the required `cluster-render` separately. PC packages can contain the SDK and must not be publicly redistributed.
+For the classic idrive7-apps workflow (`make_kit` + `push-to-car`) instead of the Store. You need the SDK extracted from your own car.
+
+1. Put this repository next to the original `idrive7-apps` and merge the three apps (Circuit, Cluster Redline, Storage) from this repository's folder:
+
+   ```powershell
+   python tools/install-overlay.py ../idrive7-apps
+   ```
+
+   Choose some with `--apps cluster_redline storage`. If an existing file differs it stops without changing anything; check it, then use `--force`. Storage needs a kit that builds home-screen widgets (such as appsKOR); an unsupported kit is reported before anything is copied.
+2. In the merged `idrive7-apps` folder build the kit (`--language ko` for Korean; omit it for English):
+
+   ```powershell
+   python kit/tools/make_kit.py cluster_redline idrive_circuit storage
+   ```
+
+3. Check, then install:
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 check -Kit dist\mgu-custom-apps.tar.gz -Key <SSH key path> -Ip <head unit IP>
+   powershell -ExecutionPolicy Bypass -File deploy\push-to-car.ps1 install -Kit dist\mgu-custom-apps.tar.gz -Key <SSH key path> -Ip <head unit IP>
+   ```
+
+This path does not install the renderer, so `cluster-render` must already be installed. The kit can contain the SDK; do not publish it.

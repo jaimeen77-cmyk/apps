@@ -1,6 +1,6 @@
 # Screenshots · Cluster Redline 1.2.6 / iDrive Circuit 1.0.0
 
-[한국어 설치](../docs/INSTALL.ko.md) · [한국어 사용법](../docs/CLUSTER-REDLINE.ko.md) · [English installation](../docs/INSTALL.md) · [English user guide](../docs/CLUSTER-REDLINE.md)
+[설치 설명서](../docs/INSTALL.ko.md) · [사용 설명서](../docs/USER-GUIDE.ko.md) · [Installation guide](../docs/INSTALL.md) · [User guide](../docs/USER-GUIDE.md)
 
 실제 앱 렌더러에 예시 데이터를 넣어 만든 화면입니다. 차량 촬영 사진이 아니며, 차량·휴대전화별 신호 지원 여부를 보증하지 않습니다.
 

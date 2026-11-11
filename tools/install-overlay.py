@@ -8,7 +8,10 @@ import shutil
 import sys
 
 HERE = Path(__file__).resolve().parent.parent
-APPS = ('idrive_circuit', 'cluster_redline')
+APPS = ('idrive_circuit', 'cluster_redline', 'storage')
+# Kit features Storage needs from the target: the home-screen widget build step
+# and the canvas helpers its screens use.
+STORAGE_NEEDS = (('kit/tools/build.py', 'startWidget'), ('kit/runtime/canvas.js', 'ScaledCanvas'), ('kit/runtime/canvas.js', 'withAlpha'))
 
 
 def main():
@@ -22,32 +25,33 @@ def main():
     selected = list(dict.fromkeys(args.apps))
     if target == HERE or not (target / 'kit/tools/build.py').is_file() or not (target / 'apps').is_dir():
         parser.error('Target must be a separate upstream idrive7-apps checkout')
+    if 'storage' in selected:
+        missing = [need for path, need in STORAGE_NEEDS
+                   if not (target / path).is_file() or need not in (target / path).read_text(encoding='utf-8', errors='replace')]
+        if missing:
+            parser.error('Target kit cannot build storage (missing ' + ', '.join(missing) + '); update the target kit or leave out --apps storage')
     files = []
     for app in selected:
-        files.extend(p.relative_to(HERE) for p in (HERE / 'apps' / app).rglob('*') if p.is_file())
+        # apps/<id>/screenshots are documentation; the kit build would pack any folder into the app
+        files.extend(p.relative_to(HERE) for p in (HERE / 'apps' / app).rglob('*')
+                     if p.is_file() and p.relative_to(HERE / 'apps' / app).parts[0] != 'screenshots')
         images = HERE / 'screenshots' / app
         if images.is_dir():
             files.extend(p.relative_to(HERE) for p in images.rglob('*') if p.is_file())
         if app == 'idrive_circuit':
             files += [Path('kit/icons/idrive_circuit.svg'), Path('kit/tools/test_idrive_circuit.js')]
-        else:
+        elif app == 'cluster_redline':
             files.extend(p.relative_to(HERE) for p in (HERE / 'tests/cluster_redline').glob('*.js'))
     files += [Path('tools') / p for p in ('cluster-redline-preview.js', 'cluster-redline-preflight.js',
                                        'cluster-redline-settings-preview.js', 'collect-cluster-redline.ps1', 'collect-redline-install.ps1', 'install-overlay.py', 'upstream-integration.py')]
     files += [Path('tests') / p for p in ('metadata.test.js', 'standard-installer.test.py',
                                        'standard-kit.test.py', 'overlay.test.py', 'collect-cluster-redline.test.py', 'collect-redline-install.test.py', 'cluster-redline-manifest.test.py', 'hud-slot-request.test.py', 'cluster-slot-takeover.test.py', 'native-hud-guidance.test.py', 'native-cluster-recovery.test.py', 'optional-guidance.test.py', 'optional-auxiliary.test.py', 'optional-lanes.test.py')]
     files += [Path(p) for p in (
-        'docs/JAM-INTEGRATION.ko.md',
-        'docs/VALIDATION.ko.md',
-        'docs/CLUSTER-REDLINE.ko.md',
-        'docs/CLUSTER-REDLINE.md',
         'docs/INSTALL.ko.md',
         'docs/INSTALL.md',
+        'docs/USER-GUIDE.ko.md',
+        'docs/USER-GUIDE.md',
         'localization/ko-additions.tsv',
-        'docs/REDLINE-INSTALL-FAILED.ko.md',
-        'docs/COLLECT-CLUSTER-REDLINE.ko.md',
-        'docs/CLUSTER-OVERLAY-RESEARCH.ko.md',
-        'docs/AUTO-RENDERER.ko.md',
         'LICENSES/MPL-2.0.txt',
         'LICENSES/GPL-3.0-or-later.txt',
         'NOTICE.cluster-redline.md',
@@ -77,6 +81,9 @@ def main():
     if not args.no_ko:
         additions = dict(line.split('\t', 1) for line in (HERE / 'localization/ko-additions.tsv').read_text(encoding='utf-8').splitlines()
                          if line and not line.startswith('#') and '\t' in line)
+        if 'storage' in selected:
+            # Storage keeps its Korean words in its own app.json (as the Store build reads them).
+            additions.update(json.loads((HERE / 'apps/storage/app.json').read_text(encoding='utf-8')).get('translations', {}).get('ko', {}))
         words = json.loads(ko.read_text(encoding='utf-8'))
         words.update(additions)
         tsv = target / 'kit/runtime/locales/ko.tsv'

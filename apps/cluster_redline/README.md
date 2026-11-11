@@ -2,12 +2,10 @@
 
 [한국어](README.ko.md)
 
-An iDrive 7 app for cluster/HUD RPM, gear, shift alerts and received navigation guidance.
+An iDrive 7 app that shows RPM, gear, a shift alert and auxiliary readings on the instrument cluster and HUD, plus phone navigation on the HUD.
 
-- [Installation](../../docs/INSTALL.md)
-- [User guide](../../docs/CLUSTER-REDLINE.md)
-- [Complete new screenshot gallery](../../screenshots/README.md)
-- [Changelog](../../CHANGELOG.md)
+- [Installation guide](../../docs/INSTALL.md)
+- [User guide](../../docs/USER-GUIDE.md#cluster-redline)
+- [Screenshots](../../screenshots/README.md) · [Changelog](../../CHANGELOG.md) · [Licenses](../../NOTICE.cluster-redline.md)
 
-![HUD circle](../../screenshots/cluster_redline/hud-circle-en.png)
-![Cluster bar](../../screenshots/cluster_redline/cluster-bar-en.png)
+![HUD](../../screenshots/cluster_redline/hud-circle-en.png)

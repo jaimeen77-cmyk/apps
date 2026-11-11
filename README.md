@@ -6,10 +6,8 @@
 
 | Documentation | English | 한국어 |
 |---|---|---|
-| Install | [Installation](docs/INSTALL.md) | [설치 안내](docs/INSTALL.ko.md) |
-| Use Redline | [User guide](docs/CLUSTER-REDLINE.md) | [사용 설명서](docs/CLUSTER-REDLINE.ko.md) |
-| Use Storage | [Storage](apps/storage/README.md) | [저장공간](apps/storage/README.ko.md) |
-| Use Circuit | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
+| Install | [Installation guide](docs/INSTALL.md) | [설치 설명서](docs/INSTALL.ko.md) |
+| Use (Redline, Storage, Circuit) | [User guide](docs/USER-GUIDE.md) | [사용 설명서](docs/USER-GUIDE.ko.md) |
 
 Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.2.6** in the app. Stop and disable auto-start in an unused language edition if both are installed.
 
@@ -23,7 +21,7 @@ Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and c
 
 [All screenshots: metrics, navigation, settings and red alerts](screenshots/README.md). Images use the actual app renderer with example data; real-vehicle verification of this release remains pending.
 
-[Source integration / 소스 통합](docs/JAM-INTEGRATION.ko.md) · [Changelog / 업데이트 이력](CHANGELOG.md) · [Licenses](NOTICE.cluster-redline.md)
+[Build on a PC](docs/INSTALL.md#advanced-build-on-a-pc-and-install) · [Changelog / 업데이트 이력](CHANGELOG.md) · [Licenses](NOTICE.cluster-redline.md)
 
 For the 15 localized upstream iDrive apps, use the separate [appsKOR repository](https://github.com/jaimeen77-cmyk/appsKOR). This repository offers Circuit, Cluster Redline and Storage in Korean and English.
 

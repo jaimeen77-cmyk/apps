@@ -2,12 +2,10 @@
 
 [English](README.md)
 
-HUD·클러스터 RPM·기어·변속 알림과 수신 길안내를 표시하는 iDrive 7 앱입니다.
+계기판과 HUD에 RPM·기어·변속 알림과 부가정보를 띄우고, 휴대전화 길안내를 HUD에 함께 보여 주는 iDrive 7 앱입니다.
 
-- [한국어 설치 안내](../../docs/INSTALL.ko.md)
-- [한국어 사용 설명서](../../docs/CLUSTER-REDLINE.ko.md)
-- [새 스크린샷 전체](../../screenshots/README.md)
-- [업데이트 이력](../../CHANGELOG.md)
+- [설치 설명서](../../docs/INSTALL.ko.md)
+- [사용 설명서](../../docs/USER-GUIDE.ko.md#계기판-레드라인)
+- [스크린샷](../../screenshots/README.md) · [업데이트 이력](../../CHANGELOG.md) · [라이선스](../../NOTICE.cluster-redline.md)
 
-![HUD 원형](../../screenshots/cluster_redline/hud-circle-ko.png)
-![클러스터 상단선](../../screenshots/cluster_redline/cluster-bar-ko.png)
+![HUD](../../screenshots/cluster_redline/hud-circle-ko.png)
