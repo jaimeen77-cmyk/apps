@@ -19,6 +19,7 @@ Version history is kept here. For current usage, see the [user guide](docs/USER-
 
 ### 1.2.7
 
+- New cluster setting **Yield to Waze map**: all modes incl. Sport / all modes except Sport / don't yield (default). When yielding, the cluster map layer goes under other apps' map layers (Waze on cluster, content z 0) and is no longer exclusive, so a streamed map covers it; it switches with the drive mode without rebuilding the layer. HUD and panel output are unchanged.
 - Outside temperature is now read exactly as the eDrive app reads it: subscribed only (also when the car's catalog lists a getter, which is never read) and the last value the car sends is kept. It is no longer cleared while the interface is not reported available (some bindings never report availability); only a failed subscription clears it. Other auxiliary items are unchanged.
 
 ### 1.2.6

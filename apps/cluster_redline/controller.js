@@ -4,6 +4,7 @@ const gear = require('./gear');
 const { Telemetry } = require('./telemetry');
 const { UploadPacer } = require('./upload');
 const { placement } = require('./layout');
+const { wazeYield } = require('./display-config');
 // Only these exact server contracts describe a lost layer or temporary
 // resource/attachment failure. Malformed frames, unsupported targets, native
 // slot refusals and guard decisions must not become retry loops.
@@ -137,6 +138,10 @@ class Controller {
         const navContend = hud && cfg.hudNavigationEnabled && !!(d.navigation && d.navigation.visible);
         if (hud && !navContend) this.yieldGuidance();
         d.placement = rect;
+        // Waze on cluster draws its map as a content layer at z 0 on the same map target. To yield, our
+        // layer goes under it and stops hiding the layers below; the opaque map then covers it while it plays.
+        const underMap = !panel && !hud && wazeYield(cfg, d.mode);
+        d.wazeYield = underMap;
         d.flash = d.shift && Math.floor(now / 250) % 2 === 0;
         if (this.ref && this.placementKey !== placementKey) {
             if (this.liveLayout) this.client.set(this.ref, { x: rect.x, y: rect.y, w: rect.w, h: rect.h });
@@ -146,7 +151,7 @@ class Controller {
         if (!this.ref) {
             // Preserve alpha inside the image too; shrink its footprint so the
             // frame/text do not extend into the factory dials as 0.5.0 did.
-            this.ref = this.client.image({ target: cfg.displayTarget, klass: panel ? 'overlay' : 'content', z: 100,
+            this.ref = this.client.image({ target: cfg.displayTarget, klass: panel ? 'overlay' : 'content', z: underMap ? -100 : 100,
                 x: rect.x, y: rect.y, w: rect.w, h: rect.h, iw: painter.W, ih: painter.H, sampling: 'bilinear',
                 // An exclusive image keeps its last complete frame if a write
                 // fails; a nonexclusive image is hidden during the rewrite.
@@ -163,12 +168,16 @@ class Controller {
                 // HUD contention is enabled after the composed pixels below.
                 // Missing data yields the slot without destroying the RPM
                 // image; native popup yielding and takeover limits still apply.
-                visible: false, prewarm: false, exclusive: !hud, contend: !panel && !hud, guide_hold: !panel && !hud, fps: d.config.frameRate });
+                visible: false, prewarm: false, exclusive: !hud && !underMap, contend: !panel && !hud, guide_hold: !panel && !hud, fps: d.config.frameRate });
             if (!this.ref) { this.fail('layer', 'client did not create a layer'); d.show = false; d.reason = 'renderer_refused'; return d; }
             this.layerState = 'waiting';
             this.layerRate = d.config.frameRate;
             this.layerScale = cfg.widgetScale;
             this.targetName = cfg.displayTarget;
+            this.underMap = underMap;
+        } else if (this.underMap !== underMap) {
+            this.client.set(this.ref, { z: underMap ? -100 : 100, exclusive: !hud && !underMap });
+            this.underMap = underMap;
         }
         // Do not repaint a whole canvas 60 times/s when no source value changed.
         // Keep freshness/mode checks above this cache so stale signals still hide.

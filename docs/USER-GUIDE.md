@@ -159,6 +159,20 @@ Standard · Minimal · Split wings / 80s digital dash · VFD glow · Vector arca
 |---|---|
 | ![Turns](../screenshots/cluster_redline/navigation-directions-en.png) | ![Motorway](../screenshots/cluster_redline/navigation-highway-en.png) |
 
+### Yield to Waze map (cluster)
+
+CLUSTER display setting → **Yield to Waze map**: whether Cluster Redline steps aside when another app, such as [Waze on cluster](https://github.com/robertnisipeanu/idrive-apps/tree/main/apps/robertn_waze_cluster), sends a map to the centre of the cluster.
+
+| Choice | Behaviour |
+|---|---|
+| All modes incl. Sport | in every drive mode the map shows and Cluster Redline goes under it |
+| All modes except Sport | Cluster Redline stays on top in Sport modes; the map is on top in the others |
+| Don't yield (default) | Cluster Redline stays on top and covers the map |
+
+- When the map stops or the route ends, Cluster Redline shows again. It follows drive-mode changes at once.
+- Only for the cluster's centre (map area); the HUD is unchanged.
+- While yielding, Cluster Redline does not hide the layers below it, so it can briefly disappear when the upload budget runs short.
+
 ### Good to know
 
 - Stock HUD pop-ups (music, calls) take priority over Cluster Redline; it returns when they close.
