@@ -7,7 +7,9 @@ const manifest=()=>({proxies:{[ENV]:{attributes:{ExteriorTemperature:'rs'}}}});
 const catalog=field=>({interfaces:{[ENV]:{fields:{ExteriorTemperature:field}}}});
 const mode=field=>{const m=filterAux(manifest(),catalog(field));return m.proxies[ENV].attributes.ExteriorTemperature;};
 assert.strictEqual(mode({notifier:{id:32770}}),'s','notifier only: subscribe (as the eDrive app does)');
-assert.strictEqual(mode({getter:{id:7},notifier:{id:32770}}),'rs');assert.strictEqual(mode({getter:{id:7}}),'r');
+assert.strictEqual(mode({getter:{id:7},notifier:{id:32770}}),'s','with a notifier the outside temperature is subscribed only, never read');assert.strictEqual(mode({getter:{id:7}}),'r');
+{const CDS2='de.bmw.infotainment.vehicle.CDS2',m=filterAux({proxies:{[CDS2]:{attributes:{statusInjectionVolume:'rs'}}}},{interfaces:{[CDS2]:{fields:{statusInjectionVolume:{getter:{id:7},notifier:{id:32770}}}}}});
+ assert.strictEqual(m.proxies[CDS2].attributes.statusInjectionVolume,'rs','other fields keep getter + notifier');}
 assert.strictEqual(mode({}),undefined,'neither: the optional field is dropped');assert.strictEqual(mode(undefined),undefined);
 const values={};spec.settings.forEach(s=>{values[s.key]=s.default;});
 const page=new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;},setMany(c){Object.assign(values,c);}},null,'1.2.6');

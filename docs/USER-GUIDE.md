@@ -2,7 +2,7 @@
 
 [한국어](USER-GUIDE.ko.md) · [Installation guide](INSTALL.md) · [Screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
-- [Cluster Redline 1.2.6](#cluster-redline)
+- [Cluster Redline 1.2.7](#cluster-redline)
 - [Storage 1.0.2](#storage)
 - [iDrive Circuit 1.0.0](#idrive-circuit)
 

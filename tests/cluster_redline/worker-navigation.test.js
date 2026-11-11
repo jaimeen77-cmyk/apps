@@ -84,7 +84,7 @@ function harness(options) {
         loadConfig(iface) {
             loads.push(iface);
             if(opt.lanes&&iface===LANES)return {fields:{[LANE_FIELD]:{getter:{id:7}}}};
-            if(opt.aux&&SOURCES.some(s=>s.iface===iface)){const fields={};SOURCES.filter(s=>s.iface===iface).forEach(s=>{fields[s.field]=opt.outsideNotifyOnly&&s.field==='ExteriorTemperature'?{notifier:{id:32770}}:{getter:{id:1}};});return {fields};}
+            if(opt.aux&&SOURCES.some(s=>s.iface===iface)){const fields={};SOURCES.filter(s=>s.iface===iface).forEach(s=>{fields[s.field]=s.field==='ExteriorTemperature'&&opt.outsideNotifyOnly?(opt.outsideNotifyOnly==='both'?{getter:{id:1},notifier:{id:32770}}:{notifier:{id:32770}}):{getter:{id:1}};});return {fields};}
             if(opt.routeEvents&&iface===ROUTE_EVENTS)return {methods:{queryContent:{methodId:4}}};
             if(opt.renderedHUD&&iface===HUD_GUIDANCE)return {fields:{registeredViews:{getter:{id:1}}},methods:{getViewConfig:{methodId:5},getViewContent:{methodId:3}}};
             if (iface === guidance.INTERFACE) {
@@ -372,8 +372,18 @@ async function notifierOnlyOutsideTemperature(){
   outside.handlers.ExteriorTemperature({temperatureExterior:116});h.tick(1100);assert.strictEqual(h.worker.controller.aux.outside,18);
   h.tick(61100);await flush();assert.strictEqual(h.worker.controller.aux.outside,18,'the last notified value stays while the interface is available');
   outside.handlers.ExteriorTemperature({temperatureExterior:117});h.tick(61200);assert.strictEqual(h.worker.controller.aux.outside,18.5);
-  outside.sub.available=false;h.tick(61300);assert.strictEqual(h.worker.controller.aux.outside,null,'interface loss clears it');
+  outside.sub.available=false;h.tick(61300);assert.strictEqual(h.worker.controller.aux.outside,18.5,'kept while the provider is not reported available (eDrive does not check)');
+  outside.sub.error='subscription failed';h.tick(61400);assert.strictEqual(h.worker.controller.aux.outside,null,'a failed subscription clears it');
  }finally{h.worker.stop();await flush();h.stopped();}
+ // With a getter and a notifier the outside temperature is still subscribed only: the getter is never read.
+ const g=harness({aux:true,outsideNotifyOnly:'both'});
+ try{
+  g.config.hudAuxConfig=JSON.stringify({mode:'values',items:['outside']});
+  await flush();g.navigate('INACTIVE');g.tick(1000);await flush();g.tick(5000);await flush();g.tick(30000);await flush();
+  assert(!g.auxReads.some(r=>r.field==='ExteriorTemperature'),'the outside temperature getter is never polled');
+  const w=g.watches.find(x=>x.handlers.ExteriorTemperature);w.handlers.ExteriorTemperature({temperatureExterior:100});g.tick(30100);assert.strictEqual(g.worker.controller.aux.outside,10);
+  w.sub.available=false;g.tick(90000);assert.strictEqual(g.worker.controller.aux.outside,10);
+ }finally{g.worker.stop();await flush();g.stopped();}
 }
 async function slowAuxiliaryCadence(){
  const h=harness({aux:true});

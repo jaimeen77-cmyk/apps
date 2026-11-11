@@ -17,6 +17,10 @@ Version history is kept here. For current usage, see the [user guide](docs/USER-
 
 ## Cluster Redline
 
+### 1.2.7
+
+- Outside temperature is now read exactly as the eDrive app reads it: subscribed only (also when the car's catalog lists a getter, which is never read) and the last value the car sends is kept. It is no longer cleared while the interface is not reported available (some bindings never report availability); only a failed subscription clears it. Other auxiliary items are unchanged.
+
 ### 1.2.6
 
 - Outside temperature now shows on cars that publish `EnvironmentalInformation.ExteriorTemperature` only as a notification (no getter). The Store build used to drop a field without a getter and the worker only polled; the field is now subscribed (`s`) and the last notified value is kept while the interface is available, as the eDrive app does. Cars with a getter keep `r`/`rs` and polling. A fractional raw value (0.5 °C steps) is accepted.

@@ -8,8 +8,8 @@ How to install the apps in this repository on a BMW iDrive 7 (MGU) head unit wit
 
 | Store name | Install ID | Version | Requires | Starts |
 |---|---|---|---|---|
-| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.6 | mgu-deploy 0.7.17+, cluster-render 0.4.0+ | automatically, in the background |
-| Cluster Redline (English) | `cluster_redline_en` | 1.2.6 | same | automatically, in the background |
+| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.7 | mgu-deploy 0.7.17+, cluster-render 0.4.0+ | automatically, in the background |
+| Cluster Redline (English) | `cluster_redline_en` | 1.2.7 | same | automatically, in the background |
 | 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 | mgu-deploy 0.7.17+ | from the app list |
 | iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 | same | from the app list |
 | 저장공간 (한국어) | `storage` | 1.0.2 | mgu-deploy 0.7.17+ | from the app list |
@@ -43,7 +43,7 @@ The 15 general Korean iDrive apps are installed from the separate [appsKOR](http
    | not found in any source | stops and names the version needed; check the source above |
 
 3. If a restart is requested, follow the prompt after installation finishes.
-4. Open the app from the car's app list and check the version (Cluster Redline shows **v1.2.6** at the top right).
+4. Open the app from the car's app list and check the version (Cluster Redline shows **v1.2.7** at the top right).
 
 ![Basic settings after installation](../screenshots/cluster_redline/settings-basic-en.png)
 

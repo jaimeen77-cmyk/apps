@@ -100,7 +100,7 @@ function start(ctx) {
                     const f=cfg.fields&&cfg.fields[source.field];if(!f||!f.getter&&!f.notifier)return;
                     // A notifier-only field (the exterior temperature on some cars, as the eDrive app reads it)
                     // cannot be polled: keep its last notified value while the interface is available.
-                    const notifyOnly=!f.getter,kept=notifyOnly?Object.assign({},source,{ttlMs:6*3600000}):source;
+                    const notifyOnly=!f.getter||!!(source.notify&&f.notifier),kept=notifyOnly?Object.assign({},source,{ttlMs:6*3600000}):source;
                     const entry={source,kept,notifyOnly,sub:null,pending:false,lastPoll:-Infinity,epoch:0,revision:0,available:false,wanted:false};entries.push(entry);
                     handlers[source.field]=value=>{if(!stopped){entry.revision++;if(entry.wanted||notifyOnly){entry.lastPoll=mono();auxInfo.sample(kept,value,entry.lastPoll);}}};
                 });
@@ -243,7 +243,9 @@ function start(ctx) {
                 const wanted=Object.keys(source.members).some(key=>neededAux.has(key==='oilFallback'?'oil':key==='gLat'||key==='gLong'?'gforce':key));
                 if(entry.wanted!==wanted){entry.epoch++;entry.wanted=wanted;entry.lastPoll=-Infinity;if(!entry.notifyOnly)auxInfo.clearSource(source);}
                 if(entry.available!==available){entry.epoch++;entry.available=available;}
-                if(!available){auxInfo.clearSource(source,'unavailable');return;}
+                // A subscribed-only value is kept while the provider is not reported available (eDrive does not check);
+                // only a failed subscription clears it.
+                if(!available){if(!entry.notifyOnly||sub.error)auxInfo.clearSource(source,'unavailable');return;}
                 if(!wanted&&!entry.notifyOnly){auxInfo.clearSource(source);return;}
                 if(entry.notifyOnly||!wanted||!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<source.pollMs)return;
                 entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;

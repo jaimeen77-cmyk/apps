@@ -8,8 +8,8 @@ BMW iDrive 7(MGU)에 MGU Store로 이 저장소의 앱을 설치하는 방법입
 
 | Store 표시 이름 | 설치 ID | 버전 | 필요 조건 | 시작 방식 |
 |---|---|---|---|---|
-| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.6 | mgu-deploy 0.7.17+, cluster-render 0.4.0+ | 백그라운드 자동 시작 |
-| Cluster Redline (English) | `cluster_redline_en` | 1.2.6 | 위와 같음 | 백그라운드 자동 시작 |
+| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.7 | mgu-deploy 0.7.17+, cluster-render 0.4.0+ | 백그라운드 자동 시작 |
+| Cluster Redline (English) | `cluster_redline_en` | 1.2.7 | 위와 같음 | 백그라운드 자동 시작 |
 | 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 | mgu-deploy 0.7.17+ | 앱 목록에서 직접 실행 |
 | iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 | 위와 같음 | 앱 목록에서 직접 실행 |
 | 저장공간 (한국어) | `storage` | 1.0.2 | mgu-deploy 0.7.17+ | 앱 목록에서 직접 실행 |
@@ -43,7 +43,7 @@ BMW iDrive 7(MGU)에 MGU Store로 이 저장소의 앱을 설치하는 방법입
    | 소스에서 찾지 못함 | 설치를 멈추고 필요한 버전을 안내 → 위 준비의 소스를 확인 |
 
 3. 재시작 안내가 나오면 설치가 끝난 뒤 안내대로 진행합니다.
-4. 차량 앱 목록에서 앱을 열고 화면 위쪽 버전(레드라인은 오른쪽 위 **v1.2.6**)을 확인합니다.
+4. 차량 앱 목록에서 앱을 열고 화면 위쪽 버전(레드라인은 오른쪽 위 **v1.2.7**)을 확인합니다.
 
 ![설치 후 기본설정 화면](../screenshots/cluster_redline/settings-basic-ko.png)
 

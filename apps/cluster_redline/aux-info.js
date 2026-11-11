@@ -14,7 +14,8 @@ const SOURCES=[
  {iface:CDS2,field:'statusInjectionVolume',members:{oilFallback:['oilTemperature',1,-48,255]}},
  {iface:CDS2,field:'statusLongitudinalAccelerationMassCenter',members:{gLong:['longitudinalAccelerationCentreOfGravity',0.002/9.80665,-65/9.80665,65535]}},
  {iface:CDS2,field:'statusLateralAccelerationMassCenter',members:{gLat:['lateralAccelerationCentreOfGravity',0.002/9.80665,-65/9.80665,65535]}},
- {iface:ENV,field:'ExteriorTemperature',members:{outside:['temperatureExterior',0.5,-40,255]}},
+ // notify: subscribe only and keep the last value, as the eDrive app reads it (its getter may fail on some cars).
+ {iface:ENV,field:'ExteriorTemperature',notify:true,members:{outside:['temperatureExterior',0.5,-40,255]}},
  {iface:CDS,field:'statusBattery2',members:{batteryCharge:['conditionBatteryChargingCondition',1,0,101]}},
  {iface:KOMBI,field:'statusBordcomputerAverage',members:{economy:[]},decode:economy}
 ];
@@ -44,7 +45,7 @@ function filterAux(manifest,catalog){
   // A getter is polled; a notifier-only field (the exterior temperature on some cars) is subscribed.
   const getter=f&&f.getter&&validId(f.getter.id,1,32767),notifier=f&&f.notifier&&validId(f.notifier.id,32768,65535);
   if(!getter&&!notifier){delete p.attributes[s.field];return;}
-  p.attributes[s.field]=getter?(notifier?'rs':'r'):'s';
+  p.attributes[s.field]=notifier&&(s.notify||!getter)?'s':getter&&notifier?'rs':'r';
  });
  [CDS2,KOMBI].forEach(i=>{if(proxies[i]&&!Object.keys(proxies[i].attributes||{}).length)delete proxies[i];});
  if(proxies[TASU]){if(!voltageSupported(catalog))delete proxies[TASU];else proxies[TASU]={instances:'SystemFunctionsInternalTasuInst1',methods:['sendTasuRequest'],broadcasts:['sendTasuResponse']};}

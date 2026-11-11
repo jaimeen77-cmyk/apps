@@ -156,9 +156,9 @@ def optional_lane_source(text):
 
 
 def optional_aux_source(text):
-    if '// Jam optional auxiliary fields v9' in text:
+    if '// Jam optional auxiliary fields v10' in text:
         return optional_lane_source(text)
-    addition = r"""        // Jam optional auxiliary fields v9: never drop required RPM/torque for an absent extra field; notifier-only fields are subscribed.
+    addition = r"""        // Jam optional auxiliary fields v10: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature are subscribed.
         const auxiliaryFields = [
             ["de.bmw.infotainment.vehicle.CDS", "statusEngineTemperature"],
             ["de.bmw.infotainment.vehicle.CDS", "statusBattery2"],
@@ -176,7 +176,7 @@ def optional_aux_source(text):
             const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
             const getter=field && field.getter && validId(field.getter.id,1,32767), notifier=field && field.notifier && validId(field.notifier.id,32768,65535);
             if(!getter && !notifier)delete proxy.attributes[name];
-            else proxy.attributes[name]=getter ? (notifier ? "rs" : "r") : "s";
+            else proxy.attributes[name]=notifier && (!getter || name === "ExteriorTemperature") ? "s" : getter && notifier ? "rs" : "r";
         });
         ["de.bmw.infotainment.vehicle.CDS2","de.bmw.infotainment.KombiIF"].forEach(iface=>{if(m.proxies[iface]&&!Object.keys(m.proxies[iface].attributes||{}).length)delete m.proxies[iface];});
         const tasu="com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu",def=have[tasu],ids=all.instanceIDs&&all.instanceIDs[tasu];
@@ -185,7 +185,7 @@ def optional_aux_source(text):
             else m.proxies[tasu]={instances:"SystemFunctionsInternalTasuInst1",methods:["sendTasuRequest"],broadcasts:["sendTasuResponse"]};
         }
 """
-    marker = next((m for m in ('        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
+    marker = next((m for m in ('        // Jam optional auxiliary fields v9', '        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
     if marker:
         start = text.index(marker)
         end = text.index('        // Jam optional guidance field persistence v3', start)
