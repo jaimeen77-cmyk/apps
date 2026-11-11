@@ -1,6 +1,6 @@
 # iDrive 7 Jam Apps
 
-**Cluster Redline 1.2.6** fixes the exterior temperature and ends Position / size when the settings screen is left. **iDrive Circuit 1.0.0** and **Storage 1.0.1** are also available.
+**Cluster Redline 1.2.6** fixes the exterior temperature and ends Position / size when the settings screen is left. **iDrive Circuit 1.0.0** and **Storage 1.0.2** are also available.
 
 [한국어](README.ko.md)
 
@@ -25,4 +25,4 @@ Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and c
 
 For the 15 localized upstream iDrive apps, use the separate [appsKOR repository](https://github.com/jaimeen77-cmyk/appsKOR). This repository offers Circuit, Cluster Redline and Storage in Korean and English.
 
-The 15 general Korean app listings and their latest compiled packages have moved to [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR). Refresh both main sources in MGU Store. This source lists six entries: the Korean and English editions of Circuit, Cluster Redline and Storage. Both Storage editions are version 1.0.1.
+The 15 general Korean app listings and their latest compiled packages have moved to [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR). Refresh both main sources in MGU Store. This source lists six entries: the Korean and English editions of Circuit, Cluster Redline and Storage. Both Storage editions are version 1.0.2.

@@ -1,4 +1,4 @@
-# Storage 1.0.1
+# Storage 1.0.2
 
 [한국어](README.ko.md)
 

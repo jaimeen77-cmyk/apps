@@ -12,8 +12,8 @@ How to install the apps in this repository on a BMW iDrive 7 (MGU) head unit wit
 | Cluster Redline (English) | `cluster_redline_en` | 1.2.6 | same | automatically, in the background |
 | 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 | mgu-deploy 0.7.17+ | from the app list |
 | iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 | same | from the app list |
-| 저장공간 (한국어) | `storage` | 1.0.1 | mgu-deploy 0.7.17+ | from the app list |
-| Storage (English) | `storage_en` | 1.0.1 | same | from the app list |
+| 저장공간 (한국어) | `storage` | 1.0.2 | mgu-deploy 0.7.17+ | from the app list |
+| Storage (English) | `storage_en` | 1.0.2 | same | from the app list |
 
 The 15 general Korean iDrive apps are installed from the separate [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR) repository.
 

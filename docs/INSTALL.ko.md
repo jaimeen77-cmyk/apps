@@ -12,8 +12,8 @@ BMW iDrive 7(MGU)에 MGU Store로 이 저장소의 앱을 설치하는 방법입
 | Cluster Redline (English) | `cluster_redline_en` | 1.2.6 | 위와 같음 | 백그라운드 자동 시작 |
 | 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 | mgu-deploy 0.7.17+ | 앱 목록에서 직접 실행 |
 | iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 | 위와 같음 | 앱 목록에서 직접 실행 |
-| 저장공간 (한국어) | `storage` | 1.0.1 | mgu-deploy 0.7.17+ | 앱 목록에서 직접 실행 |
-| Storage (English) | `storage_en` | 1.0.1 | 위와 같음 | 앱 목록에서 직접 실행 |
+| 저장공간 (한국어) | `storage` | 1.0.2 | mgu-deploy 0.7.17+ | 앱 목록에서 직접 실행 |
+| Storage (English) | `storage_en` | 1.0.2 | 위와 같음 | 앱 목록에서 직접 실행 |
 
 일반 한국어 iDrive 앱 15개는 별도 저장소 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)에서 설치합니다.
 

@@ -2,10 +2,10 @@
   "schema": 1,
   "id": "storage",
   "language": "en",
-  "source_version": "1.0.1",
+  "source_version": "1.0.2",
   "ui_sha256": "7bc4dfbf4945c7d9907995405c1817a6dd85f791142b2b71bd1d539205cf3730",
-  "size": 442085,
-  "sha256": "1325250f1e4141acc4b462e24c9860199f8dc41b865440a96bee58724445d2b2",
+  "size": 445951,
+  "sha256": "8fac982e3859fc7e930b2d278a7db0f0154c54000ba7a7cfaf4bdbbe8b5ade2d",
   "parts": [
     "storage.en.tgz.part-00",
     "storage.en.tgz.part-01",
@@ -15,7 +15,8 @@
     "storage.en.tgz.part-05",
     "storage.en.tgz.part-06",
     "storage.en.tgz.part-07",
-    "storage.en.tgz.part-08"
+    "storage.en.tgz.part-08",
+    "storage.en.tgz.part-09"
   ],
   "provenance": {
     "runtime": "jaimeen77-cmyk/appsKOR",

@@ -4,6 +4,10 @@ Version history is kept here. For current usage, see the [user guide](docs/USER-
 
 ## Storage
 
+### 1.0.2
+
+- New app icon: a memory card with a usage gauge, in the white line style of the other apps, replacing the clipped "storage" text icon. Used for the Store listing, the car's app list and the home widget in both editions; the runtime templates were regenerated from the same appsKOR kit commit (contents unchanged apart from the icon).
+
 ### 1.0.1
 
 - Publish separate Korean (`storage`) and English (`storage_en`) MGU Store entries, both version 1.0.1, with offline SDK-free builds and independent RHMI identities.

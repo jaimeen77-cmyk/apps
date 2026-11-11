@@ -2,7 +2,7 @@
   "id": "storage",
   "title": "Storage",
   "description": "Head-unit storage: free space per file system, RAM in use, per-app size, with a usage alert",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "vendor": "custom",
   "loggingId": "OST1",
   "iconGlyph": "GB",

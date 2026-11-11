@@ -2,10 +2,10 @@
   "schema": 1,
   "id": "storage",
   "language": "ko",
-  "source_version": "1.0.1",
+  "source_version": "1.0.2",
   "ui_sha256": "7bc4dfbf4945c7d9907995405c1817a6dd85f791142b2b71bd1d539205cf3730",
-  "size": 995292,
-  "sha256": "0cc9d2ba9af34229d1cede1621c97dd921efb71d0507a1751a742bbb79fa2c39",
+  "size": 1009420,
+  "sha256": "5cc35386b80b33a84da7f33b243686ef61233592fb166683a54f75742623772d",
   "parts": [
     "storage.tgz.part-00",
     "storage.tgz.part-01",

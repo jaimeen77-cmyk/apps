@@ -1,6 +1,6 @@
 # iDrive 7 Jam Apps · 한국어
 
-**계기판 레드라인 1.2.6** · 외기온도 표시 수정, 설정 화면을 벗어나면 위치 조절 자동 종료. **아이드라이브 회로 1.0.0**, **저장공간 1.0.1**도 함께 제공합니다.
+**계기판 레드라인 1.2.6** · 외기온도 표시 수정, 설정 화면을 벗어나면 위치 조절 자동 종료. **아이드라이브 회로 1.0.0**, **저장공간 1.0.2**도 함께 제공합니다.
 
 [English](README.md)
 
@@ -25,4 +25,4 @@ MGU Store에서 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가
 
 한국어 원본 iDrive 앱 15개는 별도 저장소 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)에서 제공합니다. 이 저장소는 Circuit·계기판 레드라인·저장공간 세 앱의 한국어/영어판을 제공합니다.
 
-일반 한국어 앱 15개의 Store 등록과 설치 레이어는 최신 버전 그대로 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)로 이동했습니다. MGU Store에서 두 소스의 main 채널을 새로고침하세요. 이 소스에는 Circuit·Cluster Redline·Storage의 한국어/영어 항목 6개를 제공합니다. 저장공간은 두 언어 모두 1.0.1입니다.
+일반 한국어 앱 15개의 Store 등록과 설치 레이어는 최신 버전 그대로 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)로 이동했습니다. MGU Store에서 두 소스의 main 채널을 새로고침하세요. 이 소스에는 Circuit·Cluster Redline·Storage의 한국어/영어 항목 6개를 제공합니다. 저장공간은 두 언어 모두 1.0.2입니다.
