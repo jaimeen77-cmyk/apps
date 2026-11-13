@@ -41,7 +41,7 @@ blocks the install plan instead of installing a renderer-less app.
 dependency and queue methods against both parsed listings. Set
 `MGU_STORE_UPDATER_JS` to an upstream `native/mgu-updater/js` folder.
 
-Storage 1.0.3 uses `python3 tools/prepare-storage.py --kit-root <appsKOR checkout>`
+Storage 1.0.4 uses `python3 tools/prepare-storage.py --kit-root <appsKOR checkout>`
 to generate both SDK-free language templates directly from the MIT kit,
 without an SDK build. Its translation dictionary is in `apps/storage/app.json`.
 Keep the template provenance and all font/framework notices.

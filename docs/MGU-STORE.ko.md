@@ -25,8 +25,8 @@ jaimeen77-cmyk/apps
 | iDrive Circuit (English) | 영어 | 앱 목록에서 수동 실행 | 위와 동일 |
 | 계기판 레드라인 (한국어) | 한국어 | 백그라운드 자동 시작 | 위 조건 + cluster-render 0.4.0+ |
 | Cluster Redline (English) | 영어 | 백그라운드 자동 시작 | 위와 동일 |
-| 저장공간 (한국어) 1.0.3 | 한국어 | 앱 목록에서 수동 실행 | iDrive 7, mgu-deploy 0.7.17+ |
-| Storage (English) 1.0.3 | 영어 | 앱 목록에서 수동 실행 | 위와 동일 |
+| 저장공간 (한국어) 1.0.4 | 한국어 | 앱 목록에서 수동 실행 | iDrive 7, mgu-deploy 0.7.17+ |
+| Storage (English) 1.0.4 | 영어 | 앱 목록에서 수동 실행 | 위와 동일 |
 
 ## 언어 선택과 변경
 
@@ -37,6 +37,6 @@ Store 자체에 언어 선택 버튼을 추가하는 방식이 아니라 **두 �
 
 기존 한국어판 ID(`idrive_circuit`, `cluster_redline`)는 유지합니다.
 영문판은 `idrive_circuit_en`, `cluster_redline_en`이며, 설정과 기록은 자동으로 옮겨지지 않습니다.
-저장공간은 한국어 `storage`, 영어 `storage_en`이며 두 항목 모두 1.0.3입니다.
+저장공간은 한국어 `storage`, 영어 `storage_en`이며 두 항목 모두 1.0.4입니다.
 언어를 바꾸려면 사용할 언어판을 설치하고, 불필요한 기존 언어판은 제거하세요.
 

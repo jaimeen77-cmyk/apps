@@ -20,6 +20,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Storage
 
+### 1.0.4
+
+- Start the background photo where the menu does: on the car's full-screen layout the page's left edge (about 13 px) lies under the HMI's back arrow column, which only reaches part way down, so the photo stuck out below it like a step. It now begins at the column's edge and under the tab bar, scaled into that area.
+
 ### 1.0.3
 
 - The mark reads "코딩나눔터 동이/카자미/잼님".
@@ -38,6 +42,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - Check both installed packages with host rendering and filesystem fixtures. Real-vehicle verification remains pending.
 
 ## Cluster Redline
+
+### 1.2.45
+
+- Settings screen: start the background photo where the menu does. On the car's full-screen layout the page's left edge (about 13 px) lies under the HMI's back arrow column, which only reaches part way down, so the photo stuck out below it like a step. It now begins at the column's edge and under the tab bar, scaled into that area.
 
 ### 1.2.44
 
