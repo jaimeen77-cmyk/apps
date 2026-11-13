@@ -326,7 +326,48 @@ function drawSportHud(cv,f,h){
   cv.line(side?dx-100:dx+100,y-34,side?dx-100:dx+100,y+20,2,[200,200,200,150]);
   cv.text(it.label,x,y-10,24,[190,190,190,230],{align:al,font:'bold'});cv.text(it.value,x,y+38,44,[240,240,240,255],{align:al,font:'bold'});});});
 }
-const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud};
+// Tyres & trip (cluster only): the car from above, nose up, gear and drive mode in its middle, each tyre's
+// temperature (colour: cold blue, warm green, hot yellow, very hot red) and pressure in psi beside it, and up to
+// four auxiliary items underneath (two with bars in gauge mode).
+const TY={cx:544,cy:176,hw:64,hh:150,psi:14.5038};
+function tyreCol(t){return !isNum(t)?'#5d6b7c':t<20?'#3aa0ff':t<45?'#2fd27a':t<75?'#ffcf33':'#ff4a3a';}
+function rr(cv,x,y,w,h,r,c){cv.fillRect(x+r,y,w-2*r,h,c);cv.fillRect(x,y+r,r,h-2*r,c);cv.fillRect(x+w-r,y+r,r,h-2*r,c);
+ [[x+r,y+r],[x+w-r,y+r],[x+r,y+h-r],[x+w-r,y+h-r]].forEach(p=>cv.circle(p[0],p[1],r,c));}
+function drawTyres(cv,f,h){
+ const {cx,cy,hw,hh}=TY,d=f.d,dm=drive(f.drive),ko=language()==='ko',ty=f.tyres||{};
+ if(want(f,'car')){
+  const B=[[cx-hw+10,cy-hh],[cx+hw-10,cy-hh],[cx+hw,cy-hh+34],[cx+hw+2,cy+hh-36],[cx+hw-8,cy+hh],[cx-hw+8,cy+hh],[cx-hw-2,cy+hh-36],[cx-hw,cy-hh+34]];
+  // body as one rectangle and two trapezoids (no seams inside), then the outline
+  const top=cy-hh,bot=cy+hh;cv.fillRect(cx-hw-1,top+33,2*hw+3,bot-36-top-33+1,'#1b2330');
+  cv.quad([[cx-hw+10,top],[cx+hw-10,top],[cx+hw+0.5,top+34],[cx-hw-0.5,top+34]],'#1b2330');cv.quad([[cx-hw-1.5,bot-37],[cx+hw+2,bot-37],[cx+hw-8,bot],[cx-hw+8,bot]],'#1b2330');
+  cv.polyline(B.concat([B[0]]),3,'#5d6b7c');
+  cv.quad([[cx-52,cy-92],[cx+52,cy-92],[cx+44,cy-56],[cx-44,cy-56]],'#2b3a4d');
+  cv.quad([[cx-44,cy+70],[cx+44,cy+70],[cx+50,cy+100],[cx-50,cy+100]],'#2b3a4d');
+  rr(cv,cx-46,cy-52,92,118,14,'#10161f');
+  cv.fillRect(cx-44,cy-hh-5,26,5,'#d9e2ec');cv.fillRect(cx+18,cy-hh-5,26,5,'#d9e2ec');
+  cv.fillRect(cx-46,cy+hh,26,5,'#ff3b30');cv.fillRect(cx+20,cy+hh,26,5,'#ff3b30');
+  [['FL',-1,-1],['FR',1,-1],['RL',-1,1],['RR',1,1]].forEach(([k,sx,sy])=>{
+   const t=ty.temp&&ty.temp[k],b=ty.bar&&ty.bar[k],x=cx+sx*(hw+10),y=cy+sy*94,col=tyreCol(t),al=sx<0?'right':'left',tx=sx<0?x-26:x+26;
+   rr(cv,x-11,y-28,22,56,7,col);rr(cv,x-6,y-23,12,46,4,[0,0,0,90]);
+   cv.text(isNum(t)?Math.round(t)+'°C':'--°C',tx,y+2,34,col,{align:al,font:'bold'});
+   cv.text(isNum(b)?Math.round(b*TY.psi)+' psi':'-- psi',tx,y+28,19,C.dim,{align:al,font:'bold'});
+  });
+ }
+ if(want(f,'gear'))cv.text(h.gearText(d),cx,cy+18,54,C.text,{align:'center',font:h.gearFont(f.opts)});
+ if(want(f,'mode')&&dm.name)cv.text(dm.name,cx,cy+48,18,dm.col,{align:'center',font:'bold'});
+ // readouts: four text columns, or two wider columns with bars in gauge mode
+ const list=f.readouts||[],gauges=list.length&&list[0].gauge,n=gauges?2:4,x0=140,w=808/n;
+ for(let i=0;i<n;i++){const it=list[i],id='read'+'ABCD'[i];if(!want(f,id))continue;
+  const x=x0+i*w;if(i&&(it||list[i-1]))cv.line(x,366,x,446,1,'#2a3038');if(!it)continue;const mid=x+w/2;
+  cv.text(it.label,mid,386,19,C.dim,{align:'center',font:'bold'});
+  const unitless=/[°%:]/.test(it.value)||!it.unit,vw=cv.textWidth(it.value,40,{font:'bold'}),uw=unitless?0:cv.textWidth(it.unit,17,{font:'bold'})+6;
+  const vx=mid-(vw+uw)/2,vy=gauges?424:436,col=it.tone==='hot'?'#ff5a3a':it.tone==='cold'?'#5ab0ff':C.text;
+  cv.text(it.value,vx,vy,40,col,{font:'bold'});if(!unitless)cv.text(it.unit,vx+vw+6,vy,17,C.dim,{font:'bold'});
+  if(gauges&&it.frac!==null){const bx=x+24,bw=w-48,seg=bw/16,lit=Math.round(it.frac*16);for(let k=0;k<16;k++)cv.fillRect(bx+k*seg+1,436,seg-3,10,k<lit?'#ff9a1a':'#2a2f37');}
+ }
+ void ko;
+}
+const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX};

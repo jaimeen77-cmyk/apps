@@ -43,6 +43,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.46
+
+- **New auxiliary items: Average speed and Driving time** (trip 1, from the cluster's board computer as the Live Data app reads them: average speed 0.1 a step in the car's unit, mph turned into km/h; driving time hours:minutes). Both modes; the driving time's gauge runs to 5 h.
+- **New cluster-only layout: Tyres & trip.** The car from above, nose up, gear and drive mode in its middle, each tyre's temperature (°C, colour: blue below 20, green, yellow, red from 75) and pressure in psi beside it, and up to four auxiliary items underneath as text, or two with bars in gauge mode. The cheapest layout to draw (about 0.3 ms a frame on the PC: nothing in it follows the revs).
+- Tyre data (TPMS temperature +40 offset and pressure 0.1 bar a step, invalid values dropped) and the driving time are read only while shown. They are not in the Store template's manifest, so the Store build (and the desktop installer patch, now v11) adds them at install, read-only, only when the car's catalog defines them with a getter (TPMS on instance 1); otherwise they show "--".
+- The layout pickers show **Gauge support / Text only** on every layout (the two default designs, Sport dial and Tyres & trip draw bars in gauge mode). The cluster's picker fits its seventeen layouts in five rows.
+- Tests: decoding (Live Data scales, invalid values), both auxiliary modes, cluster-only registration, what is read and when, worker reads of all eleven sources, desktop/Store parity for the install-time fields (five catalog variants); the end-to-end and soak runs include the new layout (no afterimage, stable memory).
+
 ### 1.2.45
 
 - Settings screen: start the background photo where the menu does. On the car's full-screen layout the page's left edge (about 13 px) lies under the HMI's back arrow column, which only reaches part way down, so the photo stuck out below it like a step. It now begins at the column's edge and under the tab bar, scaled into that area.

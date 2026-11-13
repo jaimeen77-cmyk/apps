@@ -12,7 +12,7 @@ const renderer = require('./renderer');
 const gear = require('./gear');
 const guidance = require('./guidance');
 const {NativeNavigation} = require('./native-navigation');
-const {AuxInfo,SOURCES}=require('./aux-info');
+const {AuxInfo,SOURCES,auxOf}=require('./aux-info');
 const {navAllowed,auxConfig,rpmOutput,clockText,sportMode}=require('./display-config');
 const {BatteryVoltage}=require('./battery-voltage');
 const {PROJECTED} = require('./projection-config');
@@ -247,7 +247,7 @@ function start(ctx) {
             const neededAux=collection.aux;
             auxSubs.forEach(entry=>{
                 const {source,sub}=entry,available=!!(sub.available&&!sub.error);
-                const wanted=Object.keys(source.members).some(key=>neededAux.has(key==='oilFallback'?'oil':key==='gLat'||key==='gLong'?'gforce':key));
+                const wanted=Object.keys(source.members).some(key=>neededAux.has(auxOf(key)));
                 if(entry.wanted!==wanted){entry.epoch++;entry.wanted=wanted;entry.lastPoll=-Infinity;if(!entry.notifyOnly)auxInfo.clearSource(source);}
                 if(entry.available!==available){entry.epoch++;entry.available=available;}
                 // A subscribed value (the exterior temperature) is kept across a provider gap, as eDrive keeps it.

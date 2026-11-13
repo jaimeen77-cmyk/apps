@@ -1,18 +1,18 @@
 'use strict';
-const METRICS=['boost','torque','power','gforce','outside','oil','batteryCharge','batteryVoltage','economy','clock'];
+const METRICS=['boost','torque','power','gforce','outside','oil','batteryCharge','batteryVoltage','economy','avgSpeed','tripTime','clock'];
 // The clock is a gauge-only item (it has no text-mode form).
 const GAUGE_ONLY=['clock'];
 // HUD designs: Cluster Redline's own face, or a Redline app layout (redline-hud.js).
-const HUD_DESIGNS=['own','rl-standard','rl-digital','rl-vfd','rl-vector','rl-arc','rl-ramp','rl-dial','rl-shift','rl-logger','rl-needle','rl-rings','rl-ribbon','rl-hexagon','rl-sportdial','rl-classic','rl-luxury','rl-sporthud'];
+const HUD_DESIGNS=['own','rl-standard','rl-digital','rl-vfd','rl-vector','rl-arc','rl-ramp','rl-dial','rl-shift','rl-logger','rl-needle','rl-rings','rl-ribbon','rl-hexagon','rl-sportdial','rl-classic','rl-luxury','rl-sporthud','rl-tyres'];
 // The HUD offers every layout but the cluster-only ones.
-const HUD_ONLY_DESIGNS=HUD_DESIGNS.filter(d=>d!=='rl-sportdial'&&d!=='rl-classic');
-const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outside:'Outside temperature',oil:'Oil temperature',batteryCharge:'12 V battery charge',batteryVoltage:'Battery voltage',economy:'Average fuel economy',clock:'Clock'};
+const HUD_ONLY_DESIGNS=HUD_DESIGNS.filter(d=>d!=='rl-sportdial'&&d!=='rl-classic'&&d!=='rl-tyres');
+const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outside:'Outside temperature',oil:'Oil temperature',batteryCharge:'12 V battery charge',batteryVoltage:'Battery voltage',economy:'Average fuel economy',avgSpeed:'Average speed',tripTime:'Driving time',clock:'Clock'};
 const PARTS=['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','Mark','MarkTop','MarkBottom'];
 const PART_LABELS=['RPM gauge','Gear','RPM alert','Auxiliary left','Auxiliary right','RPM number','M mark','Upper M mark','Lower M mark'];
 const LEGACY_PARTS=['Aux'];
 // The Redline app layouts' elements (redline-hud.js), on the HUD and the cluster. Kept in the saved settings like hudDesign,
 // outside app.json, so the Store's settings templates stay valid.
-const RL_PARTS=['RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlTemp','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];
+const RL_PARTS=['RlCar','RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlTemp','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];
 const NAV_PARTS=[{key:'Direction',label:'Direction',prefix:'hudNav',scale:'navUniformScale',w:240,h:112},{key:'Text',label:'Text',prefix:'hudText',scale:'hudTextScale',w:240,h:48},{key:'Lanes',label:'Lane guidance',prefix:'hudLanes',scale:'hudLanesScale',w:240,h:72}];
 const defaults={displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own',clusterDesign:'own'};
 NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
@@ -24,7 +24,7 @@ NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
 ['hud','cluster'].forEach(d=>RL_PARTS.forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=p==='RlMark';}));
 function partsFor(display,cfg){
  // A Redline app layout: the RPM gauge part moves and sizes it whole, then each of its elements on its own.
- if(cfg[display+'Design']&&cfg[display+'Design']!=='own'){const RL=require('./redline-hud');const order=['RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlTemp','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];return [{key:'RpmGauge',label:'Whole layout',uniform:true}].concat(RL.elements(cfg,display).sort((x,y)=>order.indexOf(x.key)-order.indexOf(y.key)).map(e=>({key:e.key,label:RL.LABELS[e.key],uniform:true})));}
+ if(cfg[display+'Design']&&cfg[display+'Design']!=='own'){const RL=require('./redline-hud');const order=['RlCar','RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlTemp','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];return [{key:'RpmGauge',label:'Whole layout',uniform:true}].concat(RL.elements(cfg,display).sort((x,y)=>order.indexOf(x.key)-order.indexOf(y.key)).map(e=>({key:e.key,label:RL.LABELS[e.key],uniform:true})));}
  const keys=display==='hud'?['RpmGauge','Gear'].concat(cfg.hudAlertStyle==='circle'?[]:['Alert'],['AuxLeft','AuxRight','RpmValue','Mark']):['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','MarkTop','MarkBottom'];
  return keys.map(key=>({key,label:display==='hud'&&key==='Gear'&&cfg.hudAlertStyle==='circle'?'Gear + circle alert':PART_LABELS[PARTS.indexOf(key)]}));
 }

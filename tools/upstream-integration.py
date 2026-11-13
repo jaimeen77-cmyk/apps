@@ -216,18 +216,24 @@ def optional_lane_source(text):
 
 
 def optional_aux_source(text):
-    if '// Jam optional auxiliary fields v10' in text:
+    if '// Jam optional auxiliary fields v11' in text:
         return optional_lane_source(text)
-    if '// Jam optional auxiliary fields v9' in text:
-        v9 = '        // Jam optional auxiliary fields v9: never drop required RPM/torque for an absent extra field; notifier-only fields are subscribed.'
-        text = replace_once(text, v9, '        // Jam optional auxiliary fields v10: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed.')
-        text = replace_once(text, '            else proxy.attributes[name]=getter ? (notifier ? "rs" : "r") : "s";\n', '            else proxy.attributes[name]=notifier && name==="ExteriorTemperature" ? "s" : getter ? (notifier ? "rs" : "r") : "s";\n')
-        return optional_lane_source(text)
-    addition = r"""        // Jam optional auxiliary fields v10: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed.
+    addition = r"""        // Jam optional auxiliary fields v11: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed; driving time and TPMS tyre data are added read-only when the catalog has a getter.
+        [["de.bmw.infotainment.KombiIF","statusBordcomputerTravelData"],["de.bmw.infotainment.vehicle.TPMS","statusTyreTemperature"],["de.bmw.infotainment.vehicle.TPMS","statusTyrePressure"]].forEach(e=>{
+            const d=have[e[0]],f=d&&d.fields&&d.fields[e[1]],ids=all.instanceIDs&&all.instanceIDs[e[0]];
+            if(!f||!f.getter||!Number.isInteger(f.getter.id)||f.getter.id<1||f.getter.id>32767)return;
+            if(e[0]==="de.bmw.infotainment.vehicle.TPMS"&&!(ids&&ids["1"]!==undefined))return;
+            let p=m.proxies[e[0]];
+            if(!p){if(e[0]!=="de.bmw.infotainment.vehicle.TPMS")return;p=m.proxies[e[0]]={instances:"1",attributes:{}};}
+            p.attributes=p.attributes||{};if(p.attributes[e[1]]===undefined)p.attributes[e[1]]="r";
+        });
         const auxiliaryFields = [
             ["de.bmw.infotainment.vehicle.CDS", "statusEngineTemperature"],
             ["de.bmw.infotainment.vehicle.CDS", "statusBattery2"],
             ["de.bmw.infotainment.KombiIF", "statusBordcomputerAverage"],
+            ["de.bmw.infotainment.KombiIF", "statusBordcomputerTravelData"],
+            ["de.bmw.infotainment.vehicle.TPMS", "statusTyreTemperature"],
+            ["de.bmw.infotainment.vehicle.TPMS", "statusTyrePressure"],
             ["de.bmw.infotainment.drivingexcitement.FES", "statusSwitchDriveDynamicSport2"],
             ["de.bmw.infotainment.vehicle.CDS2", "statusInjectionVolume"],
             ["de.bmw.infotainment.vehicle.CDS2", "statusLateralAccelerationMassCenter"],
@@ -243,14 +249,14 @@ def optional_aux_source(text):
             if(!getter && !notifier)delete proxy.attributes[name];
             else proxy.attributes[name]=notifier && name==="ExteriorTemperature" ? "s" : getter ? (notifier ? "rs" : "r") : "s";
         });
-        ["de.bmw.infotainment.vehicle.CDS2","de.bmw.infotainment.KombiIF"].forEach(iface=>{if(m.proxies[iface]&&!Object.keys(m.proxies[iface].attributes||{}).length)delete m.proxies[iface];});
+        ["de.bmw.infotainment.vehicle.CDS2","de.bmw.infotainment.KombiIF","de.bmw.infotainment.vehicle.TPMS"].forEach(iface=>{if(m.proxies[iface]&&!Object.keys(m.proxies[iface].attributes||{}).length)delete m.proxies[iface];});
         const tasu="com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu",def=have[tasu],ids=all.instanceIDs&&all.instanceIDs[tasu];
         if(m.proxies[tasu]){
             if(!def||def.serviceId!==63654||!def.version||def.version.major!==1||!ids||ids.SystemFunctionsInternalTasuInst1!==128||!def.methods||!def.methods.sendTasuRequest||def.methods.sendTasuRequest.methodId!==1||!def.events||!def.events.sendTasuResponse||def.events.sendTasuResponse.eventId!==32769)delete m.proxies[tasu];
             else m.proxies[tasu]={instances:"SystemFunctionsInternalTasuInst1",methods:["sendTasuRequest"],broadcasts:["sendTasuResponse"]};
         }
 """
-    marker = next((m for m in ('        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
+    marker = next((m for m in ('        // Jam optional auxiliary fields v10', '        // Jam optional auxiliary fields v9', '        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
     if marker:
         start = text.index(marker)
         end = text.index('        // Jam optional guidance field persistence v3', start)

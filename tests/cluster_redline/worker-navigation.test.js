@@ -404,7 +404,7 @@ async function optionalAuxiliaryWorker(){
  const h=harness({aux:true});
  try{
   h.config.hudAuxConfig=JSON.stringify({mode:'values',items:['boost','oil','outside','gforce']});
-  h.config.clusterAuxConfig=JSON.stringify({mode:'values',items:['batteryCharge','economy','torque','power']});
+  h.config.clusterAuxConfig=JSON.stringify({mode:'values',items:['batteryCharge','economy','tripTime','torque']});h.config.clusterDesign='rl-tyres';
   await flush();h.navigate('INACTIVE');h.tick(1000);await flush();h.tick(1025);await flush();
   const watched=h.watches.filter(w=>Object.keys(w.handlers).every(f=>SOURCES.some(s=>s.iface===w.iface&&s.field===f)));
   assert.strictEqual(watched.length,new Set(SOURCES.map(s=>s.iface)).size,'auxiliary fields reuse one proxy per interface');assert.strictEqual(h.auxReads.length,SOURCES.length);

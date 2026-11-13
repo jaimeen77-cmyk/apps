@@ -9,10 +9,12 @@ let drawing=null;const kit=()=>drawing||(drawing={DRAW:require('./rl-hud-draw'),
 const {shiftSpec}=require('./shift-alert'),{auxConfig}=require('./display-config'),{gauges}=require('./units'),{language}=require('./strings');
 // The Redline app's layouts (Minimal and Split wings not offered: Standard with parts hidden covers them),
 // then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
-const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud'];
-const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD'};
+const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres'];
+const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
 // Layouts made for the cluster only (too detailed for the HUD's glass): not offered on the HUD.
-const CLUSTER_ONLY=['sportdial','classic'],HUD_ONLY=['sporthud'],stylesFor=d=>STYLES.filter(s=>!(d==='hud'?CLUSTER_ONLY:HUD_ONLY).includes(s));
+// Layouts that draw the auxiliary items as bar gauges in gauge mode (the others show them as text).
+const GAUGE_LAYOUTS=['sportdial','tyres'];
+const CLUSTER_ONLY=['sportdial','classic','tyres'],HUD_ONLY=['sporthud'],stylesFor=d=>STYLES.filter(s=>!(d==='hud'?CLUSTER_ONLY:HUD_ONLY).includes(s));
 const IW=400,IH=130,heightOf=st=>TALL.includes(st)?176:IH,isNum=x=>typeof x==='number'&&isFinite(x);
 function style(cfg,d){const m=/^rl-([a-z]+)$/.exec(cfg&&cfg[(d||'hud')+'Design']||'');return m&&STYLES.includes(m[1])?m[1]:null;}
 function active(cfg,d){return !!style(cfg,d);}
@@ -24,8 +26,8 @@ function gearOf(text){
  if(t==='D')return {gear:null,stage:'D',mode:null};
  return {gear:null,stage:null,mode:null};
 }
-const LABEL={boost:'BOOST',torque:'TORQUE',power:'POWER',gforce:'G',outside:'OUT',oil:'OIL',batteryCharge:'BATT',batteryVoltage:'VOLT',economy:'ECON',clock:'CLOCK'};
-const KO={BOOST:'부스트',TORQUE:'토크',POWER:'마력',G:'G',OUT:'외기',OIL:'오일',BATT:'배터리',VOLT:'전압',ECON:'연비',CLOCK:'시계'};
+const LABEL={boost:'BOOST',torque:'TORQUE',power:'POWER',gforce:'G',outside:'OUT',oil:'OIL',batteryCharge:'BATT',batteryVoltage:'VOLT',economy:'ECON',avgSpeed:'AVG SPD',tripTime:'TIME',clock:'CLOCK'};
+const KO={BOOST:'부스트',TORQUE:'토크',POWER:'마력',G:'G',OUT:'외기',OIL:'오일',BATT:'배터리',VOLT:'전압',ECON:'연비','AVG SPD':'평속',TIME:'주행',CLOCK:'시계'};
 function readouts(state,d){
  const cfg=state.config,a=auxConfig(cfg[(d||'hud')+'AuxConfig']),v=state.aux||{},g=gauges(state),label=id=>{const l=LABEL[id];return language()==='ko'&&KO[l]?KO[l]:l;};
  if(a.mode==='off')return [];
@@ -39,6 +41,8 @@ function readouts(state,d){
   else if(id==='batteryCharge')value=isNum(v.batteryCharge)?Math.round(v.batteryCharge)+'%':'--';
   else if(id==='batteryVoltage')value=isNum(v.batteryVoltage)?v.batteryVoltage.toFixed(1):'--';
   else if(id==='economy')value=isNum(v.economy)?v.economy.toFixed(1):'--';
+  else if(id==='avgSpeed')value=isNum(v.avgSpeed)?String(Math.round(v.avgSpeed)):'--';
+  else if(id==='tripTime')value=isNum(v.tripTime)?Math.floor(v.tripTime/60)+':'+String(v.tripTime%60).padStart(2,'0'):'--:--';
   // a gauge's fraction and ends, for layouts that draw bars in gauge mode (Sport dial)
   let frac=null,lo=null,hi=null,unit='';try{const m=require('./aux-draw').metric(state,id);unit=m.unit||'';if(isNum(m.value)&&isNum(m.maximum)&&m.maximum>(m.minimum||0)){lo=m.minimum||0;hi=m.maximum;frac=Math.max(0,Math.min(1,(m.value-lo)/(hi-lo)));}}catch(e){}
   return {id,label:label(id),value,tone,gauge:a.mode==='gauges',frac,lo,hi,unit};
@@ -50,7 +54,7 @@ function frame(state,now,d){
  const cfg=state.config,rpm=isNum(state.rpm)?state.rpm:null,spec=shiftSpec(cfg,state.mode),g=gearOf(state.gear);
  const limiter=rpm!==null&&rpm>=cfg.maxRpm-50,flash=!!state.shift||limiter,blink=flash?state.flash!==false:true;
  return {d:{rpm,gear:g.gear,stage:g.stage},shift:spec.shift,redline:cfg.redlineRpm,max:cfg.maxRpm,blink,
-  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,
+  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,tyres:{temp:(state.aux||{}).tyreTemp||null,bar:(state.aux||{}).tyrePressure||null},g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,
   opts:{style:style(cfg,d)||'standard',palette:'colour',gear:true,rpm:true,bar:true,lights:true,gt3:true,dim:true,lightStyle:'gt3',clearLabels:false}};
 }
 function paint(target,state,k,ox,oy,now,d){const {DRAW}=kit();DRAW.drawLayer(DRAW.scaled(target,k,ox||0,oy||0),frame(state,now,d));}
@@ -103,10 +107,11 @@ const ELEMENTS={
  sportdial:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],
  classic:['gauge','alert','temp','gear','mode','readA','readB','readC','readD','mark'],
  luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],
- sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark']};
-const PART={gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',mark:'RlMark'};
+ sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark'],
+ tyres:['car','gear','mode','readA','readB','readC','readD']};
+const PART={gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',car:'RlCar',mark:'RlMark'};
 const PART_NAMES=Object.keys(PART).map(k=>PART[k]);
-const LABELS={RlTemp:'Temperature gauge',RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
+const LABELS={RlCar:'Car and tyres',RlTemp:'Temperature gauge',RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
 function readoutCount(cfg,d){const a=auxConfig(cfg[(d||'hud')+'AuxConfig']);return a.mode==='off'?0:Math.min(4,a.items.length);}
 // The elements the chosen layout draws with the chosen readouts: [{id, key}].
 function elements(cfg,d){
@@ -142,7 +147,7 @@ function bounds(state,id,d){
  if(id==='mark')return Object.assign({},MARK,MARK_AT[style(state.config,d)]||{});
  const cfg=state.config,f=frame(Object.assign({},state,{rpm:cfg.maxRpm,gear:'M8',flash:true}),0,d);
  f.d=Object.assign({},f.d,{rpm:f.max,gear:8,stage:'D'});f.mode='M';f.blink=true;f.cue=Object.assign({},f.cue,{shift:true});
- f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'}));f.drive='COMFORT';f.only=id;   // the longest drive-mode name
+ f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'}));f.tyres={temp:{FL:-40,FR:-40,RL:-40,RR:-40},bar:{FL:9.9,FR:9.9,RL:9.9,RR:9.9}};f.drive='COMFORT';f.only=id;   // the longest drive-mode name
  const k=JSON.stringify([id,f.opts.style,f.max,f.redline,f.readouts.map(r=>r.label)]);
  if(boundsCache.has(k))return boundsCache.get(k);
  const cv=bboxCanvas();kit().DRAW.drawLayer(cv,f);
@@ -205,4 +210,4 @@ function keys(state,d){
   else v=JSON.stringify(base.concat([id]));
   return (memo[id]=v);};
 }
-module.exports={CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,keys,elements,bounds,partRect,partPainter,nodes,placed};
+module.exports={GAUGE_LAYOUTS,CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,keys,elements,bounds,partRect,partPainter,nodes,placed};

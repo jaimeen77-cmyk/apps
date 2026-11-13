@@ -18,11 +18,11 @@ const expected={standard:['mode','gear','alert','gauge','read','mark'],minimal:[
  ramp:['alert','gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],dial:['gauge','readB','readC','readD','gear','mode','readA','mark'],
  shift:['alert','gear','mode','rpm','read','mark'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],needle:['gauge','gear','mode','readA','readB','readC','readD','mark'],
  rings:['gmeter','gauge','gear','mode','rpm','read','mark'],ribbon:['gauge','gear','mode','readA','readB','readC','readD','mark'],
- hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark'],sportdial:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],classic:['gauge','alert','temp','gear','mode','readA','readB','readC','readD','mark'],luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark']};
+ hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark'],sportdial:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],classic:['gauge','alert','temp','gear','mode','readA','readB','readC','readD','mark'],luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark'],tyres:['car','gear','mode','readA','readB','readC','readD']};
 RL.stylesFor('hud').forEach(st=>{
  const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:AUX}),state=stateOf(cfg);
  assert.deepStrictEqual(RL.elements(cfg).map(e=>e.id),expected[st],st+' elements');
- const ih=RL.heightOf(st),at={x:200,y:100,w:400,h:ih};assert.strictEqual(ih,['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud'].includes(st)?176:130);
+ const ih=RL.heightOf(st),at={x:200,y:100,w:400,h:ih};assert.strictEqual(ih,['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres'].includes(st)?176:130);
  const a=new Canvas(800,480);a.clear([0,0,0,0]);blitScaled(a,RL.drawSized(state,400,ih),at);const b=compose(state,at);
  let worst=0;for(let i=0;i<a.d.length;i++)worst=Math.max(worst,Math.abs(a.d[i]-b.d[i]));
  const tuned=RL.HUD_BASE[st]&&(RL.HUD_BASE[st].read||RL.HUD_BASE[st].rpm);if(!tuned)assert(worst<=48,st+': default positions match the original image (worst channel difference '+worst+')');

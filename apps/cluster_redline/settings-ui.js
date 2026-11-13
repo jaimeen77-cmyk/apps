@@ -16,7 +16,7 @@ const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaul
 // themselves, plus the values kept outside app.json (designs, Redline layout elements, per-design positions).
 const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts'];
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
-const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
+const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlCar|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
 function layoutKeys(tab,schema){
  const name=tab===3?'nav':tab===2?'cluster':'hud',known=new Set(schema.map(s=>s.key));
@@ -214,6 +214,7 @@ class SettingsPage{
  drawDesign(cv,cfg,targets){
   const display=this.display();['Top alert bar','Circle beside gear'].forEach((label,i)=>{
    const x=84+i*740;this.button(cv,targets,label,x,106,712,64,()=>this.choose(i),!RL.active(cfg,display)&&(cfg[display+'AlertStyle']==='circle')===(i===1),'design'+i);
+   cv.text(tr('Gauge support'),x+700,124,17,'#5ee08f',{align:'right',literal:true});
    const preview=Object.assign({},cfg);preview[display+'AlertStyle']=i?'circle':'bar';preview[display+'Design']='own';const pw=display==='cluster'?590:690,painter=display==='cluster'?CLUSTER:HUD;
    cached(cv,'own|'+display+'|'+JSON.stringify(preview),x+10,182,pw,painter.H*pw/painter.W+2,(c,px,py)=>this.preview(c,preview,px,py,pw,display));
   });this.button(cv,targets,tr('Redline app layouts')+(RL.active(cfg,display)?' · '+tr(RL.NAMES[RL.style(cfg,display)]):''),84,448,1100,64,()=>this.choose(2),RL.active(cfg,display),'design2');
@@ -224,13 +225,17 @@ class SettingsPage{
   cv.text(tr('Redline app layouts'),100,126,32,'#ef4050',{literal:true});
   const d=this.display(),current=RL.style(cfg,d),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,outside:18,clock:'23:00'}};
   // Four columns: the Redline app's nine, then Cluster Redline's five; each preview fitted to its cell.
-  RL.stylesFor(this.display()).forEach((st,i)=>{const x=84+(i%4)*366,y=138+Math.floor(i/4)*80,on=st===current,k=Math.min(200/RL.IW,52/RL.heightOf(st));
-   this.button(cv,targets,'',x,y,354,76,()=>this.choose(i),on,'rl-'+st);
+  // Rows shrink when the list needs a fifth row (the cluster's seventeen layouts).
+  const list=RL.stylesFor(this.display()),rows=Math.ceil(list.length/4),pitch=Math.min(80,Math.floor(332/rows)),bh=pitch-4;
+  list.forEach((st,i)=>{const x=84+(i%4)*366,y=138+Math.floor(i/4)*pitch,on=st===current,k=Math.min(200/RL.IW,(bh-24)/RL.heightOf(st));
+   this.button(cv,targets,'',x,y,354,bh,()=>this.choose(i),on,'rl-'+st);
+   // whether the layout draws the auxiliary items as bar gauges in gauge mode, or as text only
+   const g=RL.GAUGE_LAYOUTS.includes(st);cv.text(tr(g?'Gauge support':'Text only'),x+346,y+22,15,g?'#5ee08f':'#7d8794',{align:'right',literal:true});
    sample[d+'Design']='rl-'+st;const shown=Object.assign({},state,{config:Object.assign({},sample),aux:Object.assign({gLat:0.3,gLong:-0.25,gforce:0.39},state.aux)});
    cached(cv,'rl|'+d+'|'+st+'|'+require('./strings').language()+'|'+JSON.stringify(shown.config),x+8,y+4,RL.IW*k+2,RL.heightOf(st)*k+2,(c,px,py)=>RL.paint(c,shown,k,px,py,0,d));
-   cv.text(tr(RL.NAMES[st]),x+346,y+70,17,on?'#ffffff':'#b8c5d4',{align:'right',literal:true});
+   cv.text(tr(RL.NAMES[st]),x+346,y+bh-6,17,on?'#ffffff':'#b8c5d4',{align:'right',literal:true});
   });
-  cv.text(tr('Redline app layouts (appsKOR, MIT) and Cluster Redline layouts. Navigation, lanes and auxiliary items stay as set.'),84,476,20,'#a8b6c8',{literal:true});
+  if(rows<=4)cv.text(tr('Redline app layouts (appsKOR, MIT) and Cluster Redline layouts. Navigation, lanes and auxiliary items stay as set.'),84,476,20,'#a8b6c8',{literal:true});
   this.backButton(cv,targets);
  }
  drawColors(cv,cfg,targets){

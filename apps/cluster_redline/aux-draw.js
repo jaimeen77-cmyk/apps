@@ -9,6 +9,9 @@ const tone=(c,f)=>mix(c,f>0?'#ffffff':'#000000',Math.abs(f));
 function metric(state,id){
  const g=gauges(state),v=state.aux||{};
  if(id==='torque'||id==='power')return Object.assign({id,label:LABELS[id],minimum:0},g[id]);
+ // Trip 1 driving time: hours:minutes as text; its gauge runs to 5 h.
+ if(id==='tripTime'){const m=v.tripTime;return {id,label:tr(LABELS.tripTime),text:valid(m)?Math.floor(m/60)+':'+String(m%60).padStart(2,'0'):'--:--',unit:'h',value:valid(m)?m:null,decimals:0,minimum:0,maximum:300};}
+ if(id==='avgSpeed')return {id,label:tr(LABELS.avgSpeed),value:v.avgSpeed,unit:'km/h',decimals:0,minimum:0,maximum:200};
  if(id==='clock')return {id,label:tr(LABELS.clock),text:typeof v.clock==='string'&&/^\d\d:\d\d$/.test(v.clock)?v.clock:'--:--',unit:''};
  const spec={boost:[v.boost,'bar',2,0,2.5],gforce:[v.gforce,'g',2,0,2],outside:[v.outside,'°C',1,-40,60],oil:[v.oil,'°C',0,0,180],batteryCharge:[v.batteryCharge,'%',0,0,100],batteryVoltage:[v.batteryVoltage,'V',2,0,18],economy:[v.economy,'km/L',1,0,50]}[id];
  return {id,label:id==='outside'?'Outside temp':id==='oil'?'Oil temp':LABELS[id],value:spec&&spec[0],unit:spec&&spec[1],decimals:spec&&spec[2],minimum:spec&&spec[3],maximum:spec&&spec[4]};

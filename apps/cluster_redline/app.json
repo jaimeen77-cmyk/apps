@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent cluster/HUD RPM and navigation with retained component rendering and batched custom settings",
-  "version": "1.2.45",
+  "version": "1.2.46",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",

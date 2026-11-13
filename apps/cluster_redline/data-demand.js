@@ -1,5 +1,5 @@
 'use strict';
-const D=require('./display-config'),{SOURCES}=require('./aux-info'),{PROJECTED}=require('./projection-config');
+const D=require('./display-config'),{SOURCES,auxOf}=require('./aux-info'),{PROJECTED}=require('./projection-config');
 const G='de.bmw.infotainment.navigation.guiding.Guidance',F='de.bmw.infotainment.drivingexcitement.FES',C='de.bmw.infotainment.vehicle.CDS',V='de.bmw.infrastructure.VehicleInformation';
 function demand(cfg,mode){
  const fields=new Set(),aux=new Set(),nav=D.navVisible(cfg,mode),enabled=cfg.appEnabled;
@@ -15,7 +15,9 @@ function demand(cfg,mode){
  const add=(i,f)=>fields.add(i+(f?'.'+f:''));
  if(modeNeeded)add(F,'statusFESVehicleDynamicSwitchHMI');if(rpm)add(C,'statusEngineSpeed2');if(torque)add(F,'statusActualValueTorque2');
  if(gear){add(V,'statusGearboxDrive');add(V,'DataPowerTrain2');add('de.bmw.infotainment.misc.MDrive','dataDisplayGearbox');}
- SOURCES.forEach(s=>{if(Object.keys(s.members).some(k=>aux.has(k==='oilFallback'?'oil':k==='gLat'||k==='gLong'?'gforce':k)))add(s.iface,s.field);});
+ // The Tyres & trip layout's car reads the tyre temperatures and pressures.
+ faces.forEach(d=>{if(cfg[d+'Design']==='rl-tyres'&&!cfg[d+'RlCarHidden'])aux.add('tyres');});
+ SOURCES.forEach(s=>{if(Object.keys(s.members).some(k=>aux.has(auxOf(k))))add(s.iface,s.field);});
  // Cluster yields to route guidance: watch the guidance state while the cluster face is shown.
  const yieldNav=enabled&&cfg.clusterYieldGuidance!=='off'&&faces.includes('cluster');
  if(yieldNav&&!navAny){add(G,'guidanceState');add(G,'guidingProvider');}
