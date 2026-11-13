@@ -23,6 +23,6 @@ for(const [d,P] of [['hud',HUD],['cluster',CL]])for(const st of NEW){
  for(let i=0;i<24;i++){const cfg=cfgOf(d,st,i%8<5?'gauges':'values'),a=state(cfg,i);Object.defineProperty(a,'renderCache',{value:cache});
   const n=diff(Buffer.from(P.draw(a).d),Buffer.from(P.draw(state(cfg,i)).d));assert.strictEqual(n,0,d+' '+st+' frame '+i+': cached differs by '+n+' bytes');}
  // 4. no range (the clock): no fraction, so no bar
- assert.strictEqual(RL.readouts(state(cfgOf(d,st,'gauges',['clock']),3),d)[0].frac,null);
+ if(!RL.VERTICAL_GAUGES||!RL.VERTICAL_GAUGES.includes(st))assert.strictEqual(RL.readouts(state(cfgOf(d,st,'gauges',['clock']),3),d)[0].frac,null);
 }
 console.log('PASS: gauge mode on 11 more layouts: bars drawn, follow the values, cached = full draw across mode switches, no bar without a range');

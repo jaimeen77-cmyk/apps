@@ -43,6 +43,15 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.48
+
+- **Tyres & trip**: 150 % by default with the car 110 % (shown as 100 % in Position / size; Reset returns here).
+- **Temperatures as thermometers** in gauge mode on every Redline layout with gauges: oil and outside temperature are a glass bulb and tube with a rim, a glint and ticks, the liquid in the layout's colour. Upright on Hexagon (beside its box) and Classic dial (chrome thermometer); other items keep the layout's own gauge (Classic dial: the tube without a bulb).
+- **Gauges filled faintly to the end of the scale**: unlit parts are a faint copy of the lit colour instead of grey.
+- **The clock is a horizontal-gauge item only**: left out on Hexagon and Classic dial (upright gauges); in the picker it reads "Clock · Horizontal gauges only", dimmed with a note on those layouts (an earlier choice can still be removed).
+- Fixes found in the samples: Ramp and M shift lights rows stay aligned when one item has no bar; Hexagon's single gauge box on the HUD keeps clear of the hexagon.
+- Tests: Tyres & trip defaults, thermometers follow the value and cached tiles equal full draws on all gauge layouts, the clock rules in readouts and the picker; one-hour soak.
+
 ### 1.2.47
 
 - **Gauge mode on eleven more layouts**, each bar drawn in the layout's own look: Standard (slanted segments like its rev bar), Vector arcade (the same in outline), 80s digital (thin LCD blocks), VFD glow (glowing blocks over ghosts), Ramp (the ramp's slanted blocks, rows spaced apart), M shift lights (green / yellow / red dots), Data logger (a 20-block strip with a scale), Mode ribbon (a slanted band in the drive mode's colour), Hexagon (one tall angled box each side with a vertical stack of hex cells, its own HUD size and place), Classic dial (a chrome-rimmed vertical thermometer each side) and Sport HUD (slanted white segments). Items without a range (clock, driving time) stay text. All are marked Gauge support in the pickers.

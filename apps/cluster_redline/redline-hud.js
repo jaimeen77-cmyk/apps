@@ -14,6 +14,8 @@ const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'
 // Layouts made for the cluster only (too detailed for the HUD's glass): not offered on the HUD.
 // Layouts that draw the auxiliary items as bar gauges in gauge mode (the others show them as text).
 const GAUGE_LAYOUTS=['standard','digital','vfd','vector','ramp','shift','logger','ribbon','hexagon','classic','sporthud','sportdial','tyres'];
+// Layouts whose gauges stand upright: the clock (a horizontal gauge only) is left out of them.
+const VERTICAL_GAUGES=['hexagon','classic'];
 const CLUSTER_ONLY=['sportdial','classic','tyres'],HUD_ONLY=['sporthud'],stylesFor=d=>STYLES.filter(s=>!(d==='hud'?CLUSTER_ONLY:HUD_ONLY).includes(s));
 const IW=400,IH=130,heightOf=st=>TALL.includes(st)?176:IH,isNum=x=>typeof x==='number'&&isFinite(x);
 function style(cfg,d){const m=/^rl-([a-z]+)$/.exec(cfg&&cfg[(d||'hud')+'Design']||'');return m&&STYLES.includes(m[1])?m[1]:null;}
@@ -31,7 +33,7 @@ const KO={BOOST:'부스트',TORQUE:'토크',POWER:'마력',G:'G',OUT:'외기',OI
 function readouts(state,d){
  const cfg=state.config,a=auxConfig(cfg[(d||'hud')+'AuxConfig']),v=state.aux||{},g=gauges(state),label=id=>{const l=LABEL[id];return language()==='ko'&&KO[l]?KO[l]:l;};
  if(a.mode==='off')return [];
- return a.items.slice(0,4).map(id=>{
+ return a.items.filter(id=>!(id==='clock'&&a.mode==='gauges'&&VERTICAL_GAUGES.includes(style(cfg,d)))).slice(0,4).map(id=>{
   let value='--',tone='text';
   if(id==='torque'||id==='power'){const x=g[id];value=x&&isNum(x.value)?String(Math.round(x.value)):'--';}
   else if(id==='clock')value=typeof v.clock==='string'?v.clock:'--:--';
@@ -83,14 +85,16 @@ function room(face,d){return d==='cluster'||!face||!face.tw?face:{x:0,y:0,w:face
 // stored 0 / 100 % is this default and Reset brings it back.
 const HUD_BASE={standard:{y:10},vector:{y:10},digital:{y:10},vfd:{y:10},arc:{y:30},ramp:{y:10},dial:{y:20},
  shift:{y:30,read:200,lift:{RlRead:-40}},logger:{y:30},needle:{y:20,read:150,lift:{RlReadA:[60,-60],RlReadB:[-60,-60],RlReadC:[60,50],RlReadD:[-60,50]}},rings:{y:40,read:120,lift:{RlRead:-20}},ribbon:{y:20,read:120},hexagon:{y:30,read:200,rpm:150,lift:{RlReadA:[50,-20],RlReadB:[50,-30],RlReadC:[-50,-20],RlReadD:[-50,-30]},
-  gauge:{read:140,lift:{RlReadA:[40,-10],RlReadB:[-40,-10]}}}};   // gauge mode: one tall box each side
-function hudBase(cfg,d){if(d==='cluster')return {};const b=HUD_BASE[style(cfg,d)]||{};return b.gauge&&auxConfig(cfg[(d||'hud')+'AuxConfig']).mode==='gauges'?Object.assign({},b,b.gauge):b;}
-function baseScale(cfg,d,key){const b=hudBase(cfg,d);return (/^RlRead/.test(key)?b.read:key==='RlRpm'?b.rpm:0)||100;}
+  gauge:{read:140,centre:true,lift:{RlReadA:[40,-10],RlReadB:[-40,-10]}}}};   // gauge mode: one tall box each side
+// Cluster defaults per layout: the whole layout at scale %, parts at size % (Tyres & trip: 150 %, the car 110 %).
+const CLUSTER_BASE={tyres:{scale:150,size:{RlCar:110}}};
+function hudBase(cfg,d){if(d==='cluster')return CLUSTER_BASE[style(cfg,d)]||{};const b=HUD_BASE[style(cfg,d)]||{};return b.gauge&&auxConfig(cfg[(d||'hud')+'AuxConfig']).mode==='gauges'?Object.assign({},b,b.gauge):b;}
+function baseScale(cfg,d,key){const b=hudBase(cfg,d);return (/^RlRead/.test(key)?b.read:key==='RlRpm'?b.rpm:b.size&&b.size[key])||100;}
 function rect(cfg,face0,d){
  const face=safe(face0,d);
  const p=(d||'hud')+'RpmGauge',u=extent(cfg,d),uw=u.x1-u.x0,uh=u.y1-u.y0,cl=d==='cluster';
  const base=cl?face0.w/1088*2:face0.w/600,m=cl?8:0,fit=Math.min(1,(face.w-m)/(uw*base),(face.h-m)/(uh*base)),cap=Math.min((face.w-m/2)/uw,(face.h-m/2)/uh);
- const k=Math.min(cap,base*fit*(cfg[p+'WidthScale']||100)/100),w=Math.round(IW*k),h=Math.round(heightOf(style(cfg,d))*k);
+ const k=Math.min(cap,base*fit*(cfg[p+'WidthScale']||100)/100*(hudBase(cfg,d).scale||100)/100),w=Math.round(IW*k),h=Math.round(heightOf(style(cfg,d))*k);
  const ox=(cfg[p+'OffsetX']||0)*face0.w/(cl?1088:800),oy=((cfg[p+'OffsetY']||0)+(hudBase(cfg,d).y||0))*face0.h/(cl?480:240);
  const ex=face.x+(face.w-uw*k)/2+ox,ey=face.y+(face.h-uh*k)/2+oy;
  const a=room(face0,d)||face,e=m/4,cx=Math.max(a.x+e,Math.min(a.x+a.w-e-uw*k,ex)),cy=Math.max(a.y+e,Math.min(a.y+a.h-e-uh*k,ey));
@@ -187,8 +191,9 @@ function placed(state,layout,d,face0){
  // Unmoved, an element (the M mark included) stays in the default band; moved, anywhere on the HUD picture.
  const list=elements(cfg,d).filter(e=>!cfg[p+e.key+'Hidden']).map(e=>({e,b:bounds(state,e.id,d)})).filter(v=>v.b);
  // Readouts enlarged by the layout's default grow apart from their group centre, so they do not overlap.
- const reads=list.filter(v=>/^RlRead/.test(v.e.key)),f=reads.length>1?baseScale(cfg,p,'RlRead')/100:1;
- const C=reads.length?{x:reads.reduce((a,v)=>a+v.b.x+v.b.w/2,0)/reads.length,y:reads.reduce((a,v)=>a+v.b.y+v.b.h/2,0)/reads.length}:null;
+ // (centre: from the layout's middle, so one readout alone keeps its side, as Hexagon's gauge boxes)
+ const reads=list.filter(v=>/^RlRead/.test(v.e.key)),mid=hudBase(cfg,p).centre,f=reads.length>1||mid&&reads.length?baseScale(cfg,p,'RlRead')/100:1;
+ const C=mid?{x:IW/2,y:reads.reduce((a,v)=>a+v.b.y+v.b.h/2,0)/reads.length}:reads.length?{x:reads.reduce((a,v)=>a+v.b.x+v.b.w/2,0)/reads.length,y:reads.reduce((a,v)=>a+v.b.y+v.b.h/2,0)/reads.length}:null;
  const lift=hudBase(cfg,p).lift||{};
  return list.map(({e,b})=>{const L=Array.isArray(lift[e.key])?lift[e.key]:[0,lift[e.key]||0],spread=f!==1&&/^RlRead/.test(e.key)?{x:(b.x+b.w/2-C.x)*(f-1)+L[0],y:(b.y+b.h/2-C.y)*(f-1)+L[1]}:L[0]||L[1]?{x:L[0],y:L[1]}:null;
   return Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d,spread),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);});
@@ -211,4 +216,4 @@ function keys(state,d){
   else v=JSON.stringify(base.concat([id]));
   return (memo[id]=v);};
 }
-module.exports={GAUGE_LAYOUTS,CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,keys,elements,bounds,partRect,partPainter,nodes,placed};
+module.exports={VERTICAL_GAUGES,CLUSTER_BASE,GAUGE_LAYOUTS,CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,keys,elements,bounds,partRect,partPainter,nodes,placed};

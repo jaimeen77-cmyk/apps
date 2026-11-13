@@ -112,7 +112,9 @@ class SettingsPage{
   this.settings.set(this.item().key,list[index][0]);if(this.item().key==='navDisplayMode')this.settings.set('hudNavigationEnabled',true);this.open=null;this.changed();
  }
  toggleClockZone(){this.settings.set('clockZone',this.config().clockZone==='utc9'?'auto':'utc9');this.changed();}
- toggleMetric(id){if(!this.draft||!D.METRICS.includes(id)||this.draft.mode!=='gauges'&&D.GAUGE_ONLY.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
+ // the clock: horizontal gauges only (not in text mode, not on Hexagon / Classic dial, whose gauges stand upright)
+ auxBlocked(id,cfg){if(!D.GAUGE_ONLY.includes(id))return false;if(!this.draft||this.draft.mode!=='gauges')return true;const st=RL.style(cfg||this.config(),this.display());return !!st&&RL.VERTICAL_GAUGES.includes(st);}
+ toggleMetric(id){if(!this.draft||!D.METRICS.includes(id)||this.auxBlocked(id)&&!this.draft.items.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
  commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.open=null;this.draft=null;this.changed();}
  button(cv,targets,label,x,y,w,h,act,on,id){
   const layoutFocus=(this.open==='layout'||this.open==='layoutPresets')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice||this.tab===FAV_TAB&&!this.open&&id==='fav-'+this.focus||this.open==='favView'&&id==='favview-'+this.choice;
@@ -196,9 +198,11 @@ class SettingsPage{
  }
  drawAuxSelect(cv,cfg,targets){
   const draft=this.draft,limit=draft.mode==='gauges'?2:4;cv.text(t(draft.mode==='gauges'?'Select gauges':'Select text items')+' (1–'+limit+')',100,128,32,'#ef4050',{literal:true});
-  D.METRICS.forEach((id,i)=>{const index=draft.items.indexOf(id),x=84+(i%4)*369,y=152+Math.floor(i/4)*80,blocked=draft.mode!=='gauges'&&D.GAUGE_ONLY.includes(id);
-   this.button(cv,targets,blocked?tr(D.LABELS[id])+' · '+tr('Gauges only'):(index>=0?(index+1)+'. ':'')+tr(D.LABELS[id]),x,y,343,70,()=>this.toggleMetric(id),index>=0,'metric-'+id);
+  D.METRICS.forEach((id,i)=>{const index=draft.items.indexOf(id),x=84+(i%4)*369,y=152+Math.floor(i/4)*80,blocked=this.auxBlocked(id,cfg);
+   this.button(cv,targets,index>=0?(index+1)+'. '+tr(D.LABELS[id]):D.GAUGE_ONLY.includes(id)?tr(D.LABELS[id])+' · '+tr('Horizontal gauges only'):tr(D.LABELS[id]),x,y,343,70,()=>this.toggleMetric(id),index>=0,'metric-'+id);
+   if(blocked&&index<0)cv.roundRect(x,y,343,70,6,[0,0,0,150]);   // can't be chosen here: dimmed
   });
+  if(draft.mode==='gauges'&&this.auxBlocked('clock',cfg))cv.text(tr('Upright gauges on this layout: no clock.'),1516,410,22,'#ff8a8a',{align:'right'});
   cv.text('Selection order sets the left and right positions.',100,410,24,'#a8b6c8');
   this.button(cv,targets,'OK',84,448,326,64,()=>this.commitAux(),draft.items.length>0,'ok');
   if(draft.items.includes('clock'))this.button(cv,targets,tr('Clock time')+': '+tr(cfg.clockZone==='utc9'?'UTC+9 (Korea)':'Head unit time'),430,448,760,64,()=>this.toggleClockZone(),false,'clock-zone');

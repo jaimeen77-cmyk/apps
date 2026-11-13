@@ -230,32 +230,34 @@ function drawReadouts(cv, x0, x1, y, items, P, layer, clear, style) {
             cv.text(it.label, cx, y + (clear ? 15 : 13), s, clear ? P.text : withAlpha(P.text, 0.9), lo);
         }
         if (layer !== 'bg') cv.text(it.value, cx, y + 40, 26 * Math.max(0.8, k), P[it.tone] || P.text, { align: 'center', font: 'bold' });
-        if (layer !== 'bg' && it.gauge && it.frac !== null && it.frac !== undefined) miniGauge(cv, style, cx - colw / 2 + 8, y + 48, colw - 16, 8, it.frac, P, it.tone);
+        if (layer !== 'bg' && it.gauge && it.frac !== null && it.frac !== undefined) miniGauge(cv, style, cx - colw / 2 + 8, y + 48, colw - 16, 8, it.frac, P, it.tone, it.id === 'oil' || it.id === 'outside');
     });
 }
 
 /**
- * Gauge mode: a small bar under a readout's value in the layout's own look. Standard: slanted segments like
- * its rev bar; Vector: the same in outline; 80s digital: thin LCD blocks; VFD: glowing blocks over ghosts.
+ * Gauge mode: a small bar under a readout's value in the layout's own look, its unlit part a faint copy of the
+ * lit colour up to the end. Standard: slanted segments like its rev bar; Vector: the same in outline; 80s digital:
+ * thin LCD blocks; VFD: glowing blocks. A temperature (oil, outside) is a thermometer: a bulb at the left end in the
+ * same look (round, ring, square block, glowing block) and the bar as its tube.
  */
-function miniGauge(cv, style, x, y, w, h, frac, P, tone) {
-    const col = tone === 'hot' || tone === 'cold' ? P[tone] : P.low, f = clamp(frac, 0, 1);
+function miniGauge(cv, style, x, y, w, h, frac, P, tone, temp) {
+    const col = tone === 'hot' || tone === 'cold' ? P[tone] : P.low, f = clamp(frac, 0, 1), faint = withAlpha(col, style === 'vfd' ? 0.22 : 0.26);
+    // a temperature: a real thermometer, the liquid in the layout's colour
+    if (temp) { require('./rl-thermo').thermo(cv, x, y + h / 2, w, h * 0.8, f, col, { glass: withAlpha(P.text, 0.75), look: style === 'vector' ? 'outline' : '' }); return; }
     if (style === 'digital' || style === 'vfd') {
         const n = 16, pitch = w / n, lit = Math.round(f * n);
         for (let i = 0; i < n; i++) {
             const bx = x + i * pitch;
-            if (i < lit) {
-                if (style === 'vfd') cv.fillRect(bx - 1, y - 1, pitch, h + 2, withAlpha(col, 0.3));
-                cv.fillRect(bx, y, pitch - 2, h, col);
-            } else cv.fillRect(bx, y, pitch - 2, h, style === 'vfd' ? withAlpha(P.text, 0.1) : withAlpha(P.text, 0.14));
+            if (i < lit && style === 'vfd') cv.fillRect(bx - 1, y - 1, pitch, h + 2, withAlpha(col, 0.3));
+            cv.fillRect(bx, y, pitch - 2, h, i < lit ? col : faint);
         }
         return;
     }
     const n = 10, pitch = w / n, lit = Math.round(f * n), sl = 3;
     for (let i = 0; i < n; i++) {
         const bx = x + i * pitch, q = [[bx + sl, y], [bx + pitch - 2 + sl, y], [bx + pitch - 2, y + h], [bx, y + h]];
-        if (style === 'vector') { if (i < lit) cv.quad(q, withAlpha(col, 0.35)); cv.polyline(q.concat([q[0]]), 1.2, i < lit ? col : withAlpha(P.text, 0.3)); }
-        else cv.quad(q, i < lit ? col : withAlpha(P.text, 0.16));
+        if (style === 'vector') { cv.quad(q, i < lit ? withAlpha(col, 0.4) : withAlpha(col, 0.1)); cv.polyline(q.concat([q[0]]), 1.2, i < lit ? col : withAlpha(col, 0.35)); }
+        else cv.quad(q, i < lit ? col : faint);
     }
 }
 

@@ -17,8 +17,11 @@ function drive(mode){const m=String(mode||'');if(/SPORT|BOOST/.test(m))return {c
  if(/ECO/.test(m))return {col:'#2bd46a',name:language()==='ko'?'에코':'ECO'};if(m)return {col:'#3d8bff',name:language()==='ko'?'컴포트':'COMFORT'};return {col:'#ff6a1a',name:''};}
 // gauge mode: the item has a range to show
 const gb=it=>!!(it&&it.gauge&&it.frac!==null&&it.frac!==undefined);
-// a row of slanted segments from x (w wide), lit up to frac
-function slants(cv,x,y,w,h,n,sl,frac,on,off,gap){const pitch=w/n,lit=Math.round(clamp(frac,0,1)*n);for(let i=0;i<n;i++){const bx=x+i*pitch;cv.quad([[bx+sl,y],[bx+pitch-(gap||3)+sl,y],[bx+pitch-(gap||3),y+h],[bx,y+h]],i<lit?(typeof on==='function'?on(i,n):on):off);}}
+// a row of slanted segments from x (w wide), lit up to frac, the rest a faint copy of the lit colour (or off)
+function slants(cv,x,y,w,h,n,sl,frac,on,off,gap){const pitch=w/n,lit=Math.round(clamp(frac,0,1)*n);for(let i=0;i<n;i++){const bx=x+i*pitch,c=typeof on==='function'?on(i,n):on;cv.quad([[bx+sl,y],[bx+pitch-(gap||3)+sl,y],[bx+pitch-(gap||3),y+h],[bx,y+h]],i<lit?c:off||fade(c,0.25));}}
+const {withAlpha:fade}=require('./kit/canvas');
+// a temperature (oil, outside) is drawn as a thermometer: a bulb at the low end of its bar
+const isTemp=it=>!!it&&(it.id==='oil'||it.id==='outside'),{thermo}=require('./rl-thermo');
 function readout(cv,it,x,y,ls,vs,align,col){if(!it)return;const o={align,font:'bold'};cv.text(it.label,x,y,ls,C.dim,o);cv.text(it.value,x,y+vs*0.95,vs,col||C.text,o);}
 
 function drawShift(cv,f,h){
@@ -27,9 +30,10 @@ function drawShift(cv,f,h){
  if(want(f,'gear'))cv.text(h.gearText(d),544,330,230,C.text,{align:'center',font:h.gearFont(f.opts)});
  if(want(f,'mode')&&f.mode)cv.text(f.mode,640,170,44,C.accent,{font:'bold'});
  if(want(f,'rpm'))cv.text(rpmText(d),544,395,46,'#9aa6b6',{align:'center',font:'bold',spacing:6});
- if(want(f,'read')&&f.readouts.length){const n=f.readouts.length;f.readouts.forEach((it,i)=>{const x=544+(i-(n-1)/2)*250,bar=gb(it);cv.text(it.label+' '+it.value,x,bar?432:450,30,C.soft,{align:'center',font:'bold'});
+ if(want(f,'read')&&f.readouts.length){const n=f.readouts.length;f.readouts.forEach((it,i)=>{const x=544+(i-(n-1)/2)*250,bar=gb(it);cv.text(it.label+' '+it.value,x,it.gauge?432:450,30,C.soft,{align:'center',font:'bold'});
   // gauge mode: ten round dots, green / yellow / red like the shift lights
-  if(bar){const lit=Math.round(clamp(it.frac,0,1)*10);for(let k=0;k<10;k++)cv.circle(x+(k-4.5)*14,456,5,k<lit?(k<4?h.P.low:k<7?h.P.mid:h.P.high):C.off);}});}
+  if(bar){if(isTemp(it)){thermo(cv,x-80,454,160,9,it.frac,it.tone==='hot'?h.P.high:h.P.low,{glass:C.soft});return;}
+   const lit=Math.round(clamp(it.frac,0,1)*10),pc=k=>k<4?h.P.low:k<7?h.P.mid:h.P.high;for(let k=0;k<10;k++)cv.circle(x+(k-4.5)*14,456,5,k<lit?pc(k):fade(pc(k),0.25));}});}
 }
 function drawLogger(cv,f,h){
  const d=f.d,max=f.max;
@@ -40,8 +44,11 @@ function drawLogger(cv,f,h){
  if(want(f,'rpm')){cv.text('RPM',1028,232,26,C.dim,{align:'right',font:'bold'});cv.text(rpmText(d),1028,300,56,f.cue.shift?h.P.high:'#ffd522',{align:'right',font:'bold'});}
  [[350,232],[700,232],[350,362],[700,362]].forEach((p,i)=>{if(!want(f,'read'+'ABCD'[i]))return;const it=f.readouts[i];readout(cv,it,p[0],p[1],26,72,'left');
   // gauge mode: a 20-block strip like the rev graph with a scale under it
-  if(gb(it)){const x=p[0],y=p[1]+92,lit=Math.round(clamp(it.frac,0,1)*20);for(let k=0;k<20;k++)cv.fillRect(x+k*15,y,12,26,k<lit?(k<14?h.P.low:k<17?h.P.mid:h.P.high):C.off);
-   for(let k=0;k<=4;k++)cv.fillRect(x+k*74.25,y+30,2,k%2?6:10,C.dim);const fm=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10);
+  if(gb(it)){const x=p[0],y=p[1]+92,fm=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10);
+   if(isTemp(it)){thermo(cv,x,y+13,297,16,it.frac,it.tone==='hot'?h.P.high:h.P.low,{glass:C.soft});cv.text(fm(it.lo),x+30,y+60,20,C.dim,{font:'bold'});cv.text(fm(it.hi),x+297,y+60,20,C.dim,{align:'right',font:'bold'});return;}
+   const n=20,pitch=15,lit=Math.round(clamp(it.frac,0,1)*n),pc=k=>k<14?h.P.low:k<17?h.P.mid:h.P.high;
+   for(let k=0;k<n;k++)cv.fillRect(x+k*pitch,y,pitch-3,26,k<lit?pc(k):fade(pc(k),0.25));
+   for(let k=0;k<=4;k++)cv.fillRect(x+k*74.25,y+30,2,k%2?6:10,C.dim);
    cv.text(fm(it.lo),x,y+60,20,C.dim,{font:'bold'});cv.text(fm(it.hi),x+297,y+60,20,C.dim,{align:'right',font:'bold'});}});
 }
 function drawNeedle(cv,f,h){
@@ -77,7 +84,7 @@ function drawRibbon(cv,f,h){
  if(want(f,'mode')&&(dm.name||f.mode))cv.text(dm.name||f.mode,96,290,34,dm.col,{font:'bold',spacing:4});
  [[640,290],[850,290],[640,395],[850,395]].forEach((p,i)=>{if(!want(f,'read'+'ABCD'[i]))return;const it=f.readouts[i];readout(cv,it,p[0],p[1],26,52,'left');
   // gauge mode: a slanted band in the drive mode's colour, like the ribbon
-  if(gb(it))slants(cv,p[0],p[1]+72,170,18,10,8,it.frac,it.tone==='hot'?'#ff3a3a':dm.col,C.track,3);});
+  if(gb(it)){const c=it.tone==='hot'?'#ff3a3a':dm.col;if(isTemp(it))thermo(cv,p[0],p[1]+80,172,13,it.frac,c,{glass:C.soft});else slants(cv,p[0],p[1]+72,170,18,10,8,it.frac,c,null,3);}});
 }
 // Hexagon: an angular hexagonal tachometer (yellow, red past the redline) round a hexagonal gear cell,
 // readouts in angled side boxes, two chevrons as the shift light.
@@ -103,10 +110,12 @@ function drawHexagon(cv,f,h){
   [[60,1],[1028,-1]].forEach(([x,s],i)=>{const it=f.readouts[i];if(!it||!want(f,'read'+'ABCD'[i]))return;const y0=150,y1=380;
    cv.polyline([[x,y0],[x+190*s,y0],[x+230*s,y0+30],[x+230*s,y1],[x+30*s,y1],[x,y1-30],[x,y0]],3,'#2a2f37');
    readout(cv,it,x+20*s,y0+40,24,48,s>0?'left':'right');
-   if(!gb(it))return;const fm=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10),n=9,cx=x+196*s,lit=Math.round(clamp(it.frac,0,1)*n);
-   for(let k=0;k<n;k++){const cy=y1-24-k*21,r=11,on=k<lit,col=on?(k>=n-2?'#ff2a2a':YEL):'#2a2f37';
-    cv.quad([[cx-r,cy],[cx-r/2,cy-r*0.87],[cx+r/2,cy-r*0.87],[cx+r,cy]],col);cv.quad([[cx-r,cy],[cx+r,cy],[cx+r/2,cy+r*0.87],[cx-r/2,cy+r*0.87]],col);}
-   cv.text(fm(it.hi),cx-24*s,y1-24-(n-1)*21+6,18,C.dim,{align:s>0?'right':'left',font:'bold'});cv.text(fm(it.lo),cx-24*s,y1-18,18,C.dim,{align:s>0?'right':'left',font:'bold'});});
+   if(!gb(it))return;const t=isTemp(it),fm=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10),n=t?8:9,cx=x+196*s,base=t?y1-56:y1-24,lit=Math.round(clamp(it.frac,0,1)*n);
+   const hex=(cy,r,col)=>{cv.quad([[cx-r,cy],[cx-r/2,cy-r*0.87],[cx+r/2,cy-r*0.87],[cx+r,cy]],col);cv.quad([[cx-r,cy],[cx+r,cy],[cx+r/2,cy+r*0.87],[cx-r/2,cy+r*0.87]],col);};
+   // a temperature stands up as a thermometer: a big hex bulb at the bottom, the cells as its column
+   if(t)thermo(cv,cx,y1-6,(n-1)*21+56,15,it.frac,it.tone==='hot'?'#ff2a2a':YEL,{vertical:true,glass:C.soft});
+   else for(let k=0;k<n;k++){const c=k>=n-2?'#ff2a2a':YEL;hex(base-k*21,11,k<lit?c:fade(c,0.22));}
+   cv.text(fm(it.hi),cx-24*s,base-(n-1)*21+6,18,C.dim,{align:s>0?'right':'left',font:'bold'});cv.text(fm(it.lo),cx-24*s,base+6,18,C.dim,{align:s>0?'right':'left',font:'bold'});});
   return;}
  const box=[[60,150,1],[60,270,1],[1028,150,-1],[1028,270,-1]];
  box.forEach((b,i)=>{if(!want(f,'read'+'ABCD'[i])||!f.readouts[i])return;const [x,y,s]=b;cv.polyline([[x,y],[x+190*s,y],[x+220*s,y+30],[x+220*s,y+90],[x+30*s,y+90],[x,y+60],[x,y]],3,'#2a2f37');
@@ -132,10 +141,11 @@ function sdBox(cv,it,x,y,w,hh,right,th){
  const unitless=/[°%:]/.test(it.value)||!it.unit,vy=bar?y+96:y+hh-34;
  cv.text(it.value,x+w-(unitless?24:70),vy,bar?50:58,it.tone==='hot'?'#ff5a3a':it.tone==='cold'?'#5ab0ff':C.text,{align:'right',font:'bold'});
  if(!unitless)cv.text(it.unit,x+w-24,vy,22,C.dim,{align:'right',font:'bold'});
- if(bar){const bx=x+24,bw=w-48,by=y+hh-46,n=16,seg=bw/n,lit=Math.round(it.frac*n);
-  for(let i=0;i<n;i++)cv.fillRect(bx+i*seg+1,by,seg-3,12,i<lit?SD.yellow:'#2a2f37');
+ if(bar){const b0=x+24,bx=b0,bw=w-48,by=y+hh-46,n=16,seg=bw/n,lit=Math.round(it.frac*n);
+  if(isTemp(it))thermo(cv,b0,by+4,bw,14,it.frac,SD.yellow,{glass:C.soft});
+  else for(let i=0;i<n;i++)cv.fillRect(bx+i*seg+1,by,seg-3,12,i<lit?SD.yellow:fade(SD.yellow,0.22));
   const fmt=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10);
-  cv.text(fmt(it.lo)+(it.unit&&it.unit!=='%'?' '+it.unit:''),bx,by+34,17,C.dim,{font:'bold'});cv.text(fmt(it.hi)+(it.unit&&it.unit!=='%'?' '+it.unit:''),bx+bw,by+34,17,C.dim,{align:'right',font:'bold'});}
+  const ly=by+(isTemp(it)?44:34);cv.text(fmt(it.lo)+(it.unit&&it.unit!=='%'?' '+it.unit:''),b0,ly,17,C.dim,{font:'bold'});cv.text(fmt(it.hi)+(it.unit&&it.unit!=='%'?' '+it.unit:''),bx+bw,ly,17,C.dim,{align:'right',font:'bold'});}
  void ko;
 }
 function drawSportDial(cv,f,h){
@@ -192,15 +202,16 @@ function drawSportDial(cv,f,h){
 // numbers, a small temperature dial in a green window at the bottom (oil, C 50 - H 150 °C, red past 130),
 // and up to four readouts in panels left and right.
 const CL={cx:544,cy:230,R:184,a0:-128,a1:128,cream:'#efe6cf',ink:'#26231e',bronze:'#c88a4c',green:'#12312a',green2:'#0b211c',gold:'#b89a5e',red:'#c4241c',chrome:'#c9cdd2'};
-// gauge mode: a vertical chrome-rimmed thermometer on the outer edge (side -1 left, 1 right), cream inside with
-// black ticks, a red column and bulb, the label and value beside it on the inner side
+// gauge mode: a vertical chrome-rimmed tube on the outer edge (side -1 left, 1 right), cream inside with black ticks
+// and a red column (faint red to the top); a temperature gets the bulb (a thermometer); label and value on the inner side
 function clTube(cv,it,side){
  const tx=side<0?64:1024,y0=70,y1=380,tw=30,al=side<0?'left':'right',ix=tx-side*48,bar=gb(it);
  rr(cv,tx-tw/2-4,y0-4,tw+8,y1-y0+8,(tw+8)/2,[150,156,164,255]);rr(cv,tx-tw/2-1,y0-1,tw+2,y1-y0+2,(tw+2)/2,[236,240,244,255]);rr(cv,tx-tw/2+2,y0+2,tw-4,y1-y0-4,(tw-4)/2,[218,206,174,255]);
- cv.circle(tx,y1+26,28,[150,156,164,255]);cv.circle(tx,y1+26,24,[236,240,244,255]);cv.circle(tx,y1+26,20,'#c8402a');
+ const t=isTemp(it);if(t){cv.circle(tx,y1+26,28,[150,156,164,255]);cv.circle(tx,y1+26,24,[236,240,244,255]);cv.circle(tx,y1+26,20,'#c8402a');}
  const ty0=y0+14,ty1=y1-6,hh=ty1-ty0;
  for(let k=0;k<=10;k++){const y=ty1-hh*k/10,l=k%5?5:9;cv.fillRect(tx-tw/2+3,y-1,l,2,'#2a2418');cv.fillRect(tx+tw/2-3-l,y-1,l,2,'#2a2418');}
- const fr=bar?clamp(it.frac,0,1):0;cv.fillRect(tx-5,ty1-hh*fr,10,hh*fr+8,'#c8402a');cv.fillRect(tx-5,ty1,10,22,'#c8402a');
+ // the column: faint red to the top, red to the value; a temperature runs on into its bulb, the rest end in a rounded foot
+ const fr=bar?clamp(it.frac,0,1):0;cv.fillRect(tx-5,ty0,10,hh,[200,64,42,60]);cv.fillRect(tx-5,ty1-hh*fr,10,hh*fr+(t?8:0),'#c8402a');if(t)cv.fillRect(tx-5,ty1,10,22,'#c8402a');
  const fm=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10);
  if(bar){cv.text(fm(it.hi),ix,ty0+8,20,'#cdbf98',{align:al,font:'bold'});cv.text(fm(it.lo),ix,ty1+6,20,'#cdbf98',{align:al,font:'bold'});}
  const lx=tx-side*84;
@@ -365,7 +376,8 @@ function drawSportHud(cv,f,h){
   cv.line(side?dx-100:dx+100,y-34,side?dx-100:dx+100,y+20,2,[200,200,200,150]);
   cv.text(it.label,x,y-10,24,[190,190,190,230],{align:al,font:'bold'});cv.text(it.value,x,y+38,44,[240,240,240,255],{align:al,font:'bold'});
   // gauge mode: slanted white segments like the rev bar, the top two yellow
-  if(gb(it))slants(cv,side?x-150:x,y+56,150,14,12,6,it.frac,(k,n)=>k>=n-2?[255,210,40,255]:[240,240,240,255],[80,80,80,170],3);});});
+  if(gb(it)){const x0=side?x-150:x;if(isTemp(it))thermo(cv,x0,y+63,152,11,it.frac,[240,240,240,255],{glass:[190,190,190,230]});
+   else slants(cv,x0,y+56,150,14,12,6,it.frac,(k,n)=>k>=n-2?[255,210,40,255]:[240,240,240,255],null,3);}});});
 }
 // Tyres & trip (cluster only): the car from above, nose up, gear and drive mode in its middle, each tyre's
 // temperature (colour: cold blue, warm green, hot yellow, very hot red) and pressure in psi beside it, and up to
@@ -404,7 +416,9 @@ function drawTyres(cv,f,h){
   const unitless=/[°%:]/.test(it.value)||!it.unit,vw=cv.textWidth(it.value,40,{font:'bold'}),uw=unitless?0:cv.textWidth(it.unit,17,{font:'bold'})+6;
   const vx=mid-(vw+uw)/2,vy=gauges?424:436,col=it.tone==='hot'?'#ff5a3a':it.tone==='cold'?'#5ab0ff':C.text;
   cv.text(it.value,vx,vy,40,col,{font:'bold'});if(!unitless)cv.text(it.unit,vx+vw+6,vy,17,C.dim,{font:'bold'});
-  if(gauges&&it.frac!==null){const bx=x+24,bw=w-48,seg=bw/16,lit=Math.round(it.frac*16);for(let k=0;k<16;k++)cv.fillRect(bx+k*seg+1,436,seg-3,10,k<lit?'#ff9a1a':'#2a2f37');}
+  if(gauges&&it.frac!==null){const b0=x+24,bx=b0,bw=w-48,n=16,seg=bw/n,lit=Math.round(it.frac*n);
+   if(isTemp(it))thermo(cv,b0,440,bw,13,it.frac,'#ff9a1a',{glass:C.soft});
+   else for(let k=0;k<n;k++)cv.fillRect(bx+k*seg+1,436,seg-3,10,k<lit?'#ff9a1a':fade('#ff9a1a',0.22));}
  }
  void ko;
 }
