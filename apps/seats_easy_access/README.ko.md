@@ -52,9 +52,9 @@ Comfort는 이 저장소나 설치 파일에 포함하지 않습니다. `IterioD
 ## 개발
 
 ```sh
-node test/test.js
-python3 tools/build.py
-python3 test/package_check.py
+python3 kit/tools/build.py --language ko seats_easy_access
+node apps/seats_easy_access/test/test.js
+python3 apps/seats_easy_access/test/package_check.py
 ```
 
 이 앱은 공개된 Comfort JSON 프로토콜을 사용하는 독립 클라이언트입니다. IterioDev 소스나 바이너리를 포함하거나 수정하지 않습니다.
