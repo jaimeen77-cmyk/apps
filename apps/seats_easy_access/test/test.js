@@ -1,7 +1,7 @@
 'use strict';
 const assert = require('assert');
 const EventEmitter = require('events');
-const { EasyAccess, stateOf, validCommand } = require('../core');
+const { EasyAccess, ownMoves, stateOf, validCommand } = require('../core');
 const { translator } = require('../i18n');
 const { run } = require('../ui');
 const fs = require('fs');
@@ -132,5 +132,27 @@ class FakeClient extends EventEmitter {
     await assert.rejects(room.makeRoom(), /위치 센서/);
     assert.equal(roomClient.sent.filter((q) => q.op === 'gentleman').length, 2);
     assert.equal(stateOf({ state: Object.assign(raw().state, { seats: Object.assign(raw().state.seats, { roomOut: true }) }) }).seats.roomOut, true);
-    console.log('PASS Seats Easy Access core checks and Make room guards');
+    // Comfort's own door moves (easy exit out / back) must survive the app leaving the screen or shutting down.
+    let clock = 0;
+    const doorClient = new FakeClient(), moves = ownMoves(doorClient, () => clock);
+    const stops = () => doorClient.sent.filter((q) => q.op === 'stop').length;
+    doorClient.state.seats.job = 'back'; doorClient.emit('state', doorClient.state);
+    await moves.stop();
+    assert.equal(stops(), 0, 'a door move Comfort started is never stopped by leaving the screen');
+    doorClient.state.seats.job = null; doorClient.emit('state', doorClient.state);
+    await doorClient.send({ op: 'memory', seat: 'driver', slot: 0, save: false });
+    doorClient.state.seats.job = 'memory'; doorClient.emit('state', doorClient.state);
+    await moves.stop();
+    assert.equal(stops(), 1, 'a move this app asked for is stopped when the app leaves');
+    doorClient.state.seats.job = null; doorClient.emit('state', doorClient.state);
+    doorClient.state.seats.job = 'back'; doorClient.emit('state', doorClient.state);
+    await moves.stop();
+    assert.equal(stops(), 1, 'after the app\'s move ended, a later door move is left alone');
+    doorClient.state.seats.job = null; doorClient.emit('state', doorClient.state);
+    await doorClient.send({ op: 'gentleman' });           // Comfort ignored it (e.g. not parked)
+    clock += 5000;
+    doorClient.state.seats.job = 'back'; doorClient.emit('state', doorClient.state);
+    await moves.stop();
+    assert.equal(stops(), 1, 'a request Comfort never acted on expires');
+    console.log('PASS Seats Easy Access core checks, Make room guards and door moves left to Comfort');
 })().catch((error) => { console.error(error.stack || error); process.exitCode = 1; });

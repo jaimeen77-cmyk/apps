@@ -51,6 +51,29 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
         await handlers.BTN_STOP();
         assert.ok(frames.length > 5);
         assert.equal(connections, 0);
-        console.log('PASS packaged canvas, compatible seat graphics, tabs, Make room, memory, stop, and socket-free preview');
     } finally { await screen.close(); }
+    // Comfort's own way back after easy exit (job 'back') must survive the app leaving the screen and shutting down;
+    // a move the app asked for is still stopped then.
+    const { DemoClient } = require(path.join(js, 'demo'));
+    class Recording extends DemoClient {
+        constructor() { super(); this.sent = []; }
+        async send(command) { this.sent.push(command); return super.send(command); }
+    }
+    const car = new Recording(), stops = () => car.sent.filter((q) => q.op === 'stop').length;
+    focus = true;
+    const real = await start(ctx, { demo: false, client: car });
+    car.state.seats.job = 'back'; car.emit('state', car.state);
+    focus = false; focused('MAIN');
+    assert.equal(stops(), 0, 'leaving the screen must not stop Comfort\'s way back');
+    focus = true; focused('MAIN');
+    car.state.seats.job = null; car.emit('state', car.state);
+    await handlers.BTN_M2();
+    car.state.seats.job = 'memory'; car.emit('state', car.state);
+    focus = false; focused('MAIN');
+    assert.equal(stops(), 1, 'leaving the screen stops a move the app asked for');
+    car.state.seats.job = 'back'; car.emit('state', car.state);
+    await real.close();
+    assert.equal(stops(), 1, 'shutting down must not stop Comfort\'s way back');
+    assert.equal(connections, 0);
+    console.log('PASS packaged canvas, compatible seat graphics, tabs, Make room, memory, stop, socket-free preview and door moves left to Comfort');
 })().catch((e) => { console.error(e); process.exitCode = 1; }).then(() => { net.createConnection = originalConnection; });

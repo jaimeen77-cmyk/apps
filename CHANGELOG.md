@@ -4,6 +4,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Seats Easy Access
 
+### 0.6.2
+
+- Fix: automatic Easy Access did not bring the driver's seat back when the car was started. Leaving the Seats screen (or the app shutting down) sent Comfort a `stop`, which halts every move, Comfort's own way back too, and Comfort does not try that again until the door opens. The app now stops only a move it asked for (adjust, memory, Easy Access button, Make room); STOP still stops anything.
+
 ### 0.6.1
 
 - Show the BMW Coding photo behind the controls with a lighter veil, as on Cluster Redline's settings screen.

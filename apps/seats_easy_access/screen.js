@@ -1,6 +1,6 @@
 'use strict';
 const fs = require('fs');
-const { ComfortClient, EasyAccess } = require('./core');
+const { ComfortClient, EasyAccess, ownMoves } = require('./core');
 const { DemoClient } = require('./demo');
 const { translator } = require('./i18n');
 const { t } = require('./kit/i18n');
@@ -13,6 +13,7 @@ async function start(ctx, options) {
     const opts = options || {}, translate = translator(opts.language), tr = (value) => translate(t(value));
     const demo = opts.demo === undefined ? !fs.existsSync('/etc/oap/someip/someip-interfaces.json') : opts.demo;
     const client = opts.client || (demo ? new DemoClient() : new ComfortClient());
+    const moves = ownMoves(client);
     const easy = new EasyAccess(client);
     // Native/Iterio renderers do not accept the upstream OP_IMAGE upload.
     // Cache the photo as gradient columns, as Storage does for its background.
@@ -42,7 +43,7 @@ async function start(ctx, options) {
         const on = demo || (!!ctx.ui.isVisible('MAIN') && (!ctx.ui.hasFocus || ctx.ui.hasFocus('MAIN')));
         if (easy.foreground !== on) {
             easy.setForeground(on);
-            if (!on) client.send({ op: 'stop' }).catch(() => {});
+            if (!on) moves.stop().catch(() => {});   // never Comfort's own door moves
         }
     }
     async function act(fn) {
@@ -146,7 +147,7 @@ async function start(ctx, options) {
     const loop = ctx.loop('MAIN', 4, () => { foreground(); return render(); });
     async function close() {
         closed = true; if (loop && loop.stop) loop.stop();
-        await client.send({ op: 'stop' }).catch(() => {}); client.close();
+        await moves.stop().catch(() => {}); client.close();
     }
     if (ctx.app && ctx.app.on) ctx.app.on('shutdown', close);
     foreground();
