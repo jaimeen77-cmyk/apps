@@ -116,7 +116,7 @@ async function checkSettingsEntry(file, id, version) {
         const hasFullTemplate = fs.existsSync(runtimeFile);
         if (hasFullTemplate) fs.renameSync(runtimeFile, heldFile);
         try { file = build(options); } finally { if (hasFullTemplate) fs.renameSync(heldFile, runtimeFile); }
-        const start = options.template === 'cluster_redline' ? 'autostart' : 'manually';
+        const start = ['cluster_redline', 'seats_easy_access'].includes(options.template) ? 'autostart' : 'manually';
         const originalUuid = checkPackage(file, id, spec.version, start, options.language);
         if (id === 'seats_easy_access') {
             const defaultFile = build(Object.assign({}, options, { language: undefined, out: path.join(temp, id + '-default') }));
