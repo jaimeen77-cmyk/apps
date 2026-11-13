@@ -51,3 +51,9 @@ MGU Store에서 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가
 한국어 원본 iDrive 앱 15개는 별도 저장소 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)에서 제공합니다. 이 저장소는 Circuit·계기판 레드라인·저장공간 세 앱의 한국어/영어판을 제공합니다.
 
 일반 한국어 앱 15개의 Store 등록과 설치 레이어는 최신 버전 그대로 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)로 이동했습니다. MGU Store에서 두 소스의 main 채널을 새로고침하세요. 이 소스에는 Circuit·Cluster Redline·Storage의 한국어/영어 항목 6개를 제공합니다. 저장공간은 두 언어 모두 1.0.1입니다.
+
+## Seats 한국어판
+
+상단 운전석/조수석 탭, 시트 조절, M1~M3, Easy Access와 Make room을 제공합니다. MGU Store에서 `jaimeen77-cmyk/apps`의 **main** 채널을 새로고침하고 **시트 Easy Access**를 설치하세요. 원본 Comfort 도구를 받으려면 `IterioDev/car-apps` 소스가 필요합니다.
+
+소스 overlay를 다른 저장소에 적용하려면 `python3 tools/install-seats-overlay.py /path/to/target`을 실행합니다. 대상은 `mgu-repo.json`이 있는 별도의 저장소여야 합니다. Seats는 한국어 리소스만 빌드됩니다.

@@ -215,6 +215,26 @@
           "apps/storage"
         ]
       }
+    },
+    {
+      "id": "seats_easy_access",
+      "version": "0.3.2",
+      "kind": "app",
+      "title": "시트 Easy Access",
+      "description": "시트 조절·메모리·승하차 편의·조수석 공간 확보",
+      "path": "seats-easy-access",
+      "mguHmi": [
+        "ID7"
+      ],
+      "uninstallable": true,
+      "requires": {
+        "iteriodev-comfort": "0.5.1",
+        "mgu-deploy": "0.7.11"
+      },
+      "build": {
+        "python": "seats-easy-access/tools/build.py",
+        "output": "seats-easy-access/dist/USB/mgu-repo/seats-easy-access/seats_easy_access@0.3.2.tgz"
+      }
     }
   ]
 }
