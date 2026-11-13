@@ -26,8 +26,8 @@ function fixture(values) {
     let f = fixture();
     f.emit({}); await f.advance(6000);
     assert.equal(f.client.sent.length, 0, 'starting an already-on car is not a trigger');
-    f.cycle(); await f.advance(5000); assert.equal(f.client.sent.length, 0, 'old five-second trigger must not fire');
-    await f.advance(9999); assert.equal(f.client.sent.length, 0);
+    f.cycle(); await f.advance(5999); assert.equal(f.client.sent.length, 0, 'waits six seconds after power-on');
+    assert.ok(f.logs.some((s) => s.includes('waiting 6 seconds')));
     await f.advance(1);
     assert.deepStrictEqual(f.client.sent, [{ op: 'memory', seat: 'driver', slot: 0, save: false }]);
     await f.advance(10000); f.emit({}); await f.advance(1000);

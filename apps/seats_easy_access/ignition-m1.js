@@ -3,6 +3,7 @@
 // module can hold its motors right after the engine starts: Comfort then sees no progress and takes it for the end
 // stop, so only a relay click is heard). No timers survive a lost connection.
 const TOL = 80;            // counts: twice Comfort's own arrival tolerance (40)
+const WAIT_MS = 6000;      // after power-on, before the first recall (0.6.8: 15 s -> 6 s, car-tested 0.6.7)
 const RETRY_MS = 8000;     // after a short M1, wait this long before the one retry
 const ATTEMPTS = 2;
 class IgnitionM1 {
@@ -57,8 +58,8 @@ class IgnitionM1 {
             if (offSeen) this.settings.set('m1OffSeen', false);
             if (this.enabled() && offSeen) {
                 const now = this.now();
-                this.pending = { due: now + 15000, deadline: now + 45000, idleAt: null, waiting: false };
-                this.log.add(['M1 power-on detected: waiting 15 seconds']);
+                this.pending = { due: now + WAIT_MS, deadline: now + 45000, idleAt: null, waiting: false };
+                this.log.add(['M1 power-on detected: waiting ' + WAIT_MS / 1000 + ' seconds']);
             }
         }
         this.lastPower = s.carOn;
