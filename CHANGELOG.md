@@ -4,6 +4,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Seats Easy Access
 
+### 0.6.3
+
+- Show Comfort's log at the bottom: under the page where the screen has room (the car's full-screen layout), else under the status line. It reads `journalctl -u iteriodev-comfort` where the app may; otherwise it lists the changes Seats sees in Comfort's status (car on/off, standing, a seat move starting and ending, the way back after easy exit waiting or done). Read only.
+- Start the background photo where the menu does: on the full-screen layout the page's left edge lies under the HMI's back arrow column, which cut into the photo; it now begins at the column's edge and under the tab bar.
+
 ### 0.6.2
 
 - Fix: automatic Easy Access did not bring the driver's seat back when the car was started. Leaving the Seats screen (or the app shutting down) sent Comfort a `stop`, which halts every move, Comfort's own way back too, and Comfort does not try that again until the door opens. The app now stops only a move it asked for (adjust, memory, Easy Access button, Make room); STOP still stops anything.

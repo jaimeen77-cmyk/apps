@@ -8,12 +8,16 @@ const { makeLayer } = require('./kit/record');
 const G = require('./kit/gauges');
 const BG = require('./bg');
 const seat = require('./seat-image');
+const { ComfortLog } = require('./comfort-log');
+// the HMI's back arrow column (x 0..84 of the 1920 px screen): the photo starts right of it, where the menu does
+const HMI_LEFT = 84, TAB_BAR = 38;
 
 async function start(ctx, options) {
     const opts = options || {}, translate = translator(opts.language), tr = (value) => translate(t(value));
     const demo = opts.demo === undefined ? !fs.existsSync('/etc/oap/someip/someip-interfaces.json') : opts.demo;
     const client = opts.client || (demo ? new DemoClient() : new ComfortClient());
     const moves = ownMoves(client);
+    const comfortLog = new ComfortLog(client, { journal: !demo });
     const easy = new EasyAccess(client);
     // Native/Iterio renderers do not accept the upstream OP_IMAGE upload.
     // Cache the photo as gradient columns, as Storage does for its background.
@@ -73,14 +77,18 @@ async function start(ctx, options) {
         if (closed) return Promise.resolve();
         if (rendering) return rendering;
         const state = client.state, who = easy.selectedSeat;
-        const signature = JSON.stringify([state, who, easy.message, easy.pending, easy.foreground, easy.saveMemory, axis]);
+        const logLines = comfortLog.lines(4, tr);
+        const signature = JSON.stringify([state, who, easy.message, easy.pending, easy.foreground, easy.saveMemory, axis, logLines]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
         const theme = Object.assign({}, ctx.theme(), { sel: '#e6404a' });
-        BG.paint(cv, 1600, 520);
+        // full-screen placement: the page's left edge lies under the HMI's back arrow column, so the photo
+        // starts where the menu does (the column's edge) and under the tab bar, not cut by the column
+        const place = cv.place, left = place && place.full ? Math.max(0, Math.ceil((HMI_LEFT - place.ox) / place.scale)) : 0;
+        BG.paint(cv, 1600, 520, left, TAB_BAR);
         // Lighter veil than before so the BMW Coding photo shows, as on Cluster Redline's settings screen.
-        cv.fillRect(0, 36, 1600, 484, [7, 11, 17, 105]);
+        cv.fillRect(left, TAB_BAR, 1600 - left, 520 - TAB_BAR, [7, 11, 17, 105]);
         // BMW Coding mark in the free space between the seat and the automatic Easy Access switch.
         const autoWidth = cv.textWidth ? cv.textWidth(tr('자동 Easy Access'), 23, { literal: true }) : 230;
         BG.mark(cv, Math.min(1238, 1440 - autoWidth - 28), 100);
@@ -129,6 +137,23 @@ async function start(ctx, options) {
             memory && who === 'passenger', false);
         button('BTN_REFRESH', 'Refresh', 1060, 462, 210, 46, !easy.pending, false);
         button('BTN_STOP', 'STOP', 1295, 462, 240, 46, easy.foreground, false);
+        // Comfort's log: under the page where the screen has room below it (the car's full-screen layout),
+        // else in the free space under the status line
+        const fit = (text, size, width) => {
+            let v = text;
+            while (v.length > 4 && cv.textWidth && cv.textWidth(v, size, { literal: true }) > width) v = v.slice(0, -2);
+            return v === text ? v : v + '…';
+        };
+        const extra = cv.extra || 0, logTitle = tr('Comfort 로그') + (comfortLog.source() === 'journal' ? '' : ' · ' + tr('상태 변화'));
+        if (extra >= 30) {
+            const shown = logLines.slice(-2);
+            cv.fillRect(left + 16, 524, 1584 - left - 16, 1, [230, 235, 242, 60]);
+            cv.text(logTitle, 1572, 542, 14, '#8d97a4', { align: 'right', literal: true });
+            shown.forEach((line, i) => cv.text(fit(line, 15, 1240), left + 28, 542 + i * 20, 15, '#b8c2cc', { literal: true }));
+        } else {
+            cv.text(logTitle, 58, 146, 14, '#8d97a4', { literal: true });
+            logLines.forEach((line, i) => cv.text(fit(line, 14, 370), 58, 168 + i * 19, 14, '#b8c2cc', { literal: true }));
+        }
         const message = tr(easy.message);
         const clipped = message.length > 58 ? message.slice(0, 55) + '…' : message;
         cv.text(clipped, 58, 112, 17, '#c2ccd7', { literal: true });
@@ -144,7 +169,11 @@ async function start(ctx, options) {
         if (name === 'MAIN') { foreground(); last = ''; render(); }
     });
     if (ctx.ui.onFocus) ctx.ui.onFocus((name) => { if (name === 'MAIN') foreground(); });
-    const loop = ctx.loop('MAIN', 4, () => { foreground(); return render(); });
+    const loop = ctx.loop('MAIN', 4, () => {
+        foreground();
+        if (easy.foreground) comfortLog.poll().catch(() => {});   // the journal at most every 3 s, while shown
+        return render();
+    });
     async function close() {
         closed = true; if (loop && loop.stop) loop.stop();
         await moves.stop().catch(() => {}); client.close();
