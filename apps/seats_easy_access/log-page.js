@@ -20,7 +20,7 @@ function draw(cv, model, tr, button) {
     const value = (v) => v === null || v === undefined ? tr('Unknown') : tr(v ? 'On' : 'Off');
     cv.roundRect(18, 48, 1564, 466, 14, [10, 15, 22, 238]);
     cv.text(tr('Easy Access logs') + ' · v' + model.version, 42, 83, 25, '#ffffff', { literal: true });
-    const source = model.source === 'journal' ? tr('Comfort journal') : model.source === 'app' ? tr('App status and M1 events') : tr('Journal unavailable · status events only');
+    const source = model.source === 'all' ? tr('App events + Comfort journal (C) by time') : model.source === 'journal' ? tr('Comfort journal') : model.source === 'app' ? tr('App status and M1 events') : tr('Journal unavailable · status events only');
     cv.text(source, 1550, 81, 17, '#aab8c8', { align: 'right', literal: true });
     cv.text(tr('Power') + ': ' + value(state && state.carOn) + '     ' + tr('Stationary') + ': ' + value(state && state.parked) +
         '     ' + tr('Automatic Easy Access') + ': ' + value(state && state.settings.easyExit) +

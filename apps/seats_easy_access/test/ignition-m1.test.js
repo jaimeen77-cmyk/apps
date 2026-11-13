@@ -32,7 +32,7 @@ function fixture(values) {
     assert.deepStrictEqual(f.client.sent, [{ op: 'memory', seat: 'driver', slot: 0, save: false }]);
     await f.advance(10000); f.emit({}); await f.advance(1000);
     assert.equal(f.client.sent.length, 1, 'no duplicate recalls from repeated power/status events');
-    assert.ok(f.logs.some((s) => s.includes('arrival not confirmed')));
+    assert.ok(f.logs.some((s) => s.includes('checking arrival')));
 
     f = fixture({ ignitionM1: false }); f.cycle(); await f.advance(6000);
     f.settings.set('ignitionM1', true); await f.advance(6000);
@@ -98,5 +98,35 @@ function fixture(values) {
         clock += 15000; await runtime.poll();
         assert.equal(f.client.sent.length, 1, 'background recall needs no open screen');
     } finally { runtime.close(); }
-    console.log('PASS ignition M1: delayed one-shot, idle/parked/memory guards, cancellation, restart and screen-hide ownership');
+    // arrival check: a recall that ends short (the seat module held its motors) is tried once more, never a third time
+    const job = (f, run, slv) => { f.client.state.seats.job = run ? 'memory' : null; f.client.state.seats.jobSeat = run ? 'driver' : null;
+        if (slv !== undefined) f.client.state.seats.pos.driver.SLV = slv; f.client.emit('state', f.client.state); };
+    f = fixture(); f.cycle(); await f.advance(15000);
+    assert.equal(f.client.sent.length, 1);
+    job(f, true); job(f, false, 130);                          // ended 326 counts short
+    assert.ok(f.logs.some((s) => s.includes('M1 short of target #1') && s.includes('SLV +326')), f.logs.join('\n'));
+    await f.advance(7000); assert.equal(f.client.sent.length, 1, 'waits before the retry');
+    await f.advance(1000); await f.advance(2000); await f.advance(1);
+    assert.equal(f.client.sent.length, 2, 'one retry after the wait and 2 s of idle Comfort');
+    assert.ok(f.logs.some((s) => s.includes('retry: calling driver memory again')));
+    job(f, true); job(f, false, 140);                          // still short
+    assert.ok(f.logs.some((s) => s.includes('still short after retry')));
+    await f.advance(60000); await f.advance(5000);
+    assert.equal(f.client.sent.length, 2, 'never a third recall');
+
+    f = fixture(); f.cycle(); await f.advance(15000);
+    job(f, true); job(f, false, 440);                          // within tolerance of 456
+    assert.ok(f.logs.some((s) => s.includes('M1 arrived #1')));
+    await f.advance(20000); assert.equal(f.client.sent.length, 1, 'arrived: no retry');
+
+    for (const reason of ['driving', 'off', 'manual']) {
+        f = fixture(); f.cycle(); await f.advance(15000);
+        job(f, true); job(f, false, 130);
+        if (reason === 'driving') f.emit({ parked: false });
+        if (reason === 'off') f.emit({ carOn: false });
+        if (reason === 'manual') f.auto.cancel('M1 cancelled: manual control');
+        await f.advance(9000); await f.advance(3000); await f.advance(1);
+        assert.equal(f.client.sent.length, 1, reason + ' cancels the retry');
+    }
+    console.log('PASS ignition M1: delayed one-shot, idle/parked/memory guards, cancellation, restart, screen-hide ownership, arrival check and one retry');
 })().catch((e) => { console.error(e); process.exitCode = 1; });

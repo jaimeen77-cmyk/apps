@@ -1,7 +1,7 @@
 'use strict';
 const { EasyAccess, ownMoves, VERSION } = require('./core');
 const LogPage = require('./log-page');
-const { translator } = require('./i18n');
+const { translator, korean } = require('./i18n');
 const { t } = require('./kit/i18n');
 const { makeLayer } = require('./kit/record');
 const G = require('./kit/gauges');
@@ -12,7 +12,7 @@ const Runtime = require('./runtime');
 const HMI_LEFT = 84, TAB_BAR = 38;
 
 async function start(ctx, options) {
-    const opts = options || {}, translate = translator(opts.language), tr = (value) => translate(t(value));
+    const opts = options || {}, translate = translator(opts.language), pre = korean(opts.language), tr = (value) => translate(t(pre(value)));
     const runtime = ctx.background || Runtime.start(ctx, opts);
     const { client, comfortLog, auto, demo } = runtime;
     const moves = ownMoves(client);
@@ -39,8 +39,11 @@ async function start(ctx, options) {
     });
     let axis = 'SLV', last = '', rendering = null, closed = false, page = 0;
     let paused = false, frozen = [], logPage = 0, logPages = 1, statusAt = 0, statusReading = false;
-    let appLogs = auto.enabled();
-    function hold() { frozen = comfortLog.lines(120, tr, appLogs).slice(); paused = true; }
+    // the Logs tab: everything by time first (the app's M1 steps between Comfort's own lines), then app / Comfort only
+    const LOG_MODES = ['all', 'app', 'comfort'];
+    let logMode = 'all';
+    const logArg = () => (logMode === 'comfort' ? false : logMode);
+    function hold() { frozen = comfortLog.lines(120, tr, logArg()).slice(); paused = true; }
     const axes = ['SLV', 'SHV', 'LNV', 'SNV', 'KHV'];
     const labels = { SLV: ['◀', '▶', 'Fore / aft'], SHV: ['▼', '▲', 'Height'],
         LNV: ['◀', '▶', 'Backrest'], SNV: ['▼', '▲', 'Cushion'], KHV: ['▼', '▲', 'Headrest'] };
@@ -66,14 +69,14 @@ async function start(ctx, options) {
             const on = !auto.enabled();
             runtime.settings.set('ignitionM1', on);
             runtime.settings.set('m1OffSeen', false);
-            appLogs = true;
+            logMode = 'all';
             auto.cancel('M1 cancelled: option changed');
             comfortLog.add([on ? 'Ignition M1 enabled: next power cycle' : 'Ignition M1 disabled']);
         },
         BTN_DRIVER: () => { easy.selectSeat('driver'); page = 0; },
         BTN_PASSENGER: () => { easy.selectSeat('passenger'); page = 1; },
         BTN_LOGS: () => { page = 2; },
-        BTN_LOG_SOURCE: () => { appLogs = !appLogs; paused = false; logPage = 0; },
+        BTN_LOG_SOURCE: () => { logMode = LOG_MODES[(LOG_MODES.indexOf(logMode) + 1) % LOG_MODES.length]; paused = false; logPage = 0; },
         BTN_LOG_HOLD: () => { if (paused) { paused = false; logPage = 0; } else hold(); },
         BTN_LOG_OLDER: () => { if (!paused) hold(); logPage = Math.min(logPage + 1, logPages - 1); },
         BTN_LOG_NEWER: () => { logPage = Math.max(0, logPage - 1); },
@@ -97,8 +100,8 @@ async function start(ctx, options) {
         if (closed) return Promise.resolve();
         if (rendering) return rendering;
         const state = client.state, who = easy.selectedSeat;
-        const logLines = page === 2 ? (paused ? frozen : comfortLog.lines(120, tr, appLogs)) : comfortLog.lines(4, tr, auto.enabled());
-        const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground, easy.saveMemory, axis, logLines, page, paused, logPage, comfortLog.source(), auto.enabled(), appLogs]);
+        const logLines = page === 2 ? (paused ? frozen : comfortLog.lines(120, tr, logArg())) : comfortLog.lines(4, tr, auto.enabled());
+        const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground, easy.saveMemory, axis, logLines, page, paused, logPage, comfortLog.source(), auto.enabled(), logMode]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
@@ -106,7 +109,7 @@ async function start(ctx, options) {
         const frame = () => G.frame(cv, theme, [tr('운전석'), tr('조수석'), tr('Logs')], page,
             demo ? [{ text: tr('PREVIEW'), color: '#f3bc56' }] : []);
         if (page === 2) {
-            logPages = LogPage.draw(cv, { state, at: client.at, version: VERSION, source: appLogs ? 'app' : comfortLog.source(),
+            logPages = LogPage.draw(cv, { state, at: client.at, version: VERSION, source: logMode === 'comfort' ? comfortLog.source() : logMode === 'all' ? (comfortLog.source() === 'journal' ? 'all' : 'app') : 'app',
                 lines: logLines, paused, page: logPage }, tr, (id, label, x, y, w, h, enabled, selected) => {
                 cv.roundRect(x, y, w, h, 12, selected ? '#6b3941' : '#27323f');
                 cv.text(tr(label), x + w / 2, y + 29, 21, enabled ? '#ffffff' : '#657483', { align: 'center', literal: true });

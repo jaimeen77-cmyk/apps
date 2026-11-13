@@ -4,6 +4,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Seats Easy Access
 
+### 0.6.7
+
+- Ignition M1 checks arrival: when Comfort's memory job ends, the driver's reported position is compared with the stored M1. More than 80 counts away on any axis (the seat module can hold its motors right after the engine starts: Comfort sees no progress, takes it for the end stop, and only a relay click is heard) calls M1 once more after 8 s and 2 s of idle Comfort, under the same guards; never a third time.
+- The M1 trace logs how long the job took, how far each axis moved and how far each is from the target.
+- The Logs tab opens on the app's events and Comfort's journal merged by time (journal lines marked `C`); Log source cycles to app-only and Comfort-only.
+- The new Korean log phrases live in `i18n.js` (applied before the kit's translation), so the Store's prepared UI stays valid.
+
 ### 0.6.3
 
 - Show Comfort's log at the bottom: under the page where the screen has room (the car's full-screen layout), else under the status line. It reads `journalctl -u iteriodev-comfort` where the app may; otherwise it lists the changes Seats sees in Comfort's status (car on/off, standing, a seat move starting and ending, the way back after easy exit waiting or done). Read only.

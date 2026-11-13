@@ -1,6 +1,6 @@
 # Seats 공용 빌드·설치
 
-Seats 0.6.6는 Cluster Redline·Storage와 같은 `apps/<id>/app.json + main.js` 및 공용 캔버스 구조입니다. 기본은 영어이고 `--language ko`로 한국어를 선택합니다. 자동 시작하는 백그라운드 코드가 시동 시 M1 옵션을 처리하며, 옵션 기본값은 꺼짐입니다.
+Seats 0.6.7은 Cluster Redline·Storage와 같은 `apps/<id>/app.json + main.js` 및 공용 캔버스 구조입니다. 기본은 영어이고 `--language ko`로 한국어를 선택합니다. 자동 시작하는 백그라운드 코드가 시동 시 M1 옵션을 처리하며, 옵션 기본값은 꺼짐입니다.
 
 ## 기존 idrive7-apps 프로젝트에 추가
 

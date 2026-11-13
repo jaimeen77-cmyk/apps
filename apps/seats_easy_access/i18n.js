@@ -66,6 +66,27 @@ const ENGLISH = {
     '저장과 시험은 정차 상태에서 하세요. 이동 경로를 비우고 순정 시트 스위치에 손이 닿게 하세요.':
         'Save and test while stationary. Keep the path clear and the physical seat switch within reach.',
 };
+// Korean for the M1 arrival check's log lines (0.6.7). Kept here, not in app.json's translations: those are part of
+// the Store's prepared UI (store/runtime), which needs a full SDK build to regenerate.
+const KOREAN = {
+    'M1 command sent: checking arrival': 'M1 명령 보냄: 도착 확인 중',
+    'M1 arrived': 'M1 도착',
+    'M1 short of target': 'M1 미도착',
+    'M1 retry in 8 s': '8초 뒤 M1 재시도',
+    'M1 still short after retry': 'M1 재시도 후에도 미도착',
+    'M1 check: no memory job observed': 'M1 확인: 메모리 작업 감지 못함',
+    'M1 retry: calling driver memory again': 'M1 재시도: 운전석 메모리 다시 호출',
+    'M1 retry not needed: seat now at M1': 'M1 재시도 불필요: 이미 M1 위치',
+    'M1 retry failed': 'M1 재시도 실패',
+    'M1 retry cancelled: car not stationary': 'M1 재시도 취소: 정차 상태 아님',
+    'M1 retry cancelled: option off': 'M1 재시도 취소: 옵션 꺼짐',
+    'M1 retry cancelled: power or stationary condition changed': 'M1 재시도 취소: 전원 또는 정차 조건 변경',
+    'M1 retry cancelled: Comfort stayed busy': 'M1 재시도 취소: Comfort 작업이 끝나지 않음',
+    'M1 moved': 'M1 이동량',
+    'M1 left to target': 'M1 목표까지 남은 거리',
+    'App events + Comfort journal (C) by time': '앱 기록 + Comfort 로그(C) 시간순',
+};
+const koreanKeys = Object.keys(KOREAN).sort((a, b) => b.length - a.length);
 const keys = Object.keys(ENGLISH).sort((a, b) => b.length - a.length);
 function language() {
     try { return require('./kit/locale.json').language; }
@@ -79,4 +100,14 @@ function translator(selectedLanguage) {
         return text;
     };
 }
-module.exports = { translator, ENGLISH };
+/** The Korean edition's own log phrases, applied before the kit's word-by-word translation (which would turn
+ * "M1 short of target" into a mix); the English edition keeps them as they are. */
+function korean(selectedLanguage) {
+    const english = /^en(?:$|[-_])/i.test(selectedLanguage || language());
+    return function pre(value) {
+        let text = String(value);
+        if (!english) koreanKeys.forEach((key) => { text = text.split(key).join(KOREAN[key]); });
+        return text;
+    };
+}
+module.exports = { translator, korean, ENGLISH, KOREAN };

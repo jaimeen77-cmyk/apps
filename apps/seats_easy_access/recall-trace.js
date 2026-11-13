@@ -29,8 +29,16 @@ class RecallTrace {
         const running = s.seats.job === 'memory' && s.seats.jobSeat === 'driver';
         if (running) a.seen = true;
         else if (a.seen) {
-            this.log.add([a.changed ? 'M1 job ended: reported position changed' : 'M1 job ended: no reported position change']);
+            this.log.add([a.changed ? 'M1 job ended: reported position changed' : 'M1 job ended: no reported position change',
+                ((this.now() - a.at) / 1000).toFixed(1) + ' s']);
             this.log.add(['M1 reported position after', snapshot(pos)]);
+            const target = s.seats.m1Target && s.seats.m1Target.driver || {};
+            const moved = Object.keys(a.before).filter((x) => typeof pos[x] === 'number' && pos[x] !== a.before[x])
+                .map((x) => x + ' ' + (pos[x] - a.before[x] > 0 ? '+' : '') + (pos[x] - a.before[x]));
+            const left = Object.keys(target).filter((x) => typeof pos[x] === 'number')
+                .map((x) => x + ' ' + (target[x] - pos[x] > 0 ? '+' : '') + (target[x] - pos[x]));
+            this.log.add(['M1 moved', moved.join(', ') || 'none']);
+            this.log.add(['M1 left to target', left.join(', ') || '?']);
             this.active = null;
         } else if (this.now() - a.at > 10000) {
             this.log.add(['M1 outcome unknown: no memory job observed']); this.active = null;

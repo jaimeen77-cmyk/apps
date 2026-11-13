@@ -103,11 +103,24 @@ class ComfortLog {
     }
     source() { return this.journal && this.fromJournal.length ? 'journal' : 'status'; }
     /** The newest n lines, oldest first; tr translates the app's own words (the journal's are Comfort's). */
-    lines(n, tr, appOnly) {
-        if (!appOnly && this.source() === 'journal') return this.fromJournal.slice(-n);
+    /** mode: true / 'app' = the app's own events; 'all' = those and Comfort's journal together, by time (journal
+     * lines marked "C"); else the journal where readable, the app's events otherwise */
+    lines(n, tr, mode) {
         const t = tr || ((v) => v);
-        return this.events.slice(-n).map((e) => clock(e.at) + ' ' + e.parts.filter(Boolean)
+        const own = (list) => list.map((e) => clock(e.at) + ' ' + e.parts.filter(Boolean)
             .map((v) => t(v === 'driver' ? '운전석' : v === 'passenger' ? '조수석' : v)).join(' · '));
+        if (mode === 'all') {
+            const app = own(this.events), journal = this.source() === 'journal' ? this.fromJournal.map((l) => l.slice(0, 8) + ' C ' + l.slice(9)) : [];
+            // merge by the HH:MM:SS each line starts with; equal times keep the journal first (Comfort acted, the app saw it)
+            const out = []; let i = 0, j = 0;
+            while (i < app.length || j < journal.length) {
+                if (j < journal.length && (i >= app.length || journal[j].slice(0, 8) <= app[i].slice(0, 8))) out.push(journal[j++]);
+                else out.push(app[i++]);
+            }
+            return out.slice(-n);
+        }
+        if (!mode && this.source() === 'journal') return this.fromJournal.slice(-n);
+        return own(this.events).slice(-n);
     }
 }
 

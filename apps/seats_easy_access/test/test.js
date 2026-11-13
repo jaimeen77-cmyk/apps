@@ -178,6 +178,13 @@ class FakeClient extends EventEmitter {
     assert.equal(read.source(), 'journal');
     assert.deepStrictEqual(read.lines(2), ['23:05:00 driver door closed, car on']);
     assert.equal(new ComfortLog(new FakeClient(), { journal: false }).source(), 'status');
+    // the Logs tab's first view: the app's events and Comfort's journal together, by time
+    read.add(['M1 calling driver memory']);
+    read.events[read.events.length - 1].at = new Date(2026, 10, 14, 23, 4, 59).getTime();
+    read.add(['M1 short']);
+    read.events[read.events.length - 1].at = new Date(2026, 10, 14, 23, 5, 1).getTime();
+    const merged = read.lines(10, null, 'all');
+    assert.deepStrictEqual(merged.slice(-3), ['23:04:59 M1 calling driver memory', '23:05:00 C driver door closed, car on', '23:05:01 M1 short']);
     const os = require('os');
     const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'seats-log-cache-'));
     const cache = path.join(folder, 'diagnostics.json');
