@@ -4,6 +4,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Seats Easy Access
 
+### 0.6.11
+
+- The Logs tab and the Comfort log line under the page are gone, and no vehicle or seat history is kept: no journal reads, no status-event history, no file. The history file older versions kept in the app data folder (`seats-diagnostics.json`) is deleted at start. The Logs tab's HMI bar buttons stay declared in app.json (the prepared Store UI) and are kept hidden.
+- Ignition M1 (8 s, one retry 2 s after a short recall) and its arrival check are unchanged; they just no longer write anything.
+
 ### 0.6.10
 
 - Ignition M1 waits 8 s after power-on (car: 10 s arrived at once in 0.6.9) and a short recall is retried 2 s after it ended (with 2 s of idle Comfort) instead of 8 s.

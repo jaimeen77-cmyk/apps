@@ -8,7 +8,7 @@ const js = path.resolve(process.argv[2], 'source/javascript');
 const record = require(path.join(js, 'kit/record'));
 const themes = require(path.join(js, 'kit/themes'));
 const { start } = require(path.join(js, 'screen'));
-const handlers = {}, frames = [];
+const handlers = {}, frames = [], hidden = [];
 let tab, focus = true, focused;
 const originalConnection = net.createConnection;
 let connections = 0;
@@ -23,7 +23,7 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
             cv.capturedText = [];
             cv.text = function (value) { this.capturedText.push(String(value)); return text.apply(this, arguments); };
             return cv;
-        }, hideButton() {}, onLayout() {},
+        }, hideButton(id) { hidden.push(id); }, onLayout() {},
         onTab(fn) { tab = fn; }, loop() { return { stop() {} }; },
         ui: { onClick(name, fn) { handlers[name] = fn; }, isVisible: () => true, hasFocus: () => focus,
             onVisible() {}, onFocus(fn) { focused = fn; }, async image(name, cv) {
@@ -61,19 +61,10 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
         await handlers.BTN_SAVE(); assert.equal(screen.easy.saveMemory, true);
         await handlers.BTN_M1(); assert.equal(screen.easy.saveMemory, false);
         await handlers.BTN_STOP();
-        for (let i = 0; i < 25; i++) screen.comfortLog.add(['test event ' + i]);
-        await tab(2);
-        const logKeys = frames[frames.length - 1].targets.map((t) => t.key);
-        assert.ok(logKeys.includes('BTN_LOG_HOLD') && logKeys.includes('BTN_LOG_OLDER'));
-        assert.ok(!logKeys.includes('BTN_ROOM') && !logKeys.includes('BTN_STOP'), 'log page contains no movement targets');
-        await handlers.BTN_LOG_HOLD();
-        await handlers.BTN_LOG_OLDER();
-        assert.ok(frames[frames.length - 1].targets.some((t) => t.key === 'BTN_LOG_NEWER'));
-        screen.comfortLog.add(['ZXQ_42']);
-        await handlers.BTN_LOG_NEWER();
-        assert.ok(!frames[frames.length - 1].capturedText.join('\n').includes('ZXQ_42'));
-        await handlers.BTN_LOG_HOLD();
-        assert.ok(frames[frames.length - 1].capturedText.join('\n').includes('ZXQ_42'));
+        // 0.6.11: two tabs only, no Logs page, and the retired log buttons stay hidden
+        assert.ok(!frames[frames.length - 1].targets.some((t) => /^BTN_LOG/.test(t.key)));
+        assert.ok(hidden.includes('BTN_LOGS') && hidden.includes('BTN_LOG_SOURCE'));
+        assert.equal(screen.comfortLog, undefined);
         await tab(0);
         assert.equal(screen.easy.selectedSeat, 'driver');
         assert.ok(frames.length > 5);

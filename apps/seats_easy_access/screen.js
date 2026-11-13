@@ -1,6 +1,5 @@
 'use strict';
-const { EasyAccess, ownMoves, VERSION } = require('./core');
-const LogPage = require('./log-page');
+const { EasyAccess, ownMoves } = require('./core');
 const { translator, korean } = require('./i18n');
 const { t } = require('./kit/i18n');
 const { makeLayer } = require('./kit/record');
@@ -14,7 +13,7 @@ const HMI_LEFT = 84, TAB_BAR = 38;
 async function start(ctx, options) {
     const opts = options || {}, translate = translator(opts.language), pre = korean(opts.language), tr = (value) => translate(t(pre(value)));
     const runtime = ctx.background || Runtime.start(ctx, opts);
-    const { client, comfortLog, auto, demo } = runtime;
+    const { client, auto, demo } = runtime;
     const moves = ownMoves(client);
     const easy = new EasyAccess(client);
     // Native/Iterio renderers do not accept the upstream OP_IMAGE upload.
@@ -38,12 +37,8 @@ async function start(ctx, options) {
         }
     });
     let axis = 'SLV', last = '', rendering = null, closed = false, page = 0;
-    let paused = false, frozen = [], logPage = 0, logPages = 1, statusAt = 0, statusReading = false;
-    // the Logs tab: everything by time first (the app's M1 steps between Comfort's own lines), then app / Comfort only
-    const LOG_MODES = ['all', 'app', 'comfort'];
-    let logMode = 'all';
-    const logArg = () => (logMode === 'comfort' ? false : logMode);
-    function hold() { frozen = comfortLog.lines(120, tr, logArg()).slice(); paused = true; }
+    // the HMI bar buttons of the Logs tab (removed in 0.6.11) are still declared in app.json: kept hidden
+    const RETIRED = ['BTN_LOGS', 'BTN_LOG_SOURCE', 'BTN_LOG_HOLD', 'BTN_LOG_OLDER', 'BTN_LOG_NEWER', 'BTN_LOG_REFRESH'];
     const axes = ['SLV', 'SHV', 'LNV', 'SNV', 'KHV'];
     const labels = { SLV: ['◀', '▶', 'Fore / aft'], SHV: ['▼', '▲', 'Height'],
         LNV: ['◀', '▶', 'Backrest'], SNV: ['▼', '▲', 'Cushion'], KHV: ['▼', '▲', 'Headrest'] };
@@ -69,18 +64,10 @@ async function start(ctx, options) {
             const on = !auto.enabled();
             runtime.settings.set('ignitionM1', on);
             runtime.settings.set('m1OffSeen', false);
-            logMode = 'all';
             auto.cancel('M1 cancelled: option changed');
-            comfortLog.add([on ? 'Ignition M1 enabled: next power cycle' : 'Ignition M1 disabled']);
         },
         BTN_DRIVER: () => { easy.selectSeat('driver'); page = 0; },
         BTN_PASSENGER: () => { easy.selectSeat('passenger'); page = 1; },
-        BTN_LOGS: () => { page = 2; },
-        BTN_LOG_SOURCE: () => { logMode = LOG_MODES[(LOG_MODES.indexOf(logMode) + 1) % LOG_MODES.length]; paused = false; logPage = 0; },
-        BTN_LOG_HOLD: () => { if (paused) { paused = false; logPage = 0; } else hold(); },
-        BTN_LOG_OLDER: () => { if (!paused) hold(); logPage = Math.min(logPage + 1, logPages - 1); },
-        BTN_LOG_NEWER: () => { logPage = Math.max(0, logPage - 1); },
-        BTN_LOG_REFRESH: async () => { await easy.refresh(); if (!demo) await comfortLog.poll(true); },
         BTN_REFRESH: () => easy.refresh(), BTN_AUTO: () => easy.toggle(), BTN_AXIS: cycleAxis,
         BTN_MINUS: () => easy.jog(axis, -1), BTN_PLUS: () => easy.jog(axis, 1),
         BTN_SAVE: () => easy.armMemorySave(), BTN_M1: () => easy.memory(0),
@@ -96,29 +83,18 @@ async function start(ctx, options) {
         ctx.ui.onClick(id, () => act(actions[id]));
         if (ctx.hideButton) ctx.hideButton(id);
     });
+    if (ctx.hideButton) RETIRED.forEach((id) => ctx.hideButton(id));
     function render(force) {
         if (closed) return Promise.resolve();
         if (rendering) return rendering;
         const state = client.state, who = easy.selectedSeat;
-        const logLines = page === 2 ? (paused ? frozen : comfortLog.lines(120, tr, logArg())) : comfortLog.lines(4, tr, auto.enabled());
-        const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground, easy.saveMemory, axis, logLines, page, paused, logPage, comfortLog.source(), auto.enabled(), logMode]);
+        const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground, easy.saveMemory, axis, page, auto.enabled()]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
         const theme = Object.assign({}, ctx.theme(), { sel: '#e6404a' });
-        const frame = () => G.frame(cv, theme, [tr('운전석'), tr('조수석'), tr('Logs')], page,
+        const frame = () => G.frame(cv, theme, [tr('운전석'), tr('조수석')], page,
             demo ? [{ text: tr('PREVIEW'), color: '#f3bc56' }] : []);
-        if (page === 2) {
-            logPages = LogPage.draw(cv, { state, at: client.at, version: VERSION, source: logMode === 'comfort' ? comfortLog.source() : logMode === 'all' ? (comfortLog.source() === 'journal' ? 'all' : 'app') : 'app',
-                lines: logLines, paused, page: logPage }, tr, (id, label, x, y, w, h, enabled, selected) => {
-                cv.roundRect(x, y, w, h, 12, selected ? '#6b3941' : '#27323f');
-                cv.text(tr(label), x + w / 2, y + 29, 21, enabled ? '#ffffff' : '#657483', { align: 'center', literal: true });
-                if (enabled) cv.target(x, y, w, h, () => act(actions[id]), id, 12);
-            });
-            frame();
-            rendering = Promise.resolve(ctx.ui.image('MAIN_GFX', cv)).then(() => { rendering = null; }, (e) => { rendering = null; throw e; });
-            return rendering;
-        }
         // full-screen placement: the page's left edge lies under the HMI's back arrow column, so the photo
         // starts where the menu does (the column's edge) and under the tab bar, not cut by the column
         const place = cv.place, left = place && place.full ? Math.max(0, Math.ceil((HMI_LEFT - place.ox) / place.scale)) : 0;
@@ -176,23 +152,6 @@ async function start(ctx, options) {
             memory && who === 'passenger', false);
         button('BTN_REFRESH', 'Refresh', 1060, 462, 210, 46, !easy.pending, false);
         button('BTN_STOP', 'STOP', 1295, 462, 240, 46, easy.foreground, false);
-        // Comfort's log: under the page where the screen has room below it (the car's full-screen layout),
-        // else in the free space under the status line
-        const fit = (text, size, width) => {
-            let v = text;
-            while (v.length > 4 && cv.textWidth && cv.textWidth(v, size, { literal: true }) > width) v = v.slice(0, -2);
-            return v === text ? v : v + '…';
-        };
-        const extra = cv.extra || 0, logTitle = tr('Comfort 로그') + (comfortLog.source() === 'journal' ? '' : ' · ' + tr('상태 변화'));
-        if (extra >= 30) {
-            const shown = logLines.slice(-2);
-            cv.fillRect(left + 16, 524, 1584 - left - 16, 1, [230, 235, 242, 60]);
-            cv.text(logTitle, 1572, 542, 14, '#8d97a4', { align: 'right', literal: true });
-            shown.forEach((line, i) => cv.text(fit(line, 15, 1240), left + 28, 542 + i * 20, 15, '#b8c2cc', { literal: true }));
-        } else {
-            cv.text(logTitle, 58, 146, 14, '#8d97a4', { literal: true });
-            logLines.forEach((line, i) => cv.text(fit(line, 14, 370), 58, 168 + i * 19, 14, '#b8c2cc', { literal: true }));
-        }
         const message = tr(easy.message);
         const clipped = message.length > 58 ? message.slice(0, 55) + '…' : message;
         cv.text(clipped, 58, 112, 17, '#c2ccd7', { literal: true });
@@ -201,7 +160,7 @@ async function start(ctx, options) {
         return rendering;
     }
     easy.on('change', () => { render().catch((e) => ctx.log.error(e)); });
-    ctx.onTab((index) => act(actions[index === 2 ? 'BTN_LOGS' : index === 1 ? 'BTN_PASSENGER' : 'BTN_DRIVER']));
+    ctx.onTab((index) => act(actions[index === 1 ? 'BTN_PASSENGER' : 'BTN_DRIVER']));
     ctx.onLayout(() => render(true));
     if (ctx.ui.onVisible) ctx.ui.onVisible((name) => {
         if (name === 'MAIN') { foreground(); last = ''; render(); }
@@ -209,23 +168,16 @@ async function start(ctx, options) {
     if (ctx.ui.onFocus) ctx.ui.onFocus((name) => { if (name === 'MAIN') foreground(); });
     const loop = ctx.loop('MAIN', 4, () => {
         foreground();
-        if (easy.foreground) comfortLog.poll().catch(() => {});   // the journal at most every 3 s, while shown
-        if (page === 2 && easy.foreground && !easy.pending && !statusReading && Date.now() - statusAt > 2000) {
-            statusAt = Date.now(); statusReading = true;
-            client.refresh().catch((e) => comfortLog.add(['Status read failed', e.message]))
-                .then(() => { statusReading = false; });
-        }
         return render();
     });
     async function close() {
         closed = true; if (loop && loop.stop) loop.stop();
-        comfortLog.flush();
         await moves.stop().catch(() => {}); runtime.close();
     }
     if (ctx.app && ctx.app.on) ctx.app.on('shutdown', close);
     foreground();
     await render(true);
     await easy.refresh().catch(() => {});
-    return { easy, client, render, close, demo, comfortLog, auto };
+    return { easy, client, render, close, demo, auto };
 }
 module.exports = { start };

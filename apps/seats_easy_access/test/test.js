@@ -2,7 +2,6 @@
 const assert = require('assert');
 const EventEmitter = require('events');
 const { EasyAccess, ownMoves, stateOf, validCommand } = require('../core');
-const { ComfortLog, journalLines } = require('../comfort-log');
 const { translator } = require('../i18n');
 const { run } = require('../ui');
 const fs = require('fs');
@@ -155,47 +154,14 @@ class FakeClient extends EventEmitter {
     doorClient.state.seats.job = 'back'; doorClient.emit('state', doorClient.state);
     await moves.stop();
     assert.equal(stops(), 1, 'a request Comfort never acted on expires');
-    // Comfort's log under the page: its journal where readable, else the status changes the app sees
-    assert.deepStrictEqual(journalLines('Nov 13 23:01:02 mgu node[812]: car on (0000000000080000)\nnoise\n'),
-        ['23:01:02 car on (0000000000080000)']);
-    let t = 0, calls = 0;
-    const logClient = new FakeClient();
-    const denied = new ComfortLog(logClient, { size: 8, now: () => t, exec: (f, a, o, cb) => { calls++; cb(new Error('permission')); } });
-    logClient.emit('state', logClient.state);
-    await denied.poll(); t += 3500; await denied.poll(); t += 3500; await denied.poll();
-    assert.equal(calls, 2, 'two failed reads, then the journal is left alone');
-    assert.equal(denied.source(), 'status');
-    logClient.state.carOn = false; logClient.emit('state', logClient.state);
-    logClient.state.seats.pre.driver = true; logClient.emit('state', logClient.state);
-    logClient.state.carOn = true; logClient.state.seats.job = 'back'; logClient.state.seats.jobSeat = 'driver'; logClient.emit('state', logClient.state);
-    logClient.state.seats.job = null; logClient.state.seats.jobSeat = null; logClient.state.seats.pre.driver = false; logClient.emit('state', logClient.state);
-    const shown = denied.lines(8, english).join('\n');
-    ['Comfort connected', 'car off', 'Driver · waiting to move back', 'car on', 'Driver · moving back to driving position',
-        'Driver · seat move ended', 'Driver · moved back'].forEach((w) => assert.ok(shown.includes(w), w + ' in\n' + shown));
-    const read = new ComfortLog(new FakeClient(), { now: () => t,
-        exec: (f, a, o, cb) => { assert.equal(f, 'journalctl'); assert.ok(a.includes('iteriodev-comfort')); cb(null, 'Nov 13 23:05:00 mgu node[812]: driver door closed, car on\n'); } });
-    assert.equal(await read.poll(), true);
-    assert.equal(read.source(), 'journal');
-    assert.deepStrictEqual(read.lines(2), ['23:05:00 driver door closed, car on']);
-    assert.equal(new ComfortLog(new FakeClient(), { journal: false }).source(), 'status');
-    // the Logs tab's first view: the app's events and Comfort's journal together, by time
-    read.add(['M1 calling driver memory']);
-    read.events[read.events.length - 1].at = new Date(2026, 10, 14, 23, 4, 59).getTime();
-    read.add(['M1 short']);
-    read.events[read.events.length - 1].at = new Date(2026, 10, 14, 23, 5, 1).getTime();
-    const merged = read.lines(10, null, 'all');
-    assert.deepStrictEqual(merged.slice(-3), ['23:04:59 M1 calling driver memory', '23:05:00 C driver door closed, car on', '23:05:01 M1 short']);
+    // 0.6.11: no diagnostic history is kept; a file an older version left is removed on start
     const os = require('os');
-    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'seats-log-cache-'));
-    const cache = path.join(folder, 'diagnostics.json');
-    try {
-        const first = new ComfortLog(new FakeClient(), { file: cache, journal: false, size: 12 });
-        first.add(['driver', '복귀 대기 (하차 전 위치 기억)']);
-        const restored = new ComfortLog(new FakeClient(), { file: cache, journal: false, size: 12 });
-        assert.ok(restored.lines(12, english).join('\n').includes('waiting to move back'));
-        for (let i = 0; i < 30; i++) restored.add(['event ' + i]);
-        assert.equal(restored.events.length, 12);
-        assert.equal(JSON.parse(fs.readFileSync(cache)).events.length, 12);
-    } finally { fs.unlinkSync(cache); fs.rmdirSync(folder); }
-    console.log('PASS Seats Easy Access core checks, Make room guards, door moves left to Comfort and Comfort log');
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'seats-no-log-'));
+    const old = path.join(folder, 'seats-diagnostics.json');
+    fs.writeFileSync(old, '{"events":[]}');
+    const rt = require('../runtime').start({ dataDir: folder }, { demo: false, client: new FakeClient() });
+    try { assert.ok(!fs.existsSync(old), 'the old log file is removed'); }
+    finally { rt.close(); fs.rmdirSync(folder); }
+    assert.equal(fs.existsSync(path.join(__dirname, '..', 'comfort-log.js')), false, 'no log module ships');
+    console.log('PASS Seats Easy Access core checks, Make room guards, door moves left to Comfort and no kept log');
 })().catch((error) => { console.error(error.stack || error); process.exitCode = 1; });

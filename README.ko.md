@@ -65,4 +65,4 @@ python3 kit/tools/build.py seats_easy_access
 # 한국어: python3 kit/tools/build.py --language ko seats_easy_access
 ```
 
-결과는 `dist/seats_easy_access@0.6.10.mgu`와 `.tgz`입니다. `python kit/tools/make_kit.py seats_easy_access`로 영어 키트, `--language ko`를 추가하면 한국어 키트를 생성합니다. `node kit/tools/emu.js seats_easy_access`로 실제 그래픽 화면도 확인할 수 있습니다. 0.6.6에서는 운전석의 **시동 시 M1 복귀** 옵션을 켜면 차량 켜짐 후 6초 대기·정차·Comfort 대기 상태 확인을 거쳐 M1을 한 번 호출합니다. 기본값은 꺼짐입니다. 동작 기록은 **로그** 탭에서 확인합니다.
+결과는 `dist/seats_easy_access@0.6.11.mgu`와 `.tgz`입니다. `python kit/tools/make_kit.py seats_easy_access`로 영어 키트, `--language ko`를 추가하면 한국어 키트를 생성합니다. `node kit/tools/emu.js seats_easy_access`로 실제 그래픽 화면도 확인할 수 있습니다. 0.6.6에서는 운전석의 **시동 시 M1 복귀** 옵션을 켜면 차량 켜짐 후 6초 대기·정차·Comfort 대기 상태 확인을 거쳐 M1을 한 번 호출합니다. 기본값은 꺼짐입니다. 동작 기록은 **로그** 탭에서 확인합니다.
