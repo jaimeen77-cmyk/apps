@@ -3,11 +3,16 @@ const { t } = require('./kit/i18n');
 const G = require('./kit/gauges');
 // App-local chrome: larger targets without changing the shared renderer service.
 function header(cv, theme, x, y, w, h, title, tabs, selected, badges, flat, compact) {
-    const textSize = 28, names = (tabs || []).map((s) => t(s).toUpperCase());
+    const names = (tabs || []).map((s) => t(s).toUpperCase());
     const opt = { font: 'bold', align: 'center', spacing: 1 };
     const titleText = t(title), titleWidth = cv.textWidth(titleText, 32);
-    const widths = names.map((s) => Math.max(224, cv.textWidth(s, textSize, opt) + 56));
     const badgeWidth = (badges || []).length ? 156 : 0;
+    // Tabs keep 28 px and roomy cells when they fit; otherwise (five long English names) the cells tighten and
+    // then the text steps down, so the tabs and the version badge never overlap.
+    let textSize = 28, widths = names.map((s) => Math.max(224, cv.textWidth(s, textSize, opt) + 56));
+    const room = w - 40 - badgeWidth, sum = (a) => a.reduce((p, q) => p + q, 0);
+    if (sum(widths) > room) widths = names.map((s) => cv.textWidth(s, textSize, opt) + 40);
+    while (sum(widths) > room && textSize > 20) { textSize--; widths = names.map((s) => cv.textWidth(s, textSize, opt) + 32); }
     const showTitle = 40 + titleWidth + 32 + widths.reduce((a, b) => a + b, 0) + badgeWidth <= w;
     const contentWidth = 40 + (showTitle ? titleWidth + 32 : 0) + widths.reduce((a, b) => a + b, 0) + badgeWidth;
     const end = compact ? x + Math.min(w, contentWidth) : x + w;

@@ -56,7 +56,7 @@ try {
     assert.deepStrictEqual(Array.from(display.buttons(),b=>b.id),['BTN_PREVIOUS','BTN_NEXT','BTN_VALUE_DOWN','BTN_VALUE_UP']);
     display.buttons().forEach(b=>assert(b.w>=450));
     for(const name of ['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting'])assert(calls.some(c=>c.value===t(name).toUpperCase()&&c.size===28));
-    assert.strictEqual(display.tabs.length,4);
+    assert.strictEqual(display.tabs.length,5);
     const tap=id=>{const target=display.pageTargets.find(r=>r.id===id);assert(target,'missing target '+id);tapLogical(target);};
     tap('shiftRpm');assert.strictEqual(page.open,'shiftRpm');tap('back');
     tapLogical(display.tabs[1]);assert.strictEqual(page.tab,1);tap('sportHudOutput');tap('choice0');assert.strictEqual(values.sportHudOutput,'redline');

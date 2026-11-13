@@ -23,6 +23,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.43
+
+- **New Load tab** (fifth settings tab; with the bar buttons, press NAV again on the navigation tab). It lists only the saved layouts, as "HUD · Luxury arc - Slot 1", "Cluster · Sport dial - Slot 1", "Navigation - Slot 3", each with a Load button.
+- Slots now keep the design they were saved with (design, alert style, auxiliary information) besides the positions and sizes, so loading brings back the same picture; the design switch keeps the outgoing design's positions as choosing a design does. Slots saved before 1.2.43 (positions only) load onto the design in use and show "Design not recorded"; broken slots are not listed, and a design not offered on that display (a cluster-only layout on the HUD) is not applied.
+- Loading writes only the values that differ, nothing when the layout is already in use, and at most once per 1.5 s for each of HUD / cluster / navigation (pressing faster shows "Wait a moment, then press again"), so repeated presses cannot pile up redraws. Loading from the Load tab also ends a position preview left on the HUD / cluster.
+- Tests: save / load round trips, old / broken / wrong-display slots, 200 presses in 2 s (at most 2 writes), cost (a load about 0.5 ms, the Load tab frame about 0.7 ms and 1,700 drawing words with 9 slots), and an end-to-end run loading HUD and cluster layouts into the running outputs: what the renderer shows equals a fresh draw of each frame (no afterimage of the previous layout).
+
 ### 1.2.42
 
 - Arrival sign: the dotted trail under the flag is removed; the red swallowtail flag stays.

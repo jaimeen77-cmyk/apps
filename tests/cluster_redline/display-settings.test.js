@@ -7,7 +7,7 @@ const HUD=require(root+'/hud-compose'),FACE=require(root+'/hud-draw'),CLUSTER=re
 const spec=require(root+'/kit/app-spec.json');
 function store(old){const values={};spec.settings.forEach(s=>values[s.key]=s.default);Object.assign(values,old);const writes=[];return {schema:spec.settings,get:k=>values[k],set:(k,v)=>{writes.push([k,v]);values[k]=v;},writes,values};}
 function draw(page){const cv=page.draw(new Canvas(1600,520));for(const target of cv.targets)assert(target.x>=0&&target.y>=0&&target.x+target.w<=1600&&target.y+target.h<=520);return cv;}
-assert.strictEqual(TABS.length,4);assert(!TABS.some(x=>/Advanced/.test(x)));
+assert.strictEqual(TABS.length,5);assert.strictEqual(TABS[4],'Load');assert(!TABS.some(x=>/Advanced/.test(x)));
 for(const tab of [1,2]){
  const s=store(),page=new SettingsPage(s,null,'test');page.selectTab(tab);const disp=tab===1?'hud':'cluster';draw(page);
  assert.deepStrictEqual(D.auxConfig(s.get(disp+'AuxConfig')),{mode:'gauges',items:['boost','torque']});

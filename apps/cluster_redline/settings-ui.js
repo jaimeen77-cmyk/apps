@@ -5,14 +5,14 @@ const {tr}=require('./strings');
 const {settings:effective,PROFILES,DEFAULTS}=require('./policy');
 const D=require('./display-config'),RL=require('./redline-hud'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
 const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
-const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting'];
+const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting','Load'],LOAD_TAB=4;
 const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','clusterYieldGuidance','layout']];
 const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
 // Keys saved, loaded and reset by the position/size presets of each tab.
 const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaultOf=(schema,k)=>{const d=schema.find(s=>s.key===k);return d&&d.default!==undefined?d.default:DEFAULTS[k];};
-const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
+const SLOT_COUNT=3,SCOPES=['hud','cluster','nav'],SCOPE_TAB={hud:1,cluster:2,nav:3},LOAD_GAP=1500,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
 function layoutKeys(tab,schema){
  const name=tab===3?'nav':tab===2?'cluster':'hud',known=new Set(schema.map(s=>s.key));
@@ -52,9 +52,9 @@ class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
  config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
- keys(){return GROUPS[this.tab];}
+ keys(){return this.tab===LOAD_TAB?this.loadEntries().map(e=>'load-'+e.scope+'-'+e.i):GROUPS[this.tab];}
  item(){const key=this.keys()[this.focus];if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
- selectTab(i){this.tab=Math.max(0,Math.min(3,i|0));this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
+ selectTab(i){this.tab=Math.max(0,Math.min(LOAD_TAB,i|0));this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
  // The settings screen left without Back (Home, another app, screen off): end Position / size so its
  // preview never stays on the HUD or cluster.
  leave(){if(this.open==='layout'||this.open==='layoutPresets'){this.setPreview(false);this.open=null;this.draft=null;this.resetArmed=false;this.presetMessage='';this.choice=0;this.changed();}else if(this.settings.get('layoutPreview'))this.setPreview(false);}
@@ -66,7 +66,7 @@ class SettingsPage{
   this.changed();
  }
  move(delta){
-  if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
+  if(!this.open){const n=this.keys().length;this.focus=n?(this.focus+delta+n)%n:0;}
   else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.stylesFor(this.display()).length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
  }
@@ -79,9 +79,11 @@ class SettingsPage{
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'?cfg.clusterYieldGuidance:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
- change(delta){if(this.open==='layoutPresets')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ change(delta){if(this.tab===LOAD_TAB&&!this.open)return;if(this.open==='layoutPresets')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
-  if(index!==undefined)this.focus=index;const item=this.item();if(!item)return;
+  if(index!==undefined)this.focus=index;
+  if(this.tab===LOAD_TAB&&!this.open){const e=this.loadEntries()[this.focus];if(e)this.loadEntry(e.scope,e.i);return;}
+  const item=this.item();if(!item)return;
   this.choice=0;
   if(item.key==='aux')this.open='auxMode';
   else if(item.key==='design'){this.open='design';this.choice=RL.active(this.config(),this.display())?2:this.config()[this.display()+'AlertStyle']==='circle'?1:0;}
@@ -116,7 +118,9 @@ class SettingsPage{
   this.liveState=liveState||null;
   const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);require('./settings-bg').paint(cv,W,H);
   const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
-  if(cv.chrome)G.frame(cv,theme,TABS,this.tab,badges);else{header(cv,theme,0,0,W,80,'Cluster Redline',TABS,this.tab,badges,true,false);(cv.tabRects||[]).forEach(r=>targets.push(Object.assign({},r,{act:()=>this.selectTab(r.i),label:TABS[r.i],id:'tab'+r.i})));}
+  // 'Load' is not in the kit's own catalogue: its Korean comes from strings.js.
+  const tabs=TABS.map(x=>x==='Load'?tr('Load'):x);
+  if(cv.chrome)G.frame(cv,theme,tabs,this.tab,badges);else{header(cv,theme,0,0,W,80,'Cluster Redline',tabs,this.tab,badges,true,false);(cv.tabRects||[]).forEach(r=>targets.push(Object.assign({},r,{act:()=>this.selectTab(r.i),label:TABS[r.i],id:'tab'+r.i})));}
   if(this.open==='layout')this.drawLayout(cv,cfg,targets);
   else if(this.open==='layoutPresets')this.drawPresets(cv,cfg,targets);
   else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
@@ -125,6 +129,7 @@ class SettingsPage{
   else if(this.open==='rlDesign')this.drawRedlineDesigns(cv,cfg,targets);
   else if(this.open==='navColor')this.drawColors(cv,cfg,targets);
   else if(this.open)this.drawChoices(cv,cfg,targets);
+  else if(this.tab===LOAD_TAB)this.drawLoad(cv,cfg,targets);
   else this.drawRows(cv,cfg,targets,status);
   cv.targets=targets.map((r,i)=>Object.assign({key:this.tab+':'+(this.open||'rows')+':'+i,run:r.act},r));return cv;
  }
@@ -231,17 +236,77 @@ class SettingsPage{
  // Refresh the marker only when the part changed or it is a minute old (it expires after two).
  previewRefresh(){const v=this.previewValue(),cur=String(this.settings.get('layoutPreview')||''),m=/^(.*)@(\d+)$/.exec(cur);return m&&v.indexOf(m[1]+'@')===0&&Date.now()-Number(m[2])<60000?{}:{layoutPreview:v};}
  setPreview(on){const v=on?this.previewValue():'';if(on||this.settings.get('layoutPreview'))this.settings.set('layoutPreview',v);}
- slotKey(i){return (this.tab===3?'nav':this.display())+'LayoutSlot'+i;}
- slot(i){try{const v=JSON.parse(this.settings.get(this.slotKey(i))||'null');return v&&v.values&&typeof v.values==='object'?v:null;}catch(e){return null;}}
- saveSlot(i){const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{values[k]=this.settings.get(k);});this.settings.set(this.slotKey(i),JSON.stringify({version:1,values}));this.presetMessage=tr('Saved to slot')+' '+i;this.changed();}
- loadSlot(i){const slot=this.slot(i);if(!slot){this.presetMessage=tr('Slot is empty');this.changed();return;}const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{const v=slot.values[k];if(v!==undefined&&typeof v===typeof defaultOf(this.settings.schema,k))values[k]=v;});Object.assign(values,this.previewRefresh());this.setValues(values);this.presetMessage=tr('Loaded slot')+' '+i;this.changed();}
+ scope(){return this.tab===3?'nav':this.display();}
+ slotKey(i,scope){return (scope||this.scope())+'LayoutSlot'+i;}
+ slot(i,scope){try{const v=JSON.parse(this.settings.get(this.slotKey(i,scope))||'null');return v&&v.values&&typeof v.values==='object'?v:null;}catch(e){return null;}}
+ // A slot keeps the tab's positions and sizes and, on HUD / cluster, the design they belong to (design, alert
+ // style, auxiliary information), so loading it brings back the same picture. Slots saved before 1.2.43 have
+ // positions only and load onto the design in use.
+ saveSlot(i){const scope=this.scope(),values={};layoutKeys(SCOPE_TAB[scope],this.settings.schema).forEach(k=>{values[k]=this.settings.get(k);});
+  const slot={version:2,values,savedAt:Date.now()};
+  if(scope!=='nav'){const cfg=this.config();slot.design=cfg[scope+'Design']||'own';slot.alert=cfg[scope+'AlertStyle'];slot.aux=cfg[scope+'AuxConfig'];}
+  this.settings.set(this.slotKey(i,scope),JSON.stringify(slot));this.presetMessage=tr('Saved to slot')+' '+i;this.changed();}
+ loadSlot(i){this.loadEntry(this.scope(),i);}
+ // Every saved slot, HUD then cluster then navigation, for the Load tab.
+ loadEntries(){const out=[];SCOPES.forEach(scope=>{for(let i=1;i<=SLOT_COUNT;i++){const slot=this.slot(i,scope);if(slot)out.push({scope,i,slot});}});return out;}
+ slotName(scope,slot){
+  if(scope==='nav')return tr('Navigation');
+  const d=slot&&slot.design;if(!d)return tr('Design not recorded');
+  if(/^rl-/.test(d))return tr(RL.NAMES[d.slice(3)]||d);
+  return t(slot.alert==='circle'?'Circle beside gear':'Top alert bar');
+ }
+ // The values a slot sets: on HUD / cluster first the design switch (which keeps the outgoing design's
+ // positions, as choosing a design does), then the slot's own positions, alert style and auxiliary information.
+ slotValues(scope,slot){
+  const schema=this.settings.schema,values={};
+  if(scope!=='nav'&&slot.design&&D.HUD_DESIGNS.concat(['own']).includes(slot.design)&&!(scope==='hud'&&RL.CLUSTER_ONLY.includes(slot.design.slice(3)))&&!(scope==='cluster'&&RL.HUD_ONLY.includes(slot.design.slice(3))))
+   Object.assign(values,this.designSwitch(slot.design,scope));
+  layoutKeys(SCOPE_TAB[scope],schema).forEach(k=>{const v=slot.values[k];if(v!==undefined&&typeof v===typeof defaultOf(schema,k))values[k]=v;});
+  if(scope!=='nav'){if(slot.alert==='bar'||slot.alert==='circle')values[scope+'AlertStyle']=slot.alert;if(typeof slot.aux==='string'&&D.auxConfig(slot.aux).items.length)values[scope+'AuxConfig']=slot.aux;}
+  return values;
+ }
+ // Loading writes only what differs, at most once per LOAD_GAP for each of HUD / cluster / navigation: pressing again quickly, or loading what is
+ // already in use, writes nothing (each write makes the background app redraw the HUD / cluster).
+ loadEntry(scope,i){
+  const slot=this.slot(i,scope),now=Date.now(),say=m=>{this.presetMessage=m;this.loadMessage={scope,i,text:m,at:now};this.changed();};
+  if(!slot){say(tr('Slot is empty'));return false;}
+  const last=(this.lastLoadAt||(this.lastLoadAt={}))[scope];
+  if(last&&now-last<LOAD_GAP&&now>=last){say(tr('Wait a moment, then press again'));return false;}
+  const values=this.slotValues(scope,slot),changes={};
+  Object.keys(values).forEach(k=>{if(this.settings.get(k)!==values[k])changes[k]=values[k];});
+  if(this.open==='layout'||this.open==='layoutPresets')Object.assign(changes,this.previewRefresh());
+  else if(this.settings.get('layoutPreview'))changes.layoutPreview='';
+  if(!Object.keys(changes).length){say(tr('Already in use'));return false;}
+  this.lastLoadAt[scope]=now;this.setValues(changes);say(tr('Loaded slot')+' '+i);return true;
+ }
+ drawLoad(cv,cfg,targets){
+  const list=this.loadEntries();
+  if(!list.length){
+   cv.text(tr('No saved layouts yet.'),100,160,32,'#f3f5f7');
+   cv.text(tr('Save one in HUD / CLUSTER / NAV display setting → Position / size → Save / load.'),100,206,25,'#91a1b6');
+   require('./settings-bg').mark(cv,W,H);return;
+  }
+  this.focus=Math.min(this.focus,list.length-1);
+  const h=list.length>6?46:64;let y=100;
+  list.forEach((e,n)=>{
+   if(n===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+6,4,h-13,'#f32b40');}
+   const scopeName=e.scope==='hud'?'HUD':e.scope==='cluster'?tr('Cluster'):tr('Navigation');
+   const label=(e.scope==='nav'?scopeName:scopeName+' · '+this.slotName(e.scope,e.slot))+' - '+tr('Slot')+' '+e.i;
+   cv.text(label,100,y+h/2+11,30,'#f3f5f7',{literal:true});
+   const m=this.loadMessage;if(m&&m.scope===e.scope&&m.i===e.i&&Date.now()-m.at<4000)cv.text(m.text,1250,y+h/2+9,22,'#ffad45',{align:'right',literal:true});
+   targets.push({x:78,y,w:1170,h:h-1,act:()=>{this.focus=n;this.changed();},label,id:'load-row-'+e.scope+e.i});
+   this.button(cv,targets,tr('Load'),1270,y+4,260,h-9,()=>{this.focus=n;this.loadEntry(e.scope,e.i);},false,'load-'+e.scope+e.i);
+   cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
+  });
+  if(list.length<=5)require('./settings-bg').mark(cv,W,H);
+ }
  resetLayout(){if(!this.resetArmed){this.resetArmed=true;this.presetMessage=tr('Press again to reset to defaults');this.changed();return;}this.resetArmed=false;const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{values[k]=defaultOf(this.settings.schema,k);});Object.assign(values,this.previewRefresh());this.setValues(values);this.presetMessage=tr('Reset to defaults');this.changed();}
  drawPresets(cv,cfg,targets){
   const local=[],name=t(this.tab===3?'NAV display setting':this.tab===2?'CLUSTER display setting':'HUD display setting');
   cv.text(tr('Save / load positions')+' · '+name,100,126,32,'#ef4050',{literal:true});
   this.button(cv,local,tr(this.resetArmed?'Press again to reset':'Reset to defaults'),84,150,1452,64,()=>this.resetLayout(),!!this.resetArmed,'preset-reset');
-  for(let i=1;i<=SLOT_COUNT;i++){const x=84+(i-1)*490,saved=!!this.slot(i);
-   cv.text(tr('Slot')+' '+i+' · '+tr(saved?'Saved':'Empty'),x+8,262,24,saved?'#b8c5d4':'#6f7c8c',{literal:true});
+  for(let i=1;i<=SLOT_COUNT;i++){const x=84+(i-1)*490,slot=this.slot(i),saved=!!slot;
+   cv.text(tr('Slot')+' '+i+' · '+(saved?(this.scope()==='nav'?tr('Saved'):this.slotName(this.scope(),slot)):tr('Empty')),x+8,262,24,saved?'#b8c5d4':'#6f7c8c',{literal:true});
    this.button(cv,local,tr('Save')+' '+i,x,276,464,64,()=>{this.resetArmed=false;this.saveSlot(i);},false,'preset-save'+i);
    this.button(cv,local,tr('Load')+' '+i,x,352,464,64,()=>{this.resetArmed=false;this.loadSlot(i);},false,'preset-load'+i);
   }
@@ -268,8 +333,8 @@ class SettingsPage{
  // Each design keeps its own Whole layout / element positions and sizes: switching saves the current
  // design's values under it (in <display>RlLayouts, outside app.json) and brings back the new design's,
  // or its defaults the first time. Returns the values to set.
- designSwitch(next){
-  const d=this.display(),cur=this.config()[d+'Design']||'own',values={[d+'Design']:next};if(cur===next)return values;
+ designSwitch(next,display){
+  const d=display||this.display(),cur=this.config()[d+'Design']||'own',values={[d+'Design']:next};if(cur===next)return values;
   const keys=['RpmGauge'].concat(D.RL_PARTS).reduce((a,p)=>a.concat(['OffsetX','OffsetY','WidthScale','HeightScale','Hidden'].map(x=>d+p+x)),[]);
   let saved={};try{saved=JSON.parse(this.settings.get(d+'RlLayouts')||'{}')||{};}catch(e){saved={};}
   const now={};keys.forEach(k=>{const v=this.settings.get(k);if(v!==undefined&&v!==defaultOf(this.settings.schema,k))now[k]=v;});if(Object.keys(now).length)saved[cur]=now;else delete saved[cur];
