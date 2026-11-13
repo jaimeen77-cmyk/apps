@@ -2,6 +2,13 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Seats Easy Access
+
+### 0.6.1
+
+- Show the BMW Coding photo behind the controls with a lighter veil, as on Cluster Redline's settings screen.
+- Add the Cluster Redline brand mark in the free space at the top: profile picture, 서울II잼님 · blog address and "BMW Coding 배움터" (English: address and "BMW Coding"). The picture is a gradient-only layer for native renderers.
+
 ## Storage
 
 ### 1.0.3

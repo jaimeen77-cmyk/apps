@@ -78,7 +78,11 @@ async function start(ctx, options) {
         const cv = ctx.canvas(1600, 520).clear('#11161c');
         const theme = Object.assign({}, ctx.theme(), { sel: '#e6404a' });
         BG.paint(cv, 1600, 520);
-        cv.fillRect(0, 36, 1600, 484, [7, 11, 17, 190]);
+        // Lighter veil than before so the BMW Coding photo shows, as on Cluster Redline's settings screen.
+        cv.fillRect(0, 36, 1600, 484, [7, 11, 17, 105]);
+        // BMW Coding mark in the free space between the seat and the automatic Easy Access switch.
+        const autoWidth = cv.textWidth ? cv.textWidth(tr('자동 Easy Access'), 23, { literal: true }) : 230;
+        BG.mark(cv, Math.min(1238, 1440 - autoWidth - 28), 100);
         cv.blit(seatLayer, 650, 48);
         const stationary = state ? (state.parked ? tr('정차') : tr('주행 중')) : tr('상태 없음');
         cv.fillRect(38, 62, 4, 25, '#e6404a');
