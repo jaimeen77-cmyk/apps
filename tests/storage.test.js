@@ -8,14 +8,14 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'storage-test-'));
 const previews = process.env.STORAGE_PREVIEW_DIR;
 async function checkRenderer(language) {
     const id = language === 'ko' ? 'storage' : 'storage_en';
-    const file = build({ template:'storage', id, version:'1.0.3', language,
+    const file = build({ template:'storage', id, version:'1.0.4', language,
         dir:language === 'ko' ? 'apps/storage' : 'store/apps/storage_en',
         source:'apps/storage', out:path.join(temp,id) });
     const stage = path.join(temp,id,'installed');fs.mkdirSync(stage);
     cp.execFileSync('tar',['-xzf',file,'-C',stage]);
     const js = path.join(stage,'package/javascript');
     const spec = require(path.join(js,'kit/app-spec.json'));
-    assert.strictEqual(spec.version,'1.0.3');
+    assert.strictEqual(spec.version,'1.0.4');
     const source = require('../apps/storage/app.json');
     assert.deepStrictEqual(spec.settings.map(s=>[s.key,s.default]),source.settings.map(s=>[s.key,s.default]));
     assert.strictEqual(/[가-힣]/.test(spec.settings[0].label),language==='ko');
@@ -92,5 +92,5 @@ async function checkRenderer(language) {
     assert((await S.appFolders(path.join(temp,'missing'))).error);
     const real=await S.fileSystems();assert(!real.error&&real.list.length);assert(S.memory().total>0&&S.uptime()>0);
     await checkRenderer('ko');await checkRenderer('en');
-    console.log('PASS: Storage 1.0.3 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
+    console.log('PASS: Storage 1.0.4 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>fs.rmSync(temp,{recursive:true,force:true}));

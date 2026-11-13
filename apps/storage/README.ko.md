@@ -1,4 +1,4 @@
-# 저장공간 1.0.3
+# 저장공간 1.0.4
 
 [English](README.md)
 
@@ -9,7 +9,7 @@ BMW MGU / iDrive 7(ID7)의 저장공간을 조회하는 앱입니다. 디스크 
 앱 화면과 위젯 안에서 표시됩니다.
 
 MGU Store에 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가하고
-새로고침한 뒤 **저장공간 (한국어) 1.0.3** 또는 **Storage (English) 1.0.3**을
+새로고침한 뒤 **저장공간 (한국어) 1.0.4** 또는 **Storage (English) 1.0.4**을
 설치하세요. 두 언어판은 각각 설치됩니다. `mgu-deploy >= 0.7.17`과 차량의
 SDK donor가 필요하며 SDK는 Store가 설치 중 차량에서 공급합니다.
 

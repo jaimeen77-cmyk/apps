@@ -124,7 +124,7 @@ class SettingsPage{
  }
  draw(cv,status,liveState){
   this.liveState=liveState||null;
-  const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);require('./settings-bg').paint(cv,W,H);
+  const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);{const B=require('./settings-bg');B.paint(cv,W,H,B.left(cv),B.top(cv,cv.chrome?0:80));}
   const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
   // 'Favorites' is not in the kit's own catalogue: its Korean comes from strings.js.
   const tabs=TABS.map(x=>x==='Favorites'?tr(x):x);
