@@ -242,7 +242,9 @@ mgu.run({
             if (PAGES[page] === 'apps' && !apps.t && !apps.scanning) scanApps();
             lastDraw = now;
             const t = ctx.theme(), cv = ctx.canvas(W, H).clear(t.bg);
-            BG.paint(cv, W, H);
+            // the photo from the menu's left edge (right of the HMI's back arrow column on the full-screen layout)
+            // and under the tab bar, scaled into that area
+            BG.paint(cv, W, H, BG.left(cv), BG.top(cv, G.BAR_H));
             const alert = over();
             const BH = 50, top = G.TOP + (alert ? BH + 8 : 0);
             if (alert) drawBanner(cv, t, G.TOP + 2, BH);
