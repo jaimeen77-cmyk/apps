@@ -3,8 +3,8 @@
 // module can hold its motors right after the engine starts: Comfort then sees no progress and takes it for the end
 // stop, so only a relay click is heard). No timers survive a lost connection.
 const TOL = 80;            // counts: twice Comfort's own arrival tolerance (40)
-const WAIT_MS = 10000;     // after power-on, before the first recall (car: 6 s was too early, the seat module ignored it; 15 s arrived)
-const RETRY_MS = 8000;     // after a short M1, wait this long before the one retry
+const WAIT_MS = 8000;      // after power-on, before the first recall (car: 6 s too early, the seat module ignored it; 10 s and 15 s arrived)
+const RETRY_MS = 2000;     // after a short M1, wait this long (and Comfort idle as long) before the one retry
 const ATTEMPTS = 2;
 class IgnitionM1 {
     constructor(client, settings, log, options) {

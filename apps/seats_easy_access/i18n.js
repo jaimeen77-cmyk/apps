@@ -71,10 +71,12 @@ const ENGLISH = {
 const KOREAN = {
     'M1 power-on detected: waiting 6 seconds': 'M1 차량 켜짐 감지: 6초 대기',
     'M1 power-on detected: waiting 10 seconds': 'M1 차량 켜짐 감지: 10초 대기',
+    'M1 power-on detected: waiting 8 seconds': 'M1 차량 켜짐 감지: 8초 대기',
     'M1 command sent: checking arrival': 'M1 명령 보냄: 도착 확인 중',
     'M1 arrived': 'M1 도착',
     'M1 short of target': 'M1 미도착',
     'M1 retry in 8 s': '8초 뒤 M1 재시도',
+    'M1 retry in 2 s': '2초 뒤 M1 재시도',
     'M1 still short after retry': 'M1 재시도 후에도 미도착',
     'M1 check: no memory job observed': 'M1 확인: 메모리 작업 감지 못함',
     'M1 retry: calling driver memory again': 'M1 재시도: 운전석 메모리 다시 호출',

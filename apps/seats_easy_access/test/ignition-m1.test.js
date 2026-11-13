@@ -26,8 +26,8 @@ function fixture(values) {
     let f = fixture();
     f.emit({}); await f.advance(6000);
     assert.equal(f.client.sent.length, 0, 'starting an already-on car is not a trigger');
-    f.cycle(); await f.advance(9999); assert.equal(f.client.sent.length, 0, 'waits ten seconds after power-on');
-    assert.ok(f.logs.some((s) => s.includes('waiting 10 seconds')));
+    f.cycle(); await f.advance(7999); assert.equal(f.client.sent.length, 0, 'waits eight seconds after power-on');
+    assert.ok(f.logs.some((s) => s.includes('waiting 8 seconds')));
     await f.advance(1);
     assert.deepStrictEqual(f.client.sent, [{ op: 'memory', seat: 'driver', slot: 0, save: false }]);
     await f.advance(10000); f.emit({}); await f.advance(1000);
@@ -105,8 +105,9 @@ function fixture(values) {
     assert.equal(f.client.sent.length, 1);
     job(f, true); job(f, false, 130);                          // ended 326 counts short
     assert.ok(f.logs.some((s) => s.includes('M1 short of target #1') && s.includes('SLV +326')), f.logs.join('\n'));
-    await f.advance(7000); assert.equal(f.client.sent.length, 1, 'waits before the retry');
-    await f.advance(1000); await f.advance(2000); await f.advance(1);
+    assert.ok(f.logs.some((s) => s.includes('M1 retry in 2 s')));
+    await f.advance(1999); assert.equal(f.client.sent.length, 1, 'waits two seconds before the retry');
+    await f.advance(1);
     assert.equal(f.client.sent.length, 2, 'one retry after the wait and 2 s of idle Comfort');
     assert.ok(f.logs.some((s) => s.includes('retry: calling driver memory again')));
     job(f, true); job(f, false, 140);                          // still short
