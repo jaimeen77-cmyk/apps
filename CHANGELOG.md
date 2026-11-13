@@ -43,6 +43,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.47
+
+- **Gauge mode on eleven more layouts**, each bar drawn in the layout's own look: Standard (slanted segments like its rev bar), Vector arcade (the same in outline), 80s digital (thin LCD blocks), VFD glow (glowing blocks over ghosts), Ramp (the ramp's slanted blocks, rows spaced apart), M shift lights (green / yellow / red dots), Data logger (a 20-block strip with a scale), Mode ribbon (a slanted band in the drive mode's colour), Hexagon (one tall angled box each side with a vertical stack of hex cells, its own HUD size and place), Classic dial (a chrome-rimmed vertical thermometer each side) and Sport HUD (slanted white segments). Items without a range (clock, driving time) stay text. All are marked Gauge support in the pickers.
+- Element bounds are measured with full bars in gauge mode, so moved or resized parts never clip a bar.
+- Tests: bars drawn and following the values on every new layout (HUD and cluster), cached tiles equal full draws across values / gauges switches; soak with the mode switching every 10 s for an hour: no mismatches, memory as in values mode, gauge mode no slower than values mode.
+
 ### 1.2.46
 
 - **New auxiliary items: Average speed and Driving time** (trip 1, from the cluster's board computer as the Live Data app reads them: average speed 0.1 a step in the car's unit, mph turned into km/h; driving time hours:minutes). Both modes; the driving time's gauge runs to 5 h.

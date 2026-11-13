@@ -13,7 +13,7 @@ const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','l
 const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
 // Layouts made for the cluster only (too detailed for the HUD's glass): not offered on the HUD.
 // Layouts that draw the auxiliary items as bar gauges in gauge mode (the others show them as text).
-const GAUGE_LAYOUTS=['sportdial','tyres'];
+const GAUGE_LAYOUTS=['standard','digital','vfd','vector','ramp','shift','logger','ribbon','hexagon','classic','sporthud','sportdial','tyres'];
 const CLUSTER_ONLY=['sportdial','classic','tyres'],HUD_ONLY=['sporthud'],stylesFor=d=>STYLES.filter(s=>!(d==='hud'?CLUSTER_ONLY:HUD_ONLY).includes(s));
 const IW=400,IH=130,heightOf=st=>TALL.includes(st)?176:IH,isNum=x=>typeof x==='number'&&isFinite(x);
 function style(cfg,d){const m=/^rl-([a-z]+)$/.exec(cfg&&cfg[(d||'hud')+'Design']||'');return m&&STYLES.includes(m[1])?m[1]:null;}
@@ -82,8 +82,9 @@ function room(face,d){return d==='cluster'||!face||!face.tw?face:{x:0,y:0,w:face
 // and the readouts (and Hexagon's RPM number) this much larger. Added to what Position / size stores, so
 // stored 0 / 100 % is this default and Reset brings it back.
 const HUD_BASE={standard:{y:10},vector:{y:10},digital:{y:10},vfd:{y:10},arc:{y:30},ramp:{y:10},dial:{y:20},
- shift:{y:30,read:200,lift:{RlRead:-40}},logger:{y:30},needle:{y:20,read:150,lift:{RlReadA:[60,-60],RlReadB:[-60,-60],RlReadC:[60,50],RlReadD:[-60,50]}},rings:{y:40,read:120,lift:{RlRead:-20}},ribbon:{y:20,read:120},hexagon:{y:30,read:200,rpm:150,lift:{RlReadA:[50,-20],RlReadB:[50,-30],RlReadC:[-50,-20],RlReadD:[-50,-30]}}};
-function hudBase(cfg,d){return d==='cluster'?{}:HUD_BASE[style(cfg,d)]||{};}
+ shift:{y:30,read:200,lift:{RlRead:-40}},logger:{y:30},needle:{y:20,read:150,lift:{RlReadA:[60,-60],RlReadB:[-60,-60],RlReadC:[60,50],RlReadD:[-60,50]}},rings:{y:40,read:120,lift:{RlRead:-20}},ribbon:{y:20,read:120},hexagon:{y:30,read:200,rpm:150,lift:{RlReadA:[50,-20],RlReadB:[50,-30],RlReadC:[-50,-20],RlReadD:[-50,-30]},
+  gauge:{read:140,lift:{RlReadA:[40,-10],RlReadB:[-40,-10]}}}};   // gauge mode: one tall box each side
+function hudBase(cfg,d){if(d==='cluster')return {};const b=HUD_BASE[style(cfg,d)]||{};return b.gauge&&auxConfig(cfg[(d||'hud')+'AuxConfig']).mode==='gauges'?Object.assign({},b,b.gauge):b;}
 function baseScale(cfg,d,key){const b=hudBase(cfg,d);return (/^RlRead/.test(key)?b.read:key==='RlRpm'?b.rpm:0)||100;}
 function rect(cfg,face0,d){
  const face=safe(face0,d);
@@ -147,8 +148,8 @@ function bounds(state,id,d){
  if(id==='mark')return Object.assign({},MARK,MARK_AT[style(state.config,d)]||{});
  const cfg=state.config,f=frame(Object.assign({},state,{rpm:cfg.maxRpm,gear:'M8',flash:true}),0,d);
  f.d=Object.assign({},f.d,{rpm:f.max,gear:8,stage:'D'});f.mode='M';f.blink=true;f.cue=Object.assign({},f.cue,{shift:true});
- f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'}));f.tyres={temp:{FL:-40,FR:-40,RL:-40,RR:-40},bar:{FL:9.9,FR:9.9,RL:9.9,RR:9.9}};f.drive='COMFORT';f.only=id;   // the longest drive-mode name
- const k=JSON.stringify([id,f.opts.style,f.max,f.redline,f.readouts.map(r=>r.label)]);
+ f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'},r.gauge?{frac:1,lo:888,hi:888}:{}));f.tyres={temp:{FL:-40,FR:-40,RL:-40,RR:-40},bar:{FL:9.9,FR:9.9,RL:9.9,RR:9.9}};f.drive='COMFORT';f.only=id;   // the longest drive-mode name
+ const k=JSON.stringify([id,f.opts.style,f.max,f.redline,f.readouts.map(r=>r.label+(r.gauge?'|g':''))]);
  if(boundsCache.has(k))return boundsCache.get(k);
  const cv=bboxCanvas();kit().DRAW.drawLayer(cv,f);
  const b=cv.b,r=b.x1>b.x0?{x:Math.floor(b.x0)-2,y:Math.floor(b.y0)-2,w:Math.ceil(b.x1-b.x0)+4,h:Math.ceil(b.y1-b.y0)+4}:null;

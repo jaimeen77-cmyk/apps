@@ -277,9 +277,17 @@ function drawRamp(cv0, f, layer, h) {
     // readouts: label centred under 6, value right-aligned under 8, one row each
     if (fg) [0, 1, 2, 3].forEach((i) => {
         const it = items[i]; if (!it || !want('read' + 'ABCD'[i])) return;
-        const y = 113 + i * 22;
+        const bar = it.gauge && it.frac !== null && it.frac !== undefined, y = bar ? 113 + i * 40 : 113 + i * 22;
         fitLabel(cv, it.label.toUpperCase(), 400, y, 15, RC.text, 120, { align: 'center' });
         cv.text(it.value, 566, y + 2, 23, it.tone && it.tone !== 'text' ? h.P[it.tone] : RC.text, { align: 'right', font: 'bold' });
+        // gauge mode: a row of the ramp's slanted blocks under the row, yellow lit, outlined unlit
+        if (bar) {
+            const n = 8, x0 = 344, pitch = (566 - x0) / n, lit = Math.round(clamp(it.frac, 0, 1) * n), top = y + 7, bot = y + 17, sl = 5;
+            for (let k = 0; k < n; k++) {
+                const x = x0 + k * pitch, q = [[x + sl, top], [x + pitch - 4 + sl, top], [x + pitch - 4, bot], [x, bot]];
+                if (k < lit) cv.quad(q, it.tone === 'hot' ? RC.red : RC.yellow); else cv.polyline(q.concat([q[0]]), 1.4, RC.sep);
+            }
+        }
     });
 }
 

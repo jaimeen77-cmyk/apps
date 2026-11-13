@@ -1,4 +1,4 @@
-# Screenshots · Cluster Redline 1.2.46 / iDrive Circuit 1.0.0
+# Screenshots · Cluster Redline 1.2.47 / iDrive Circuit 1.0.0
 
 [한국어 설치](../docs/INSTALL.ko.md) · [한국어 사용법](../docs/CLUSTER-REDLINE.ko.md) · [English installation](../docs/INSTALL.md) · [English user guide](../docs/CLUSTER-REDLINE.md)
 

@@ -15,6 +15,10 @@ function ring(cv,cx,cy,r,w,col){cv.arc(cx,cy,r-w/2,r+w/2,0,360,col);}
 // Drive-mode colour and name for the ribbon: Comfort blue, Sport orange, Eco green.
 function drive(mode){const m=String(mode||'');if(/SPORT|BOOST/.test(m))return {col:'#ff6a1a',name:language()==='ko'?'스포츠':'SPORT'};
  if(/ECO/.test(m))return {col:'#2bd46a',name:language()==='ko'?'에코':'ECO'};if(m)return {col:'#3d8bff',name:language()==='ko'?'컴포트':'COMFORT'};return {col:'#ff6a1a',name:''};}
+// gauge mode: the item has a range to show
+const gb=it=>!!(it&&it.gauge&&it.frac!==null&&it.frac!==undefined);
+// a row of slanted segments from x (w wide), lit up to frac
+function slants(cv,x,y,w,h,n,sl,frac,on,off,gap){const pitch=w/n,lit=Math.round(clamp(frac,0,1)*n);for(let i=0;i<n;i++){const bx=x+i*pitch;cv.quad([[bx+sl,y],[bx+pitch-(gap||3)+sl,y],[bx+pitch-(gap||3),y+h],[bx,y+h]],i<lit?(typeof on==='function'?on(i,n):on):off);}}
 function readout(cv,it,x,y,ls,vs,align,col){if(!it)return;const o={align,font:'bold'};cv.text(it.label,x,y,ls,C.dim,o);cv.text(it.value,x,y+vs*0.95,vs,col||C.text,o);}
 
 function drawShift(cv,f,h){
@@ -23,7 +27,9 @@ function drawShift(cv,f,h){
  if(want(f,'gear'))cv.text(h.gearText(d),544,330,230,C.text,{align:'center',font:h.gearFont(f.opts)});
  if(want(f,'mode')&&f.mode)cv.text(f.mode,640,170,44,C.accent,{font:'bold'});
  if(want(f,'rpm'))cv.text(rpmText(d),544,395,46,'#9aa6b6',{align:'center',font:'bold',spacing:6});
- if(want(f,'read')&&f.readouts.length){const n=f.readouts.length;f.readouts.forEach((it,i)=>cv.text(it.label+' '+it.value,544+(i-(n-1)/2)*250,450,30,C.soft,{align:'center',font:'bold'}));}
+ if(want(f,'read')&&f.readouts.length){const n=f.readouts.length;f.readouts.forEach((it,i)=>{const x=544+(i-(n-1)/2)*250,bar=gb(it);cv.text(it.label+' '+it.value,x,bar?432:450,30,C.soft,{align:'center',font:'bold'});
+  // gauge mode: ten round dots, green / yellow / red like the shift lights
+  if(bar){const lit=Math.round(clamp(it.frac,0,1)*10);for(let k=0;k<10;k++)cv.circle(x+(k-4.5)*14,456,5,k<lit?(k<4?h.P.low:k<7?h.P.mid:h.P.high):C.off);}});}
 }
 function drawLogger(cv,f,h){
  const d=f.d,max=f.max;
@@ -32,7 +38,11 @@ function drawLogger(cv,f,h){
  if(want(f,'gear')){cv.polyline([[60,190],[310,190],[310,440],[60,440],[60,190]],4,C.accent);cv.text('GEAR',80,225,26,C.accent,{font:'bold'});cv.text(h.gearText(d),185,390,210,C.text,{align:'center',font:h.gearFont(f.opts)});}
  if(want(f,'mode')&&f.mode)cv.text(f.mode,292,225,30,C.accent,{align:'right',font:'bold'});
  if(want(f,'rpm')){cv.text('RPM',1028,232,26,C.dim,{align:'right',font:'bold'});cv.text(rpmText(d),1028,300,56,f.cue.shift?h.P.high:'#ffd522',{align:'right',font:'bold'});}
- [[350,232],[700,232],[350,362],[700,362]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i]))readout(cv,f.readouts[i],p[0],p[1],26,72,'left');});
+ [[350,232],[700,232],[350,362],[700,362]].forEach((p,i)=>{if(!want(f,'read'+'ABCD'[i]))return;const it=f.readouts[i];readout(cv,it,p[0],p[1],26,72,'left');
+  // gauge mode: a 20-block strip like the rev graph with a scale under it
+  if(gb(it)){const x=p[0],y=p[1]+92,lit=Math.round(clamp(it.frac,0,1)*20);for(let k=0;k<20;k++)cv.fillRect(x+k*15,y,12,26,k<lit?(k<14?h.P.low:k<17?h.P.mid:h.P.high):C.off);
+   for(let k=0;k<=4;k++)cv.fillRect(x+k*74.25,y+30,2,k%2?6:10,C.dim);const fm=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10);
+   cv.text(fm(it.lo),x,y+60,20,C.dim,{font:'bold'});cv.text(fm(it.hi),x+297,y+60,20,C.dim,{align:'right',font:'bold'});}});
 }
 function drawNeedle(cv,f,h){
  const d=f.d,max=f.max,cx=544,cy=430,A=v=>-90+180*clamp(v,0,max)/max,pt=(a,r)=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)];
@@ -65,7 +75,9 @@ function drawRibbon(cv,f,h){
   const p=isNum(d.rpm)?clamp(d.rpm/f.max,0,1):0,n=Math.round(p*64);if(n>0)cv.polyline(pts.slice(0,n+1),40,f.cue.shift?(f.blink?h.P.flash:C.track):dm.col);}
  if(want(f,'gear'))cv.text(h.gearText(d),90,230,190,C.text,{font:h.gearFont(f.opts)});
  if(want(f,'mode')&&(dm.name||f.mode))cv.text(dm.name||f.mode,96,290,34,dm.col,{font:'bold',spacing:4});
- [[640,290],[850,290],[640,395],[850,395]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i]))readout(cv,f.readouts[i],p[0],p[1],26,52,'left');});
+ [[640,290],[850,290],[640,395],[850,395]].forEach((p,i)=>{if(!want(f,'read'+'ABCD'[i]))return;const it=f.readouts[i];readout(cv,it,p[0],p[1],26,52,'left');
+  // gauge mode: a slanted band in the drive mode's colour, like the ribbon
+  if(gb(it))slants(cv,p[0],p[1]+72,170,18,10,8,it.frac,it.tone==='hot'?'#ff3a3a':dm.col,C.track,3);});
 }
 // Hexagon: an angular hexagonal tachometer (yellow, red past the redline) round a hexagonal gear cell,
 // readouts in angled side boxes, two chevrons as the shift light.
@@ -86,6 +98,16 @@ function drawHexagon(cv,f,h){
  if(want(f,'gear')){cv.polyline([[544,170],[613,210],[613,290],[544,330],[475,290],[475,210],[544,170]],3,YEL);cv.text(h.gearText(d),544,292,120,C.text,{align:'center',font:h.gearFont(f.opts)});}
  if(want(f,'mode')&&f.mode)cv.text(f.mode,624,206,32,YEL,{font:'bold'});
  if(want(f,'rpm'))cv.text(rpmText(d),544,385,40,q.flash?h.P.flash:YEL,{align:'center',font:'bold',spacing:4});
+ if(f.readouts.length&&f.readouts[0].gauge){
+  // gauge mode: one tall angled box each side, the value and a vertical stack of hex cells on its inner edge
+  [[60,1],[1028,-1]].forEach(([x,s],i)=>{const it=f.readouts[i];if(!it||!want(f,'read'+'ABCD'[i]))return;const y0=150,y1=380;
+   cv.polyline([[x,y0],[x+190*s,y0],[x+230*s,y0+30],[x+230*s,y1],[x+30*s,y1],[x,y1-30],[x,y0]],3,'#2a2f37');
+   readout(cv,it,x+20*s,y0+40,24,48,s>0?'left':'right');
+   if(!gb(it))return;const fm=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10),n=9,cx=x+196*s,lit=Math.round(clamp(it.frac,0,1)*n);
+   for(let k=0;k<n;k++){const cy=y1-24-k*21,r=11,on=k<lit,col=on?(k>=n-2?'#ff2a2a':YEL):'#2a2f37';
+    cv.quad([[cx-r,cy],[cx-r/2,cy-r*0.87],[cx+r/2,cy-r*0.87],[cx+r,cy]],col);cv.quad([[cx-r,cy],[cx+r,cy],[cx+r/2,cy+r*0.87],[cx-r/2,cy+r*0.87]],col);}
+   cv.text(fm(it.hi),cx-24*s,y1-24-(n-1)*21+6,18,C.dim,{align:s>0?'right':'left',font:'bold'});cv.text(fm(it.lo),cx-24*s,y1-18,18,C.dim,{align:s>0?'right':'left',font:'bold'});});
+  return;}
  const box=[[60,150,1],[60,270,1],[1028,150,-1],[1028,270,-1]];
  box.forEach((b,i)=>{if(!want(f,'read'+'ABCD'[i])||!f.readouts[i])return;const [x,y,s]=b;cv.polyline([[x,y],[x+190*s,y],[x+220*s,y+30],[x+220*s,y+90],[x+30*s,y+90],[x,y+60],[x,y]],3,'#2a2f37');
   readout(cv,f.readouts[i],x+20*s,y+35,22,44,s>0?'left':'right');});
@@ -170,6 +192,22 @@ function drawSportDial(cv,f,h){
 // numbers, a small temperature dial in a green window at the bottom (oil, C 50 - H 150 °C, red past 130),
 // and up to four readouts in panels left and right.
 const CL={cx:544,cy:230,R:184,a0:-128,a1:128,cream:'#efe6cf',ink:'#26231e',bronze:'#c88a4c',green:'#12312a',green2:'#0b211c',gold:'#b89a5e',red:'#c4241c',chrome:'#c9cdd2'};
+// gauge mode: a vertical chrome-rimmed thermometer on the outer edge (side -1 left, 1 right), cream inside with
+// black ticks, a red column and bulb, the label and value beside it on the inner side
+function clTube(cv,it,side){
+ const tx=side<0?64:1024,y0=70,y1=380,tw=30,al=side<0?'left':'right',ix=tx-side*48,bar=gb(it);
+ rr(cv,tx-tw/2-4,y0-4,tw+8,y1-y0+8,(tw+8)/2,[150,156,164,255]);rr(cv,tx-tw/2-1,y0-1,tw+2,y1-y0+2,(tw+2)/2,[236,240,244,255]);rr(cv,tx-tw/2+2,y0+2,tw-4,y1-y0-4,(tw-4)/2,[218,206,174,255]);
+ cv.circle(tx,y1+26,28,[150,156,164,255]);cv.circle(tx,y1+26,24,[236,240,244,255]);cv.circle(tx,y1+26,20,'#c8402a');
+ const ty0=y0+14,ty1=y1-6,hh=ty1-ty0;
+ for(let k=0;k<=10;k++){const y=ty1-hh*k/10,l=k%5?5:9;cv.fillRect(tx-tw/2+3,y-1,l,2,'#2a2418');cv.fillRect(tx+tw/2-3-l,y-1,l,2,'#2a2418');}
+ const fr=bar?clamp(it.frac,0,1):0;cv.fillRect(tx-5,ty1-hh*fr,10,hh*fr+8,'#c8402a');cv.fillRect(tx-5,ty1,10,22,'#c8402a');
+ const fm=v=>Math.abs(v)>=10?String(Math.round(v)):String(Math.round(v*10)/10);
+ if(bar){cv.text(fm(it.hi),ix,ty0+8,20,'#cdbf98',{align:al,font:'bold'});cv.text(fm(it.lo),ix,ty1+6,20,'#cdbf98',{align:al,font:'bold'});}
+ const lx=tx-side*84;
+ cv.text(it.label,lx+2,182,26,[0,0,0,200],{align:al,font:'bold'});cv.text(it.label,lx,180,26,'#d8c99e',{align:al,font:'bold'});
+ cv.text(it.value,lx+2,248,58,[0,0,0,200],{align:al,font:'bold'});cv.text(it.value,lx,246,58,it.tone==='hot'?'#ff6a4a':it.tone==='cold'?'#7fc4ff':'#f3ead2',{align:al,font:'bold'});
+ if(it.unit&&!/[°%:]/.test(it.value))cv.text(it.unit,lx,282,22,'#cdbf98',{align:al,font:'bold'});
+}
 function clPanel(cv,it,x,y,w,hh){
  // no box: label and value straight on the black
  
@@ -239,7 +277,8 @@ function drawClassic(cv,f,h){
  }
  if(want(f,'mode')){const m=String(f.drive||''),word=/SPORT/.test(m)?(ko?'스포츠':'SPORT'):/ECO/.test(m)?(ko?'에코 프로':'ECO PRO'):m?(ko?'컴포트':'COMFORT'):'';
   if(word)cv.text(word,cx,cy-34,19,CL.bronze,{align:'center',font:'bold',literal:true});}
- [[24,52],[764,52],[24,252],[764,252]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])clPanel(cv,f.readouts[i],p[0],p[1],300,170);});
+ if(f.readouts.length&&f.readouts[0].gauge)[0,1].forEach(i=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])clTube(cv,f.readouts[i],i?1:-1);});
+ else [[24,52],[764,52],[24,252],[764,252]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])clPanel(cv,f.readouts[i],p[0],p[1],300,170);});
 }
 // Luxury arc (for the HUD): a wide shallow gold arc across the top (rpm, 0 at the left), finely ticked, lit
 // brighter up to the rpm with a glowing marker; the rpm in big gold digits under it; the gear in a gold pill
@@ -324,7 +363,9 @@ function drawSportHud(cv,f,h){
  // readouts: two on each side beside the gear and rpm, with a thin divider on the inner side
  [[80,'left',150],[1008,'right',938]].forEach(([x,al,dx],side)=>{[0,1].forEach(r=>{const i=side+2*r,it=f.readouts[i];if(!it||!want(f,'read'+'ABCD'[i]))return;const y=262+r*110;
   cv.line(side?dx-100:dx+100,y-34,side?dx-100:dx+100,y+20,2,[200,200,200,150]);
-  cv.text(it.label,x,y-10,24,[190,190,190,230],{align:al,font:'bold'});cv.text(it.value,x,y+38,44,[240,240,240,255],{align:al,font:'bold'});});});
+  cv.text(it.label,x,y-10,24,[190,190,190,230],{align:al,font:'bold'});cv.text(it.value,x,y+38,44,[240,240,240,255],{align:al,font:'bold'});
+  // gauge mode: slanted white segments like the rev bar, the top two yellow
+  if(gb(it))slants(cv,side?x-150:x,y+56,150,14,12,6,it.frac,(k,n)=>k>=n-2?[255,210,40,255]:[240,240,240,255],[80,80,80,170],3);});});
 }
 // Tyres & trip (cluster only): the car from above, nose up, gear and drive mode in its middle, each tyre's
 // temperature (colour: cold blue, warm green, hot yellow, very hot red) and pressure in psi beside it, and up to
