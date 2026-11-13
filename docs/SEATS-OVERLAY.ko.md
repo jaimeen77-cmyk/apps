@@ -1,19 +1,33 @@
-# Seats 한국어 소스 overlay
+# Seats 공용 빌드·설치
 
-기존 `apps` 같은 MGU Store 저장소에 한국어 Seats를 추가합니다.
+Seats 0.4.0은 Cluster Redline·Storage와 같은 `apps/<id>/app.json + main.js` 구조입니다. 별도 Seats 빌더나 공용 build.py 덮어쓰기를 사용하지 않습니다.
 
-```sh
-python3 tools/install-seats-overlay.py /path/to/apps
+## 기존 idrive7-apps 프로젝트에 추가
+
+이 저장소에서 실행합니다. 대상에는 원래 `kit/tools/build.py`, `make_kit.py`, runtime, deploy와 한국어 지원이 있어야 합니다.
+
+```powershell
+python tools/install-overlay.py ../idrive7-apps --apps seats_easy_access
 ```
 
-대상 `apps/seats_easy_access/`에 소스를 복사하고 `kit/tools/build.py`와 MGU Store 빌드 항목을 추가합니다. 기존 앱과 도구 항목은 유지합니다. 공용 빌드 파일 또는 Seats 파일이 다르면 복사 전에 중단합니다. 기존 공용 빌드 파일이 있는 프로젝트에는 내용을 검토해 통합해야 합니다. `--force`는 해당 파일을 교체하므로 신중히 사용하세요.
+세 앱을 함께 합치려면 `--apps cluster_redline storage seats_easy_access`를 사용합니다. 기본 실행은 이 저장소의 모든 앱을 포함합니다. 충돌은 복사 전에 확인하며 사용자 변경을 검토한 뒤에만 `--force`로 갱신하세요.
 
-```sh
-python3 kit/tools/build.py --language ko seats_easy_access
+예전 간이 Seats 빌더로 대상 `kit/tools/build.py`를 덮어썼다면 대상 원본을 먼저 복구하세요. 새 overlay는 원본 구조를 검사하고 필요한 공용 기능만 추가합니다. 대상은 사용자의 로컬 프로젝트이며 appsKOR 원격 저장소에는 Seats를 추가하지 않습니다.
+
+## 대상 프로젝트에서 빌드
+
+```powershell
+python kit/tools/build.py --language ko --preview-only seats_easy_access
+python kit/tools/build.py --language ko seats_easy_access
+python kit/tools/make_kit.py seats_easy_access --language ko
 ```
 
-패키지는 `dist/`에 생성됩니다. 이 공용 명령은 패키지 빌드용이며 원본 프로젝트의 `--preview-only` 옵션은 지원하지 않습니다.
+첫 명령은 SDK 없이 오프라인 리소스를 준비합니다. 실제 `.mgu`와 `.tgz` 생성에는 본인 차량에서 추출한 `oap-sdk`가 필요합니다. 전체 키트 결과는 `dist/mgu-custom-apps-ko.tar.gz`이며 버전은 공용 규칙대로 `0.4.0-ko.1` 형식입니다. Seats는 한국어 빌드만 제공합니다.
 
-대상에서 Seats는 한국어 리소스만 만들고 기본 언어도 한국어로 설정됩니다. Comfort는 별도 원본 의존성이므로 `IterioDev/car-apps` 소스가 필요합니다.
+설치에는 기존 `deploy/push-to-car.ps1` 또는 `push-to-car.sh`를 사용합니다. Comfort 0.5.1 이상은 원본 `IterioDev/car-apps`에서 별도로 설치해야 합니다.
 
-대상 변경을 커밋·푸시한 뒤 MGU Store에서 해당 저장소의 main 채널을 새로고침하면 **시트 Easy Access**가 표시됩니다. `catalog.json` 직접 주소 채널 대신 main 저장소 채널을 사용하세요.
+## MGU Store
+
+이 저장소의 main 소스에서는 다른 앱과 같은 `tools/store-build.js`와 SDK 없는 UI/runtime 템플릿으로 현재 JavaScript 소스를 패키징합니다. 차량 SDK는 Store가 준비합니다.
+
+검사: `python tests/seats-build.test.py /path/to/original-project`. 실제 overlay 재적용·충돌 보존·Seats/Storage 키트 생성·리소스·체크섬을 검사합니다. 키트 구조 검사는 임시 테스트 SDK를 사용하며 실차 동작 검사는 아닙니다.

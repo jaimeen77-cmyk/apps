@@ -1,5 +1,7 @@
 # 기존 idrive7-apps 방식으로 함께 배포하기
 
+Seats 한국어판도 같은 방식으로 지원합니다. `python tools/install-overlay.py ../idrive7-apps --apps seats_easy_access`로 합친 뒤 대상에서 `python kit/tools/make_kit.py seats_easy_access --language ko`를 실행하세요. [Seats 상세 안내](SEATS-OVERLAY.ko.md)
+
 세 앱은 `apps/idrive_circuit`, `apps/cluster_redline`, `apps/storage`에 들어갑니다. Storage의 한국어 문구는 대상 저장소의 한국어 카탈로그(`kit/runtime/locales/ko.json`, `ko.tsv`)에 합쳐집니다.
 원본 프로젝트에 한 번 합친 뒤에는 원래 빌드·설치 명령을 사용합니다.
 영어가 기본이며 **`--language ko`로 한국어를 선택**합니다.

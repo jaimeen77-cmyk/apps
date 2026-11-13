@@ -24,6 +24,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dist', type=Path, required=True, help='existing builds; never copied wholesale')
     parser.add_argument('--language', choices=('ko', 'en'), default='ko')
+    parser.add_argument('--apps', nargs='+', help='only prepare selected original app IDs')
     args = parser.parse_args()
     destination = ROOT / 'store/runtime'
     destination.mkdir(parents=True, exist_ok=True)
@@ -32,8 +33,12 @@ def main():
         if entry['path'].startswith('store/apps/'):
             continue  # Language variants share these two original app sources.
         app_id = entry['id']
+        if args.apps and app_id not in args.apps:
+            continue
         app_dir = ROOT / entry['path']
         spec = json.loads((app_dir / 'app.json').read_text(encoding='utf-8'))
+        if spec.get('supportedLanguages') and args.language not in spec['supportedLanguages']:
+            continue
         suffix = '-ko.1' if args.language == 'ko' else ''
         package_path = args.dist / (app_id + '@' + spec['version'] + suffix + '.tgz')
         own = {'app.js'} | {p.name for p in app_dir.glob('*.js')}
@@ -97,10 +102,11 @@ def main():
                 metadata['parts'].append(name)
             (destination / (runtime + '.json')).write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
             # Small Store manifests only; app logic remains in apps/<original-id>.
-            variant = ROOT / 'store/apps' / (app_id + '_en')
-            variant.mkdir(parents=True, exist_ok=True)
-            (variant / 'app.json').write_text(json.dumps(dict(id=app_id + '_en', version=spec['version']), indent=2) + '\n', encoding='utf-8')
-            shutil.copy2(app_dir / 'icon.png', variant / 'icon.png')
+            if not spec.get('supportedLanguages') or 'en' in spec['supportedLanguages']:
+                variant = ROOT / 'store/apps' / (app_id + '_en')
+                variant.mkdir(parents=True, exist_ok=True)
+                (variant / 'app.json').write_text(json.dumps(dict(id=app_id + '_en', version=spec['version']), indent=2) + '\n', encoding='utf-8')
+                shutil.copy2(app_dir / 'icon.png', variant / 'icon.png')
             print(app_id + ': ' + str(len(data)) + ' bytes; no SDK or app JavaScript in runtime template')
 
 

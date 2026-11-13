@@ -14,7 +14,7 @@ def replace_once(text, old, new):
 
 def navigation_fonts_source(text):
     if '# Jam navigation Hangul fonts v2' in text:
-        return text
+        return shared_app_source(text)
     anchor = '    if preview_only:\n'
     addition = """    # Jam navigation Hangul fonts v2: phone labels can be Korean in the English app too.
     if app_id == 'cluster_redline' and language != 'ko':
@@ -22,7 +22,40 @@ def navigation_fonts_source(text):
             shutil.copy(os.path.join(KIT, 'localization', 'fonts', filename),
                         os.path.join(src, 'javascript', 'kit', 'fonts', filename))
 """
-    return replace_once(text, anchor, addition + anchor)
+    return shared_app_source(replace_once(text, anchor, addition + anchor))
+
+
+def shared_app_source(text):
+    """Generic app.json features, using the existing upstream build and archives."""
+    if '# Jam shared app resources v1' in text:
+        return text
+    text = replace_once(text, "    spec = localize_spec(spec, language)",
+        "    if spec.get('supportedLanguages') and language not in spec['supportedLanguages']:\n"
+        "        raise SystemExit(app_id + ': supported languages: ' + ', '.join(spec['supportedLanguages']))\n"
+        "    spec = localize_spec(spec, language)")
+    text = replace_once(text, '        groups = []\n',
+        "        groups = []\n"
+        "        if scr.get('tabs'):\n"
+        "            groups.append(('Bar', [comp('barbutton', b[0], rows=[text_row(b[0], b[1])]) for b in scr['tabs']]))\n")
+    text = replace_once(text, "rows = [{'Graphic': {'value': '', 'type': 'Text'}}]\n                elif kindi",
+        "rows = [{'Graphic': {'value': label, 'type': 'Text'}}]\n                elif kindi")
+    anchor = "    make_icon(spec, os.path.join(pr, 'variantGroups', 'Common', 'images', icon))"
+    addition = '''
+    # Jam shared app resources v1: native packages and preview templates use the same assets.
+    image_dir = os.path.join(pr, 'variantGroups', 'Common', 'images')
+    if os.path.isfile(os.path.join(adir, 'icon.png')):
+        shutil.copy(os.path.join(adir, 'icon.png'), os.path.join(image_dir, icon))
+    for relative in spec.get('staticImages', []):
+        source_image = os.path.abspath(os.path.join(adir, relative))
+        if os.path.commonpath([source_image, os.path.abspath(adir)]) != os.path.abspath(adir):
+            raise ValueError('Image must be inside app folder')
+        shutil.copy(source_image, os.path.join(image_dir, os.path.basename(relative)))
+'''
+    text = replace_once(text, anchor, anchor + addition)
+    # Installed RHMI resources must contain the same static images as the OAP tree.
+    anchor = "    shutil.copy(os.path.join(pr, 'variantGroups', 'Common', 'images', icon), os.path.join(ir, 'resources', icon))"
+    text = replace_once(text, anchor, anchor + "\n    for relative in spec.get('staticImages', []):\n        name = os.path.basename(relative)\n        shutil.copy(os.path.join(image_dir, name), os.path.join(ir, 'resources', name))")
+    return text
 
 
 def build_source(text):

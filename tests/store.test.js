@@ -98,7 +98,7 @@ async function checkSettingsEntry(file, id, version) {
         sourceParser = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'sources'));
         const catalog = await sourceParser.repoCatalog((name) => Promise.resolve(fs.readFileSync(path.join(ROOT, name))), null, 'local');
         assert.deepStrictEqual(catalog.skipped, []);
-        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'storage', 'storage_en']);
+        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'seats_easy_access', 'storage', 'storage_en']);
         assert(catalog.components.every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         for (const id of ['cluster_redline', 'cluster_redline_en']) {
             assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.4.0');
@@ -170,7 +170,8 @@ async function checkSettingsEntry(file, id, version) {
         assert(aliasStrings['SID_' + alias.toUpperCase() + '_TITLE']);
         // UI changes must never be installed with a stale generated screen or permission table.
         const sourceSpec = JSON.parse(fs.readFileSync(path.join(sourceDir, 'app.json')));
-        sourceSpec.settings[0].label = 'Changed screen';
+        if (sourceSpec.settings && sourceSpec.settings.length) sourceSpec.settings[0].label = 'Changed screen';
+        else sourceSpec.screens[0].title = 'Changed screen';
         fs.writeFileSync(path.join(sourceDir, 'app.json'), JSON.stringify(sourceSpec));
         assert.throws(() => build(Object.assign({}, aliasOptions, { out: path.join(temp, alias + '-bad') })), /stale/);
         if (sourceParser) {
@@ -187,7 +188,7 @@ async function checkSettingsEntry(file, id, version) {
             checkPackage(renamedFile, id + '3', spec.version, start, options.language);
         }
     }
-    console.log('PASS: six English/Korean Store listings and SDK-free builds, actual packaged settings entry and version, distinct language identities, Store collision-id builds, autostart and stale-UI rejection');
+    console.log('PASS: seven Store listings including Korean-only Seats, SDK-free builds, packaged settings, distinct identities, collision-id builds, autostart and stale-UI rejection');
 })().catch((e) => { console.error(e); process.exitCode = 1; }).then(() => {
     fs.rmSync(temp, { recursive: true, force: true }); fs.rmSync(sourceCopy, { recursive: true, force: true });
 });

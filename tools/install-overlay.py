@@ -8,7 +8,8 @@ import shutil
 import sys
 
 HERE = Path(__file__).resolve().parent.parent
-APPS = ('idrive_circuit', 'cluster_redline', 'storage')
+APPS = tuple(app for app in ('idrive_circuit', 'cluster_redline', 'storage', 'seats_easy_access')
+             if (HERE / 'apps' / app / 'app.json').is_file())
 
 
 def main():
@@ -24,7 +25,8 @@ def main():
         parser.error('Target must be a separate upstream idrive7-apps checkout')
     files = []
     for app in selected:
-        files.extend(p.relative_to(HERE) for p in (HERE / 'apps' / app).rglob('*') if p.is_file())
+        files.extend(p.relative_to(HERE) for p in (HERE / 'apps' / app).rglob('*')
+                     if p.is_file() and not any(part in ('dist', '__pycache__') for part in p.relative_to(HERE).parts))
         images = HERE / 'screenshots' / app
         if images.is_dir():
             files.extend(p.relative_to(HERE) for p in images.rglob('*') if p.is_file())
@@ -54,6 +56,10 @@ def main():
         'NOTICE.cluster-redline.md',
         'patches/cluster-render-0.4.0-parked-recovery.patch',
     )]
+    if selected == ['seats_easy_access']:
+        files = [p for p in files if p.parts[:2] == ('apps', 'seats_easy_access')]
+        files += [Path(p) for p in ('tools/install-overlay.py', 'tools/upstream-integration.py',
+                                   'docs/SEATS-OVERLAY.ko.md', 'localization/ko-additions.tsv')]
     conflicts = [str(p) for p in files if (target / p).exists() and
                  ((target / p).is_dir() or (target / p).read_bytes() != (HERE / p).read_bytes())]
     if conflicts and not args.force:
