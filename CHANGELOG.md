@@ -4,6 +4,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Seats Easy Access
 
+### 0.6.9
+
+- Ignition M1 waits 10 s after power-on. Car test of 0.6.8: the call 6 s after power-on ended in 0.4 s without moving (the seat module not yet taking motor commands); 15 s after power-on had arrived in 0.6.7. The one retry stays 8 s after a short recall.
+
 ### 0.6.8
 
 - Ignition M1 waits 6 s after power-on instead of 15 s (still only after 3 s of idle Comfort). Car test of 0.6.7: Comfort's own way back started at power-on and stopped after 3 s short of its target (seat module holding the motors), the M1 call 15 s later arrived in 6.6 s. The one retry stays 8 s after a short recall.

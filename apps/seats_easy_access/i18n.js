@@ -70,6 +70,7 @@ const ENGLISH = {
 // the Store's prepared UI (store/runtime), which needs a full SDK build to regenerate.
 const KOREAN = {
     'M1 power-on detected: waiting 6 seconds': 'M1 차량 켜짐 감지: 6초 대기',
+    'M1 power-on detected: waiting 10 seconds': 'M1 차량 켜짐 감지: 10초 대기',
     'M1 command sent: checking arrival': 'M1 명령 보냄: 도착 확인 중',
     'M1 arrived': 'M1 도착',
     'M1 short of target': 'M1 미도착',
