@@ -52,16 +52,17 @@ MGU Store에서 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가
 
 일반 한국어 앱 15개의 Store 등록과 설치 레이어는 최신 버전 그대로 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)로 이동했습니다. MGU Store에서 두 소스의 main 채널을 새로고침하세요. 이 소스에는 Circuit·Cluster Redline·Storage의 한국어/영어 항목 6개를 제공합니다. 저장공간은 두 언어 모두 1.0.1입니다.
 
-## Seats 한국어판
+## Seats 영어·한국어판
 
-상단 운전석/조수석 탭, 시트 조절, M1~M3, Easy Access와 Make room을 제공합니다. MGU Store에서 `jaimeen77-cmyk/apps`의 **main** 채널을 새로고침하고 **시트 Easy Access**를 설치하세요. 원본 Comfort 도구를 받으려면 `IterioDev/car-apps` 소스가 필요합니다.
+상단 운전석/조수석 탭, 시트 조절, M1~M3, Easy Access와 Make room을 제공합니다. 기본은 영어입니다. MGU Store의 **main** 채널에서 **Seats Easy Access (English)** 또는 **시트 Easy Access (한국어)**를 선택하세요. Comfort는 원본 `IterioDev/car-apps` 소스에서 받습니다.
 
 기존 앱과 같은 overlay 명령을 사용합니다: `python tools/install-overlay.py /path/to/idrive7-apps --apps seats_easy_access`. 대상에는 원래 공용 빌드·runtime·deploy 파일이 있어야 합니다. [빌드·설치 안내](docs/SEATS-OVERLAY.ko.md)
 
 Seats 소스 경로는 `apps/seats_easy_access`입니다. overlay 적용 후 대상 프로젝트에서 공용 명령으로 빌드합니다.
 
 ```sh
-python3 kit/tools/build.py --language ko seats_easy_access
+python3 kit/tools/build.py seats_easy_access
+# 한국어: python3 kit/tools/build.py --language ko seats_easy_access
 ```
 
-결과는 다른 앱처럼 `dist/seats_easy_access@0.4.0-ko.1.mgu`와 `.tgz`입니다. `python kit/tools/make_kit.py seats_easy_access --language ko`로 설치 키트도 생성합니다. MGU Store는 기존 앱과 같은 SDK 없는 템플릿 빌드를 사용합니다.
+결과는 `dist/seats_easy_access@0.5.0.mgu`와 `.tgz`입니다. `python kit/tools/make_kit.py seats_easy_access`로 영어 키트, `--language ko`를 추가하면 한국어 키트를 생성합니다.

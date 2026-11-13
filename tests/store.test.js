@@ -98,7 +98,7 @@ async function checkSettingsEntry(file, id, version) {
         sourceParser = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'sources'));
         const catalog = await sourceParser.repoCatalog((name) => Promise.resolve(fs.readFileSync(path.join(ROOT, name))), null, 'local');
         assert.deepStrictEqual(catalog.skipped, []);
-        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'seats_easy_access', 'storage', 'storage_en']);
+        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'seats_easy_access', 'seats_easy_access_ko', 'storage', 'storage_en']);
         assert(catalog.components.every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         for (const id of ['cluster_redline', 'cluster_redline_en']) {
             assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.4.0');
@@ -118,6 +118,11 @@ async function checkSettingsEntry(file, id, version) {
         try { file = build(options); } finally { if (hasFullTemplate) fs.renameSync(heldFile, runtimeFile); }
         const start = options.template === 'cluster_redline' ? 'autostart' : 'manually';
         const originalUuid = checkPackage(file, id, spec.version, start, options.language);
+        if (id === 'seats_easy_access') {
+            const defaultFile = build(Object.assign({}, options, { language: undefined, out: path.join(temp, id + '-default') }));
+            checkPackage(defaultFile, id, spec.version, start, 'en');
+            assert(entries(file).includes('package/javascript/i18n.js'));
+        }
         if (options.template === 'cluster_redline') await checkSettingsEntry(file, id, spec.version);
         assert(!identities.has(originalUuid), 'language variants need separate RHMI identities'); identities.add(originalUuid);
         assert(read(file, 'package/javascript/app.js').equals(fs.readFileSync(path.join(ROOT, source, 'main.js'))));
@@ -188,7 +193,7 @@ async function checkSettingsEntry(file, id, version) {
             checkPackage(renamedFile, id + '3', spec.version, start, options.language);
         }
     }
-    console.log('PASS: seven Store listings including Korean-only Seats, SDK-free builds, packaged settings, distinct identities, collision-id builds, autostart and stale-UI rejection');
+    console.log('PASS: eight Store listings including English/Korean Seats, SDK-free builds, packaged settings, distinct identities, collision-id builds, autostart and stale-UI rejection');
 })().catch((e) => { console.error(e); process.exitCode = 1; }).then(() => {
     fs.rmSync(temp, { recursive: true, force: true }); fs.rmSync(sourceCopy, { recursive: true, force: true });
 });
