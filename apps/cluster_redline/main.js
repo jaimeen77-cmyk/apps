@@ -35,7 +35,16 @@ const REASONS = {
     renderer_recovering: 'Recovering renderer layer',
     cluster_yield: 'Route guidance active · cluster released',
 };
+// No logs: nothing goes to the system log or a log file. The kit's rotating log file (<id>.log) is removed
+// and a folder put in its place so nothing can be appended to it; an earlier status file is removed too.
+function quiet(ctx) {
+    if (ctx.log) ['error', 'warn', 'info', 'debug'].forEach((level) => { ctx.log[level] = () => {}; });
+    const file = path.join(ctx.dataDir, ((ctx.spec && ctx.spec.id) || 'cluster_redline') + '.log');
+    [file, file + '.1', path.join(ctx.dataDir, 'cluster-redline-status.json')].forEach((p) => { try { if (fs.statSync(p).isFile()) fs.unlinkSync(p); } catch (e) {} });
+    try { fs.mkdirSync(file); } catch (e) {}
+}
 mgu.run({ settingsUI: 'custom', async start(ctx) {
+    quiet(ctx);
     configure(ctx);
     let old = {};
     try { old = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'settings.json'), 'utf8')); } catch (e) {}
@@ -49,7 +58,7 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');
     if (ctx.ui && typeof ctx.ui.onVisible === 'function') ctx.ui.onVisible((name, visible) => { if (name === 'MAIN' && !visible) page.leave(); });
     if (ctx.app && ctx.app.once) ctx.app.once('shutdown', () => queue.stop());
-    function report(e) { ctx.log.error('settings', e.message || e); }
+    function report() {}   // no logs
     function syncWorker() {
         if (ctx.settings.get('appEnabled') === true && !background) background = worker.start(ctx);
         else if (ctx.settings.get('appEnabled') !== true && background) { background.stop(); background = null; }
@@ -62,8 +71,7 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     // MainApp starts a lightweight settings host; OFF stops live subscriptions and cluster output.
     syncWorker();
     async function render() {
-        let state = null;
-        try { state = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'cluster-redline-status.json'), 'utf8')); } catch (e) {}
+        let state = background && background.status ? background.status() : null;
         if (state && (!isFinite(Date.parse(state.at)) || Date.now() - Date.parse(state.at) > 5000)) state = null;
         const reason = !ctx.settings.get('appEnabled') ? 'disabled' : state && state.reason;
         let status=t(REASONS[reason] || 'Waiting for background app');

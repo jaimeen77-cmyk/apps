@@ -52,11 +52,13 @@ function readouts(state,d){
 }
 // Redline's frame from Cluster Redline's render state. Lights count over the 1500 rpm before the shift
 // point (Redline's plain span) and flash at it, with the comfort/sport shift point of the drive mode.
+// Korean time (UTC+9) for the Classic dial, which is a clock: hours (0-11), minutes, seconds.
+function kst(state){const t=new Date((isNum(state.now)?state.now:Date.now())+9*3600000);return {h:t.getUTCHours()%12,m:t.getUTCMinutes(),s:t.getUTCSeconds()};}
 function frame(state,now,d){
  const cfg=state.config,rpm=isNum(state.rpm)?state.rpm:null,spec=shiftSpec(cfg,state.mode),g=gearOf(state.gear);
  const limiter=rpm!==null&&rpm>=cfg.maxRpm-50,flash=!!state.shift||limiter,blink=flash?state.flash!==false:true;
  return {d:{rpm,gear:g.gear,stage:g.stage},shift:spec.shift,redline:cfg.redlineRpm,max:cfg.maxRpm,blink,
-  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,tyres:{temp:(state.aux||{}).tyreTemp||null,bar:(state.aux||{}).tyrePressure||null},g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,
+  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,tyres:{temp:(state.aux||{}).tyreTemp||null,bar:(state.aux||{}).tyrePressure||null},g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,clock:style(cfg,d)==='classic'?kst(state):null,
   opts:{style:style(cfg,d)||'standard',palette:'colour',gear:true,rpm:true,bar:true,lights:true,gt3:true,dim:true,lightStyle:'gt3',clearLabels:false}};
 }
 function paint(target,state,k,ox,oy,now,d){const {DRAW}=kit();DRAW.drawLayer(DRAW.scaled(target,k,ox||0,oy||0),frame(state,now,d));}
@@ -110,7 +112,7 @@ const ELEMENTS={
  rings:['gmeter','gauge','gear','mode','rpm','read','mark'],ribbon:['gauge','gear','mode','readA','readB','readC','readD','mark'],
  hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark'],
  sportdial:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],
- classic:['gauge','alert','temp','gear','mode','readA','readB','readC','readD','mark'],
+ classic:['gauge','alert','readA','readB','readC','readD','mark'],
  luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],
  sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark'],
  tyres:['car','gear','mode','readA','readB','readC','readD']};
@@ -173,7 +175,14 @@ function nodes(state,e,d,key){
  if(typeof key==='function')key=key(e.id);
  if(e.id!=='gauge'||!SPLIT.includes(style(state.config,d)))return [{id:e.id,key,painter:partPainter(state,e.id,e.b,e.r,d)}];
  const f=frame(state,0,d),still=JSON.stringify([f.opts.style,'face',f.redline,f.max,require('./strings').language(),/ECO/.test(String(f.drive||''))?'eco':/SPORT/.test(String(f.drive||''))||!f.drive?'sport':'comfort']);
- return [{id:'gauge.face',key:still,painter:partPainter(state,'gauge',e.b,e.r,d,'face')},{id:'gauge',key,painter:partPainter(state,'gauge',e.b,e.r,d,'live')}];
+ // the Classic dial's hands (a clock) go over the gear and oil windows, as on a watch
+ return [{id:'gauge.face',key:still,painter:partPainter(state,'gauge',e.b,e.r,d,'face')},{id:'gauge',key,painter:partPainter(state,'gauge',e.b,e.r,d,'live'),after:null}];
+}
+// Every tile of the layout in drawing order: [{id,key,painter,r}] (a tile with after: drawn after those elements).
+function scene(state,layout,d,face,key){
+ const out=[],late=[];placed(state,layout,d,face).forEach(e=>nodes(state,e,d,key).forEach(n=>(n.after?late:out).push(Object.assign({r:e.r},n))));
+ late.forEach(n=>{let at=-1;out.forEach((o,i)=>{if(n.after.includes(o.id)||o.id===n.id+'.face')at=Math.max(at,i);});out.splice(at+1,0,n);});   // (hidden: right over its own face)
+ return out;
 }
 function partPainter(state,id,b,r,d,sel){
  // draw(v): a new transparent canvas with the element; into(cv,v): the same, drawn on a cleared canvas of that size
@@ -198,7 +207,7 @@ function placed(state,layout,d,face0){
  return list.map(({e,b})=>{const L=Array.isArray(lift[e.key])?lift[e.key]:[0,lift[e.key]||0],spread=f!==1&&/^RlRead/.test(e.key)?{x:(b.x+b.w/2-C.x)*(f-1)+L[0],y:(b.y+b.h/2-C.y)*(f-1)+L[1]}:L[0]||L[1]?{x:L[0],y:L[1]}:null;
   return Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d,spread),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);});
 }
-function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode]);}
+function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode,f.clock]);}   // (clock: the Classic dial's hands)
 // Each element's own key, so a tile repaints only when what it shows changes (the mode, readouts, M mark,
 // temperature and G-meter do not follow the revs; the gear does on the layouts that light it towards the
 // shift point, and on the others flashes at the limiter). One frame is read for all of them.
@@ -207,7 +216,8 @@ function keys(state,d){
  const f=frame(state,0,d),st=f.opts.style,full=JSON.stringify([st,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode,f.drive]);
  const base=[st,f.redline,f.max,f.drive,f.mode,f.d.gear,f.d.stage,language()],memo={};
  return id=>{if(memo[id])return memo[id];let v;
-  if(id==='gauge'||id==='alert'||id==='rpm'||id==='gear'&&GEAR_FOLLOWS_REVS.includes(st))v=full;
+  if(id==='gauge')v=f.clock?full+JSON.stringify(f.clock):full;   // the Classic dial's hands follow the time
+  else if(id==='alert'||id==='rpm'||id==='gear'&&GEAR_FOLLOWS_REVS.includes(st))v=full;
   else if(id==='gear')v=JSON.stringify(base.concat([f.cue.shift,f.cue.limiter,f.blink]));
   else if(id==='read')v=JSON.stringify(base.concat([f.readouts]));
   else if(/^read[A-D]$/.test(id))v=JSON.stringify(base.concat([f.readouts['ABCD'.indexOf(id[4])]||null]));
@@ -216,4 +226,4 @@ function keys(state,d){
   else v=JSON.stringify(base.concat([id]));
   return (memo[id]=v);};
 }
-module.exports={VERTICAL_GAUGES,CLUSTER_BASE,GAUGE_LAYOUTS,CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,keys,elements,bounds,partRect,partPainter,nodes,placed};
+module.exports={scene,VERTICAL_GAUGES,CLUSTER_BASE,GAUGE_LAYOUTS,CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,keys,elements,bounds,partRect,partPainter,nodes,placed};

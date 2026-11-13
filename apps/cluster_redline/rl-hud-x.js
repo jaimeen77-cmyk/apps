@@ -235,6 +235,7 @@ const mixc=(a,b,t)=>[0,1,2].map(k=>Math.round(a[k]+(b[k]-a[k])*t)).concat([255])
 function drawClassic(cv,f,h){
  const d=f.d,max=f.max,{cx,cy,R}=CL,A=v=>CL.a0+(CL.a1-CL.a0)*clamp(v,0,max)/max,pt=(a,r,x0,y0)=>[(x0||cx)+r*Math.sin(a*Math.PI/180),(y0||cy)-r*Math.cos(a*Math.PI/180)];
  const rpm=isNum(d.rpm)?clamp(d.rpm,0,max):0,q=cue(f),ko=language()==='ko';
+ // the dial is a clock in Korean time and nothing else (the rpm only lights the alert lamp at the top)
  if(want(f,'gauge')&&f.sel!=='live'){
   // quilted green leather: each diamond lit on its upper-left edges, shaded on the lower-right ones
   // on black: the dial's shadow, then the knurled chrome bezel lit from the top left
@@ -245,49 +246,32 @@ function drawClassic(cv,f,h){
   // the face: cream, lighter in the middle; a soft shadow under the bezel's top-left edge
   cv.circle(cx,cy,R,[218,206,174,255]);for(let k=1;k<6;k++)cv.arc(cx,cy,0,R-k*R/6,0,360,[255,252,240,46]);
   for(let k=0;k<3;k++)cv.arc(cx,cy,R-4-k*6,R,-150,60,[60,45,20,26]);
-  // red band from the redline, ticks every 250 rpm (longer every 1000), numbers with a faint emboss
-  cv.arc(cx,cy,R-30,R-18,A(f.redline),A(max),CL.red);
-  for(let v=0;v<=max+1;v+=250){const major=v%1000===0,mid=v%500===0,a=A(v),p=pt(a,R-14),q2=pt(a,major?R-40:mid?R-30:R-24);cv.line(p[0],p[1],q2[0],q2[1],major?5:2.2,v>=f.redline?CL.red:CL.ink);}
-  for(let k=0;k*1000<=max;k++){const a=A(k*1000),l=pt(a,R-72),col=k*1000>=f.redline?CL.red:CL.ink;cv.text(String(k),l[0]+1.5,l[1]+19.5,50,[255,255,255,120],{align:'center',font:'bold'});cv.text(String(k),l[0],l[1]+18,50,col,{align:'center',font:'bold'});}
-  cv.text('×1000 rpm',cx,cy-60,21,'#5a5348',{align:'center',font:'bold',literal:true});
+  // a clock face (Korean time): minute ticks (longer every five), the hours in the same embossed numerals
+  for(let m=0;m<60;m++){const a=m*6;const major=m%5===0,p=pt(a,R-14),q2=pt(a,major?R-40:R-24);cv.line(p[0],p[1],q2[0],q2[1],major?5:2.2,CL.ink);}
+  for(let k=1;k<=12;k++){const a=k*30,l=pt(a,R-68);cv.text(String(k),l[0]+1.5,l[1]+16.5,42,[255,255,255,120],{align:'center',font:'bold'});cv.text(String(k),l[0],l[1]+15,42,k===12?CL.red:CL.ink,{align:'center',font:'bold'});}
+  cv.text(ko?'한국 시간':'KOREA TIME',cx,cy-60,19,'#5a5348',{align:'center',font:'bold',literal:true});
   // the glass: a faint highlight across the upper left
   for(let k=0;k<5;k++)cv.arc(cx,cy,R-40-k*14,R-34-k*14,-75,5,[255,255,255,Math.round(26-k*4)]);
  }
- if(want(f,'gauge')&&f.sel!=='face'){
-  // the needle: its shadow, then a tapered bronze blade with a lit edge, on a domed chrome hub
-  const a=A(rpm),u=[Math.sin(a*Math.PI/180),-Math.cos(a*Math.PI/180)],n=[-u[1],u[0]],L1=R-24,L0=34;
-  const blade=(ox,oy,c,w)=>cv.quad([[cx+ox-u[0]*L0+n[0]*w*1.6,cy+oy-u[1]*L0+n[1]*w*1.6],[cx+ox+u[0]*L1+n[0]*w*0.3,cy+oy+u[1]*L1+n[1]*w*0.3],[cx+ox+u[0]*L1-n[0]*w*0.3,cy+oy+u[1]*L1-n[1]*w*0.3],[cx+ox-u[0]*L0-n[0]*w*1.6,cy+oy-u[1]*L0-n[1]*w*1.6]],c);
-  blade(5,7,[0,0,0,70],4);blade(0,0,f.cue.shift&&f.blink?CL.red:[176,112,54,255],4);
-  cv.line(cx-u[0]*L0+n[0]*2,cy-u[1]*L0+n[1]*2,cx+u[0]*L1,cy+u[1]*L1,1.4,[255,214,160,220]);
-  cv.circle(cx+3,cy+4,24,[0,0,0,70]);for(let k=0;k<8;k++)cv.circle(cx-k*0.9,cy-k*0.9,22-k*2.4,mixc([92,98,106],[250,252,255],k/7));
- }
-
  if(want(f,'alert')&&rpm>50&&rpm>=f.cue.from){
   // the rpm alert: a domed lamp at the top of the dial, amber while counting in, red (flashing) at the shift
   const on=q.flash?q.on:true,base=q.flash?[220,36,28]:[255,160,30];
   const x=cx,y=cy-R+58;cv.circle(x,y,16,[60,48,30,255]);
   if(on){for(let k=0;k<5;k++)cv.circle(x,y,30-k*4,[base[0],base[1],base[2],Math.round(18+k*10)]);cv.circle(x,y,12,mixc(base,[255,255,255],0.15));cv.circle(x-4,y-4,4,[255,255,255,170]);}
  }
- if(want(f,'temp')){
-  // the temperature window: a recessed green half-disc with a lit chrome rim, C..H, red past 130 °C
-  const tx=cx,ty=cy+R-36,tr=78,T=v=>-62+124*clamp((v-50)/100,0,1),oil=f.oil;
-  for(let a=-90;a<90;a+=6)cv.arc(tx,ty,tr,tr+6,a,a+6.4,mixc([70,74,80],[240,243,246],lit(a+3)));
-  cv.fillRect(tx-tr-6,ty,2*tr+12,6,[150,156,162,255]);
-  cv.arc(tx,ty,0,tr,-90,90,CL.green);for(let k=0;k<5;k++)cv.arc(tx,ty,tr-4-k*3,tr,-90,90,[0,0,0,Math.round(60-k*11)]);
-  for(let v=50;v<=150;v+=12.5){const a=T(v),p=pt(a,tr-8,tx,ty),q2=pt(a,tr-(v%50===0?22:15),tx,ty);cv.line(p[0],p[1],q2[0],q2[1],2.4,v>130?'#ff4a3a':'#e9e1c8');}
-  cv.text('C',tx-tr+18,ty-8,20,'#e9e1c8',{align:'center',font:'bold',literal:true});cv.text('H',tx+tr-18,ty-8,20,'#ff6a5a',{align:'center',font:'bold',literal:true});
-  cv.text(ko?'오일':'OIL',tx,ty-6,17,'#e9e1c8',{align:'center',font:'bold',literal:true});
-  const a=T(isNum(oil)?oil:50),e=pt(a,tr-10,tx,ty);cv.line(tx+2,ty+2,e[0]+2,e[1]+2,3.4,[0,0,0,90]);cv.line(tx,ty,e[0],e[1],3.4,isNum(oil)?'#d79a5a':'#6b6455');cv.circle(tx,ty,6,'#dfe3e7');
+ if(want(f,'gauge')&&f.sel!=='face'){
+  // the hands (Korean time): tapered bronze blades with a lit edge and their shadows, hour short and wide, minute
+  // long; a thin red seconds hand with a counterweight; all on the domed chrome hub
+  const t=f.clock||{h:10,m:10,s:0},hand=(a,L1,L0,w,c,edge)=>{const u=[Math.sin(a*Math.PI/180),-Math.cos(a*Math.PI/180)],n=[-u[1],u[0]];
+   const blade=(ox,oy,cc)=>cv.quad([[cx+ox-u[0]*L0+n[0]*w*1.6,cy+oy-u[1]*L0+n[1]*w*1.6],[cx+ox+u[0]*L1+n[0]*w*0.3,cy+oy+u[1]*L1+n[1]*w*0.3],[cx+ox+u[0]*L1-n[0]*w*0.3,cy+oy+u[1]*L1-n[1]*w*0.3],[cx+ox-u[0]*L0-n[0]*w*1.6,cy+oy-u[1]*L0-n[1]*w*1.6]],cc);
+   blade(5,7,[0,0,0,70]);blade(0,0,c);if(edge)cv.line(cx-u[0]*L0+n[0]*2,cy-u[1]*L0+n[1]*2,cx+u[0]*L1,cy+u[1]*L1,1.4,edge);};
+  hand((t.h+t.m/60)*30,R*0.52,26,6,[150,92,40,255],[255,214,160,200]);
+  hand((t.m+t.s/60)*6,R-30,30,4,[176,112,54,255],[255,214,160,220]);
+  const sa=t.s*6,su=[Math.sin(sa*Math.PI/180),-Math.cos(sa*Math.PI/180)];
+  cv.line(cx-su[0]*40+3,cy-su[1]*40+5,cx+su[0]*(R-20)+3,cy+su[1]*(R-20)+5,2,[0,0,0,60]);cv.line(cx-su[0]*40,cy-su[1]*40,cx+su[0]*(R-20),cy+su[1]*(R-20),2,CL.red);cv.circle(cx-su[0]*32,cy-su[1]*32,6,CL.red);
+  cv.circle(cx+3,cy+4,24,[0,0,0,70]);for(let k=0;k<8;k++)cv.circle(cx-k*0.9,cy-k*0.9,22-k*2.4,mixc([92,98,106],[250,252,255],k/7));
  }
- if(want(f,'gear')){
-  // gear: a recessed window under the hub (like a date window), the gearbox letter beside it
-  cv.fillRect(cx-34,cy+30,68,52,CL.green2);cv.line(cx-34,cy+31,cx+34,cy+31,3,[0,0,0,140]);cv.line(cx-33,cy+30,cx-33,cy+82,3,[0,0,0,110]);
-  cv.polyline([[cx-35,cy+29],[cx+35,cy+29],[cx+35,cy+83],[cx-35,cy+83],[cx-35,cy+29]],2,CL.bronze);
-  cv.text(h.gearText(d),cx,cy+76,46,f.cue.shift&&f.blink?'#ff5a4a':'#f3ead2',{align:'center',font:h.gearFont(f.opts)});
-  if(f.mode)cv.text(f.mode,cx+42,cy+76,20,CL.bronze,{font:'bold'});
- }
- if(want(f,'mode')){const m=String(f.drive||''),word=/SPORT/.test(m)?(ko?'스포츠':'SPORT'):/ECO/.test(m)?(ko?'에코 프로':'ECO PRO'):m?(ko?'컴포트':'COMFORT'):'';
-  if(word)cv.text(word,cx,cy-34,19,CL.bronze,{align:'center',font:'bold',literal:true});}
+
  if(f.readouts.length&&f.readouts[0].gauge)[0,1].forEach(i=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])clTube(cv,f.readouts[i],i?1:-1);});
  else [[24,52],[764,52],[24,252],[764,252]].forEach((p,i)=>{if(want(f,'read'+'ABCD'[i])&&f.readouts[i])clPanel(cv,f.readouts[i],p[0],p[1],300,170);});
 }

@@ -1,4 +1,6 @@
 'use strict';
+// The Classic dial is a clock (Korean time): one fixed time, so a cached draw and a full draw see the same second.
+Date.now=()=>Date.UTC(2026,10,14,1,8,37);
 // 1.2.48: Tyres & trip at 150 % with the car at 110 % by default, temperatures drawn as thermometers (different
 // from the other gauges, following the value), the clock only on horizontal gauges (left out on Hexagon /
 // Classic dial, dimmed in the picker there), cached tiles equal full draws.

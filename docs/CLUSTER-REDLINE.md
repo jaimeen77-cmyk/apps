@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.48 user guide
+# Cluster Redline 1.2.49 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [All screenshots](../screenshots/README.md) · [Changelog](../CHANGELOG.md)
 
@@ -137,6 +137,11 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 - **Position / size:** Save / load (three slots) and two-press reset; the selected part is drawn while adjusting even when hidden or without guidance (expires two minutes after the last edit, clears on Back).
 - **Outside temperature:** diagnostics in the status file. Stock HUD music/phone popups still take priority (renderer policy).
 
+## 1.2.49 changes
+
+- Classic dial is now an analogue clock in Korean time, nothing else on the dial (no rpm scale, oil window, gear or drive mode; the rpm alert lamp stays).
+- The app keeps no logs: nothing to the system log, its log file removed (and blocked), no status file.
+
 ## 1.2.48 changes
 
 - Tyres & trip 150 % with the car 110 % by default; oil and outside temperatures as thermometers on every gauge layout (upright on Hexagon and Classic dial); unlit gauge parts filled faintly to the end of the scale; the clock on horizontal gauges only.
@@ -199,7 +204,7 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 
 ## 1.2.33 changes
 
-- Sport dial and Classic dial are cluster-only.
+- Sport dial and Classic dial are cluster-only. Classic dial is a clock in Korean time (since 1.2.49).
 
 ## 1.2.32 changes
 

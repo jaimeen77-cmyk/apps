@@ -31,7 +31,7 @@ function drawRedline(state,target){
     const cfg=state.config,layout=RL.rect(cfg,{x:0,y:0,w:W,h:H},'cluster');
     if(target){if(!cfg.clusterRpmGaugeHidden)RL.paint(target,state,layout.w/RL.IW,layout.x,layout.y,0,'cluster');return target;}
     const cache=state.renderCache,cv=cache?(cache.begin(W,H),cache.surface):new Canvas(W,H);if(!cache)cv.clear([0,0,0,0]);
-    if(!cfg.clusterRpmGaugeHidden){const key=RL.keys(state,'cluster');RL.placed(state,layout,'cluster',{x:0,y:0,w:W,h:H}).forEach(e=>RL.nodes(state,e,'cluster',key).forEach(({id,key:k,painter})=>{if(cache)cache.navigation('redline.'+id,k,painter,state,e.r);else{const {blitScaled}=require('./component-canvas');blitScaled(cv,painter.draw(state),e.r);}}));}
+    if(!cfg.clusterRpmGaugeHidden){const key=RL.keys(state,'cluster');RL.scene(state,layout,'cluster',{x:0,y:0,w:W,h:H},key).forEach(({id,key:k,painter,r})=>{if(cache)cache.navigation('redline.'+id,k,painter,state,r);else{const {blitScaled}=require('./component-canvas');blitScaled(cv,painter.draw(state),r);}});}
     return cache?cache.finish():cv;
 }
 function draw(state,target) {

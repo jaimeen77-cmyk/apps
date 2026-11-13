@@ -67,6 +67,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.49
+
+- **Classic dial is a clock**: an analogue clock in Korean time (UTC+9) in the same design (knurled chrome bezel, cream face, glass, embossed numerals, bronze hands on the chrome hub, a thin red seconds hand). Nothing else on the dial: no rpm scale, oil window, gear window or drive mode; the rpm alert lamp at the top stays. Only the hands repaint, once a second.
+- Fix: the frame key includes the time, so the hands keep moving while nothing else changes.
+- **No logs**: the app writes nothing to the system log, removes its rotating log file (and puts a folder in its place so nothing can be appended), and no longer writes `cluster-redline-status.json` every 0.5 s (the settings screen reads the status from memory).
+- Tests: `redline-1-2-49` (Korean time, hands follow the time, rpm / gear / mode not shown, only the hands tile changes each second; system log silenced, log files removed and blocked, no status file); cached-draw tests run at a fixed time.
+
 ### 1.2.48
 
 - **Tyres & trip**: 150 % by default with the car 110 % (shown as 100 % in Position / size; Reset returns here).

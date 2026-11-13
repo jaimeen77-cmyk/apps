@@ -1,4 +1,6 @@
 'use strict';
+// The Classic dial is a clock (Korean time): one fixed time, so a cached draw and a full draw see the same second.
+Date.now=()=>Date.UTC(2026,10,14,1,8,37);
 const assert=require('assert'),path=require('path'),{EventEmitter}=require('events');
 const root=path.join(path.resolve(process.argv[2]),'source/javascript'),{settings}=require(root+'/policy');
 const HUD=require(root+'/hud-compose'),CLUSTER=require(root+'/draw'),{AuxInfo,SOURCES}=require(root+'/aux-info');

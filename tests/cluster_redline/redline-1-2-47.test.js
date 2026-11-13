@@ -1,4 +1,6 @@
 'use strict';
+// The Classic dial is a clock (Korean time): one fixed time, so a cached draw and a full draw see the same second.
+Date.now=()=>Date.UTC(2026,10,14,1,8,37);
 // 1.2.47: gauge mode on Standard, 80s digital, VFD, Vector, Ramp, M shift lights, Data logger, Mode ribbon,
 // Hexagon, Classic dial and Sport HUD: each draws its own bars, cached tiles match full draws while the values
 // move, switching between values and gauges leaves nothing behind, and an item without a range stays text.

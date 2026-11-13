@@ -69,7 +69,8 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         return;
     }
     await Promise.resolve();
-    const status = () => JSON.parse(files[path.join('/data', 'cluster-redline-status.json')]);
+    const status = () => JSON.parse(JSON.stringify(worker.status()));
+    assert.strictEqual(files[path.join('/data', 'cluster-redline-status.json')], undefined, 'no status file');
     assert.strictEqual(delay, 50, 'background loop must request a fixed 20fps period');
     const tick = (at) => { time = at; assert(timer); const fn = timer; timer = null; fn(); };
     assert.strictEqual(status().requested, false);

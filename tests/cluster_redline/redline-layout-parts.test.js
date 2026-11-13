@@ -18,7 +18,7 @@ const expected={standard:['mode','gear','alert','gauge','read','mark'],minimal:[
  ramp:['alert','gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],dial:['gauge','readB','readC','readD','gear','mode','readA','mark'],
  shift:['alert','gear','mode','rpm','read','mark'],logger:['gauge','gear','mode','rpm','readA','readB','readC','readD','mark'],needle:['gauge','gear','mode','readA','readB','readC','readD','mark'],
  rings:['gmeter','gauge','gear','mode','rpm','read','mark'],ribbon:['gauge','gear','mode','readA','readB','readC','readD','mark'],
- hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark'],sportdial:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],classic:['gauge','alert','temp','gear','mode','readA','readB','readC','readD','mark'],luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark'],tyres:['car','gear','mode','readA','readB','readC','readD']};
+ hexagon:['gauge','alert','gear','mode','rpm','readA','readB','readC','readD','mark'],sportdial:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],classic:['gauge','alert','readA','readB','readC','readD','mark'],luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark'],tyres:['car','gear','mode','readA','readB','readC','readD']};
 RL.stylesFor('hud').forEach(st=>{
  const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:AUX}),state=stateOf(cfg);
  assert.deepStrictEqual(RL.elements(cfg).map(e=>e.id),expected[st],st+' elements');

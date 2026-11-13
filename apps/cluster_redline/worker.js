@@ -27,13 +27,9 @@ const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
 const VEHICLE_INFO = 'de.bmw.infrastructure.VehicleInformation';
 const MDRIVE = 'de.bmw.infotainment.misc.MDrive';
 function mono() { const p = process.hrtime(); return p[0] * 1000 + p[1] / 1000000; }
-function atomic(file, value) {
-    const temp = file + '.tmp';
-    fs.writeFileSync(temp, JSON.stringify(value) + '\n', { mode: 0o644 });
-    fs.renameSync(temp, file);
-}
 function supportedRenderer() { return renderer.inspect(undefined, fs).compatible; }
 function start(ctx) {
+    let latest = null;
     const collectors=new DemandSignals(ctx.signals),log = ctx.log, signals = collectors.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
@@ -80,7 +76,7 @@ function start(ctx) {
     const lanes=new LaneGuidance(mono);
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
-    const reportError = (name, e) => { const s = name + ': ' + e; if (errors.indexOf(s) < 0) { errors.push(s); log.warn(s); } };
+    const reportError = (name, e) => { const s = name + ': ' + e; if (errors.indexOf(s) < 0) errors.push(s); };   // kept for the settings screen, not logged
     const live = signals && typeof signals.hasNative === 'function' && signals.hasNative();
     if (!live) reportError('someip', 'live native binding unavailable; cluster output disabled');
     client.on('ready', () => {
@@ -211,7 +207,7 @@ function start(ctx) {
         process.removeListener('exit', stop);
         if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
-        try { atomic(path.join(ctx.dataDir, 'cluster-redline-status.json'), { at: new Date().toISOString(), reason: 'stopped', requested: false, layerState: 'hidden' }); } catch (e) {}
+        latest = { at: new Date().toISOString(), reason: 'stopped', requested: false, layerState: 'hidden' };
     }
     function tick() {
         const at = mono();
@@ -337,7 +333,7 @@ function start(ctx) {
             const state = controller.tick(at, config);
             if (at - lastStatus >= 500) {
                 lastStatus = at;
-                atomic(path.join(ctx.dataDir, 'cluster-redline-status.json'), {
+                latest = ({
                     at: new Date().toISOString(), appVersion: ctx.spec && ctx.spec.version || 'unknown', requested: !!state.requested, layerState: state.layerState || 'hidden',
                     reason: state.reason, mode: state.mode, rpm: state.rpm, shift: state.shift, engineStopped: !!state.engineStopped,
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
@@ -364,6 +360,7 @@ function start(ctx) {
     if (ctx.app && ctx.app.once) ctx.app.once('shutdown', stop);
     process.once('exit', stop);
     tick();
-    return { controller: controller, stop: stop };
+    // the status is kept in memory for the settings screen (no file is written: the app keeps no logs)
+    return { controller: controller, stop: stop, status: () => latest };
 }
 module.exports = { start, supportedRenderer, CDS, FES, MODE_FIELD, VEHICLE_INFO };

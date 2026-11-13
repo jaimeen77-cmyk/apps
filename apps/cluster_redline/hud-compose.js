@@ -22,7 +22,7 @@ function draw(state) {
         if(RL.active(state.config)){
             // A Redline app layout replaces the RPM face; painted at HUD size (no resampling).
             // "Whole layout" (the RPM gauge part) places it; each element then has its own move, size and hide.
-            if(!state.config.hudRpmGaugeHidden){const key=RL.keys(state,'hud');RL.placed(state,RL.rect(state.config,at,'hud'),'hud',at).forEach(e=>RL.nodes(state,e,'hud',key).forEach(({id,key:k,painter})=>{if(cache)cache.navigation('redline.'+id,k,painter,state,e.r);else blitScaled(cv,painter.draw(state),e.r);}));}
+            if(!state.config.hudRpmGaugeHidden){const key=RL.keys(state,'hud');RL.scene(state,RL.rect(state.config,at,'hud'),'hud',at,key).forEach(({id,key:k,painter,r})=>{if(cache)cache.navigation('redline.'+id,k,painter,state,r);else blitScaled(cv,painter.draw(state),r);});}
         }else{
             // The tuned copy keeps the render cache: the controller adds it as a hidden (non-enumerable)
             // property, which Object.assign does not copy. Without it the default design was painted straight

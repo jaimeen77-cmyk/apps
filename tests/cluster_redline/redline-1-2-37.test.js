@@ -1,4 +1,6 @@
 'use strict';
+// The Classic dial is a clock (Korean time): one fixed time, so a cached draw and a full draw see the same second.
+Date.now=()=>Date.UTC(2026,10,14,1,8,37);
 // 1.2.37: the Korean watermark with a kit whose fonts module has no has() (the Store runtime), Redline tiles
 // repainted only when what they show changes (same picture as a full repaint), and per-design positions kept
 // compact.

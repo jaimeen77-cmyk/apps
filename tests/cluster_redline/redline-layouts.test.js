@@ -1,4 +1,6 @@
 'use strict';
+// The Classic dial is a clock (Korean time): one fixed time, so a cached draw and a full draw see the same second.
+Date.now=()=>Date.UTC(2026,10,14,1,8,37);
 // Redline app HUD layouts (appsKOR apps/redline, MIT) as Cluster Redline HUD designs.
 const assert=require('assert'),path=require('path'),root=path.join(path.resolve(process.argv[2]),'source/javascript');
 const {Canvas}=require(root+'/kit/canvas'),{getLanguage,t}=require(root+'/kit/i18n'),spec=require(root+'/kit/app-spec.json');

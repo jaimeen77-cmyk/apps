@@ -26,7 +26,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\collect-cluster-redlin
 
 - 설치된 cluster-render 버전과 map/panel 관련 설정
 - 3초 간격의 렌더러 상태 18회
-- 설치된 레드라인 인스턴스들의 `cluster-redline-status.json`
+- 설치된 레드라인 인스턴스들의 `cluster-redline-status.json` (1.2.49부터 레드라인은 상태 파일·로그를 남기지 않으므로 없음)
 - 수집 전후 렌더러 로그 끝부분
 
 설정·코딩·중심 표시 영역을 변경하거나 서비스를 재시작하지 않습니다.
