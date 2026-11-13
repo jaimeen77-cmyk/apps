@@ -3,6 +3,7 @@
 // read it, else the changes the app sees in Comfort's status (the car on / off, standing, a seat move starting
 // and ending, the way back after easy exit waiting or done). Read only: nothing here sends Comfort a command.
 const { execFile } = require('child_process');
+const fs = require('fs');
 
 const SEATS = ['driver', 'passenger'];
 const JOBS = { exit: '하차 위치로 이동 시작', back: '운전 위치로 복귀 시작', memory: '메모리 위치로 이동 시작',
@@ -33,11 +34,27 @@ class ComfortLog {
         this.fromJournal = [];
         this.events = [];
         this.prev = null;
+        this.file = o.file || null;
+        if (this.file) {
+            try {
+                const saved = fs.statSync(this.file).size <= 262144 && JSON.parse(fs.readFileSync(this.file, 'utf8'));
+                if (saved && Array.isArray(saved.events)) this.events = saved.events.filter((e) => e && typeof e.at === 'number' && Array.isArray(e.parts))
+                    .slice(-this.size).map((e) => ({ at: e.at, parts: e.parts.filter((v) => typeof v === 'string').map((v) => v.slice(0, 500)) }));
+                if (saved && Array.isArray(saved.journal)) this.fromJournal = saved.journal.filter((v) => typeof v === 'string').slice(-this.size);
+            } catch (_) {}
+        }
         this.reading = false; this.readAt = 0; this.failures = 0;
         client.on('state', (s) => this.observe(s));
         client.on('lost', () => { if (this.prev) this.add(['Comfort 연결 끊김']); this.prev = null; });
     }
-    add(parts) { this.events.push({ at: this.now(), parts }); if (this.events.length > this.size) this.events.shift(); }
+    add(parts) { this.events.push({ at: this.now(), parts }); if (this.events.length > this.size) this.events.shift(); this.flush(); }
+    flush() {
+        if (!this.file) return;
+        try {
+            fs.writeFileSync(this.file + '.tmp', JSON.stringify({ events: this.events, journal: this.fromJournal }));
+            fs.renameSync(this.file + '.tmp', this.file);
+        } catch (_) {} // Logging failure must never affect seat control.
+    }
     observe(s) {
         const p = this.prev;
         if (!p) this.add(['Comfort 연결됨', s.carOn ? '차량 켜짐' : '차량 꺼짐', s.parked ? '정차' : '주행 중']);
@@ -58,8 +75,9 @@ class ComfortLog {
             pre: Object.assign({}, s.seats.pre), easyExit: s.settings.easyExit };
     }
     /** Read Comfort's journal again (at most every 3 s, one read at a time). Resolves true when it changed. */
-    poll() {
-        if (!this.journal || this.reading || this.now() - this.readAt < 3000) return Promise.resolve(false);
+    poll(force) {
+        if (this.reading || (!force && (!this.journal || this.now() - this.readAt < 3000))) return Promise.resolve(false);
+        if (force && this.journal === null) { this.journal = true; this.failures = 0; }
         this.reading = true; this.readAt = this.now();
         return new Promise((resolve) => {
             const done = (lines) => {
@@ -71,6 +89,7 @@ class ComfortLog {
                 this.failures = 0;
                 const changed = lines.join('\n') !== this.fromJournal.join('\n');
                 this.fromJournal = lines;
+                if (changed) this.flush();
                 resolve(changed);
             };
             try {

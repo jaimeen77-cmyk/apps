@@ -1,6 +1,8 @@
 'use strict';
 const fs = require('fs');
-const { ComfortClient, EasyAccess, ownMoves } = require('./core');
+const path = require('path');
+const { ComfortClient, EasyAccess, ownMoves, VERSION } = require('./core');
+const LogPage = require('./log-page');
 const { DemoClient } = require('./demo');
 const { translator } = require('./i18n');
 const { t } = require('./kit/i18n');
@@ -17,7 +19,8 @@ async function start(ctx, options) {
     const demo = opts.demo === undefined ? !fs.existsSync('/etc/oap/someip/someip-interfaces.json') : opts.demo;
     const client = opts.client || (demo ? new DemoClient() : new ComfortClient());
     const moves = ownMoves(client);
-    const comfortLog = new ComfortLog(client, { journal: !demo });
+    const comfortLog = new ComfortLog(client, { journal: !demo, size: 120,
+        file: !demo && ctx.dataDir ? path.join(ctx.dataDir, 'seats-diagnostics.json') : null });
     const easy = new EasyAccess(client);
     // Native/Iterio renderers do not accept the upstream OP_IMAGE upload.
     // Cache the photo as gradient columns, as Storage does for its background.
@@ -39,7 +42,9 @@ async function start(ctx, options) {
             }
         }
     });
-    let axis = 'SLV', last = '', rendering = null, closed = false;
+    let axis = 'SLV', last = '', rendering = null, closed = false, page = 0;
+    let paused = false, frozen = [], logPage = 0, logPages = 1, statusAt = 0, statusReading = false;
+    function hold() { frozen = comfortLog.lines(120, tr).slice(); paused = true; }
     const axes = ['SLV', 'SHV', 'LNV', 'SNV', 'KHV'];
     const labels = { SLV: ['◀', '▶', 'Fore / aft'], SHV: ['▼', '▲', 'Height'],
         LNV: ['◀', '▶', 'Backrest'], SNV: ['▼', '▲', 'Cushion'], KHV: ['▼', '▲', 'Headrest'] };
@@ -61,7 +66,13 @@ async function start(ctx, options) {
         axis = list[(list.indexOf(axis) + 1) % list.length] || 'SLV';
     }
     const actions = {
-        BTN_DRIVER: () => easy.selectSeat('driver'), BTN_PASSENGER: () => easy.selectSeat('passenger'),
+        BTN_DRIVER: () => { easy.selectSeat('driver'); page = 0; },
+        BTN_PASSENGER: () => { easy.selectSeat('passenger'); page = 1; },
+        BTN_LOGS: () => { page = 2; },
+        BTN_LOG_HOLD: () => { if (paused) { paused = false; logPage = 0; } else hold(); },
+        BTN_LOG_OLDER: () => { if (!paused) hold(); logPage = Math.min(logPage + 1, logPages - 1); },
+        BTN_LOG_NEWER: () => { logPage = Math.max(0, logPage - 1); },
+        BTN_LOG_REFRESH: async () => { await easy.refresh(); if (!demo) await comfortLog.poll(true); },
         BTN_REFRESH: () => easy.refresh(), BTN_AUTO: () => easy.toggle(), BTN_AXIS: cycleAxis,
         BTN_MINUS: () => easy.jog(axis, -1), BTN_PLUS: () => easy.jog(axis, 1),
         BTN_SAVE: () => easy.armMemorySave(), BTN_M1: () => easy.memory(0),
@@ -77,12 +88,25 @@ async function start(ctx, options) {
         if (closed) return Promise.resolve();
         if (rendering) return rendering;
         const state = client.state, who = easy.selectedSeat;
-        const logLines = comfortLog.lines(4, tr);
-        const signature = JSON.stringify([state, who, easy.message, easy.pending, easy.foreground, easy.saveMemory, axis, logLines]);
+        const logLines = page === 2 ? (paused ? frozen : comfortLog.lines(120, tr)) : comfortLog.lines(4, tr);
+        const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground, easy.saveMemory, axis, logLines, page, paused, logPage, comfortLog.source()]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
         const theme = Object.assign({}, ctx.theme(), { sel: '#e6404a' });
+        const frame = () => G.frame(cv, theme, [tr('운전석'), tr('조수석'), tr('Logs')], page,
+            demo ? [{ text: tr('PREVIEW'), color: '#f3bc56' }] : []);
+        if (page === 2) {
+            logPages = LogPage.draw(cv, { state, at: client.at, version: VERSION, source: comfortLog.source(),
+                lines: logLines, paused, page: logPage }, tr, (id, label, x, y, w, h, enabled, selected) => {
+                cv.roundRect(x, y, w, h, 12, selected ? '#6b3941' : '#27323f');
+                cv.text(tr(label), x + w / 2, y + 29, 21, enabled ? '#ffffff' : '#657483', { align: 'center', literal: true });
+                if (enabled) cv.target(x, y, w, h, () => act(actions[id]), id, 12);
+            });
+            frame();
+            rendering = Promise.resolve(ctx.ui.image('MAIN_GFX', cv)).then(() => { rendering = null; }, (e) => { rendering = null; throw e; });
+            return rendering;
+        }
         // full-screen placement: the page's left edge lies under the HMI's back arrow column, so the photo
         // starts where the menu does (the column's edge) and under the tab bar, not cut by the column
         const place = cv.place, left = place && place.full ? Math.max(0, Math.ceil((HMI_LEFT - place.ox) / place.scale)) : 0;
@@ -157,13 +181,12 @@ async function start(ctx, options) {
         const message = tr(easy.message);
         const clipped = message.length > 58 ? message.slice(0, 55) + '…' : message;
         cv.text(clipped, 58, 112, 17, '#c2ccd7', { literal: true });
-        G.frame(cv, theme, [tr('운전석'), tr('조수석')], who === 'driver' ? 0 : 1,
-            demo ? [{ text: tr('PREVIEW'), color: '#f3bc56' }] : []);
+        frame();
         rendering = Promise.resolve(ctx.ui.image('MAIN_GFX', cv)).then(() => { rendering = null; }, (e) => { rendering = null; throw e; });
         return rendering;
     }
     easy.on('change', () => { render().catch((e) => ctx.log.error(e)); });
-    ctx.onTab((index) => act(() => easy.selectSeat(index === 1 ? 'passenger' : 'driver')));
+    ctx.onTab((index) => act(actions[index === 2 ? 'BTN_LOGS' : index === 1 ? 'BTN_PASSENGER' : 'BTN_DRIVER']));
     ctx.onLayout(() => render(true));
     if (ctx.ui.onVisible) ctx.ui.onVisible((name) => {
         if (name === 'MAIN') { foreground(); last = ''; render(); }
@@ -172,16 +195,22 @@ async function start(ctx, options) {
     const loop = ctx.loop('MAIN', 4, () => {
         foreground();
         if (easy.foreground) comfortLog.poll().catch(() => {});   // the journal at most every 3 s, while shown
+        if (page === 2 && easy.foreground && !easy.pending && !statusReading && Date.now() - statusAt > 2000) {
+            statusAt = Date.now(); statusReading = true;
+            client.refresh().catch((e) => comfortLog.add(['Status read failed', e.message]))
+                .then(() => { statusReading = false; });
+        }
         return render();
     });
     async function close() {
         closed = true; if (loop && loop.stop) loop.stop();
+        comfortLog.flush();
         await moves.stop().catch(() => {}); client.close();
     }
     if (ctx.app && ctx.app.on) ctx.app.on('shutdown', close);
     foreground();
     await render(true);
     await easy.refresh().catch(() => {});
-    return { easy, client, render, close, demo };
+    return { easy, client, render, close, demo, comfortLog };
 }
 module.exports = { start };

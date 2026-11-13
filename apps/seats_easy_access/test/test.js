@@ -178,5 +178,17 @@ class FakeClient extends EventEmitter {
     assert.equal(read.source(), 'journal');
     assert.deepStrictEqual(read.lines(2), ['23:05:00 driver door closed, car on']);
     assert.equal(new ComfortLog(new FakeClient(), { journal: false }).source(), 'status');
+    const os = require('os');
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'seats-log-cache-'));
+    const cache = path.join(folder, 'diagnostics.json');
+    try {
+        const first = new ComfortLog(new FakeClient(), { file: cache, journal: false, size: 12 });
+        first.add(['driver', '복귀 대기 (하차 전 위치 기억)']);
+        const restored = new ComfortLog(new FakeClient(), { file: cache, journal: false, size: 12 });
+        assert.ok(restored.lines(12, english).join('\n').includes('waiting to move back'));
+        for (let i = 0; i < 30; i++) restored.add(['event ' + i]);
+        assert.equal(restored.events.length, 12);
+        assert.equal(JSON.parse(fs.readFileSync(cache)).events.length, 12);
+    } finally { fs.unlinkSync(cache); fs.rmdirSync(folder); }
     console.log('PASS Seats Easy Access core checks, Make room guards, door moves left to Comfort and Comfort log');
 })().catch((error) => { console.error(error.stack || error); process.exitCode = 1; });
