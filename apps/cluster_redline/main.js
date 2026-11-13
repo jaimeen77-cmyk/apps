@@ -80,7 +80,7 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     ctx.ui.onClick('BTN_BASIC', () => page.selectTab(0));
     ctx.ui.onClick('BTN_HUD',()=>page.selectTab(1));
     ctx.ui.onClick('BTN_CLUSTER',()=>page.selectTab(2));
-    // NAV pressed again (on the navigation tab) opens the Load tab, so the controller reaches it without a new bar button.
+    // NAV pressed again (on the navigation tab) opens Favorites, so the bar buttons reach it without a new button.
     ctx.ui.onClick('BTN_NAV',()=>page.selectTab(page.tab===3&&!page.open?4:3));
     ctx.ui.onClick('BTN_PREVIOUS', () => page.move(-1));
     ctx.ui.onClick('BTN_NEXT', () => page.move(1));

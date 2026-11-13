@@ -27,8 +27,8 @@ MGU Store 자체 설치는 [개발자 안내](https://github.com/robertnisipeanu
 
 | 표시 이름 | 설치 ID | 버전 |
 |---|---|---|
-| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.43 |
-| Cluster Redline (English) | `cluster_redline_en` | 1.2.43 |
+| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.44 |
+| Cluster Redline (English) | `cluster_redline_en` | 1.2.44 |
 | 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 |
 | iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 |
 
@@ -36,7 +36,7 @@ MGU Store 자체 설치는 [개발자 안내](https://github.com/robertnisipeanu
 
 ## 레드라인 첫 설정
 
-1. 앱 위쪽의 버전이 **v1.2.43** 이상인지 확인합니다.
+1. 앱 위쪽의 버전이 **v1.2.44** 이상인지 확인합니다.
 2. **기본설정 → 차량 프리셋·단위·변속 알림 RPM**을 선택합니다.
 3. **HUD 표시 설정 / CLUSTER 표시 설정**에서 원하는 모드의 RPM 출력을 **레드라인 앱**으로 선택합니다. 기본 HUD RPM은 순정입니다.
 4. **앱 켜기**로 현재 출력을 시작합니다. 자동 실행을 원하면 **앱 자동 켜짐**도 켭니다.

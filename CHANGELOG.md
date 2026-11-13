@@ -23,6 +23,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.44
+
+- **The Load tab (1.2.43) is replaced by a Favorites tab.** Favorites 1–5, each with Register / Load / Check settings. Register keeps the whole setup (Basic, HUD and cluster designs, positions and auxiliary information, navigation; not the app's run state), only values that differ from the defaults (about 0.2 KB each); over a saved favourite the first press arms and a second within 4 s overwrites. Load sets it in one write of only the values that differ, nothing when already in use, at most once per 1.5 s. Check settings shows Basic / HUD (layout name, auxiliary information) / Cluster (layout name, auxiliary information) / Navigation, with a Load button. With the bar buttons, NAV pressed again on the navigation tab opens Favorites.
+- The position slots are back to 1.2.42 (positions only).
+- Tests: exact round trips of two different setups, overwrite confirm, empty / broken favourites, controller path, 200 presses in 2 s (at most 2 writes), cost (register / load about 0.3 ms, tab frame 2.2 ms, check-settings frame 1.2 ms), end-to-end loads into the running outputs with no afterimage; a 5-minute run with 1,200 presses gave 200 writes and stable memory.
+
 ### 1.2.43
 
 - **New Load tab** (fifth settings tab; with the bar buttons, press NAV again on the navigation tab). It lists only the saved layouts, as "HUD · Luxury arc - Slot 1", "Cluster · Sport dial - Slot 1", "Navigation - Slot 3", each with a Load button.

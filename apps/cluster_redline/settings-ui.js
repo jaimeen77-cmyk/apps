@@ -5,14 +5,18 @@ const {tr}=require('./strings');
 const {settings:effective,PROFILES,DEFAULTS}=require('./policy');
 const D=require('./display-config'),RL=require('./redline-hud'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
 const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
-const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting','Load'],LOAD_TAB=4;
+const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting','Favorites'],FAV_TAB=4,FAV_COUNT=5,FAV_GAP=1500,FAV_ARM=4000;
 const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','clusterYieldGuidance','layout']];
 const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
 // Keys saved, loaded and reset by the position/size presets of each tab.
 const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaultOf=(schema,k)=>{const d=schema.find(s=>s.key===k);return d&&d.default!==undefined?d.default:DEFAULTS[k];};
-const SLOT_COUNT=3,SCOPES=['hud','cluster','nav'],SCOPE_TAB={hud:1,cluster:2,nav:3},LOAD_GAP=1500,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
+// A favourite is the whole setup: every setting except running / preview state and the saved slots
+// themselves, plus the values kept outside app.json (designs, Redline layout elements, per-design positions).
+const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts'];
+function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
+const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
 function layoutKeys(tab,schema){
  const name=tab===3?'nav':tab===2?'cluster':'hud',known=new Set(schema.map(s=>s.key));
@@ -52,21 +56,24 @@ class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
  config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
- keys(){return this.tab===LOAD_TAB?this.loadEntries().map(e=>'load-'+e.scope+'-'+e.i):GROUPS[this.tab];}
+ keys(){return this.tab===FAV_TAB?[]:GROUPS[this.tab];}
  item(){const key=this.keys()[this.focus];if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
- selectTab(i){this.tab=Math.max(0,Math.min(LOAD_TAB,i|0));this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
+ selectTab(i){this.tab=Math.max(0,Math.min(FAV_TAB,i|0));this.favArmed=null;this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
  // The settings screen left without Back (Home, another app, screen off): end Position / size so its
  // preview never stays on the HUD or cluster.
  leave(){if(this.open==='layout'||this.open==='layoutPresets'){this.setPreview(false);this.open=null;this.draft=null;this.resetArmed=false;this.presetMessage='';this.choice=0;this.changed();}else if(this.settings.get('layoutPreview'))this.setPreview(false);}
  back(){
-  if(this.open==='rlDesign'){this.open='design';this.choice=2;}
+  if(this.open==='favView'){this.open=null;}
+  else if(this.open==='rlDesign'){this.open='design';this.choice=2;}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
   else if(this.open==='layoutPresets'){this.open='layout';this.choice=0;this.presetMessage='';}
   else{if(this.open==='layout')this.setPreview(false);this.open=null;this.draft=null;}
   this.changed();
  }
  move(delta){
-  if(!this.open){const n=this.keys().length;this.focus=n?(this.focus+delta+n)%n:0;}
+  if(this.tab===FAV_TAB&&!this.open){const n=FAV_COUNT*3;this.focus=(this.focus+delta+n)%n;}
+  else if(this.open==='favView'){this.choice=(this.choice+delta+2)%2;}
+  else if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
   else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.stylesFor(this.display()).length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
  }
@@ -79,10 +86,10 @@ class SettingsPage{
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'?cfg.clusterYieldGuidance:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
- change(delta){if(this.tab===LOAD_TAB&&!this.open)return;if(this.open==='layoutPresets')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
   if(index!==undefined)this.focus=index;
-  if(this.tab===LOAD_TAB&&!this.open){const e=this.loadEntries()[this.focus];if(e)this.loadEntry(e.scope,e.i);return;}
+  if(this.tab===FAV_TAB&&!this.open){this.favAction(Math.floor(this.focus/3)+1,this.focus%3);return;}
   const item=this.item();if(!item)return;
   this.choice=0;
   if(item.key==='aux')this.open='auxMode';
@@ -93,6 +100,7 @@ class SettingsPage{
   this.changed();
  }
  choose(index){
+  if(this.open==='favView'){if(index===0)this.loadFavorite(this.favIndex);else this.back();return;}
   if(this.open==='layout'||this.open==='layoutPresets'){const a=this.layoutActions[index];if(a)a.act();return;}
   if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
   if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else if(index===D.METRICS.length+1)this.toggleClockZone();else this.toggleMetric(D.METRICS[index]);return;}
@@ -107,7 +115,7 @@ class SettingsPage{
  toggleMetric(id){if(!this.draft||!D.METRICS.includes(id)||this.draft.mode!=='gauges'&&D.GAUGE_ONLY.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
  commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.open=null;this.draft=null;this.changed();}
  button(cv,targets,label,x,y,w,h,act,on,id){
-  const layoutFocus=(this.open==='layout'||this.open==='layoutPresets')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice;
+  const layoutFocus=(this.open==='layout'||this.open==='layoutPresets')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice||this.tab===FAV_TAB&&!this.open&&id==='fav-'+this.focus||this.open==='favView'&&id==='favview-'+this.choice;
   // On the design pickers the fill marks the design in use and a white outline the cursor; elsewhere the cursor fills.
   const picker=(this.open==='design'||this.open==='rlDesign')&&focused;
   cv.roundRect(x,y,w,h,6,on||focused&&!picker?'#57202d':'#252a31');if(picker)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],3,'#f3f5f7');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
@@ -118,8 +126,8 @@ class SettingsPage{
   this.liveState=liveState||null;
   const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);require('./settings-bg').paint(cv,W,H);
   const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
-  // 'Load' is not in the kit's own catalogue: its Korean comes from strings.js.
-  const tabs=TABS.map(x=>x==='Load'?tr('Load'):x);
+  // 'Favorites' is not in the kit's own catalogue: its Korean comes from strings.js.
+  const tabs=TABS.map(x=>x==='Favorites'?tr(x):x);
   if(cv.chrome)G.frame(cv,theme,tabs,this.tab,badges);else{header(cv,theme,0,0,W,80,'Cluster Redline',tabs,this.tab,badges,true,false);(cv.tabRects||[]).forEach(r=>targets.push(Object.assign({},r,{act:()=>this.selectTab(r.i),label:TABS[r.i],id:'tab'+r.i})));}
   if(this.open==='layout')this.drawLayout(cv,cfg,targets);
   else if(this.open==='layoutPresets')this.drawPresets(cv,cfg,targets);
@@ -128,8 +136,9 @@ class SettingsPage{
   else if(this.open==='design')this.drawDesign(cv,cfg,targets);
   else if(this.open==='rlDesign')this.drawRedlineDesigns(cv,cfg,targets);
   else if(this.open==='navColor')this.drawColors(cv,cfg,targets);
+  else if(this.open==='favView')this.drawFavoriteView(cv,targets);
   else if(this.open)this.drawChoices(cv,cfg,targets);
-  else if(this.tab===LOAD_TAB)this.drawLoad(cv,cfg,targets);
+  else if(this.tab===FAV_TAB)this.drawFavorites(cv,targets);
   else this.drawRows(cv,cfg,targets,status);
   cv.targets=targets.map((r,i)=>Object.assign({key:this.tab+':'+(this.open||'rows')+':'+i,run:r.act},r));return cv;
  }
@@ -236,77 +245,17 @@ class SettingsPage{
  // Refresh the marker only when the part changed or it is a minute old (it expires after two).
  previewRefresh(){const v=this.previewValue(),cur=String(this.settings.get('layoutPreview')||''),m=/^(.*)@(\d+)$/.exec(cur);return m&&v.indexOf(m[1]+'@')===0&&Date.now()-Number(m[2])<60000?{}:{layoutPreview:v};}
  setPreview(on){const v=on?this.previewValue():'';if(on||this.settings.get('layoutPreview'))this.settings.set('layoutPreview',v);}
- scope(){return this.tab===3?'nav':this.display();}
- slotKey(i,scope){return (scope||this.scope())+'LayoutSlot'+i;}
- slot(i,scope){try{const v=JSON.parse(this.settings.get(this.slotKey(i,scope))||'null');return v&&v.values&&typeof v.values==='object'?v:null;}catch(e){return null;}}
- // A slot keeps the tab's positions and sizes and, on HUD / cluster, the design they belong to (design, alert
- // style, auxiliary information), so loading it brings back the same picture. Slots saved before 1.2.43 have
- // positions only and load onto the design in use.
- saveSlot(i){const scope=this.scope(),values={};layoutKeys(SCOPE_TAB[scope],this.settings.schema).forEach(k=>{values[k]=this.settings.get(k);});
-  const slot={version:2,values,savedAt:Date.now()};
-  if(scope!=='nav'){const cfg=this.config();slot.design=cfg[scope+'Design']||'own';slot.alert=cfg[scope+'AlertStyle'];slot.aux=cfg[scope+'AuxConfig'];}
-  this.settings.set(this.slotKey(i,scope),JSON.stringify(slot));this.presetMessage=tr('Saved to slot')+' '+i;this.changed();}
- loadSlot(i){this.loadEntry(this.scope(),i);}
- // Every saved slot, HUD then cluster then navigation, for the Load tab.
- loadEntries(){const out=[];SCOPES.forEach(scope=>{for(let i=1;i<=SLOT_COUNT;i++){const slot=this.slot(i,scope);if(slot)out.push({scope,i,slot});}});return out;}
- slotName(scope,slot){
-  if(scope==='nav')return tr('Navigation');
-  const d=slot&&slot.design;if(!d)return tr('Design not recorded');
-  if(/^rl-/.test(d))return tr(RL.NAMES[d.slice(3)]||d);
-  return t(slot.alert==='circle'?'Circle beside gear':'Top alert bar');
- }
- // The values a slot sets: on HUD / cluster first the design switch (which keeps the outgoing design's
- // positions, as choosing a design does), then the slot's own positions, alert style and auxiliary information.
- slotValues(scope,slot){
-  const schema=this.settings.schema,values={};
-  if(scope!=='nav'&&slot.design&&D.HUD_DESIGNS.concat(['own']).includes(slot.design)&&!(scope==='hud'&&RL.CLUSTER_ONLY.includes(slot.design.slice(3)))&&!(scope==='cluster'&&RL.HUD_ONLY.includes(slot.design.slice(3))))
-   Object.assign(values,this.designSwitch(slot.design,scope));
-  layoutKeys(SCOPE_TAB[scope],schema).forEach(k=>{const v=slot.values[k];if(v!==undefined&&typeof v===typeof defaultOf(schema,k))values[k]=v;});
-  if(scope!=='nav'){if(slot.alert==='bar'||slot.alert==='circle')values[scope+'AlertStyle']=slot.alert;if(typeof slot.aux==='string'&&D.auxConfig(slot.aux).items.length)values[scope+'AuxConfig']=slot.aux;}
-  return values;
- }
- // Loading writes only what differs, at most once per LOAD_GAP for each of HUD / cluster / navigation: pressing again quickly, or loading what is
- // already in use, writes nothing (each write makes the background app redraw the HUD / cluster).
- loadEntry(scope,i){
-  const slot=this.slot(i,scope),now=Date.now(),say=m=>{this.presetMessage=m;this.loadMessage={scope,i,text:m,at:now};this.changed();};
-  if(!slot){say(tr('Slot is empty'));return false;}
-  const last=(this.lastLoadAt||(this.lastLoadAt={}))[scope];
-  if(last&&now-last<LOAD_GAP&&now>=last){say(tr('Wait a moment, then press again'));return false;}
-  const values=this.slotValues(scope,slot),changes={};
-  Object.keys(values).forEach(k=>{if(this.settings.get(k)!==values[k])changes[k]=values[k];});
-  if(this.open==='layout'||this.open==='layoutPresets')Object.assign(changes,this.previewRefresh());
-  else if(this.settings.get('layoutPreview'))changes.layoutPreview='';
-  if(!Object.keys(changes).length){say(tr('Already in use'));return false;}
-  this.lastLoadAt[scope]=now;this.setValues(changes);say(tr('Loaded slot')+' '+i);return true;
- }
- drawLoad(cv,cfg,targets){
-  const list=this.loadEntries();
-  if(!list.length){
-   cv.text(tr('No saved layouts yet.'),100,160,32,'#f3f5f7');
-   cv.text(tr('Save one in HUD / CLUSTER / NAV display setting → Position / size → Save / load.'),100,206,25,'#91a1b6');
-   require('./settings-bg').mark(cv,W,H);return;
-  }
-  this.focus=Math.min(this.focus,list.length-1);
-  const h=list.length>6?46:64;let y=100;
-  list.forEach((e,n)=>{
-   if(n===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+6,4,h-13,'#f32b40');}
-   const scopeName=e.scope==='hud'?'HUD':e.scope==='cluster'?tr('Cluster'):tr('Navigation');
-   const label=(e.scope==='nav'?scopeName:scopeName+' · '+this.slotName(e.scope,e.slot))+' - '+tr('Slot')+' '+e.i;
-   cv.text(label,100,y+h/2+11,30,'#f3f5f7',{literal:true});
-   const m=this.loadMessage;if(m&&m.scope===e.scope&&m.i===e.i&&Date.now()-m.at<4000)cv.text(m.text,1250,y+h/2+9,22,'#ffad45',{align:'right',literal:true});
-   targets.push({x:78,y,w:1170,h:h-1,act:()=>{this.focus=n;this.changed();},label,id:'load-row-'+e.scope+e.i});
-   this.button(cv,targets,tr('Load'),1270,y+4,260,h-9,()=>{this.focus=n;this.loadEntry(e.scope,e.i);},false,'load-'+e.scope+e.i);
-   cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
-  });
-  if(list.length<=5)require('./settings-bg').mark(cv,W,H);
- }
+ slotKey(i){return (this.tab===3?'nav':this.display())+'LayoutSlot'+i;}
+ slot(i){try{const v=JSON.parse(this.settings.get(this.slotKey(i))||'null');return v&&v.values&&typeof v.values==='object'?v:null;}catch(e){return null;}}
+ saveSlot(i){const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{values[k]=this.settings.get(k);});this.settings.set(this.slotKey(i),JSON.stringify({version:1,values}));this.presetMessage=tr('Saved to slot')+' '+i;this.changed();}
+ loadSlot(i){const slot=this.slot(i);if(!slot){this.presetMessage=tr('Slot is empty');this.changed();return;}const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{const v=slot.values[k];if(v!==undefined&&typeof v===typeof defaultOf(this.settings.schema,k))values[k]=v;});Object.assign(values,this.previewRefresh());this.setValues(values);this.presetMessage=tr('Loaded slot')+' '+i;this.changed();}
  resetLayout(){if(!this.resetArmed){this.resetArmed=true;this.presetMessage=tr('Press again to reset to defaults');this.changed();return;}this.resetArmed=false;const values={};layoutKeys(this.tab,this.settings.schema).forEach(k=>{values[k]=defaultOf(this.settings.schema,k);});Object.assign(values,this.previewRefresh());this.setValues(values);this.presetMessage=tr('Reset to defaults');this.changed();}
  drawPresets(cv,cfg,targets){
   const local=[],name=t(this.tab===3?'NAV display setting':this.tab===2?'CLUSTER display setting':'HUD display setting');
   cv.text(tr('Save / load positions')+' · '+name,100,126,32,'#ef4050',{literal:true});
   this.button(cv,local,tr(this.resetArmed?'Press again to reset':'Reset to defaults'),84,150,1452,64,()=>this.resetLayout(),!!this.resetArmed,'preset-reset');
-  for(let i=1;i<=SLOT_COUNT;i++){const x=84+(i-1)*490,slot=this.slot(i),saved=!!slot;
-   cv.text(tr('Slot')+' '+i+' · '+(saved?(this.scope()==='nav'?tr('Saved'):this.slotName(this.scope(),slot)):tr('Empty')),x+8,262,24,saved?'#b8c5d4':'#6f7c8c',{literal:true});
+  for(let i=1;i<=SLOT_COUNT;i++){const x=84+(i-1)*490,saved=!!this.slot(i);
+   cv.text(tr('Slot')+' '+i+' · '+tr(saved?'Saved':'Empty'),x+8,262,24,saved?'#b8c5d4':'#6f7c8c',{literal:true});
    this.button(cv,local,tr('Save')+' '+i,x,276,464,64,()=>{this.resetArmed=false;this.saveSlot(i);},false,'preset-save'+i);
    this.button(cv,local,tr('Load')+' '+i,x,352,464,64,()=>{this.resetArmed=false;this.loadSlot(i);},false,'preset-load'+i);
   }
@@ -320,6 +269,83 @@ class SettingsPage{
  }
  selectedLayoutParts(){return this.layoutParts().filter(p=>this.layoutSelected.has(p.key));}
  layoutPrefix(p){return this.tab===3?p.prefix:this.display()+p.key;}
+ // ---- Favourites (tab 5): register the whole setup, load it back, or look at it first.
+ // Parsed once per stored text (the tab redraws twice a second; parsing and summarising five favourites each
+ // frame cost ~5 ms).
+ favorite(n){const raw=this.settings.get('favorite'+n)||'',c=(this.favCache||(this.favCache={}))[n];if(c&&c.raw===raw)return c.fav;
+  let fav=null;try{const v=JSON.parse(raw||'null');fav=v&&v.values&&typeof v.values==='object'?v:null;}catch(e){fav=null;}
+  this.favCache[n]={raw,fav};return fav;}
+ favSay(n,text){this.favMessage={n,text,at:Date.now()};this.changed();}
+ favAction(n,which){if(which===0)this.registerFavorite(n);else if(which===1)this.loadFavorite(n);else this.viewFavorite(n);}
+ // Register keeps only values that differ from the defaults (a favourite is a few hundred bytes, not ~10 KB).
+ // Over an existing favourite the first press arms, the second within 4 s overwrites.
+ registerFavorite(n){
+  const now=Date.now();
+  if(this.favorite(n)&&!(this.favArmed&&this.favArmed.n===n&&now-this.favArmed.at<FAV_ARM)){this.favArmed={n,at:now};this.favSay(n,tr('Press Register again to overwrite'));return false;}
+  this.favArmed=null;const schema=this.settings.schema,values={};
+  favKeys(schema).forEach(k=>{const v=this.settings.get(k);if(v!==undefined&&v!==defaultOf(schema,k))values[k]=v;});
+  this.settings.set('favorite'+n,JSON.stringify({version:1,savedAt:now,values}));this.favSay(n,tr('Registered'));return true;
+ }
+ // Load sets every key of the favourite (defaults for those it does not list) in one write, only the keys
+ // that differ; nothing when already in use; at most once per FAV_GAP, so presses cannot pile up redraws.
+ favValues(fav){const schema=this.settings.schema,out={};favKeys(schema).forEach(k=>{const v=fav.values[k];const d=defaultOf(schema,k);out[k]=v!==undefined&&(d===undefined||typeof v===typeof d)?v:d;});return out;}
+ loadFavorite(n){
+  const fav=this.favorite(n),now=Date.now();this.favArmed=null;
+  if(!fav){this.favSay(n,tr('Favorite is empty'));return false;}
+  if(this.lastFavLoad&&now>=this.lastFavLoad&&now-this.lastFavLoad<FAV_GAP){this.favSay(n,tr('Wait a moment, then press again'));return false;}
+  const target=this.favValues(fav),changes={};Object.keys(target).forEach(k=>{if(target[k]!==undefined&&this.settings.get(k)!==target[k])changes[k]=target[k];});
+  if(this.settings.get('layoutPreview'))changes.layoutPreview='';
+  if(!Object.keys(changes).length){this.favSay(n,tr('Already in use'));return false;}
+  this.lastFavLoad=now;this.setValues(changes);this.favSay(n,tr('Loaded'));return true;
+ }
+ viewFavorite(n){this.favArmed=null;if(!this.favorite(n)){this.favSay(n,tr('Favorite is empty'));return;}this.open='favView';this.favIndex=n;this.choice=0;this.changed();}
+ // A read-only page over the favourite's values, so the same labels and formats as the tabs are used.
+ favPage(fav){const values=this.favValues(fav),schema=this.settings.schema;return new SettingsPage({schema,get:k=>values[k]!==undefined?values[k]:this.settings.get(k),set:()=>{},setMany:()=>{}},null,'');}
+ favSummary(fav){if(fav.summary&&fav.summaryLang===tr('Favorite'))return fav.summary;fav.summaryLang=tr('Favorite');return (fav.summary=this.favSummaryOf(fav));}
+ favSummaryOf(fav){const p=this.favPage(fav),c=p.config(),name=d=>RL.active(c,d)?tr(RL.NAMES[RL.style(c,d)]):t(c[d+'AlertStyle']==='circle'?'Circle beside gear':'Top alert bar');
+  return 'HUD '+name('hud')+' · '+tr('Cluster')+' '+name('cluster');}
+ favWhen(fav){const d=new Date(fav.savedAt||0),z=v=>(v<10?'0':'')+v;return isFinite(d)?z(d.getMonth()+1)+'/'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes()):'';}
+ drawFavorites(cv,targets){
+  const h=80;let y=96;
+  for(let n=1;n<=FAV_COUNT;n++){
+   const fav=this.favorite(n),row=n-1,on=Math.floor(this.focus/3)===row;
+   if(on){cv.gradientRect(78,y,1460,h-2,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+10,4,h-22,'#f32b40');}
+   cv.text(tr('Favorite')+' '+n,100,y+34,30,'#f3f5f7',{literal:true});
+   let sub=fav?this.favSummary(fav)+'  ·  '+this.favWhen(fav):tr('Empty');let size=21;while(size>16&&cv.textWidth(sub,size)>800)size--;
+   cv.text(sub,100,y+64,size,fav?'#b8c5d4':'#6f7c8c',{literal:true});
+   const m=this.favMessage;if(m&&m.n===n&&Date.now()-m.at<4000)cv.text(m.text,920,y+34,22,'#ffad45',{align:'right',literal:true});
+   [['Register',0],['Load',1],['Check settings',2]].forEach(([label,k])=>this.button(cv,targets,tr(label),940+k*200,y+12,188,h-24,()=>{this.focus=row*3+k;this.favAction(n,k);},!!(k===0&&this.favArmed&&this.favArmed.n===n),'fav-'+(row*3+k)));
+   cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
+  }
+ }
+ drawFavoriteView(cv,targets){
+  const fav=this.favorite(this.favIndex);if(!fav){this.open=null;this.drawFavorites(cv,targets);return;}
+  const p=this.favPage(fav),c=p.config();p.tab=1;
+  cv.text(tr('Favorite')+' '+this.favIndex+' · '+tr('Check settings'),84,128,32,'#ef4050',{literal:true});
+  cv.text(tr('Registered at')+' '+this.favWhen(fav),1536,128,22,'#8d97a4',{align:'right',literal:true});
+  const item=k=>k==='comfortShiftRpm'?COMFORT_ITEM:k==='clusterYieldGuidance'?YIELD_ITEM:['aux','design'].includes(k)?{key:k}:this.settings.schema.find(s=>s.key===k);
+  const label=k=>tr(/^sport/.test(k)?'Sport mode RPM display':/^all/.test(k)?'All modes RPM display':ROW_LABELS[k]||{aux:'Auxiliary information',design:'Layout'}[k]||(item(k)||{}).label||k);
+  const value=(k,d)=>{if(k==='design')return RL.active(c,d)?tr(RL.NAMES[RL.style(c,d)]):tr('Default design')+' · '+t(c[d+'AlertStyle']==='circle'?'Circle beside gear':'Top alert bar');
+   try{return String(p.value(item(k),c));}catch(e){return '-';}};
+  const cols=[['Basic settings',0,['autoStart','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm']],['HUD display setting',1,['sportHudOutput','allHudOutput','design','aux']],['CLUSTER display setting',2,['sportClusterOutput','allClusterOutput','design','aux']],['NAV display setting',3,['navDisplayMode','navColor','clusterYieldGuidance']]];
+  const cw=356,gap=10,top=146,bottom=440;
+  cols.forEach(([title,tab,keys],i)=>{
+   const x=84+i*(cw+gap),d=tab===2?'cluster':'hud';p.tab=tab;cv.roundRect(x,top,cw,bottom-top,10,[18,22,28,215]);cv.text(t(title),x+16,top+32,24,'#f3f5f7',{font:'bold'});
+   let y=top+66;
+   keys.forEach(k=>{if(!item(k))return;const v=value(k,d),l=label(k);
+    // label and value on one line when they fit; otherwise the label above and the value below (two lines at ' · ' / ' / ')
+    if(cv.textWidth(l,17)+cv.textWidth(v,20)+28<=cw-32){cv.text(l,x+16,y,17,'#8d97a4',{literal:true});cv.text(v,x+cw-16,y,20,'#f3f5f7',{align:'right',literal:true});y+=34;return;}
+    cv.text(l,x+16,y,17,'#8d97a4',{literal:true});y+=25;
+    let size=20;const fit=s=>cv.textWidth(s,size)<=cw-32;
+    if(fit(v)){cv.text(v,x+16,y,size,'#f3f5f7',{literal:true});y+=34;return;}
+    const mid=Math.floor(v.length*0.6),cut=Math.max(v.lastIndexOf(' · ',mid),v.lastIndexOf(' / ',mid));
+    const a=cut>0?v.slice(0,cut):v,b=cut>0?v.slice(cut+3):'';while(size>15&&!(fit(a)&&fit(b)))size--;
+    cv.text(a,x+16,y,size,'#f3f5f7',{literal:true});if(b){y+=size+5;cv.text(b,x+16,y,size,'#f3f5f7',{literal:true});}y+=34;});
+  });
+  this.button(cv,targets,tr('Load'),84,454,360,54,()=>{this.choice=0;this.loadFavorite(this.favIndex);},false,'favview-0');
+  this.button(cv,targets,t('Back'),460,454,240,54,()=>this.back(),false,'favview-1');
+  const m=this.favMessage;if(m&&m.n===this.favIndex&&Date.now()-m.at<4000)cv.text(m.text,720,488,22,'#ffad45',{literal:true});
+ }
  setValues(values){
   if(typeof this.settings.setMany==='function')this.settings.setMany(values);
   else Object.keys(values).forEach(key=>{if(this.settings.get(key)!==values[key])this.settings.set(key,values[key]);});
@@ -333,8 +359,8 @@ class SettingsPage{
  // Each design keeps its own Whole layout / element positions and sizes: switching saves the current
  // design's values under it (in <display>RlLayouts, outside app.json) and brings back the new design's,
  // or its defaults the first time. Returns the values to set.
- designSwitch(next,display){
-  const d=display||this.display(),cur=this.config()[d+'Design']||'own',values={[d+'Design']:next};if(cur===next)return values;
+ designSwitch(next){
+  const d=this.display(),cur=this.config()[d+'Design']||'own',values={[d+'Design']:next};if(cur===next)return values;
   const keys=['RpmGauge'].concat(D.RL_PARTS).reduce((a,p)=>a.concat(['OffsetX','OffsetY','WidthScale','HeightScale','Hidden'].map(x=>d+p+x)),[]);
   let saved={};try{saved=JSON.parse(this.settings.get(d+'RlLayouts')||'{}')||{};}catch(e){saved={};}
   const now={};keys.forEach(k=>{const v=this.settings.get(k);if(v!==undefined&&v!==defaultOf(this.settings.schema,k))now[k]=v;});if(Object.keys(now).length)saved[cur]=now;else delete saved[cur];

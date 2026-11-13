@@ -14,7 +14,7 @@ try{
  if(require(dir+'/kit/locale.json').language==='ko'){
   const atlas=require(dir+'/kit/fonts/korean.json').sizes[0].glyphs;
   for(const label of labels)for(const ch of label)if(/[가-힣]/.test(ch))assert(atlas[ch.charCodeAt(0)],'missing Korean glyph '+ch);
-  for(const key of TABS)assert.notStrictEqual(key==='Load'?require(dir+'/strings').tr(key):t(key),key);
+  for(const key of TABS)assert.notStrictEqual(key==='Favorites'?require(dir+'/strings').tr(key):t(key),key);
  }
  console.log('PASS: bilingual four-tab settings, tap bounds, native chrome tabs, per-display output/style persistence and Korean glyph coverage');
 }finally{Canvas.prototype.text=text;}
