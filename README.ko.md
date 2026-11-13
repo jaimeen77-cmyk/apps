@@ -65,4 +65,4 @@ python3 kit/tools/build.py seats_easy_access
 # 한국어: python3 kit/tools/build.py --language ko seats_easy_access
 ```
 
-결과는 `dist/seats_easy_access@0.5.0.mgu`와 `.tgz`입니다. `python kit/tools/make_kit.py seats_easy_access`로 영어 키트, `--language ko`를 추가하면 한국어 키트를 생성합니다.
+결과는 `dist/seats_easy_access@0.6.0.mgu`와 `.tgz`입니다. `python kit/tools/make_kit.py seats_easy_access`로 영어 키트, `--language ko`를 추가하면 한국어 키트를 생성합니다. `node kit/tools/emu.js seats_easy_access`로 실제 그래픽 화면도 확인할 수 있습니다.
