@@ -79,8 +79,6 @@ function filterAux(manifest,catalog){
  });
  [CDS2,KOMBI,TPMS].forEach(i=>{if(proxies[i]&&!Object.keys(proxies[i].attributes||{}).length)delete proxies[i];});
  if(proxies[TASU]){if(!voltageSupported(catalog))delete proxies[TASU];else proxies[TASU]={instances:'SystemFunctionsInternalTasuInst1',methods:['sendTasuRequest'],broadcasts:['sendTasuResponse']};}
- // the hidden speed limit data collection: the vehicle speed and speed-limit fields, read-only (speed-probe-config)
- require('./speed-probe-config').filterSpeedProbe(manifest,catalog);
  return manifest;
 }
 module.exports={AuxInfo,SOURCES,filterAux,economy,avgSpeed,tripTime,auxOf,TPMS};

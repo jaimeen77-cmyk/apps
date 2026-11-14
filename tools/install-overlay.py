@@ -35,12 +35,13 @@ def main():
         elif app == 'cluster_redline':
             files.extend(p.relative_to(HERE) for p in (HERE / 'tests/cluster_redline').glob('*.js'))
     files += [Path('tools') / p for p in ('cluster-redline-preview.js', 'cluster-redline-preflight.js',
-                                       'cluster-redline-settings-preview.js', 'collect-cluster-redline.ps1', 'collect-redline-install.ps1', 'collect-seats.js', 'collect-seats.ps1', 'install-overlay.py', 'upstream-integration.py')]
+                                       'cluster-redline-settings-preview.js', 'cluster-redline-benchmark.js', 'collect-cluster-redline.ps1', 'collect-redline-install.ps1', 'collect-seats.js', 'collect-seats.ps1', 'install-overlay.py', 'upstream-integration.py')]
     files += [Path('tests') / p for p in ('metadata.test.js', 'standard-installer.test.py',
                                        'standard-kit.test.py', 'overlay.test.py', 'collect-cluster-redline.test.py', 'collect-redline-install.test.py', 'cluster-redline-manifest.test.py', 'hud-slot-request.test.py', 'cluster-slot-takeover.test.py', 'native-hud-guidance.test.py', 'native-cluster-recovery.test.py', 'optional-guidance.test.py', 'optional-auxiliary.test.py', 'optional-lanes.test.py')]
     files += [Path(p) for p in (
         'docs/JAM-INTEGRATION.ko.md',
         'docs/VALIDATION.ko.md',
+        'docs/REDLINE-PERFORMANCE-1.2.58.ko.md',
         'docs/HUD-TRAFFIC.ko.md',
         'docs/PROBE-RECORDING.ko.md',
         'docs/SEATS-DIAGNOSTICS.ko.md',
@@ -82,6 +83,12 @@ def main():
         destination = target / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(HERE / relative, destination)
+    # Removed diagnostics must not remain in an older overlay and be bundled again.
+    if 'cluster_redline' in selected:
+        for name in ('speed-probe', 'speed-probe-config', 'probe-archive', 'traffic-signs', 'traffic-live', 'traffic-draw'):
+            retired = target / 'apps/cluster_redline' / (name + '.js')
+            if retired.is_file():
+                retired.unlink()
     for path, content in planned.items():
         path.write_bytes(content.encode('utf-8'))
         print('integrate', path)

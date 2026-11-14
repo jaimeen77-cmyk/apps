@@ -26,9 +26,7 @@ def run(d,m,opt,parity=True):
   else:
    for i in [veh,tsd,ccp,adas]:assert i not in desktop['proxies'] and i not in store['proxies']
   return store
-# 1.2.50: the hidden speed limit data collection. At install, read-only: the vehicle speed (Vehicle2.statusCarSpeed2)
-# and up to six fields whose names look like a speed limit, each only with a valid getter or notifier and a known
-# instance (an existing proxy on another instance is left alone); desktop and Store agree; other apps get nothing.
+# Removed collection: neither installer may add traffic/probe-only inputs.
 veh='de.bmw.infotainment.vehicle.Vehicle2';tsd='de.bmw.dass.driverassistanceapplications.TrafficSignDisplayControl';ccp='de.bmw.infotainment.navigation.externalize.adasng.CCP'
 adas='de.bmw.infotainment.navigation.ADAS';sdaf='de.bmw.dass.settingsdriverassistancefunctions.SettingsDriverAssistanceFunctions';sli='de.bmw.x.Other'
 opt={cds+'2':'optional aux',kombi:'optional economy'}
@@ -52,22 +50,12 @@ for kind in ['full','none','bad_ids','cap','other_instance','other_app','school'
  o=dict(opt) if kind!='other_app' else {}
  out=run(d,m,o,kind!='other_app');P=out['proxies']
  if kind=='other_app':continue
- if kind=='full':
-  assert P[veh]=={'instances':'1','attributes':{'statusCarSpeed2':'rs'}},P[veh]
-  assert P[tsd]=={'instances':'1','attributes':{'displaySpeedLimitAndNoPassingRestriction':'s'}},P[tsd]
-  assert P[ccp]=={'instances':'Main_Instance','attributes':{},'broadcasts':['effectiveSpeedLimit','speedLimitUnit']},P[ccp]
-  assert P[adas]['attributes']=={'speedLimitProfileNavGraph2':'r','trafficSignNavGraph2':'r'},P[adas]
-  assert P[sdaf]['attributes']=={'displayStatusSpeedLimitAssist':'s'},('settings are not values',P[sdaf])
- if kind=='none':assert all(i not in P for i in [veh,tsd,ccp,adas,sdaf])
- if kind=='bad_ids':assert veh not in P and tsd not in P and P[ccp]['broadcasts']==['speedLimitUnit'],P.get(ccp)
- if kind=='cap':n=sum(len(P[i].get('attributes',{}))+len(P[i].get('broadcasts',[])) for i in [tsd,ccp,adas,sdaf,sli] if i in P);assert n==10,(n,P)
- if kind=='school':assert P[sli]['attributes'].get('schoolZoneInfo')=='r',P[sli]
- if kind=='other_instance':assert P[adas]=={'instances':'2','attributes':{'routeX':'r'}},P[adas]
+ if kind!='other_instance':assert all(i not in P for i in [veh,tsd,ccp,adas,sdaf,sli]),P
+ else:assert P[adas]=={'instances':'2','attributes':{'routeX':'r'}},P[adas]
 tsr='de.bmw.dass.TrafficSignRecognition';camera='de.bmw.environmentalmodel.SignRecognitionFrontCamera'
 d=cat()
 for iface,event in [(tsr,'TrafficSignRecognition'),(camera,'TrafficSignRecognitionFrontCamera')]:
  d['interfaces'][iface]={'events':{event:{'eventId':32900}}};d['instanceIDs'][iface]={'1':1}
 P=run(d,copy.deepcopy(manifest),dict(opt))['proxies']
-assert P[tsr]['broadcasts']==['TrafficSignRecognition']
-assert P[camera]['broadcasts']==['TrafficSignRecognitionFrontCamera']
-print('PASS: traffic HUD TSR/camera events and speed-probe inputs installed read-only with desktop/Store parity')
+assert tsr not in P and camera not in P
+print('PASS: removed probe/traffic inputs stay absent with desktop/Store parity')

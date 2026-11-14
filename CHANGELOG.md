@@ -67,6 +67,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.58
+
+- Remove the hidden recording menu, persistent recording startup and all probe/archive runtime modules. Existing recordings remain untouched; no collector resumes from the old on flag.
+- Remove the experimental traffic-sign HUD setting, diagnostic line, painter, decoder and subscriptions. Ignore saved traffic settings and old favorites. Remove probe-only install inputs in both desktop and Store filters, including cleanup of retired source files in older overlays.
+- Cap periodic settings refresh at 2 fps even when a GPU host ticks faster; user actions remain immediate. Bound the in-memory error history to eight messages of at most 320 characters; it previously bounded only the displayed copy. Verify subscription lifecycle, shutdown, output backpressure, retained rendering and no-log behavior. Add a reproducible host CPU/memory rendering benchmark.
+
 ### 1.2.57
 
 - Fix traffic events being discarded while a native binding has not reported provider availability. A recent received event can establish input liveness; explicit provider loss, input errors, stale data and the existing sign validation still hide invalid alerts. This reproduces a possible cause of missing alerts, not a confirmed diagnosis of the vehicle.

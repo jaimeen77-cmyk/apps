@@ -42,11 +42,6 @@ function draw(state) {
         }
         if(hasTurn&&!state.config.hudTextHidden)paintNav('Text',text,state.navigation);
     }
-    if(state.renderRpm!==false&&state.traffic&&state.traffic.visible){
-        const p=require('./traffic-draw'),r={x:20,y:310,w:p.W,h:p.H};
-        if(cache)cache.navigation('traffic',JSON.stringify([state.traffic.limit,state.traffic.children,state.traffic.over]),p,state,r);
-        else blitScaled(cv,p.draw(state),r);
-    }
     return cache?cache.finish():cv;
 }
 function difference(previous,next) { return require('./component-canvas').dirtyRects(previous,next,W,H); }

@@ -13,7 +13,6 @@ function demand(cfg,mode){
  const navPotential=enabled&&cfg.hudNavigationEnabled&&cfg.navDisplayMode!=='stock'&&D.NAV_PARTS.some(p=>!cfg[p.prefix+'Hidden']);
  const modeNeeded=navPotential||enabled&&['hud','cluster'].some(d=>D.faceVisible(cfg,d)&&['all','sport'].some(m=>cfg[m+(d==='hud'?'Hud':'Cluster')+'Output']==='redline'));
  const add=(i,f)=>fields.add(i+(f?'.'+f:''));
- if(enabled&&cfg.hudTrafficMode!=='off'&&faces.includes('hud'))require('./traffic-signs').FIELDS.forEach(([i,f])=>add(i,f));
  if(modeNeeded)add(F,'statusFESVehicleDynamicSwitchHMI');if(rpm)add(C,'statusEngineSpeed2');if(torque)add(F,'statusActualValueTorque2');
  if(gear){add(V,'statusGearboxDrive');add(V,'DataPowerTrain2');add('de.bmw.infotainment.misc.MDrive','dataDisplayGearbox');}
  // The Tyres & trip layout's car reads the tyre temperatures and pressures.

@@ -60,7 +60,7 @@ function settings(raw) {
 function full(raw) {
     raw = raw || {};
     const out = Object.assign({}, DEFAULTS);
-    out.hudTrafficMode=['off','speed','children','both'].includes(raw.hudTrafficMode)?raw.hudTrafficMode:'off';
+    out.hudTrafficMode='off'; // Removed experiment: ignore saved values and old favorites.
     // Retain an old owner's OFF choice; removed manual scales/prefixes are ignored.
     if (typeof raw.appEnabled === 'boolean') out.appEnabled = raw.appEnabled;
     else if (raw.autoSport === false) out.appEnabled = false;

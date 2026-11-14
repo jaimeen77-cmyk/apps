@@ -6,7 +6,7 @@ const {settings:effective,PROFILES,DEFAULTS}=require('./policy');
 const D=require('./display-config'),RL=require('./redline-hud'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
 const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
 const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting','Favorites'],FAV_TAB=4,FAV_COUNT=5,FAV_GAP=1500,FAV_ARM=4000;
-const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout','hudTrafficMode'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','clusterYieldGuidance','layout']];
+const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','clusterYieldGuidance','layout']];
 const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
@@ -14,7 +14,7 @@ const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data
 const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaultOf=(schema,k)=>{const d=schema.find(s=>s.key===k);return d&&d.default!==undefined?d.default:DEFAULTS[k];};
 // A favourite is the whole setup: every setting except running / preview state and the saved slots
 // themselves, plus the values kept outside app.json (designs, Redline layout elements, per-design positions).
-const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','hudTrafficMode'];
+const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts'];
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
 const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlCar|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
@@ -26,7 +26,6 @@ function layoutKeys(tab,schema){
 }
 // Comfort / Eco shift alert RPM: kept outside app.json (like clockZone) so the Store templates stay valid.
 // The two shift alert rows are named for the modes they apply to (Shift alert RPM keeps its app.json key).
-const TRAFFIC_ITEM={key:'hudTrafficMode',label:'Traffic sign alerts · experimental',type:'choice',options:[['off','Off'],['speed','Recognised speed limit'],['children','Children sign'],['both','Speed limit + children']].map(([v,label])=>[v,tr(label)])};
 const ROW_LABELS={shiftRpm:'Shift alert RPM · Sport',comfortShiftRpm:'Shift alert RPM · Comfort / Eco'};
 const YIELD_ITEM={key:'clusterYieldGuidance',label:'Cluster · yield to navigation',type:'choice',options:[['off',tr('Do not yield')],['phone',tr('Yield during Waze guidance · all modes')],['nosport',tr('Yield during Waze guidance · except Sport')]]};
 const COMFORT_ITEM={key:'comfortShiftRpm',label:'Shift alert RPM · Comfort / Eco',type:'choice',options:[[0,tr('Automatic (90 % of Sport)')]].concat([2000,2250,2500,2750,3000,3250,3500,4000,4500,5000].map(v=>[v,v+' rpm']))};
@@ -55,18 +54,18 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudTrafficMode'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:GROUPS[this.tab];}
- item(){const key=this.keys()[this.focus];if(key==='hudTrafficMode')return TRAFFIC_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
- // Basic settings tapped three times within 2 s: the hidden menu (speed limit data collection).
- tapBasic(now){const t=now===undefined?Date.now():now;this.basicTaps=(this.basicTaps||[]).filter(x=>t-x<2000).concat(t);if(this.basicTaps.length>=3){this.basicTaps=[];this.tab=0;this.focus=0;this.draft=null;this.open='probe';this.choice=0;this.changed();return;}this.selectTab(0);}
+ item(){const key=this.keys()[this.focus];if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
+ // Keep Basic a normal tab, including repeated taps from older hosts.
+ tapBasic(){this.selectTab(0);}
  selectTab(i){this.tab=Math.max(0,Math.min(FAV_TAB,i|0));this.favArmed=null;this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
  // The settings screen left without Back (Home, another app, screen off): end Position / size so its
  // preview never stays on the HUD or cluster.
  leave(){if(this.open==='layout'||this.open==='layoutPresets'){this.setPreview(false);this.open=null;this.draft=null;this.resetArmed=false;this.presetMessage='';this.choice=0;this.changed();}else if(this.settings.get('layoutPreview'))this.setPreview(false);}
  back(){
-  if(this.open==='favView'||this.open==='probe'){this.open=null;}
+  if(this.open==='favView'){this.open=null;}
   else if(this.open==='rlDesign'){this.open='design';this.choice=2;}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
   else if(this.open==='layoutPresets'){this.open='layout';this.choice=0;this.presetMessage='';}
@@ -76,7 +75,6 @@ class SettingsPage{
  move(delta){
   if(this.tab===FAV_TAB&&!this.open){const n=FAV_COUNT*3;this.focus=(this.focus+delta+n)%n;}
   else if(this.open==='favView'){this.choice=(this.choice+delta+2)%2;}
-  else if(this.open==='probe'){this.choice=(this.choice+delta+4)%4;}
   else if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
   else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.stylesFor(this.display()).length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
@@ -104,7 +102,6 @@ class SettingsPage{
   this.changed();
  }
  choose(index){
-  if(this.open==='probe'){const p=this.probe;if(index===0&&p)p.setOn(!p.on);else if(index===1&&p)p.saveAndContinue();else if(index===2&&p)p.clear();else if(index===3)this.back();this.changed();return;}
   if(this.open==='favView'){if(index===0)this.loadFavorite(this.favIndex);else this.back();return;}
   if(this.open==='layout'||this.open==='layoutPresets'){const a=this.layoutActions[index];if(a)a.act();return;}
   if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
@@ -144,7 +141,6 @@ class SettingsPage{
   else if(this.open==='rlDesign')this.drawRedlineDesigns(cv,cfg,targets);
   else if(this.open==='navColor')this.drawColors(cv,cfg,targets);
   else if(this.open==='favView')this.drawFavoriteView(cv,targets);
-  else if(this.open==='probe')this.drawProbe(cv,targets);
   else if(this.open)this.drawChoices(cv,cfg,targets);
   else if(this.tab===FAV_TAB)this.drawFavorites(cv,targets);
   else this.drawRows(cv,cfg,targets,status);
@@ -153,7 +149,7 @@ class SettingsPage{
  drawRows(cv,cfg,targets,status){
   let y=100;
   this.keys().forEach((key,i)=>{
-   const item=key==='hudTrafficMode'?TRAFFIC_ITEM:key==='comfortShiftRpm'?COMFORT_ITEM:key==='clusterYieldGuidance'?YIELD_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
+   const item=key==='comfortShiftRpm'?COMFORT_ITEM:key==='clusterYieldGuidance'?YIELD_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
    const h=this.tab===0?(key==='autoStart'?108:50):this.tab===1?56:68,ty=h===50?35:39;
    if(i===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+(h===50?6:8),4,h===50?37:42,'#f32b40');}
    const label=/^sport/.test(key)?'Sport mode RPM display':/^all/.test(key)?'All modes RPM display':ROW_LABELS[key]||item.label;
@@ -167,31 +163,13 @@ class SettingsPage{
    if(key==='autoStart'){cv.text(RENDERER_NOTICE,100,y+72,24,'#ff9e36');cv.text(cfg.sportHudOutput==='redline'||cfg.allHudOutput==='redline'?HUD_WARNING:MAP_WARNING,100,y+101,23,'#ff9e36');}
    cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
   });
-  if(this.tab===1||this.tab===2){cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');let o=this.tab===1&&cfg.hudTrafficMode!=='off'?this.trafficStatus(cfg):this.outsideStatus(cfg);if(o){while(o.length>5&&cv.textWidth(o,21,{literal:true})>1000)o=o.slice(0,-2);cv.text(o,84,462,21,'#ffad45',{literal:true});}}
+  if(this.tab===1||this.tab===2){cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');let o=this.outsideStatus(cfg);if(o){while(o.length>5&&cv.textWidth(o,21,{literal:true})>1000)o=o.slice(0,-2);cv.text(o,84,462,21,'#ffad45',{literal:true});}}
   if(this.tab===3){const y=this.yieldStatus(cfg);if(y)cv.text(y,84,462,22,'#ffad45',{literal:true});}
   // Cafe watermark in the free bottom-right corner of the HUD, cluster and navigation tabs (not on Basic: its rows fill the screen).
   if(this.tab>0)require('./settings-bg').mark(cv,W,H);
   if(this.tab===3){cv.text(HUD_WARNING,84,390,25,'#91a1b6');cv.text(tr('Yield: while phone (Waze) or chosen route guidance runs, the cluster RPM display steps aside for the stock map.'),84,426,25,'#91a1b6');}
  }
  // Live check lines (from the background app's status) so a car without the value can be told apart.
- trafficStatus(cfg){
-  const st=this.liveState&&this.liveState.traffic,prefix=tr('Traffic signs')+': ';
-  if(!st)return prefix+tr('waiting for the background app');
-  if(!st.wanted)return prefix+tr('Select Redline HUD in the current drive mode');
-  const hud=this.liveState.outputs&&this.liveState.outputs.hud;
-  if(hud&&!hud.requested)return prefix+tr('HUD not active · check display and renderer');
-  const sources=st.sources||[],cam=sources.find(s=>s.field==='TrafficSignRecognitionFrontCamera'),tsr=sources.find(s=>s.field==='TrafficSignRecognition');
-  if(!cam||!cam.configured)return prefix+tr('Camera input missing · reinstall from Store');
-  if(cam.error)return prefix+tr('subscription error');
-  if(!cam.received)return prefix+tr('Waiting for camera sign data');
-  const counts=tr('Camera')+' '+cam.received+' · '+tr('Combined recognition')+' '+(tsr&&tsr.received||0)+' · ';
-  const v=st.value||{},d=st.diagnostics||{};
-  if(v.visible)return prefix+counts+tr('Alert data ready');
-  if(!cam.live)return prefix+counts+tr('Camera data expired or disconnected');
-  if(cfg.hudTrafficMode!=='children'&&(!tsr||!tsr.configured))return prefix+counts+tr('Combined input missing · reinstall from Store');
-  if(d.rawClass!==null&&d.rawClass!==undefined&&![2,6,8,10,254].includes(d.rawClass))return prefix+counts+tr('Speed limit outside supported test range');
-  return prefix+counts+tr('No fresh matching sign · children alert lasts 6 s');
- }
  outsideStatus(cfg){
   const items=D.auxConfig(cfg[this.display()+'AuxConfig']).items;if(!items.includes('outside'))return '';
   const live=this.liveState&&this.liveState.auxiliary;if(!live)return tr('Outside temperature')+': '+tr('waiting for the background app');
@@ -349,30 +327,6 @@ class SettingsPage{
    const m=this.favMessage;if(m&&m.n===n&&Date.now()-m.at<4000)cv.text(m.text,920,y+34,22,'#ffad45',{align:'right',literal:true});
    [['Register',0],['Load',1],['Check settings',2]].forEach(([label,k])=>this.button(cv,targets,tr(label),940+k*200,y+12,188,h-24,()=>{this.focus=row*3+k;this.favAction(n,k);},!!(k===0&&this.favArmed&&this.favArmed.n===n),'fav-'+(row*3+k)));
    cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
-  }
- }
- // The hidden menu: speed limit data collection (on / off, clear, close) and what it has found so far.
- drawProbe(cv,targets){
-  const p=this.probe,st=p?p.status():null,dim='#8d97a4',fg='#f3f5f7',x=84;
-  cv.text(tr('Speed limit data collection'),x,128,32,'#ef4050',{literal:true});
-  cv.text(tr('Hidden menu · records only while on'),1536,128,22,dim,{align:'right',literal:true});
-  cv.roundRect(x,146,1432,232,10,[18,22,28,215]);
-  if(!st){cv.text(tr('Not available'),x+20,190,24,fg,{literal:true});}
-  else{
-   const kb=Math.round(st.bytes/102.4)/10,lim=Object.keys(st.latest.limits||{}),g=st.latest.guidance;
-   const rows=[[tr('Recording'),(st.on?tr('On'):tr('Off'))+' · '+st.lines+' '+tr('lines')+' · '+kb+' KB'],
-    [tr('Catalog'),st.found?(st.found.length+' '+tr('speed limit names')+(st.found.length?': '+st.found.slice(0,3).map(f=>f.iface.split('.').pop()+'.'+f.name).join(', '):'')):st.catalogError?tr('Not readable')+' ('+st.catalogError+')':'-'],
-    [tr('Readable here'),st.readable&&st.readable.length?st.readable.join(', '):'-'],
-    [tr('Vehicle speed'),st.latest.speed===null||st.latest.speed===undefined?'-':st.latest.speed+' km/h'],
-    [tr('Speed limit fields'),lim.length?lim.map(k=>k+' = '+JSON.stringify(st.latest.limits[k]).slice(0,60)).join(' / '):'-'],
-    [tr('Route guidance'),(st.route==='ok'?tr('Query OK'):st.route==='trying'?tr('Trying queries'):tr('Not connected'))+(g?' · '+JSON.stringify(g.info).slice(0,60)+(g.events.length?' · '+g.events.map(e=>Object.keys(e)[0]).join(', '):''):'')]];
-   rows.forEach(([l,v],i)=>{const y=184+i*34;cv.text(l,x+20,y,18,dim,{literal:true});let t=String(v);while(t.length>4&&cv.textWidth(t,20)>1160)t=t.slice(0,-4)+'…';cv.text(t,x+250,y,20,fg,{literal:true});});
-  }
-  const acts=[[st&&st.on?tr('Stop recording'):tr('Start recording'),0],[tr('Save + new recording'),1],[tr('Clear current records'),2],[tr('Close'),3]];
-  acts.forEach(([label,i],k)=>this.button(cv,targets,label,x+k*364,396,344,70,()=>{this.choice=i;this.choose(i);},this.choice===i,'probe-'+i));
-  if(st&&(st.saved||st.saveError||st.saveMessage)){
-   const message=st.saveError?tr('Save failed')+': '+st.saveError:tr(!st.on&&st.saved?'Saved':st.saveMessage||'Saved');
-   cv.text(message+(st.saved?' · '+st.saved:''),84,500,21,st.saveError?'#ff8a8a':'#ffc15c',{literal:true});
   }
  }
  drawFavoriteView(cv,targets){

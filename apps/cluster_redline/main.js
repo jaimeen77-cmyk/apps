@@ -9,7 +9,6 @@ const worker = require('./worker');
 const { migrate } = require('./migrate');
 const { mapStatus } = require('./output-status');
 const { RenderQueue } = require('./render-queue');
-const { SpeedProbe } = require('./speed-probe');
 const REASONS = {
     disabled: 'Automatic display off', renderer_unavailable: 'Waiting for cluster renderer',
     profile_unknown: 'Check engine profile', hybrid_engine_stopped: 'Hybrid engine stopped · hidden',
@@ -46,11 +45,6 @@ function quiet(ctx) {
 }
 mgu.run({ settingsUI: 'custom', async start(ctx) {
     quiet(ctx);
-    // the hidden speed limit data collection (off unless turned on in the hidden menu)
-    const kit = path.join(typeof __dirname === 'string' ? __dirname : '.', 'kit');
-    ctx.speedProbe = new SpeedProbe({ fs, signals: ctx.signals, dataDir: ctx.dataDir, version: ctx.spec && ctx.spec.version,
-        someipDirs: [path.resolve(kit, '..', '..', '..', 'someipInterfaces'), path.resolve(kit, '..', '..', 'someipdefs')],
-        manifestFiles: [path.resolve(kit, '..', '..', 'manifest.json'), path.resolve(kit, '..', '..', '..', 'manifest.json')] });
     configure(ctx);
     let old = {};
     try { old = JSON.parse(fs.readFileSync(path.join(ctx.dataDir, 'settings.json'), 'utf8')); } catch (e) {}
@@ -60,7 +54,6 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     let background = null;
     const queue = new RenderQueue(render, report);
     const page = new SettingsPage(ctx.settings, () => queue.request(), ctx.spec.version);
-    page.probe = ctx.speedProbe;
     // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');
     if (ctx.ui && typeof ctx.ui.onVisible === 'function') ctx.ui.onVisible((name, visible) => { if (name === 'MAIN' && !visible) page.leave(); });
@@ -92,7 +85,7 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
         page.targets = cv.targets;
         await ctx.ui.image('MAIN_GFX', cv);
     }
-    ctx.ui.onClick('BTN_BASIC', () => page.tapBasic());   // three quick taps: the hidden menu
+    ctx.ui.onClick('BTN_BASIC', () => page.selectTab(0));
     ctx.ui.onClick('BTN_HUD',()=>page.selectTab(1));
     ctx.ui.onClick('BTN_CLUSTER',()=>page.selectTab(2));
     // NAV pressed again (on the navigation tab) opens Favorites, so the bar buttons reach it without a new button.
@@ -106,9 +99,15 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
         const target = (page.targets || []).find((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
         if (target) target.act();
     });
-    ctx.onTab((i) => i === 0 ? page.tapBasic() : page.selectTab(i));
+    ctx.onTab((i) => page.selectTab(i));
     ctx.onLayout(() => queue.request());
-    ctx.loop('MAIN', 2, () => queue.request());
+    // GPU hosts can tick at their own refresh rate despite the requested 2 fps.
+    // Only the periodic status refresh is throttled; menu actions still redraw immediately.
+    let periodicAt = -Infinity;
+    ctx.loop('MAIN', 2, () => {
+        const now = Date.now();
+        if (now < periodicAt || now - periodicAt >= 500) { periodicAt = now; queue.request(); }
+    });
     // Static native button labels are set once, not on every position update.
     await Promise.all([ctx.ui.text('BTN_VALUE_DOWN','Back'),ctx.ui.text('BTN_VALUE_UP','Select')]);
     await queue.flush();

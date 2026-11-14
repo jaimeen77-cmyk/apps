@@ -141,7 +141,6 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 
 ## 1.2.52 changes
 
-- Speed limit data collection, from the first drive log: reads the car's speed limit display, the navigation's speed limit at the car position (works without a route) and camera sign recognition first; skips settings; learns which route event kinds the car accepts.
 
 ## 1.2.51 changes
 
@@ -149,7 +148,6 @@ The custom settings UI no longer refreshes the unused generic HMI settings page.
 
 ## 1.2.50 changes
 
-- Hidden menu (tap Basic settings three times within 2 s): speed limit data collection, off by default; while on it records to `speed-probe.log` in the app data folder (1 MB, one older file).
 
 ## 1.2.49 changes
 

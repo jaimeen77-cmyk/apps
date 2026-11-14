@@ -34,7 +34,6 @@ function key(s,d){
   if(c[d+'Design']&&c[d+'Design']!=='own')values.push(['redline',require('./redline-hud').key(s,d)]);
  }
  if(d==='hud')D.NAV_PARTS.forEach(p=>{const n=navKey(s,p.key);if(n)values.push([p.key,n,D.navRect(c,p.key)]);});
- if(d==='hud'&&face&&s.traffic&&s.traffic.visible)values.push(['traffic',s.traffic.limit,s.traffic.children,s.traffic.over]);
  return JSON.stringify(values);
 }
 module.exports={key,partKey,navKey,auxiliary};

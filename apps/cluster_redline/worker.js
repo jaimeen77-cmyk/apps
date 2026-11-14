@@ -21,8 +21,6 @@ const {RouteEvents,INTERFACE:ROUTE_EVENTS,INSTANCE:ROUTE_INSTANCE,METHODS:ROUTE_
 const {LaneGuidance,INTERFACE:LANE_INTERFACE,INSTANCE:LANE_INSTANCE,FIELD:LANE_FIELD}=require('./lane-guidance');
 const {DemandSignals}=require('./demand-signals');
 const {demand}=require('./data-demand');
-const {TrafficSigns,FIELDS:TRAFFIC_FIELDS}=require('./traffic-signs');
-const {live:trafficLive}=require('./traffic-live');
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
@@ -36,7 +34,6 @@ function start(ctx) {
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
     const auxSetup={},auxInfo=new AuxInfo(),auxSubs=[],batteryVoltage=new BatteryVoltage(signals,log,mono);
-    const traffic=new TrafficSigns(),trafficSubs=[];
     const projectionSubs={},projectionFields={},projectionPending={},projectionLastPoll={},projectionEpoch={},projectionEvents={};
     const navigationFields = [], lastNavigationValues = {}, navigationEventRevisions = {}, navigationSeenAt = {}, navigationReadState = {};
     function refreshProjection(provider){
@@ -76,11 +73,10 @@ function start(ctx) {
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
     const hudGuidance=new HudGuidance(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
-    if(ctx.speedProbe)routeEvents.onReply=reply=>ctx.speedProbe.guidance(reply);
     const lanes=new LaneGuidance(mono);
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
-    const reportError = (name, e) => { const s = name + ': ' + e; if (errors.indexOf(s) < 0) errors.push(s); };   // kept for the settings screen, not logged
+    const reportError = (name, e) => { const s = (name + ': ' + e).slice(0, 320); if (errors.indexOf(s) < 0) { errors.push(s); if (errors.length > 8) errors.shift(); } };   // kept for the settings screen, not logged
     const live = signals && typeof signals.hasNative === 'function' && signals.hasNative();
     if (!live) reportError('someip', 'live native binding unavailable; cluster output disabled');
     client.on('ready', () => {
@@ -92,17 +88,6 @@ function start(ctx) {
         }
     });
     if (live) {
-        TRAFFIC_FIELDS.forEach(([iface,field])=>{
-            const entry={iface,field,configured:false,received:0,at:null,sub:null,error:null,wasAvailable:false,lostReceived:0};trafficSubs.push(entry);
-            try{
-                const cfg=signals.loadConfig(iface);
-                if(!(cfg.fields&&cfg.fields[field]||cfg.events&&cfg.events[field]||cfg.broadcasts&&cfg.broadcasts[field]))return;
-                entry.configured=true;
-                const handlers={};handlers[field]=v=>{if(!stopped){entry.received++;entry.at=mono();traffic.sample(field,v,entry.at);}};
-                const instance=ctx.speedProbe?ctx.speedProbe.instanceOf(iface):'1';
-                signals.watch(iface,instance,handlers,log,{pollMs:1000}).then(s=>{entry.sub=s;keep(s);}).catch(e=>{entry.error=String(e&&e.message||e);});
-            }catch(e){entry.error=String(e&&e.message||e);}
-        });
         // Share one optional proxy per interface; polling belongs to this worker.
         const auxGroups={};SOURCES.forEach(source=>{(auxGroups[source.iface]||(auxGroups[source.iface]=[])).push(source);});
         Object.keys(auxGroups).forEach(iface=>{
@@ -203,7 +188,7 @@ function start(ctx) {
     if(live)try {
         const cfg=signals.loadConfig(ROUTE_EVENTS);
         if(cfg.methods&&ROUTE_METHODS.every(name=>cfg.methods[name])&&typeof signals.call==='function') {
-            signals.watch(ROUTE_EVENTS,ROUTE_INSTANCE,{},log,{}).then(sub=>{keep(sub);routeEvents.attach(sub);if(ctx.speedProbe)ctx.speedProbe.attachRoute(sub,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));})
+            signals.watch(ROUTE_EVENTS,ROUTE_INSTANCE,{},log,{}).then(sub=>{keep(sub);routeEvents.attach(sub);})
                 .catch(e=>reportError('optional route events',e));
         }
     }catch(e){ /* Optional query unavailable: retain the existing fallback. */ }
@@ -253,16 +238,6 @@ function start(ctx) {
             const laneContext=maneuvers.read(at,!!(guidanceSub&&guidanceSub.available&&!guidanceSub.error));
             if(collection.lanes&&laneContext.active&&laneContext.known&&laneContext.provider==='CAR_PLAY')collection.fields.add(LANE_INTERFACE+'.'+LANE_FIELD);
             collectors.reconcile(collection.fields,at);
-            const trafficWanted=collection.fields.has(TRAFFIC_FIELDS[0].join('.'));
-            const trafficStates={};trafficSubs.forEach(e=>{trafficStates[e.field]=trafficLive(e,at);});
-            const available=field=>trafficStates[field]===true;
-            if(!trafficWanted)traffic.clear();
-            else{
-                if(!available(TRAFFIC_FIELDS[0][1])){traffic.speed=null;traffic.speedAt=null;}
-                if(!available(TRAFFIC_FIELDS[1][1])){traffic.limit=null;traffic.limitAt=null;}
-                if(!available(TRAFFIC_FIELDS[2][1])){traffic.camera=null;traffic.cameraAt=null;traffic.childAt=null;}
-            }
-            controller.traffic=traffic.read(at,config.hudTrafficMode,trafficWanted&&available(TRAFFIC_FIELDS[2][1]));
             // Auxiliary values are not used by the maneuver decoder. Do not
             // compete with its reads for metrics that neither RPM face shows.
             const neededAux=collection.aux;
@@ -366,7 +341,6 @@ function start(ctx) {
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
                     outputs: state.outputs, clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
-                    traffic:{wanted:trafficWanted,value:controller.traffic,diagnostics:traffic.diagnostics(at),sources:trafficSubs.map(e=>({field:e.field,configured:e.configured,available:!!(e.sub&&e.sub.available),live:trafficStates[e.field]===true,received:e.received,ageMs:e.at===null?null:Math.round(at-e.at),error:e.error||e.sub&&e.sub.error||null}))},
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
                     navigationInputs: {fields:navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)),available:navigationAvailable,pending:guidancePending,reads:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationReadState[field];return out;},{}),

@@ -112,7 +112,6 @@ class Controller {
         const painter = hud ? this.hudPainter : this.painter;
         d.navigation = hud ? this.navigation : null;
         d.renderRpm=this.renderRpm!==false;d.aux=this.aux||{};
-        d.traffic=hud?this.traffic:null;
         d.rendering=this.renderCache?this.renderCache.stats():null;
         const targetWidth = panel ? 1920 : hud ? 800 : 1088, targetHeight = panel ? 720 : 480;
         const geometry = cfg.displayTarget + ':' + targetWidth + 'x' + targetHeight;

@@ -76,7 +76,6 @@ class Outputs {
             const nav=name==='hud'&&(pv&&pv.tab==='nav'||navAllowed(local,this.policy.mode)&&navigation&&navigation.visible);
             const selected=rpm||nav?'redline':'stock';
             out.renderRpm=rpm;out.aux=this.aux||{};
-            out.traffic=name==='hud'&&!pv?this.traffic:null;
             out.requiresRpm=!pv&&rpm&&D.faceRpmNeeded(local,name);out.preview=pv;
             out.profile = cfg.engineProfile; out.gear = this.gear; out.gearMode = this.gearMode;
             out.navigation = name === 'hud' && navAllowed(local,this.policy.mode) ? navigation : null;
