@@ -7,6 +7,8 @@
 let t=v=>String(v),getLanguage=()=>'en';
 try{({t,getLanguage}=require('./kit/i18n'));}catch(e){/* host tests load sources without the kit */}
 const KO={
+ 'HUD not active · check display and renderer':'HUD 표시 대기 · 표시 설정과 렌더러를 확인하세요',
+ 'Traffic signs':'교통 표지','Select Redline HUD in the current drive mode':'현재 주행 모드의 HUD를 레드라인 앱으로 선택하세요','Camera input missing · reinstall from Store':'카메라 신호 미설치 · 스토어에서 다시 설치','Waiting for camera sign data':'카메라 표지 데이터 수신 대기','Camera':'카메라','Combined recognition':'종합 인식','Alert data ready':'알림 표시 조건 충족','Camera data expired or disconnected':'카메라 데이터 만료 또는 연결 끊김','Combined input missing · reinstall from Store':'종합 인식 신호 미설치 · 스토어에서 다시 설치','Speed limit outside supported test range':'시험 지원 범위 밖 제한속도','No fresh matching sign · children alert lasts 6 s':'유효한 일치 표지 대기 · 어린이 알림은 6초 표시',
  'Save + new recording':'기록 저장 · 계속','Clear current records':'현재 기록 지우기','No records yet · recording started':'저장할 기록 없음 · 새 수집 시작','Saved · new recording':'저장 완료 · 새 수집 중','Save failed':'기록 저장 또는 재시작 실패',
  'Speed limit':'제한속도','Speed alert':'과속 알림',
  'Children caution':'어린이 주의','Sign detected':'표지 감지',

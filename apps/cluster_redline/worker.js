@@ -22,6 +22,7 @@ const {LaneGuidance,INTERFACE:LANE_INTERFACE,INSTANCE:LANE_INSTANCE,FIELD:LANE_F
 const {DemandSignals}=require('./demand-signals');
 const {demand}=require('./data-demand');
 const {TrafficSigns,FIELDS:TRAFFIC_FIELDS}=require('./traffic-signs');
+const {live:trafficLive}=require('./traffic-live');
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
@@ -92,13 +93,15 @@ function start(ctx) {
     });
     if (live) {
         TRAFFIC_FIELDS.forEach(([iface,field])=>{
+            const entry={iface,field,configured:false,received:0,at:null,sub:null,error:null,wasAvailable:false,lostReceived:0};trafficSubs.push(entry);
             try{
                 const cfg=signals.loadConfig(iface);
                 if(!(cfg.fields&&cfg.fields[field]||cfg.events&&cfg.events[field]||cfg.broadcasts&&cfg.broadcasts[field]))return;
-                const handlers={};handlers[field]=v=>{if(!stopped)traffic.sample(field,v,mono());};
+                entry.configured=true;
+                const handlers={};handlers[field]=v=>{if(!stopped){entry.received++;entry.at=mono();traffic.sample(field,v,entry.at);}};
                 const instance=ctx.speedProbe?ctx.speedProbe.instanceOf(iface):'1';
-                signals.watch(iface,instance,handlers,log,{pollMs:1000}).then(s=>{trafficSubs.push({field,sub:s});keep(s);}).catch(()=>{});
-            }catch(e){/* Optional traffic source absent: no traffic alert. */}
+                signals.watch(iface,instance,handlers,log,{pollMs:1000}).then(s=>{entry.sub=s;keep(s);}).catch(e=>{entry.error=String(e&&e.message||e);});
+            }catch(e){entry.error=String(e&&e.message||e);}
         });
         // Share one optional proxy per interface; polling belongs to this worker.
         const auxGroups={};SOURCES.forEach(source=>{(auxGroups[source.iface]||(auxGroups[source.iface]=[])).push(source);});
@@ -251,7 +254,8 @@ function start(ctx) {
             if(collection.lanes&&laneContext.active&&laneContext.known&&laneContext.provider==='CAR_PLAY')collection.fields.add(LANE_INTERFACE+'.'+LANE_FIELD);
             collectors.reconcile(collection.fields,at);
             const trafficWanted=collection.fields.has(TRAFFIC_FIELDS[0].join('.'));
-            const available=field=>trafficSubs.some(e=>e.field===field&&e.sub.available===true&&!e.sub.error);
+            const trafficStates={};trafficSubs.forEach(e=>{trafficStates[e.field]=trafficLive(e,at);});
+            const available=field=>trafficStates[field]===true;
             if(!trafficWanted)traffic.clear();
             else{
                 if(!available(TRAFFIC_FIELDS[0][1])){traffic.speed=null;traffic.speedAt=null;}
@@ -362,6 +366,7 @@ function start(ctx) {
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
                     outputs: state.outputs, clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
+                    traffic:{wanted:trafficWanted,value:controller.traffic,diagnostics:traffic.diagnostics(at),sources:trafficSubs.map(e=>({field:e.field,configured:e.configured,available:!!(e.sub&&e.sub.available),live:trafficStates[e.field]===true,received:e.received,ageMs:e.at===null?null:Math.round(at-e.at),error:e.error||e.sub&&e.sub.error||null}))},
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
                     navigationInputs: {fields:navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)),available:navigationAvailable,pending:guidancePending,reads:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationReadState[field];return out;},{}),

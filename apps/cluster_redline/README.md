@@ -1,4 +1,6 @@
-# Cluster Redline 1.2.56
+# Cluster Redline 1.2.57
+
+Fix traffic events being discarded before provider availability is reported. HUD settings now show receive counts and the reason an alert is waiting. Vehicle validation is still pending.
 
 The hidden collection menu now has **Save + new recording**: snapshot the retained active/rotated log as `speed-probe-1.log`, `speed-probe-2.log`, etc., then continue with fresh capture metadata. Numbering survives restarts; Clear current records leaves archives intact. Saving can also start a stopped collector. Snapshots are stored in the app data folder. [Recording guide](../../docs/PROBE-RECORDING.ko.md)
 

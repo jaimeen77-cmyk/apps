@@ -8,12 +8,13 @@ const { settings } = require('../../apps/cluster_redline/policy');
 const { Outputs } = require('../../apps/cluster_redline/outputs');
 const source = fs.readFileSync(path.join(__dirname, '../../apps/cluster_redline/worker.js'), 'utf8');
 
-async function scenario(live, version, backend, withProgram, stopEarly, target) {
+async function scenario(live, version, backend, withProgram, stopEarly, target, withTraffic) {
     withProgram = withProgram !== false;
     backend = backend || 'id7';
     let time = 0, timer, delay, client, watches = 0, shutdowns = 0;
     const files = {}, feeds = {}, subscriptions = {}, config = settings(), app = new EventEmitter();
     const calls = [];
+    if(withTraffic)config.hudTrafficMode="both";
     if (target) { config.displayTarget = target; ['sport','all'].forEach(mode => { config[mode+'HudOutput']=target==='hud'?'redline':'stock';config[mode+'ClusterOutput']=target==='hud'?'stock':'redline'; }); }
     class FakeClient extends EventEmitter {
         constructor() { super(); client = this; this.ready = false; this.backend = backend; this.targets = 'map:1088x480,panel:1920x720,hud:800x480'; this.next = 0; }
@@ -44,7 +45,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         if (name === './guidance') return require('../../apps/cluster_redline/guidance');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if(name==='./battery-voltage')return require('../../apps/cluster_redline/battery-voltage');
-        if(['./demand-signals','./data-demand','./traffic-signs'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
+        if(['./demand-signals','./data-demand','./traffic-signs','./traffic-live'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
         throw new Error('Unexpected dependency ' + name);
     }, process: { hrtime: () => [Math.floor(time / 1000), Math.floor((time % 1000) * 1000000)], once() {}, removeListener() {} },
     setTimeout: (fn, ms) => { timer = fn; delay = ms; return 1; }, clearTimeout: () => { timer = null; }, console };
@@ -52,12 +53,13 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
     const worker = box.module.exports.start({
         dataDir: '/data', app: app,
         settings: { get: (k) => config[k] }, log: { warn() {} },
-        signals: { hasNative: () => live, loadConfig: (iface) => { if (iface==='de.bmw.infotainment.navigation.guiding.Guidance') return {fields:{guidanceState:{getter:{id:1}},guidingProvider:{getter:{id:2}}}}; if (!withProgram) throw new Error('optional MDrive absent'); return { fields: { dataDisplayGearbox: {} } }; }, watch: (iface, instance, handlers, log, options) => {
+        signals: { hasNative: () => live, loadConfig: (iface) => { const t=withTraffic&&require('../../apps/cluster_redline/traffic-signs').FIELDS.find(e=>e[0]===iface);if(t)return t[1]==='statusCarSpeed2'?{fields:{[t[1]]:{getter:{id:1},notifier:{id:32769}}}}:{events:{[t[1]]:{eventId:32769}}}; if (iface==='de.bmw.infotainment.navigation.guiding.Guidance') return {fields:{guidanceState:{getter:{id:1}},guidingProvider:{getter:{id:2}}}}; if (!withProgram) throw new Error('optional MDrive absent'); return { fields: { dataDisplayGearbox: {} } }; }, watch: (iface, instance, handlers, log, options) => {
             const navigation = iface === 'de.bmw.infotainment.navigation.guiding.Guidance';
             assert.strictEqual(instance, navigation ? 'Main_Instance' : '1'); assert.strictEqual(options.pollMs, undefined);
             if(navigation){handlers.guidanceState('INACTIVE');handlers.guidingProvider('NONE');}
             feeds[iface] = handlers; watches++;
-            const sub = { available: true, shutdown() { shutdowns++; } }; subscriptions[iface] = sub;
+            const trafficInput=withTraffic&&require('../../apps/cluster_redline/traffic-signs').FIELDS.some(e=>e[0]===iface);
+            const sub = { available: !trafficInput, shutdown() { shutdowns++; } }; subscriptions[iface] = sub;
             return Promise.resolve(sub);
         } },
     });
@@ -78,7 +80,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         assert.strictEqual(watches, 0); assert.strictEqual(calls.indexOf('connect'), -1);
         tick(1000); assert.strictEqual(status().source, 'offline-disabled');
     } else {
-        assert.strictEqual(watches, withProgram ? 5 : 4);
+        assert.strictEqual(watches, (withProgram ? 5 : 4)+(withTraffic?3:0));
         feeds['de.bmw.infotainment.navigation.guiding.Guidance'].guidanceState('INACTIVE');
         feeds['de.bmw.infotainment.navigation.guiding.Guidance'].guidingProvider('NONE');
         const rpm = feeds['de.bmw.infotainment.vehicle.CDS'].statusEngineSpeed2;
@@ -86,6 +88,14 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
         assert.strictEqual(typeof rpm, 'function'); assert.strictEqual(typeof mode, 'function');
         rpm({ actualValueRPMEngineCrankshaft: 26000 }); mode({ actualValueModeDrivingExperience: 'SPORT_DYNAMIC' });
         tick(1000);
+        if(withTraffic){
+            for(let i=0;i<20;i++)await Promise.resolve();
+            const T=require('../../apps/cluster_redline/traffic-signs');
+            feeds[T.SPEED_IF][T.SPEED]({speedVehicleCentreOfGravity:20*64});
+            feeds[T.TSR_IF][T.TSR]({presentClassLimitSpeed:6,unitOfMeasurementSpeedLimit:0,presentWithdrawalLimitSpeed:1});
+            const sign=type=>({type,value:type==='SPEED_LIMIT'?30:0,additionalInfo:'NO_ADDITIONAL_RESTRICTION',firstSupplementalType:'SIGNAL_UNFILLED',secondSupplementalType:'SIGNAL_UNFILLED',location:{locationInvalidFlags:0},position:{left:false,right:true}});
+            feeds[T.CAMERA_IF][T.CAMERA]({eventDataQualifier:'EVENT_DATA_AVAILABLE',extendedQualifier:'NORMAL_OPERATION_MODE',trafficSignRecognition:{numberSigns:2,speedLimitUnit:'KM_H'},trafficSign:[sign('SPEED_LIMIT'),sign('DS_CHILDREN')],trafficSignRecognitionQuality:[{qualityType:100,qualityValue:80},{qualityType:100,qualityValue:46}]});
+        }
         if (['0.4.0', '0.4.1'].includes(version) && backend === 'id7') {
             assert.strictEqual(status().requested,true,JSON.stringify(status().outputs));assert.strictEqual(status().rpm,6500);
             assert.strictEqual(status().shift, true);
@@ -93,6 +103,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
             gear.statusGearboxDrive({ statusActualGearDrive: 'G4', statusActualStageDrive: 'D' });
             gear.DataPowerTrain2({});
             config.shiftRpm = 2000; rpm({ actualValueRPMEngineCrankshaft: 8400 }); tick(1500);
+            if(withTraffic){assert.equal(status().traffic.value.limit,30);assert.equal(status().traffic.value.children,true);assert(status().traffic.sources.every(s=>s.received===1&&s.live&&!s.available),'fresh events work even without availability');}
             assert.strictEqual(status().config.shiftRpm, 2000); assert.strictEqual(status().shift, true); assert.strictEqual(status().gear, 'D4');
             feeds['de.bmw.infotainment.drivingexcitement.FES'].statusActualValueTorque2({ actualValueTorqueCrankshaft: 2807 });
             if (withProgram) feeds['de.bmw.infotainment.misc.MDrive'].dataDisplayGearbox({ displayProgramGearbox: 1 });
@@ -129,6 +140,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target) 
     await scenario(true, '0.4.0');
     await scenario(true, '0.4.1');
     await scenario(true, '0.4.0', 'id7', true, false, 'hud');
+    await scenario(true, '0.4.0', 'id7', true, false, 'hud', true);
     await scenario(true, '0.4.0', 'id7', false);
     await scenario(true, '0.4.0', 'id8');
     await scenario(false, '0.3.10');

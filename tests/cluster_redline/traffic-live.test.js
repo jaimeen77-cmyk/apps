@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('assert');
+const {live}=require('../../apps/cluster_redline/traffic-live');
+const {TrafficSigns,CAMERA}=require('../../apps/cluster_redline/traffic-signs');
+const entry={configured:true,field:CAMERA,received:0,at:null,sub:{available:false,error:null},wasAvailable:false,lostReceived:0};
+assert.equal(live(entry,0),false);
+entry.received=1;entry.at=100;assert.equal(live(entry,100),true,'fresh event before availability is exposed must be usable');
+assert.equal(live(entry,30101),false,'unknown availability does not bypass freshness');
+entry.sub.available=true;assert.equal(live(entry,30200),true);
+entry.sub.available=false;assert.equal(live(entry,30210),false,'explicit provider loss invalidates prior samples');
+entry.received++;entry.at=30220;assert.equal(live(entry,30220),true,'new event can prove recovery with legacy availability');
+entry.sub.error='failed';assert.equal(live(entry,30220),false);entry.sub.error=null;
+entry.configured=false;assert.equal(live(entry,30220),false);entry.configured=true;
+const model=new TrafficSigns();model.sample(CAMERA,{eventDataQualifier:'EVENT_DATA_AVAILABLE',extendedQualifier:'NORMAL_OPERATION_MODE',trafficSignRecognition:{numberSigns:1,speedLimitUnit:'KM_H'},trafficSign:[{type:'DS_CHILDREN',value:0,additionalInfo:'NO_ADDITIONAL_RESTRICTION',position:{left:false,right:true},location:{locationInvalidFlags:0}}],trafficSignRecognitionQuality:[{qualityType:100,qualityValue:46}]},30220);
+assert.equal(model.read(30220,'children',live(entry,30220)).visible,true,'received children sign survives unreported availability');
+assert.equal(model.read(36221,'children',live(entry,36221)).visible,false,'children expiry remains enforced');
+console.log('PASS traffic event liveness: pre-binding/legacy receipt, expiry, loss, recovery, errors and children integration');

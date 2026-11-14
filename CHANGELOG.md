@@ -67,6 +67,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.57
+
+- Fix traffic events being discarded while a native binding has not reported provider availability. A recent received event can establish input liveness; explicit provider loss, input errors, stale data and the existing sign validation still hide invalid alerts. This reproduces a possible cause of missing alerts, not a confirmed diagnosis of the vehicle.
+- Add a live HUD-settings status line with camera/combined-recognition receive counts and the reason for waiting (missing input, inactive HUD, unsupported speed class, expired data). It uses in-memory status without enabling file recording. The supported 10/30/40/50 km/h pairs and six-second children-sign popup are unchanged.
+- Verify the actual worker with incoming speed/limit/children events while availability stays false, plus disconnect/recovery/freshness and bilingual Store rendering.
+
 ### 1.2.56
 
 - Add **Save + new recording** to the hidden data-collection menu. The current file and older rotation are saved chronologically as `speed-probe-1.log`, `speed-probe-2.log`, etc. Numbering survives app restarts and existing archives are never replaced. A completed numbered snapshot is committed before the active capture is reset; storage failures are shown in the menu.

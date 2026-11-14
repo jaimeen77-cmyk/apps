@@ -167,13 +167,31 @@ class SettingsPage{
    if(key==='autoStart'){cv.text(RENDERER_NOTICE,100,y+72,24,'#ff9e36');cv.text(cfg.sportHudOutput==='redline'||cfg.allHudOutput==='redline'?HUD_WARNING:MAP_WARNING,100,y+101,23,'#ff9e36');}
    cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
   });
-  if(this.tab===1||this.tab===2){cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');const o=this.outsideStatus(cfg);if(o)cv.text(o,84,462,22,'#ffad45',{literal:true});}
+  if(this.tab===1||this.tab===2){cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');let o=this.tab===1&&cfg.hudTrafficMode!=='off'?this.trafficStatus(cfg):this.outsideStatus(cfg);if(o){while(o.length>5&&cv.textWidth(o,21,{literal:true})>1000)o=o.slice(0,-2);cv.text(o,84,462,21,'#ffad45',{literal:true});}}
   if(this.tab===3){const y=this.yieldStatus(cfg);if(y)cv.text(y,84,462,22,'#ffad45',{literal:true});}
   // Cafe watermark in the free bottom-right corner of the HUD, cluster and navigation tabs (not on Basic: its rows fill the screen).
   if(this.tab>0)require('./settings-bg').mark(cv,W,H);
   if(this.tab===3){cv.text(HUD_WARNING,84,390,25,'#91a1b6');cv.text(tr('Yield: while phone (Waze) or chosen route guidance runs, the cluster RPM display steps aside for the stock map.'),84,426,25,'#91a1b6');}
  }
  // Live check lines (from the background app's status) so a car without the value can be told apart.
+ trafficStatus(cfg){
+  const st=this.liveState&&this.liveState.traffic,prefix=tr('Traffic signs')+': ';
+  if(!st)return prefix+tr('waiting for the background app');
+  if(!st.wanted)return prefix+tr('Select Redline HUD in the current drive mode');
+  const hud=this.liveState.outputs&&this.liveState.outputs.hud;
+  if(hud&&!hud.requested)return prefix+tr('HUD not active · check display and renderer');
+  const sources=st.sources||[],cam=sources.find(s=>s.field==='TrafficSignRecognitionFrontCamera'),tsr=sources.find(s=>s.field==='TrafficSignRecognition');
+  if(!cam||!cam.configured)return prefix+tr('Camera input missing · reinstall from Store');
+  if(cam.error)return prefix+tr('subscription error');
+  if(!cam.received)return prefix+tr('Waiting for camera sign data');
+  const counts=tr('Camera')+' '+cam.received+' · '+tr('Combined recognition')+' '+(tsr&&tsr.received||0)+' · ';
+  const v=st.value||{},d=st.diagnostics||{};
+  if(v.visible)return prefix+counts+tr('Alert data ready');
+  if(!cam.live)return prefix+counts+tr('Camera data expired or disconnected');
+  if(cfg.hudTrafficMode!=='children'&&(!tsr||!tsr.configured))return prefix+counts+tr('Combined input missing · reinstall from Store');
+  if(d.rawClass!==null&&d.rawClass!==undefined&&![2,6,8,10,254].includes(d.rawClass))return prefix+counts+tr('Speed limit outside supported test range');
+  return prefix+counts+tr('No fresh matching sign · children alert lasts 6 s');
+ }
  outsideStatus(cfg){
   const items=D.auxConfig(cfg[this.display()+'AuxConfig']).items;if(!items.includes('outside'))return '';
   const live=this.liveState&&this.liveState.auxiliary;if(!live)return tr('Outside temperature')+': '+tr('waiting for the background app');

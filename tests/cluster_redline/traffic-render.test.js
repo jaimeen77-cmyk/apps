@@ -5,6 +5,12 @@ const HUD=require(root+'/hud-compose'),{Canvas}=require(root+'/kit/canvas'),{set
 const values={},store={schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;}};spec.settings.forEach(s=>values[s.key]=s.default);
 const page=new SettingsPage(store,null,spec.version);page.selectTab(1);page.activate(5);page.choose(3);
 assert.equal(values.hudTrafficMode,'both');assert.equal(page.config().hudTrafficMode,'both');
+assert(page.trafficStatus(page.config()).includes(require(root+'/strings').tr('waiting for the background app')));
+page.liveState={traffic:{wanted:false}};assert(page.trafficStatus(page.config()).includes(require(root+'/strings').tr('Select Redline HUD in the current drive mode')));
+page.liveState={traffic:{wanted:true,sources:[{field:'TrafficSignRecognitionFrontCamera',configured:true,received:0}]}};
+assert(page.trafficStatus(page.config()).includes(require(root+'/strings').tr('Waiting for camera sign data')));
+page.liveState={traffic:{wanted:true,value:{visible:false},diagnostics:{rawClass:12},sources:[{field:'TrafficSignRecognitionFrontCamera',configured:true,received:2,live:true},{field:'TrafficSignRecognition',configured:true,received:3,live:true}]}};
+assert(page.trafficStatus(page.config()).includes(require(root+'/strings').tr('Speed limit outside supported test range')));
 values.allHudOutput='redline';
 const cv=page.draw(new Canvas(1600,520));cv.targets.forEach(t=>assert(t.y+t.h<=520));
 const base={rpm:3500,gear:'D4',shift:false,flash:false,torqueNm:200,powerPS:100,torquePeak:300,powerPeak:180,aux:{},mode:'COMFORT',renderRpm:true,config:settings({allHudOutput:'redline',hudTrafficMode:'both'}),traffic:{visible:true,limit:30,children:true,over:true}};

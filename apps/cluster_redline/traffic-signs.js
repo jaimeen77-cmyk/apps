@@ -10,10 +10,11 @@ const finite=v=>typeof v==='number'&&isFinite(v);
 const fresh=(at,now,ttl)=>at!==null&&now>=at&&now-at<=ttl;
 class TrafficSigns{
  constructor(){this.clear();}
- clear(){this.speed=null;this.speedAt=null;this.limit=null;this.limitAt=null;this.camera=null;this.cameraAt=null;this.childAt=null;this.lastChild=-Infinity;this.over=false;this.overAt=null;}
+ clear(){this.speed=null;this.speedAt=null;this.limit=null;this.limitAt=null;this.camera=null;this.cameraAt=null;this.childAt=null;this.lastChild=-Infinity;this.over=false;this.overAt=null;this.rawClass=null;}
  sample(kind,v,now){
   if(kind===SPEED){const r=v&&v.speedVehicleCentreOfGravity;this.speed=finite(r)&&r>=0&&r<=400*64?r/64:null;this.speedAt=this.speed===null?null:now;return;}
   if(kind===TSR){
+   this.rawClass=v&&Number.isInteger(v.presentClassLimitSpeed)?v.presentClassLimitSpeed:null;
    const before=this.limit;
    const n=v&&Number.isInteger(v.presentClassLimitSpeed)&&CLASSES[v.presentClassLimitSpeed];
    // On the observed car: unit 0 accompanies valid km/h classes, unit 2 / class 254 accompanies withdrawal.
@@ -49,5 +50,6 @@ class TrafficSigns{
   }else{this.over=false;this.overAt=null;}
   return {visible:limit!==null||children,limit,children,over:limit!==null&&this.over,speed:fresh(this.speedAt,now,2000)?this.speed:null};
  }
+ diagnostics(now){return {rawClass:this.rawClass,limit:this.limit,camera:this.camera,limitAgeMs:this.limitAt===null?null:now-this.limitAt,cameraAgeMs:this.cameraAt===null?null:now-this.cameraAt,childrenAgeMs:this.childAt===null?null:now-this.childAt};}
 }
 module.exports={TrafficSigns,FIELDS,SPEED_IF,SPEED,TSR_IF,TSR,CAMERA_IF,CAMERA,CLASSES};
