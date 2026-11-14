@@ -8,7 +8,7 @@ import shutil
 import sys
 
 HERE = Path(__file__).resolve().parent.parent
-APPS = tuple(app for app in ('idrive_circuit', 'cluster_redline', 'storage', 'seats_easy_access', 'media_check')
+APPS = tuple(app for app in ('idrive_circuit', 'cluster_redline', 'storage', 'seats_easy_access')
              if (HERE / 'apps' / app / 'app.json').is_file())
 
 

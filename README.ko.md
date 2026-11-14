@@ -31,7 +31,6 @@
 |---|---|---|
 | 설치 | [설치 안내](docs/INSTALL.ko.md) | [Installation](docs/INSTALL.md) |
 | 레드라인 설치·사용 | [설치·사용 설명서](docs/CLUSTER-REDLINE.ko.md) | [User guide](docs/CLUSTER-REDLINE.md) |
-| 브라우저 호환성 점검 | [미디어 점검](apps/media_check/README.ko.md) | [Media Check](apps/media_check/README.md) |
 | 저장공간 사용 | [저장공간](apps/storage/README.ko.md) | [Storage](apps/storage/README.md) |
 | Circuit 사용 | [회로 퍼즐](apps/idrive_circuit/README.ko.md) | [Circuit](apps/idrive_circuit/README.md) |
 

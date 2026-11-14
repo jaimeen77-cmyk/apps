@@ -19,7 +19,7 @@ function checkPackage(file, id, version, start, language) {
     assert(!names.some((n) => /(^|\/)node_modules\//.test(n) || /(^|\/)oap-sdk\//.test(n)), 'published/build output must contain no SDK');
     const p = json(file, 'package.json');
     assert.strictEqual(p.name, id); assert.strictEqual(p.version, version);
-    assert.deepStrictEqual(p.mguHmi, ['ID7']); assert.strictEqual(p.mguLocalOnly, p.mguInternet !== true);
+    assert.deepStrictEqual(p.mguHmi, ['ID7']); assert.strictEqual(p.mguLocalOnly, true);
     assert.strictEqual(p.mguAppStartType || 'manually', start);
     assert.strictEqual(json(file, 'javascript/kit/locale.json').language, language);
     const title = json(file, 'rhmiData/variantGroups/Common/texts/en_GB.json')['SID_' + id.toUpperCase() + '_TITLE'];
@@ -98,7 +98,7 @@ async function checkSettingsEntry(file, id, version) {
         sourceParser = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'sources'));
         const catalog = await sourceParser.repoCatalog((name) => Promise.resolve(fs.readFileSync(path.join(ROOT, name))), null, 'local');
         assert.deepStrictEqual(catalog.skipped, []);
-        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), doc.components.map(c=>c.id).sort());
+        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'seats_easy_access', 'seats_easy_access_ko', 'storage', 'storage_en']);
         assert(catalog.components.every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         for (const id of ['cluster_redline', 'cluster_redline_en']) {
             assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.4.0');
@@ -118,12 +118,6 @@ async function checkSettingsEntry(file, id, version) {
         try { file = build(options); } finally { if (hasFullTemplate) fs.renameSync(heldFile, runtimeFile); }
         const start = ['cluster_redline', 'seats_easy_access'].includes(options.template) ? 'autostart' : 'manually';
         const originalUuid = checkPackage(file, id, spec.version, start, options.language);
-        if(options.template==='media_check'){
-            const p=json(file,'package.json');assert.strictEqual(p.mguInternet,true);assert.strictEqual(p.mguLocalOnly,false);
-            assert(entries(file).includes('package/javascript/media-asset.js'));
-            assert(entries(file).includes('package/javascript/local-page.js'));
-            assert(!entries(file).some(n=>/chromium|ffmpeg|ffplay/.test(n)),'no browser or player binary bundled');
-        }
         if (id === 'seats_easy_access') {
             const defaultFile = build(Object.assign({}, options, { language: undefined, out: path.join(temp, id + '-default') }));
             checkPackage(defaultFile, id, spec.version, start, 'en');
@@ -199,7 +193,7 @@ async function checkSettingsEntry(file, id, version) {
             checkPackage(renamedFile, id + '3', spec.version, start, options.language);
         }
     }
-    console.log('PASS: '+doc.components.length+' Store listings, SDK-free builds, network metadata, packaged settings, distinct identities, collision-id builds, autostart and stale-UI rejection');
+    console.log('PASS: eight Store listings including English/Korean Seats, SDK-free builds, packaged settings, distinct identities, collision-id builds, autostart and stale-UI rejection');
 })().catch((e) => { console.error(e); process.exitCode = 1; }).then(() => {
     fs.rmSync(temp, { recursive: true, force: true }); fs.rmSync(sourceCopy, { recursive: true, force: true });
 });

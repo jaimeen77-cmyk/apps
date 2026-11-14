@@ -12,7 +12,6 @@
 |---|---|---|
 | Install | [Installation](docs/INSTALL.md) | [설치 안내](docs/INSTALL.ko.md) |
 | Use Redline | [User guide](docs/CLUSTER-REDLINE.md) | [사용 설명서](docs/CLUSTER-REDLINE.ko.md) |
-| Browser compatibility probe | [Media Check](apps/media_check/README.md) | [미디어 점검](apps/media_check/README.ko.md) |
 | Use Storage | [Storage](apps/storage/README.md) | [저장공간](apps/storage/README.ko.md) |
 | Use Circuit | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
 

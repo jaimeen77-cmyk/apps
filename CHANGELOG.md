@@ -2,15 +2,6 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## Media Check
-
-### 0.1.0
-
-- Add a manually started English-default / Korean MGU browser compatibility probe. Native USB playback is a separate path; no browser binary is bundled or installed.
-- Show app display/input patterns and read-only environment presence. An existing Chromium/Firefox can open a loopback-only local H.264/AAC/WebGL/Web Audio test page, or YouTube on a separate user action. Actual picture/sound remains a manual observation, never inferred from a process exit code.
-- Gate browser launches on fresh stationary speed and stop on movement, source loss, leaving the screen, app shutdown or a 90-second deadline. Keep one browser group, bounded stderr and no diagnostic files. Respect Internet metadata in Store packages while preserving existing local-only apps.
-- Verify host browser frame progress, local-server range handling, lifecycle/late callbacks, bilingual UI and SDK-free Store builds. Vehicle display compositing, speakers, audio focus and YouTube operation remain unverified.
-
 ## Seats Easy Access
 
 ### 0.6.11
