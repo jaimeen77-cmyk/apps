@@ -189,7 +189,7 @@ function start(ctx) {
     if(live)try {
         const cfg=signals.loadConfig(ROUTE_EVENTS);
         if(cfg.methods&&ROUTE_METHODS.every(name=>cfg.methods[name])&&typeof signals.call==='function') {
-            signals.watch(ROUTE_EVENTS,ROUTE_INSTANCE,{},log,{}).then(sub=>{keep(sub);routeEvents.attach(sub);})
+            signals.watch(ROUTE_EVENTS,ROUTE_INSTANCE,{},log,{}).then(sub=>{keep(sub);routeEvents.attach(sub);if(ctx.speedProbe)ctx.speedProbe.attachRoute(sub,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));})
                 .catch(e=>reportError('optional route events',e));
         }
     }catch(e){ /* Optional query unavailable: retain the existing fallback. */ }

@@ -346,7 +346,7 @@ class SettingsPage{
     [tr('Readable here'),st.readable&&st.readable.length?st.readable.join(', '):'-'],
     [tr('Vehicle speed'),st.latest.speed===null||st.latest.speed===undefined?'-':st.latest.speed+' km/h'],
     [tr('Speed limit fields'),lim.length?lim.map(k=>k+' = '+JSON.stringify(st.latest.limits[k]).slice(0,60)).join(' / '):'-'],
-    [tr('Route guidance'),g?JSON.stringify(g.info).slice(0,70)+(g.events.length?' · '+g.events.length+' '+tr('events'):''):'-']];
+    [tr('Route guidance'),(st.route==='ok'?tr('Query OK'):st.route==='trying'?tr('Trying queries'):tr('Not connected'))+(g?' · '+JSON.stringify(g.info).slice(0,60)+(g.events.length?' · '+g.events.map(e=>Object.keys(e)[0]).join(', '):''):'')]];
    rows.forEach(([l,v],i)=>{const y=184+i*34;cv.text(l,x+20,y,18,dim,{literal:true});let t=String(v);while(t.length>4&&cv.textWidth(t,20)>1160)t=t.slice(0,-4)+'…';cv.text(t,x+250,y,20,fg,{literal:true});});
   }
   const acts=[[st&&st.on?tr('Stop recording'):tr('Start recording'),0],[tr('Clear records'),1],[tr('Close'),2]];

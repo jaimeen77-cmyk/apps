@@ -8,7 +8,25 @@
 //  - from route guidance (BMW navigation or phone): its speedLimitAssistInfo and any speed limit / speed camera /
 //    school zone events, on change.
 const path = require('path');
-const LIMIT_NAME = /speed.?limit|trafficsign|signrecogn|nopassing|overtak/i;
+const LIMIT_NAME = /speed.?limit|trafficsign|signrecogn|nopassing|overtak|school.?zone|child.?zone/i;
+// Route events of every kind (the HUD's own query asks for turns and destinations only), polled by the collection
+// itself while it is on, with BMW navigation or a phone alike. The includedTypes names come from the car's catalog
+// (any INCLUDE_* names under GuidanceEventList) and a few guesses; a rejected set moves on to the next.
+const ROUTE_IFACE = 'de.bmw.infotainment.navigation.guiding.GuidanceEventList';
+const ROUTE_GUESSES = [['INCLUDE_ALL'], [], ['INCLUDE_ACTIVE_MANEUVERS', 'INCLUDE_PASSIVE_MANEUVERS', 'INCLUDE_DESTINATIONS', 'INCLUDE_SPEED_LIMITS', 'INCLUDE_SPEED_CAMERAS', 'INCLUDE_SCHOOL_ZONES', 'INCLUDE_DANGER_ZONES'],
+    ['INCLUDE_ACTIVE_MANEUVERS', 'INCLUDE_PASSIVE_MANEUVERS', 'INCLUDE_DESTINATIONS', 'INCLUDE_TRAFFIC_EVENTS', 'INCLUDE_POIS']];
+// INCLUDE_* names anywhere under a catalog object (its enums)
+function includeNames(o, out, depth) {
+    out = out || new Set(); depth = depth || 0;
+    if (depth > 12 || o === null || o === undefined) return out;
+    if (typeof o === 'string') { if (/^INCLUDE_[A-Z0-9_]+$/.test(o)) out.add(o); return out; }
+    if (typeof o === 'object') Object.keys(o).forEach((k) => { if (/^INCLUDE_[A-Z0-9_]+$/.test(k)) out.add(k); includeNames(o[k], out, depth + 1); });
+    return out;
+}
+function routeQuery(types) {
+    return { viewConfigs: [{ viewport: { startPoint: { anchorPoint: { standardReferencePoint: 'CCP' }, offsets: [] }, maxElementCount: 10, endPoints: [], includedTypes: types },
+        options: [], minimumUpdateIntervalMs: 1000, segmentItemRasterLength: 100 }] };
+}
 const SPEED = { iface: 'de.bmw.infotainment.vehicle.Vehicle2', field: 'statusCarSpeed2' };
 const CATALOGS = ['/etc/oap/someip/someip-interfaces.json'];
 const MAX_BYTES = 1 << 20, GUIDE_KINDS = ['speedLimitAssist', 'speedCamera', 'speedSectionCamera', 'schoolZone'];
@@ -80,9 +98,11 @@ class SpeedProbe {
         // 1. the catalog, by name
         if (!this.found) {
             this.found = [];
-            for (const f of CATALOGS) { try { this.found = scanCatalog(JSON.parse(this.fs.readFileSync(f, 'utf8'))); this.catalog = f; break; } catch (e) { this.catalogError = String(e && e.code || e); } }
+            for (const f of CATALOGS) { try { const c = JSON.parse(this.fs.readFileSync(f, 'utf8')); this.found = scanCatalog(c); this.includes = Array.from(includeNames([c.interfaces && c.interfaces[ROUTE_IFACE], c.types, c.typeDefinitions])).sort(); this.catalog = f; break; } catch (e) { this.catalogError = String(e && e.code || e); } }
         }
-        this.write({ ev: 'catalog', path: this.catalog || null, error: this.catalog ? null : this.catalogError || null, found: this.found });
+        this.write({ ev: 'catalog', path: this.catalog || null, error: this.catalog ? null : this.catalogError || null, found: this.found, routeTypes: this.includes || [] });
+        this.candidates = (this.includes && this.includes.length ? [this.includes] : []).concat(ROUTE_GUESSES); this.candidate = 0; this.routeOk = false;
+        if (!this.timer) { this.timer = setInterval(() => this.queryRoute(), 2000); if (this.timer.unref) this.timer.unref(); }
         // 2. what this install can read: the vehicle speed and the speed-limit fields added at install
         const want = {}, add = (iface, field, fn) => { (want[iface] || (want[iface] = {}))[field] = fn; };
         let cfgs = {}; try { cfgs = this.installed(); } catch (e) {}
@@ -102,7 +122,23 @@ class SpeedProbe {
             }).catch((e) => this.write({ ev: 'error', iface, error: String(e) }));
         });
     }
-    stop() { this.subs.forEach((s) => { try { s.shutdown(); } catch (e) {} }); this.subs = []; this.last = {}; this.lastAt = {}; }
+    stop() { this.subs.forEach((s) => { try { s.shutdown(); } catch (e) {} }); this.subs = []; this.last = {}; this.lastAt = {}; if (this.timer) clearInterval(this.timer); this.timer = null; }
+    // the route events interface the worker opened (shared, not a second proxy) and its method caller
+    attachRoute(sub, call) { this.route = { sub, call }; }
+    queryRoute() {
+        const r = this.route, sub = r && r.sub;
+        if (!this.on || !sub || this.routeBusy || sub.available !== true || !sub.proxy || !this.candidates) return;
+        const i = this.candidate % this.candidates.length, types = this.candidates[i];
+        this.routeBusy = true;
+        Promise.resolve().then(() => r.call(sub.proxy, 'queryContent', routeQuery(types), 1500)).then((reply) => {
+            this.routeBusy = false;
+            const err = reply && reply.GuidanceEventListError, ok = err === 0 || err === 'NO_ERROR';
+            const kinds = []; ((reply && reply.viewContent) || []).forEach((v) => ((v && v.eventsInView) || []).forEach((e) => Object.keys(e || {}).forEach((k) => kinds.push(k))));
+            this.sample('route-query', { types, error: err === undefined ? null : err, kinds });
+            if (ok) { this.routeOk = true; this.guidance(reply); if (kinds.some((k) => GUIDE_KINDS.includes(k)) && !this.rawSeen) { this.rawSeen = true; this.write({ ev: 'route-raw', reply: JSON.stringify(reply).slice(0, 8000) }); } }
+            else if (!this.routeOk) this.candidate++;
+        }, (e) => { this.routeBusy = false; this.sample('route-query', { types, error: String(e && e.message || e) }); if (!this.routeOk) this.candidate++; });
+    }
     // installed SOME/IP configs: { iface: config } from <app>/someipInterfaces
     installed() {
         const out = {};
@@ -121,6 +157,6 @@ class SpeedProbe {
         this.latest.guidance = g;
         if (s !== this.last.guidance) { this.last.guidance = s; this.write({ ev: 'guidance', info: g.info, events: g.events }); }
     }
-    status() { return { on: this.on, lines: this.lines, bytes: this.bytes(), found: this.found, readable: this.readable, latest: this.latest, catalog: this.catalog || null, catalogError: this.catalog ? null : this.catalogError || null }; }
+    status() { return { route: this.route ? (this.routeOk ? 'ok' : 'trying') : 'none', on: this.on, lines: this.lines, bytes: this.bytes(), found: this.found, readable: this.readable, latest: this.latest, catalog: this.catalog || null, catalogError: this.catalog ? null : this.catalogError || null }; }
 }
-module.exports = { SpeedProbe, scanCatalog, speedOf, guidanceOf, LIMIT_NAME, SPEED };
+module.exports = { SpeedProbe, scanCatalog, speedOf, guidanceOf, includeNames, routeQuery, LIMIT_NAME, SPEED, ROUTE_GUESSES };

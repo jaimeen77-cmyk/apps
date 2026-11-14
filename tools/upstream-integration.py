@@ -216,9 +216,9 @@ def optional_lane_source(text):
 
 
 def optional_aux_source(text):
-    if '// Jam optional auxiliary fields v12' in text:
+    if '// Jam optional auxiliary fields v13' in text:
         return optional_lane_source(text)
-    addition = r"""        // Jam optional auxiliary fields v12: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed; driving time and TPMS tyre data are added read-only when the catalog has a getter.
+    addition = r"""        // Jam optional auxiliary fields v13: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed; driving time and TPMS tyre data are added read-only when the catalog has a getter.
         [["de.bmw.infotainment.KombiIF","statusBordcomputerTravelData"],["de.bmw.infotainment.vehicle.TPMS","statusTyreTemperature"],["de.bmw.infotainment.vehicle.TPMS","statusTyrePressure"]].forEach(e=>{
             const d=have[e[0]],f=d&&d.fields&&d.fields[e[1]],ids=all.instanceIDs&&all.instanceIDs[e[0]];
             if(!f||!f.getter||!Number.isInteger(f.getter.id)||f.getter.id<1||f.getter.id>32767)return;
@@ -255,10 +255,10 @@ def optional_aux_source(text):
             if(!def||def.serviceId!==63654||!def.version||def.version.major!==1||!ids||ids.SystemFunctionsInternalTasuInst1!==128||!def.methods||!def.methods.sendTasuRequest||def.methods.sendTasuRequest.methodId!==1||!def.events||!def.events.sendTasuResponse||def.events.sendTasuResponse.eventId!==32769)delete m.proxies[tasu];
             else m.proxies[tasu]={instances:"SystemFunctionsInternalTasuInst1",methods:["sendTasuRequest"],broadcasts:["sendTasuResponse"]};
         }
-        // v12: read-only inputs for the hidden speed limit data collection (the vehicle speed and up to six fields
+        // v12/v13: read-only inputs for the hidden speed limit data collection (v13: school zones too) (the vehicle speed and up to six fields
         // whose names look like a speed limit), each only with a valid getter or notifier and a known instance.
         if (["de.bmw.infotainment.vehicle.CDS2","de.bmw.infotainment.KombiIF","com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu"].some(i=>opt[i])) {   // Cluster Redline only, as the Store build
-            const probeName=/speed.?limit|trafficsign|signrecogn|nopassing|overtak/i, vid=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
+            const probeName=/speed.?limit|trafficsign|signrecogn|nopassing|overtak|school.?zone|child.?zone/i, vid=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
             const probeInst=iface=>{const ids=all.instanceIDs&&all.instanceIDs[iface];if(!ids)return null;const keys=Object.keys(ids).filter(k=>ids[k]!==null&&ids[k]!==undefined);return keys.includes("1")?"1":keys.includes("Main_Instance")?"Main_Instance":keys[0]||null;};
             const probeAdd=(iface,field)=>{const d=have[iface],f=d&&d.fields&&d.fields[field];if(!f)return false;
                 const g=f.getter&&vid(f.getter.id,1,32767),n=f.notifier&&vid(f.notifier.id,32768,65535);if(!g&&!n)return false;
@@ -271,7 +271,7 @@ def optional_aux_source(text):
             Object.keys(have).sort().forEach(iface=>Object.keys((have[iface]&&have[iface].fields)||{}).sort().forEach(field=>{if(probeCount<6&&probeName.test(field)&&probeAdd(iface,field))probeCount++;}));
         }
 """
-    marker = next((m for m in ('        // Jam optional auxiliary fields v11', '        // Jam optional auxiliary fields v10', '        // Jam optional auxiliary fields v9', '        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
+    marker = next((m for m in ('        // Jam optional auxiliary fields v12', '        // Jam optional auxiliary fields v11', '        // Jam optional auxiliary fields v10', '        // Jam optional auxiliary fields v9', '        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
     if marker:
         start = text.index(marker)
         end = text.index('        // Jam optional guidance field persistence v3', start)

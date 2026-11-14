@@ -67,6 +67,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.51
+
+- **Speed limit data collection: route events of every kind.** The HUD's own route-event query asks only for turns and destinations, and only for a phone's guidance, so school zones, speed cameras and speed limits never arrived. While the collection is on it now queries `GuidanceEventList.queryContent` itself every 2 s (on the worker's proxy, BMW navigation or phone alike). `includedTypes`: the `INCLUDE_*` names found in the car's catalog first, then a few guesses; a rejected set moves on to the next and a working one is kept; each query result (types, error, event kinds) and the first raw reply with a speed event are recorded. The hidden menu shows the query state and the event kinds.
+- School-zone names (`school zone`, `child zone`) count as speed-limit names in the catalog scan and the install-time inputs.
+- Desktop installer patch v13: the same school-zone names.
+- Tests: `redline-1-2-51`, `optional-speed-probe.test.py` (school zones).
+
 ### 1.2.50
 
 - **Hidden menu: speed limit data collection** (tap Basic settings three times within 2 s). Off by default; nothing is recorded otherwise. While on, it writes JSON lines to `speed-probe.log` in the app's data folder (at most 1 MB, then one older file `.1`), kept on across restarts until turned off:

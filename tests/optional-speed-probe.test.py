@@ -31,18 +31,20 @@ def run(d,m,opt,parity=True):
 # instance (an existing proxy on another instance is left alone); desktop and Store agree; other apps get nothing.
 veh='de.bmw.infotainment.vehicle.Vehicle2';sli='de.bmw.infotainment.drivingassistance.SpeedLimitInfo'
 opt={cds+'2':'optional aux',kombi:'optional economy'}
-for kind in ['full','none','bad_ids','cap','other_instance','other_app']:
+for kind in ['full','none','bad_ids','cap','other_instance','other_app','school']:
  d=copy.deepcopy(catalog);d['interfaces'][kombi]={'fields':{'statusBordcomputerAverage':{'getter':{'id':3},'notifier':{'id':32771}},'statusSpeedLimitDisplay':{'notifier':{'id':32790}}}};d['instanceIDs'][kombi]={'1':1}
  d['interfaces'][veh]={'fields':{'statusCarSpeed2':{'getter':{'id':7},'notifier':{'id':32775}}}};d['instanceIDs'][veh]={'1':1}
  d['interfaces'][sli]={'fields':{'trafficSignInfo':{'getter':{'id':2}},'currentSpeedLimit':{'getter':{'id':1},'notifier':{'id':32769}},'speedLimiterState':{'getter':{'id':3}}}};d['instanceIDs'][sli]={'Main_Instance':5}
  if kind=='none':del d['interfaces'][sli];del d['interfaces'][veh];del d['interfaces'][kombi]['fields']['statusSpeedLimitDisplay']
  if kind=='bad_ids':d['interfaces'][sli]['fields']['currentSpeedLimit']={'getter':{'id':40000},'notifier':{'id':5}};d['interfaces'][veh]['fields']['statusCarSpeed2']={'getter':{'id':0}}
+ if kind=='school':d['interfaces'][sli]['fields']={'schoolZoneInfo':{'getter':{'id':9}}}
  if kind=='cap':d['interfaces'][sli]['fields'].update({('speedLimit%d'%n):{'getter':{'id':10+n}} for n in range(8)})
  m=copy.deepcopy(manifest);m['proxies'][kombi]={'attributes':{'statusBordcomputerAverage':'rs'},'instances':'1'}
  if kind=='other_instance':d['instanceIDs'][kombi]={'1':1,'2':2};m['proxies'][kombi]['instances']='2'
  o=dict(opt) if kind!='other_app' else {}
  out=run(d,m,o,kind!='other_app');P=out['proxies']
  if kind=='other_app':assert veh not in P and sli not in P and 'statusSpeedLimitDisplay' not in P[kombi]['attributes'],P;continue
+ if kind=='school':assert P[sli]['attributes'].get('schoolZoneInfo')=='r',P[sli]
  if kind=='full':
   assert P[veh]=={'instances':'1','attributes':{'statusCarSpeed2':'rs'}},P[veh]
   assert P[sli]=={'instances':'Main_Instance','attributes':{'currentSpeedLimit':'rs','speedLimiterState':'r','trafficSignInfo':'r'}},P[sli]
