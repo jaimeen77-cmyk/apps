@@ -67,6 +67,17 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.50
+
+- **Hidden menu: speed limit data collection** (tap Basic settings three times within 2 s). Off by default; nothing is recorded otherwise. While on, it writes JSON lines to `speed-probe.log` in the app's data folder (at most 1 MB, then one older file `.1`), kept on across restarts until turned off:
+  - once: every interface field / event / method in the car's SOME/IP catalog whose name looks like a speed limit (speed limit, traffic sign, sign recognition, no passing), and which of them this install can read;
+  - the vehicle speed and each readable speed-limit field, on change, at most once a second;
+  - route guidance (BMW navigation or phone): `speedLimitAssistInfo` and speed limit / speed camera / school zone events, on change.
+  The screen shows the state, the catalog matches, current values, and Start / Stop, Clear and Close.
+- **Install time** (Store and desktop installers alike, Cluster Redline only): read-only inputs for the collection — the vehicle speed (`Vehicle2.statusCarSpeed2`) and up to six speed-limit-named fields — each only when this car's catalog defines it with a valid getter or notifier and a known instance. Nothing is written to the car.
+- `tools/collect-cluster-redline.ps1` also prints the collection log.
+- Tests: `redline-1-2-50`, `optional-speed-probe.test.py` (desktop / Store parity, bounds, other apps untouched).
+
 ### 1.2.49
 
 - **Classic dial is a clock**: an analogue clock in Korean time (UTC+9) in the same design (knurled chrome bezel, cream face, glass, embossed numerals, bronze hands on the chrome hub, a thin red seconds hand). Nothing else on the dial: no rpm scale, oil window, gear window or drive mode; the rpm alert lamp at the top stays. Only the hands repaint, once a second.

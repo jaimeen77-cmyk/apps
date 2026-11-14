@@ -18,6 +18,7 @@ class RouteEvents {
         this.clock=clock;this.call=call;this.sub=null;this.key=null;this.epoch=0;
         this.pending=false;this.closed=false;this.lastPoll=-Infinity;
         this.value=null;this.at=null;this.state='not_connected';this.lastError=null;
+        this.onReply=null;   // the hidden speed limit data collection looks at each reply
     }
     attach(sub) {
         if(this.closed)return;
@@ -33,6 +34,7 @@ class RouteEvents {
         const current=()=>!this.closed&&epoch===this.epoch&&key===this.key&&this.sub===sub&&sub.available===true&&!sub.error;
         Promise.resolve().then(()=>this.call(sub.proxy,'queryContent',queryParams(),1000)).then(reply=>{
             if(!current())return;
+            if(this.onReply)try{this.onReply(reply);}catch(e){}
             const decoded=decodeReply(reply);
             this.value=decoded.value?Object.assign({source:'route_event_list'},decoded.value):null;
             this.at=this.value?this.clock():null;this.state=decoded.state;this.lastError=null;

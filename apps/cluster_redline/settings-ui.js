@@ -58,12 +58,14 @@ class SettingsPage{
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:GROUPS[this.tab];}
  item(){const key=this.keys()[this.focus];if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
+ // Basic settings tapped three times within 2 s: the hidden menu (speed limit data collection).
+ tapBasic(now){const t=now===undefined?Date.now():now;this.basicTaps=(this.basicTaps||[]).filter(x=>t-x<2000).concat(t);if(this.basicTaps.length>=3){this.basicTaps=[];this.tab=0;this.focus=0;this.draft=null;this.open='probe';this.choice=0;this.changed();return;}this.selectTab(0);}
  selectTab(i){this.tab=Math.max(0,Math.min(FAV_TAB,i|0));this.favArmed=null;this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
  // The settings screen left without Back (Home, another app, screen off): end Position / size so its
  // preview never stays on the HUD or cluster.
  leave(){if(this.open==='layout'||this.open==='layoutPresets'){this.setPreview(false);this.open=null;this.draft=null;this.resetArmed=false;this.presetMessage='';this.choice=0;this.changed();}else if(this.settings.get('layoutPreview'))this.setPreview(false);}
  back(){
-  if(this.open==='favView'){this.open=null;}
+  if(this.open==='favView'||this.open==='probe'){this.open=null;}
   else if(this.open==='rlDesign'){this.open='design';this.choice=2;}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
   else if(this.open==='layoutPresets'){this.open='layout';this.choice=0;this.presetMessage='';}
@@ -73,6 +75,7 @@ class SettingsPage{
  move(delta){
   if(this.tab===FAV_TAB&&!this.open){const n=FAV_COUNT*3;this.focus=(this.focus+delta+n)%n;}
   else if(this.open==='favView'){this.choice=(this.choice+delta+2)%2;}
+  else if(this.open==='probe'){this.choice=(this.choice+delta+3)%3;}
   else if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
   else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.stylesFor(this.display()).length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
@@ -100,6 +103,7 @@ class SettingsPage{
   this.changed();
  }
  choose(index){
+  if(this.open==='probe'){const p=this.probe;if(index===0&&p)p.setOn(!p.on);else if(index===1&&p)p.clear();else if(index===2)this.back();this.changed();return;}
   if(this.open==='favView'){if(index===0)this.loadFavorite(this.favIndex);else this.back();return;}
   if(this.open==='layout'||this.open==='layoutPresets'){const a=this.layoutActions[index];if(a)a.act();return;}
   if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
@@ -130,7 +134,7 @@ class SettingsPage{
   const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
   // 'Favorites' is not in the kit's own catalogue: its Korean comes from strings.js.
   const tabs=TABS.map(x=>x==='Favorites'?tr(x):x);
-  if(cv.chrome)G.frame(cv,theme,tabs,this.tab,badges);else{header(cv,theme,0,0,W,80,'Cluster Redline',tabs,this.tab,badges,true,false);(cv.tabRects||[]).forEach(r=>targets.push(Object.assign({},r,{act:()=>this.selectTab(r.i),label:TABS[r.i],id:'tab'+r.i})));}
+  if(cv.chrome)G.frame(cv,theme,tabs,this.tab,badges);else{header(cv,theme,0,0,W,80,'Cluster Redline',tabs,this.tab,badges,true,false);(cv.tabRects||[]).forEach(r=>targets.push(Object.assign({},r,{act:()=>r.i===0?this.tapBasic():this.selectTab(r.i),label:TABS[r.i],id:'tab'+r.i})));}
   if(this.open==='layout')this.drawLayout(cv,cfg,targets);
   else if(this.open==='layoutPresets')this.drawPresets(cv,cfg,targets);
   else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
@@ -139,6 +143,7 @@ class SettingsPage{
   else if(this.open==='rlDesign')this.drawRedlineDesigns(cv,cfg,targets);
   else if(this.open==='navColor')this.drawColors(cv,cfg,targets);
   else if(this.open==='favView')this.drawFavoriteView(cv,targets);
+  else if(this.open==='probe')this.drawProbe(cv,targets);
   else if(this.open)this.drawChoices(cv,cfg,targets);
   else if(this.tab===FAV_TAB)this.drawFavorites(cv,targets);
   else this.drawRows(cv,cfg,targets,status);
@@ -326,6 +331,26 @@ class SettingsPage{
    [['Register',0],['Load',1],['Check settings',2]].forEach(([label,k])=>this.button(cv,targets,tr(label),940+k*200,y+12,188,h-24,()=>{this.focus=row*3+k;this.favAction(n,k);},!!(k===0&&this.favArmed&&this.favArmed.n===n),'fav-'+(row*3+k)));
    cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
   }
+ }
+ // The hidden menu: speed limit data collection (on / off, clear, close) and what it has found so far.
+ drawProbe(cv,targets){
+  const p=this.probe,st=p?p.status():null,dim='#8d97a4',fg='#f3f5f7',x=84;
+  cv.text(tr('Speed limit data collection'),x,128,32,'#ef4050',{literal:true});
+  cv.text(tr('Hidden menu · records only while on'),1536,128,22,dim,{align:'right',literal:true});
+  cv.roundRect(x,146,1432,232,10,[18,22,28,215]);
+  if(!st){cv.text(tr('Not available'),x+20,190,24,fg,{literal:true});}
+  else{
+   const kb=Math.round(st.bytes/102.4)/10,lim=Object.keys(st.latest.limits||{}),g=st.latest.guidance;
+   const rows=[[tr('Recording'),(st.on?tr('On'):tr('Off'))+' · '+st.lines+' '+tr('lines')+' · '+kb+' KB'],
+    [tr('Catalog'),st.found?(st.found.length+' '+tr('speed limit names')+(st.found.length?': '+st.found.slice(0,3).map(f=>f.iface.split('.').pop()+'.'+f.name).join(', '):'')):st.catalogError?tr('Not readable')+' ('+st.catalogError+')':'-'],
+    [tr('Readable here'),st.readable&&st.readable.length?st.readable.join(', '):'-'],
+    [tr('Vehicle speed'),st.latest.speed===null||st.latest.speed===undefined?'-':st.latest.speed+' km/h'],
+    [tr('Speed limit fields'),lim.length?lim.map(k=>k+' = '+JSON.stringify(st.latest.limits[k]).slice(0,60)).join(' / '):'-'],
+    [tr('Route guidance'),g?JSON.stringify(g.info).slice(0,70)+(g.events.length?' · '+g.events.length+' '+tr('events'):''):'-']];
+   rows.forEach(([l,v],i)=>{const y=184+i*34;cv.text(l,x+20,y,18,dim,{literal:true});let t=String(v);while(t.length>4&&cv.textWidth(t,20)>1160)t=t.slice(0,-4)+'…';cv.text(t,x+250,y,20,fg,{literal:true});});
+  }
+  const acts=[[st&&st.on?tr('Stop recording'):tr('Start recording'),0],[tr('Clear records'),1],[tr('Close'),2]];
+  acts.forEach(([label,i],k)=>this.button(cv,targets,label,x+k*480,396,460,70,()=>{this.choice=i;this.choose(i);},this.choice===i,'probe-'+i));
  }
  drawFavoriteView(cv,targets){
   const fav=this.favorite(this.favIndex);if(!fav){this.open=null;this.drawFavorites(cv,targets);return;}

@@ -73,6 +73,7 @@ function start(ctx) {
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
     const hudGuidance=new HudGuidance(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
+    if(ctx.speedProbe)routeEvents.onReply=reply=>ctx.speedProbe.guidance(reply);
     const lanes=new LaneGuidance(mono);
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
