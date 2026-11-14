@@ -1,4 +1,4 @@
-# Cluster Redline 1.2.54 user guide
+# Cluster Redline 1.2.55 user guide
 
 New: **HUD settings → Traffic sign alerts · experimental** (off by default). Recognised speed limit and children-sign alerts use validated, fresh camera/TSR samples only. The initial prototype supports the recorded 10/30/40/50 km/h pairs and no school-zone boundary/distance. [Support and limitations](HUD-TRAFFIC.ko.md).
 

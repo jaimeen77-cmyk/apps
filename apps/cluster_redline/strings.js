@@ -7,6 +7,7 @@
 let t=v=>String(v),getLanguage=()=>'en';
 try{({t,getLanguage}=require('./kit/i18n'));}catch(e){/* host tests load sources without the kit */}
 const KO={
+ 'Speed limit':'제한속도','Speed alert':'과속 알림',
  'Children caution':'어린이 주의','Sign detected':'표지 감지',
  'Traffic sign alerts · experimental':'교통 표지 알림 · 시험 기능','Recognised speed limit':'인식 제한속도','Children sign':'어린이 주의 표지','Speed limit + children':'제한속도 + 어린이 주의','Children · sign detected':'어린이 주의 · 표지 감지','Over limit':'속도 초과',
  'Clock':'시계','Average speed':'평균 속도','Driving time':'주행 시간','Gauges only':'게이지 전용','Horizontal gauges only':'가로 게이지 전용','Speed limit data collection':'제한속도 데이터 수집','Hidden menu · records only while on':'숨김 메뉴 · 켜져 있을 때만 기록','Not available':'사용할 수 없음','Recording':'기록','On':'켜짐','Off':'꺼짐','lines':'줄','Catalog':'차량 카탈로그','speed limit names':'개 제한속도 항목','Not readable':'읽을 수 없음','Readable here':'이 앱에서 읽기','Vehicle speed':'차량 속도','Speed limit fields':'제한속도 값','Route guidance':'길안내','events':'개 이벤트','Stop recording':'기록 끄기','Start recording':'기록 켜기','Clear records':'기록 지우기','Close':'닫기','Query OK':'조회 성공','Trying queries':'조회 시도 중','Not connected':'연결 안 됨','Upright gauges on this layout: no clock.':'이 레이아웃은 세로 게이지라 시계는 표시되지 않습니다.','Clock time':'시계 시간','UTC+9 (Korea)':'UTC+9 (한국)','Head unit time':'헤드유닛 시간',

@@ -67,6 +67,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.55
+
+- Bring traffic icons closer to the design sample: thicker red speed-sign ring, larger wide bold white numbers, a rounded overspeed triangle, and a thick rounded amber triangle with filled shirt/shorts/dress/ponytail silhouettes instead of stick figures. White headings and grey sublabels follow the sample's hierarchy.
+- Keep icons as clean antialiased vector drawing; no generated-image background/noise or decoder is shipped. Add an enlarged preview drawn by the same painter and bilingual caption/font checks. Traffic inputs, timing and supported speeds are unchanged.
+
 ### 1.2.54
 
 - Replace the traffic-alert text markers with HUD vector icons: red-ring speed sign, overspeed warning triangle, and an amber children-crossing triangle containing two walking children. Normal speed numbers stay white for contrast. There is no icon image upload or new vehicle command.

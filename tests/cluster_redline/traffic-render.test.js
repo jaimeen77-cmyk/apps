@@ -15,7 +15,8 @@ try{
   assert(left>=0&&left+width<=this.w,'traffic caption clipped: '+value);
   return text.apply(this,arguments);
  };
- for(const limit of [null,30,50])trafficPainter.draw({traffic:{visible:true,limit,children:true,over:limit!==null}});
+ assert(fs.existsSync(root+'/kit/fonts/bold.json'),'wide bold speed numerals must be packaged');
+ for(const limit of [null,30,50])for(const over of [false,true])trafficPainter.draw({traffic:{visible:true,limit,children:true,over:limit!==null&&over}});
 }finally{Canvas.prototype.text=text;}
 const scene=HUD.createCache();
 const image=HUD.draw(Object.assign({},base,{renderCache:scene}));
@@ -33,5 +34,10 @@ if(process.argv[3]){
  for(const [name,v] of [['speed',{visible:true,limit:30,children:false,over:false}],['overspeed',{visible:true,limit:30,children:false,over:true}],['children',{visible:true,limit:null,children:true,over:false}]]){
   base.traffic=v;const im=new Canvas(800,480);im.clear('#05070b');im.blit(HUD.draw(base),0,0);fs.writeFileSync(path.join(process.argv[3],'hud-traffic-'+name+'.png'),im.png());
  }
+ const detail=new Canvas(960,340);detail.clear('#05070b');
+ [{visible:true,limit:30,children:false,over:false},{visible:true,limit:30,children:false,over:true},{visible:true,limit:null,children:true,over:false}].forEach((v,i)=>{
+  const tile=new Canvas(280,300);tile.clear([0,0,0,0]);tile.blit(trafficPainter.drawSized({traffic:v},2),v.limit===null?-40:48,0);detail.blit(tile,20+i*320,20);
+ });
+ fs.writeFileSync(path.join(process.argv[3],'traffic-icons-detail.png'),detail.png());
 }
 console.log('PASS traffic HUD settings, bounds, stable cache keys and expired-alert pixel removal');
