@@ -21,6 +21,7 @@ const {RouteEvents,INTERFACE:ROUTE_EVENTS,INSTANCE:ROUTE_INSTANCE,METHODS:ROUTE_
 const {LaneGuidance,INTERFACE:LANE_INTERFACE,INSTANCE:LANE_INSTANCE,FIELD:LANE_FIELD}=require('./lane-guidance');
 const {DemandSignals}=require('./demand-signals');
 const {demand}=require('./data-demand');
+const {TrafficSigns,FIELDS:TRAFFIC_FIELDS}=require('./traffic-signs');
 const CDS = 'de.bmw.infotainment.vehicle.CDS';
 const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
@@ -34,6 +35,7 @@ function start(ctx) {
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
     const auxSetup={},auxInfo=new AuxInfo(),auxSubs=[],batteryVoltage=new BatteryVoltage(signals,log,mono);
+    const traffic=new TrafficSigns(),trafficSubs=[];
     const projectionSubs={},projectionFields={},projectionPending={},projectionLastPoll={},projectionEpoch={},projectionEvents={};
     const navigationFields = [], lastNavigationValues = {}, navigationEventRevisions = {}, navigationSeenAt = {}, navigationReadState = {};
     function refreshProjection(provider){
@@ -89,6 +91,15 @@ function start(ctx) {
         }
     });
     if (live) {
+        TRAFFIC_FIELDS.forEach(([iface,field])=>{
+            try{
+                const cfg=signals.loadConfig(iface);
+                if(!(cfg.fields&&cfg.fields[field]||cfg.events&&cfg.events[field]||cfg.broadcasts&&cfg.broadcasts[field]))return;
+                const handlers={};handlers[field]=v=>{if(!stopped)traffic.sample(field,v,mono());};
+                const instance=ctx.speedProbe?ctx.speedProbe.instanceOf(iface):'1';
+                signals.watch(iface,instance,handlers,log,{pollMs:1000}).then(s=>{trafficSubs.push({field,sub:s});keep(s);}).catch(()=>{});
+            }catch(e){/* Optional traffic source absent: no traffic alert. */}
+        });
         // Share one optional proxy per interface; polling belongs to this worker.
         const auxGroups={};SOURCES.forEach(source=>{(auxGroups[source.iface]||(auxGroups[source.iface]=[])).push(source);});
         Object.keys(auxGroups).forEach(iface=>{
@@ -239,6 +250,15 @@ function start(ctx) {
             const laneContext=maneuvers.read(at,!!(guidanceSub&&guidanceSub.available&&!guidanceSub.error));
             if(collection.lanes&&laneContext.active&&laneContext.known&&laneContext.provider==='CAR_PLAY')collection.fields.add(LANE_INTERFACE+'.'+LANE_FIELD);
             collectors.reconcile(collection.fields,at);
+            const trafficWanted=collection.fields.has(TRAFFIC_FIELDS[0].join('.'));
+            const available=field=>trafficSubs.some(e=>e.field===field&&e.sub.available===true&&!e.sub.error);
+            if(!trafficWanted)traffic.clear();
+            else{
+                if(!available(TRAFFIC_FIELDS[0][1])){traffic.speed=null;traffic.speedAt=null;}
+                if(!available(TRAFFIC_FIELDS[1][1])){traffic.limit=null;traffic.limitAt=null;}
+                if(!available(TRAFFIC_FIELDS[2][1])){traffic.camera=null;traffic.cameraAt=null;traffic.childAt=null;}
+            }
+            controller.traffic=traffic.read(at,config.hudTrafficMode,trafficWanted&&available(TRAFFIC_FIELDS[2][1]));
             // Auxiliary values are not used by the maneuver decoder. Do not
             // compete with its reads for metrics that neither RPM face shows.
             const neededAux=collection.aux;

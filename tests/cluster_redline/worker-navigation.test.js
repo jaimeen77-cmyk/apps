@@ -60,7 +60,7 @@ function harness(options) {
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if (name === './renderer') return { inspect: () => ({ compatible: true, version: '0.4.0', hudGuidanceSafe: true }) };
         if(name==='./battery-voltage')return require('../../apps/cluster_redline/battery-voltage');
-        if(['./demand-signals','./data-demand'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
+        if(['./demand-signals','./data-demand','./traffic-signs'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
         throw new Error('Unexpected dependency ' + name);
     }, process: {
         hrtime: () => [Math.floor(time / 1000), Math.round((time % 1000) * 1000000)],

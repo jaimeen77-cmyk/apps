@@ -67,6 +67,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.53
+
+- Add opt-in **Traffic sign alerts · experimental** under HUD settings (off, recognised speed limit, children sign, both). Only the existing selected Redline HUD is used; stock guidance/yield rules remain in force.
+- Validate the vehicle log's known TSR class/number pairs against a recent KM_H camera speed sign. Invalid, withdrawn, disagreeing, unsupported, supplementary, low-quality or stale inputs hide the limit. The prototype recognises only the observed 10/30/40/50 km/h pairs; this is not a complete road-speed-limit decoder.
+- Highlight speed above the recognised limit +3 km/h for one second; clear at limit +1 km/h or on speed/source expiry. Show children-sign detection for six seconds, with a 30-second repeat cooldown. No audio, school-zone boundary, map distance or camera enforcement alert is inferred.
+- Add input, freshness, demand, settings and retained-pixel erasure tests; replayed the supplied second probe locally without committing the vehicle log. Vehicle/HUD operation still needs validation. See [Korean guide](docs/HUD-TRAFFIC.ko.md).
+
 ### 1.2.52
 
 From the first drive log (35 min, up to 74 km/h, 29 speed-limit names in the catalog; nothing arrived from the car's speed limit display; the route query accepted only an empty type list):

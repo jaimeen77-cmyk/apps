@@ -19,6 +19,7 @@ const PROFILES = {
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
 const FRAME_RATE = 20;
 const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, comfortShiftRpm: 0, clusterYieldGuidance: 'off', frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
+Object.assign(DEFAULTS,{hudTrafficMode:'off'});
 Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'stock', allHudOutput: 'stock',
     clusterOffsetX: 0, clusterOffsetY: 0, clusterWidthScale: 80, clusterHeightScale: 80,
     hudOffsetX: 0, hudOffsetY: -100, hudWidthScale: 75, hudHeightScale: 75,
@@ -59,6 +60,7 @@ function settings(raw) {
 function full(raw) {
     raw = raw || {};
     const out = Object.assign({}, DEFAULTS);
+    out.hudTrafficMode=['off','speed','children','both'].includes(raw.hudTrafficMode)?raw.hudTrafficMode:'off';
     // Retain an old owner's OFF choice; removed manual scales/prefixes are ignored.
     if (typeof raw.appEnabled === 'boolean') out.appEnabled = raw.appEnabled;
     else if (raw.autoSport === false) out.appEnabled = false;

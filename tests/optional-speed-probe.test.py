@@ -63,4 +63,11 @@ for kind in ['full','none','bad_ids','cap','other_instance','other_app','school'
  if kind=='cap':n=sum(len(P[i].get('attributes',{}))+len(P[i].get('broadcasts',[])) for i in [tsd,ccp,adas,sdaf,sli] if i in P);assert n==10,(n,P)
  if kind=='school':assert P[sli]['attributes'].get('schoolZoneInfo')=='r',P[sli]
  if kind=='other_instance':assert P[adas]=={'instances':'2','attributes':{'routeX':'r'}},P[adas]
-print('PASS: speed limit data collection inputs (vehicle speed, the car\'s speed limit display, navigation speed limit events / fields, sign recognition, then other speed-limit values, ten at most; settings skipped) added read-only only with valid ids and instances, Cluster Redline only; desktop and Store agree')
+tsr='de.bmw.dass.TrafficSignRecognition';camera='de.bmw.environmentalmodel.SignRecognitionFrontCamera'
+d=cat()
+for iface,event in [(tsr,'TrafficSignRecognition'),(camera,'TrafficSignRecognitionFrontCamera')]:
+ d['interfaces'][iface]={'events':{event:{'eventId':32900}}};d['instanceIDs'][iface]={'1':1}
+P=run(d,copy.deepcopy(manifest),dict(opt))['proxies']
+assert P[tsr]['broadcasts']==['TrafficSignRecognition']
+assert P[camera]['broadcasts']==['TrafficSignRecognitionFrontCamera']
+print('PASS: traffic HUD TSR/camera events and speed-probe inputs installed read-only with desktop/Store parity')
