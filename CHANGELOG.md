@@ -67,6 +67,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.54
+
+- Replace the traffic-alert text markers with HUD vector icons: red-ring speed sign, overspeed warning triangle, and an amber children-crossing triangle containing two walking children. Normal speed numbers stay white for contrast. There is no icon image upload or new vehicle command.
+- Add actual settings-page, option-menu and each icon-state previews. The experimental input validation, defaults, timing and supported speeds from 1.2.53 are unchanged; enforcement cameras/section control/school-zone boundaries remain unsupported.
+
 ### 1.2.53
 
 - Add opt-in **Traffic sign alerts · experimental** under HUD settings (off, recognised speed limit, children sign, both). Only the existing selected Redline HUD is used; stock guidance/yield rules remain in force.
