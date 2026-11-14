@@ -51,7 +51,8 @@ assert.deepStrictEqual(guidanceOf({viewContent:[{speedLimitAssistInfo:{nil:'NO_V
  handlers.statusCarSpeed2({speedVehicleCentreOfGravity:5568});handlers.statusCarSpeed2({speedVehicleCentreOfGravity:5632});   // within a second: one line
  t+=1500;handlers.statusCarSpeed2({speedVehicleCentreOfGravity:5632});handlers.statusSpeedLimitDisplay({limit:80});
  p.guidance({viewContent:[{speedLimitAssistInfo:{nil:'NO_VALUE'},eventsInView:[]}]});p.guidance({viewContent:[{speedLimitAssistInfo:{nil:'NO_VALUE'},eventsInView:[]}]});
- const lines=fs.f['/d/speed-probe.log'].trim().split('\n').map(l=>JSON.parse(l));
+ const all=fs.f['/d/speed-probe.log'].trim().split('\n').map(l=>JSON.parse(l)),lines=all.filter(l=>l.ev!=='available');
+ assert.deepStrictEqual(all.filter(l=>l.ev==='available').map(l=>[l.iface.split('.').pop(),l.available]).sort(),[['KombiIF',true],['Vehicle2',true]],'availability recorded');
  assert.deepStrictEqual(lines.map(l=>l.ev),['start','catalog','readable','value','value','value','guidance']);
  assert.strictEqual(lines[1].found.length,3);assert.deepStrictEqual(lines[2].fields,['Vehicle2.statusCarSpeed2','KombiIF.statusSpeedLimitDisplay']);
  assert.deepStrictEqual(lines.filter(l=>l.ev==='value').map(l=>[l.name,l.value]),[['speed',87],['speed',88],['KombiIF.statusSpeedLimitDisplay',{limit:80}]]);

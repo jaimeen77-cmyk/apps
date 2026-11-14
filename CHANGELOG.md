@@ -67,6 +67,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.52
+
+From the first drive log (35 min, up to 74 km/h, 29 speed-limit names in the catalog; nothing arrived from the car's speed limit display; the route query accepted only an empty type list):
+- **Install time: the inputs that can carry a speed limit come first**, ten at most: the car's speed limit display (`TrafficSignDisplayControl.displaySpeedLimitAndNoPassingRestriction`), the navigation's speed limit at the car position, which needs no route (`adasng.CCP` events `effectiveSpeedLimit`, `speedLimitUnit`, `variableSpeedLimitSign`; `navigation.ADAS` `speedLimitProfileNavGraph2`, `trafficSignNavGraph2`), `FASuS.statusNextSpeedLimitRecognition`, camera sign recognition events, then other speed-limit names that are values. Settings (`setting…`, `…Enabled`, NCAP) are no longer picked. Events are added as broadcasts with a valid eventId. Desktop installer patch v14 does the same.
+- **Runtime**: events are subscribed too; each interface's availability is recorded (on change), so a silent input shows whether its provider answers at all.
+- **Route events**: each `includedTypes` name is tried alone once (catalog names first, then ~26 guesses) and the result recorded (`route-types`: accepted / rejected); afterwards all accepted names are queried together. The HUD's own replies and the collection's are deduplicated separately (the first log had a line per poll).
+- Tests: `optional-speed-probe.test.py` (priority, events, settings skipped, cap), `redline-1-2-51` (type discovery, per-source dedupe).
+
 ### 1.2.51
 
 - **Speed limit data collection: route events of every kind.** The HUD's own route-event query asks only for turns and destinations, and only for a phone's guidance, so school zones, speed cameras and speed limits never arrived. While the collection is on it now queries `GuidanceEventList.queryContent` itself every 2 s (on the worker's proxy, BMW navigation or phone alike). `includedTypes`: the `INCLUDE_*` names found in the car's catalog first, then a few guesses; a rejected set moves on to the next and a working one is kept; each query result (types, error, event kinds) and the first raw reply with a speed event are recorded. The hidden menu shows the query state and the event kinds.

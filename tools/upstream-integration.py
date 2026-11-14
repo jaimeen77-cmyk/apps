@@ -216,9 +216,9 @@ def optional_lane_source(text):
 
 
 def optional_aux_source(text):
-    if '// Jam optional auxiliary fields v13' in text:
+    if '// Jam optional auxiliary fields v14' in text:
         return optional_lane_source(text)
-    addition = r"""        // Jam optional auxiliary fields v13: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed; driving time and TPMS tyre data are added read-only when the catalog has a getter.
+    addition = r"""        // Jam optional auxiliary fields v14: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed; driving time and TPMS tyre data are added read-only when the catalog has a getter.
         [["de.bmw.infotainment.KombiIF","statusBordcomputerTravelData"],["de.bmw.infotainment.vehicle.TPMS","statusTyreTemperature"],["de.bmw.infotainment.vehicle.TPMS","statusTyrePressure"]].forEach(e=>{
             const d=have[e[0]],f=d&&d.fields&&d.fields[e[1]],ids=all.instanceIDs&&all.instanceIDs[e[0]];
             if(!f||!f.getter||!Number.isInteger(f.getter.id)||f.getter.id<1||f.getter.id>32767)return;
@@ -255,23 +255,27 @@ def optional_aux_source(text):
             if(!def||def.serviceId!==63654||!def.version||def.version.major!==1||!ids||ids.SystemFunctionsInternalTasuInst1!==128||!def.methods||!def.methods.sendTasuRequest||def.methods.sendTasuRequest.methodId!==1||!def.events||!def.events.sendTasuResponse||def.events.sendTasuResponse.eventId!==32769)delete m.proxies[tasu];
             else m.proxies[tasu]={instances:"SystemFunctionsInternalTasuInst1",methods:["sendTasuRequest"],broadcasts:["sendTasuResponse"]};
         }
-        // v12/v13: read-only inputs for the hidden speed limit data collection (v13: school zones too) (the vehicle speed and up to six fields
-        // whose names look like a speed limit), each only with a valid getter or notifier and a known instance.
+        // v12-v14: read-only inputs for the hidden speed limit data collection (as speed-probe-config.js): the vehicle
+        // speed, the priority inputs, then other speed-limit names that are values, up to ten; fields need a valid
+        // getter / notifier, events a valid eventId, the interface a known instance.
         if (["de.bmw.infotainment.vehicle.CDS2","de.bmw.infotainment.KombiIF","com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu"].some(i=>opt[i])) {   // Cluster Redline only, as the Store build
-            const probeName=/speed.?limit|trafficsign|signrecogn|nopassing|overtak|school.?zone|child.?zone/i, vid=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
+            const probeName=/speed.?limit|trafficsign|signrecogn|nopassing|overtak|school.?zone|child.?zone/i, notValue=/^setting|ncap|enabled$|^allowTpeg/i, vid=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
             const probeInst=iface=>{const ids=all.instanceIDs&&all.instanceIDs[iface];if(!ids)return null;const keys=Object.keys(ids).filter(k=>ids[k]!==null&&ids[k]!==undefined);return keys.includes("1")?"1":keys.includes("Main_Instance")?"Main_Instance":keys[0]||null;};
-            const probeAdd=(iface,field)=>{const d=have[iface],f=d&&d.fields&&d.fields[field];if(!f)return false;
+            const probeProxy=iface=>{const inst=probeInst(iface);if(!inst)return null;let p=m.proxies[iface];if(p&&String(p.instances||"").split(",")[0]!==inst)return null;return p||(m.proxies[iface]={instances:inst,attributes:{}});};
+            const probeAdd=(iface,name,kind)=>{const d=have[iface];if(!d)return false;
+                if(kind==="event"){const e=d.events&&d.events[name];if(!e||!vid(e.eventId,32768,65535))return false;const p=probeProxy(iface);if(!p)return false;p.broadcasts=p.broadcasts||[];if(!p.broadcasts.includes(name))p.broadcasts.push(name);return true;}
+                const f=d.fields&&d.fields[name];if(!f)return false;
                 const g=f.getter&&vid(f.getter.id,1,32767),n=f.notifier&&vid(f.notifier.id,32768,65535);if(!g&&!n)return false;
-                const inst=probeInst(iface);if(!inst)return false;let p=m.proxies[iface];
-                if(p&&String(p.instances||"").split(",")[0]!==inst)return false;
-                if(!p)p=m.proxies[iface]={instances:inst,attributes:{}};
-                p.attributes=p.attributes||{};if(p.attributes[field]===undefined)p.attributes[field]=g?(n?"rs":"r"):"s";return true;};
-            probeAdd("de.bmw.infotainment.vehicle.Vehicle2","statusCarSpeed2");
-            let probeCount=0;
-            Object.keys(have).sort().forEach(iface=>Object.keys((have[iface]&&have[iface].fields)||{}).sort().forEach(field=>{if(probeCount<6&&probeName.test(field)&&probeAdd(iface,field))probeCount++;}));
+                const p=probeProxy(iface);if(!p)return false;p.attributes=p.attributes||{};if(p.attributes[name]===undefined)p.attributes[name]=g?(n?"rs":"r"):"s";return true;};
+            probeAdd("de.bmw.infotainment.vehicle.Vehicle2","statusCarSpeed2","field");
+            const priority=[["de.bmw.dass.driverassistanceapplications.TrafficSignDisplayControl","displaySpeedLimitAndNoPassingRestriction","field"],["de.bmw.infotainment.navigation.externalize.adasng.CCP","effectiveSpeedLimit","event"],["de.bmw.infotainment.navigation.externalize.adasng.CCP","speedLimitUnit","event"],["de.bmw.infotainment.navigation.externalize.adasng.CCP","variableSpeedLimitSign","event"],["de.bmw.infotainment.navigation.ADAS","speedLimitProfileNavGraph2","field"],["de.bmw.infotainment.navigation.ADAS","trafficSignNavGraph2","field"],["de.bmw.infotainment.fasus.FASuS","statusNextSpeedLimitRecognition","field"],["de.bmw.environmentalmodel.SignRecognitionFrontCamera","TrafficSignRecognitionFrontCamera","event"],["de.bmw.dass.TrafficSignRecognition","TrafficSignRecognition","event"],["de.bmw.dass.settingsdriverassistancefunctions.SettingsDriverAssistanceFunctions","displayStatusSpeedLimitAssist","field"]];
+            let probeCount=0;const probeSeen=new Set();
+            priority.forEach(e=>{probeSeen.add(e[0]+"."+e[1]);if(probeCount<10&&probeAdd(e[0],e[1],e[2]))probeCount++;});
+            Object.keys(have).sort().forEach(iface=>{const d=have[iface]||{};[["field",Object.keys(d.fields||{})],["event",Object.keys(d.events||{})]].forEach(k=>k[1].sort().forEach(name=>{
+                if(probeCount>=10||probeSeen.has(iface+"."+name)||!probeName.test(name)||notValue.test(name))return;if(probeAdd(iface,name,k[0]))probeCount++;}));});
         }
 """
-    marker = next((m for m in ('        // Jam optional auxiliary fields v12', '        // Jam optional auxiliary fields v11', '        // Jam optional auxiliary fields v10', '        // Jam optional auxiliary fields v9', '        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
+    marker = next((m for m in ('        // Jam optional auxiliary fields v13', '        // Jam optional auxiliary fields v12', '        // Jam optional auxiliary fields v11', '        // Jam optional auxiliary fields v10', '        // Jam optional auxiliary fields v9', '        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
     if marker:
         start = text.index(marker)
         end = text.index('        // Jam optional guidance field persistence v3', start)
