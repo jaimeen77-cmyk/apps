@@ -72,7 +72,7 @@ assert.deepStrictEqual(guidanceOf({viewContent:[{speedLimitAssistInfo:{nil:'NO_V
  page.tapBasic(10000);page.tapBasic(10500);page.tapBasic(11000);assert.strictEqual(page.open,'probe');
  const cv=page.draw(new Canvas(1600,520));assert(cv.targets.some(r=>r.id==='probe-0'));
  page.choose(0);assert.strictEqual(p.on,true,'start');page.move(1);assert.strictEqual(page.choice,1);page.choose(0);assert.strictEqual(p.on,false,'stop');
- page.choose(2);assert.strictEqual(page.open,null,'close');
+ page.choose(3);assert.strictEqual(page.open,null,'close');
 
  // 5. route events hand each reply to the collection
  let seen=null;const re=new RouteEvents(()=>0,()=>Promise.resolve({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInView:[]}]}));re.onReply=r=>seen=r;

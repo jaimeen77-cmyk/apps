@@ -80,7 +80,7 @@ printf '\n%s\n' '=== AFTER: RENDERER LOG TAIL ==='
 if [ -r "$log_file" ]; then tail -n 400 "$log_file"; else printf '%s\n' 'RENDERER_LOG_NOT_FOUND'; fi
 printf '\n%s\n' '=== SPEED LIMIT DATA COLLECTION (hidden menu; only when it was turned on) ==='
 probe_found=0
-for file in "$task_root"/var/opt/public/oap/oap_*/data/speed-probe.log.1 "$task_root"/var/opt/public/oap/oap_*/data/speed-probe.log; do
+for file in "$task_root"/var/opt/public/oap/oap_*/data/speed-probe-[0-9]*.log "$task_root"/var/opt/public/oap/oap_*/data/speed-probe.log.1 "$task_root"/var/opt/public/oap/oap_*/data/speed-probe.log; do
     [ -r "$file" ] || continue
     probe_found=1
     printf '%s\n' "PATH: $file"

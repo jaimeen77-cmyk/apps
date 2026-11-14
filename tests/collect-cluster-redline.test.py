@@ -43,6 +43,8 @@ with tempfile.TemporaryDirectory(prefix='cluster-log-') as temporary:
     for uid in ('12501', '12502'):
         write(root, '/var/opt/public/oap/oap_' + uid + '/data/cluster-redline-status.json',
               json.dumps({'targetName': 'map', 'targetState': 'parked', 'requested': True, 'uid_test': uid}))
+    write(root, '/var/opt/public/oap/oap_12501/data/speed-probe-1.log', '{"ev":"archive-one"}\n')
+    write(root, '/var/opt/public/oap/oap_12501/data/speed-probe-2.log', '{"ev":"archive-two"}\n')
     before = snapshot(root)
     report = capture(root)
     assert snapshot(root) == before, 'Collector changed fixture files'
@@ -55,6 +57,8 @@ with tempfile.TemporaryDirectory(prefix='cluster-log-') as temporary:
     assert report.count('take-over 1') == 2, 'Before and after tails'
     assert '12501' in report and '12502' in report, 'Must capture co-installed instances'
     assert 'CAPTURE END' in report
+    assert 'speed-probe-1.log' in report and 'archive-one' in report
+    assert 'speed-probe-2.log' in report and 'archive-two' in report
 
 with tempfile.TemporaryDirectory(prefix='cluster-log-missing-') as temporary:
     root = Path(temporary)

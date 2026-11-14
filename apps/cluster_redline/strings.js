@@ -7,6 +7,7 @@
 let t=v=>String(v),getLanguage=()=>'en';
 try{({t,getLanguage}=require('./kit/i18n'));}catch(e){/* host tests load sources without the kit */}
 const KO={
+ 'Save + new recording':'기록 저장 · 계속','Clear current records':'현재 기록 지우기','No records yet · recording started':'저장할 기록 없음 · 새 수집 시작','Saved · new recording':'저장 완료 · 새 수집 중','Save failed':'기록 저장 또는 재시작 실패',
  'Speed limit':'제한속도','Speed alert':'과속 알림',
  'Children caution':'어린이 주의','Sign detected':'표지 감지',
  'Traffic sign alerts · experimental':'교통 표지 알림 · 시험 기능','Recognised speed limit':'인식 제한속도','Children sign':'어린이 주의 표지','Speed limit + children':'제한속도 + 어린이 주의','Children · sign detected':'어린이 주의 · 표지 감지','Over limit':'속도 초과',

@@ -8,6 +8,7 @@
 //  - from route guidance (BMW navigation or phone): its speedLimitAssistInfo and any speed limit / speed camera /
 //    school zone events, on change.
 const path = require('path');
+const {archive}=require('./probe-archive');
 const LIMIT_NAME = /speed.?limit|trafficsign|signrecogn|nopassing|overtak|school.?zone|child.?zone/i;
 // Route events of every kind (the HUD's own query asks for turns and destinations only), polled by the collection
 // itself while it is on, with BMW navigation or a phone alike. The includedTypes names come from the car's catalog
@@ -93,7 +94,38 @@ class SpeedProbe {
         try { if (v) this.fs.writeFileSync(this.flag, JSON.stringify({ on: true }) + '\n'); else this.fs.unlinkSync(this.flag); } catch (e) {}
         if (v) this.start(); else this.stop();
     }
-    clear() { [this.file, this.file + '.1'].forEach((f) => { try { this.fs.unlinkSync(f); } catch (e) {} }); this.lines = 0; if (this.on) this.write({ ev: 'cleared' }); }
+    headers(previousArchive) {
+        return [
+            {ev:'start',version:this.version,previousArchive:previousArchive||null},
+            {ev:'catalog',path:this.catalog||null,error:this.catalog?null:this.catalogError||null,found:this.found||[],routeTypes:this.includes||[]},
+            {ev:'readable',fields:this.readable},
+            {ev:'route-types',accepted:this.accepted||[],rejected:this.rejected||[],probing:!!(this.guesses&&this.guess<this.guesses.length)}
+        ].concat(this.subs.map(s=>({ev:'available',iface:s.probeIface,available:!!s.available,error:s.error?String(s.error):null})));
+    }
+    clear() {
+        [this.file,this.file+'.1'].forEach(f=>{try{this.fs.unlinkSync(f);}catch(e){}});
+        this.lines=0;this.last={};this.lastAt={};this.rawSeen=false;
+        if(this.on){this.write({ev:'cleared'});this.headers().forEach(r=>this.write(r));}
+    }
+    saveAndContinue() {
+        this.saveError=null;this.saveMessage=null;
+        try{
+            const name=archive(this.fs,this.dataDir);
+            if(name)this.lastSaved=name;
+            const records=this.on?this.headers(name):[];
+            const text=records.map(r=>JSON.stringify(Object.assign({t:new Date(this.now()).toISOString()},r))+'\n').join('');
+            this.fs.writeFileSync(this.file+'.new',text,'utf8');this.fs.renameSync(this.file+'.new',this.file);
+            try{this.fs.unlinkSync(this.file+'.1');}catch(e){if(e.code!=='ENOENT')throw e;}
+            this.lines=records.length;this.last={};this.lastAt={};this.rawSeen=false;
+            if(!this.on)this.setOn(true);
+            if(!this.fs.statSync(this.file).size)throw new Error('Could not start new recording');
+            this.saveMessage=name?'Saved · new recording':'No records yet · recording started';return name;
+        }catch(e){
+            if(e.savedArchive)this.lastSaved=e.savedArchive;
+            try{this.fs.unlinkSync(this.file+'.new');}catch(ignore){}
+            this.saveError=String(e.code||e.message||e).slice(0,100);return null;
+        }
+    }
     bytes() { let n = 0; [this.file, this.file + '.1'].forEach((f) => { try { n += this.fs.statSync(f).size; } catch (e) {} }); return n; }
     write(rec) {
         if (!this.on) return;
@@ -111,6 +143,7 @@ class SpeedProbe {
         this.last[name] = s; this.lastAt[name] = t; this.write({ ev: 'value', name, value });
     }
     start() {
+        this.rawSeen=false;
         this.write({ ev: 'start', version: this.version });
         // 1. the catalog, by name
         if (!this.found) {
@@ -179,6 +212,6 @@ class SpeedProbe {
         if (source === 'all' || !this.latest.guidance) this.latest.guidance = g;
         if (s !== this.last[key]) { this.last[key] = s; this.write({ ev: 'guidance', source, info: g.info, events: g.events }); }
     }
-    status() { return { route: this.route ? (this.routeOk ? 'ok' : 'trying') : 'none', accepted: this.accepted || [], on: this.on, lines: this.lines, bytes: this.bytes(), found: this.found, readable: this.readable, latest: this.latest, catalog: this.catalog || null, catalogError: this.catalog ? null : this.catalogError || null }; }
+    status() { return { route: this.route ? (this.routeOk ? 'ok' : 'trying') : 'none', accepted: this.accepted || [], on: this.on, saved: this.lastSaved || null, saveError: this.saveError || null, saveMessage: this.saveMessage || null, lines: this.lines, bytes: this.bytes(), found: this.found, readable: this.readable, latest: this.latest, catalog: this.catalog || null, catalogError: this.catalog ? null : this.catalogError || null }; }
 }
 module.exports = { SpeedProbe, scanCatalog, speedOf, guidanceOf, includeNames, routeQuery, LIMIT_NAME, SPEED, ROUTE_GUESSES, PRIORITY, NOT_VALUE };

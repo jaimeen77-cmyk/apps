@@ -41,6 +41,8 @@ def main():
     files += [Path(p) for p in (
         'docs/JAM-INTEGRATION.ko.md',
         'docs/VALIDATION.ko.md',
+        'docs/HUD-TRAFFIC.ko.md',
+        'docs/PROBE-RECORDING.ko.md',
         'docs/SEATS-DIAGNOSTICS.ko.md',
         'docs/CLUSTER-REDLINE.ko.md',
         'docs/CLUSTER-REDLINE-HISTORY.ko.md',

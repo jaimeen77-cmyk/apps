@@ -67,6 +67,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## Cluster Redline
 
+### 1.2.56
+
+- Add **Save + new recording** to the hidden data-collection menu. The current file and older rotation are saved chronologically as `speed-probe-1.log`, `speed-probe-2.log`, etc. Numbering survives app restarts and existing archives are never replaced. A completed numbered snapshot is committed before the active capture is reset; storage failures are shown in the menu.
+- Continue collecting with fresh version/catalog/input/availability/query metadata and reset per-file duplicate/raw-reply suppression without reopening live readers. Saving while stopped starts the next capture; no-data saves start recording without an empty numbered file.
+- **Clear current records** leaves numbered archives and the sequence counter intact and re-emits metadata while recording. Diagnostic report collection also lists numbered archives (head/tail excerpts). No new traffic-data sources were added in this change. See [recording guide](docs/PROBE-RECORDING.ko.md).
+
 ### 1.2.55
 
 - Bring traffic icons closer to the design sample: thicker red speed-sign ring, larger wide bold white numbers, a rounded overspeed triangle, and a thick rounded amber triangle with filled shirt/shorts/dress/ponytail silhouettes instead of stick figures. White headings and grey sublabels follow the sample's hierarchy.
