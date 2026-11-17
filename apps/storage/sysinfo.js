@@ -15,6 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
+const { readMap } = require('./app-names');
 
 /** File system types that hold no files on a disk (left out of the list). */
 const VIRTUAL = new Set(['proc', 'sysfs', 'devtmpfs', 'devpts', 'cgroup', 'cgroup2', 'securityfs', 'pstore', 'debugfs',
@@ -180,12 +181,14 @@ async function folderSize(dir, budget) {
 /** App names by uid folder, from the platform's uid list and each app's package.json. */
 function appNames(root) {
     const names = {};
+    const exported = readMap();
+    Object.keys(exported).forEach((uid) => { names['oap_' + uid] = exported[uid].name; });
     try {
         // oap_12201/security/uids.txt: one app per line with its uid (format varies by firmware: find both)
         fs.readFileSync(path.join(root, 'oap_12201', 'security', 'uids.txt'), 'utf8').split('\n').forEach((l) => {
             const uid = /\b(1[12]\d{3})\b/.exec(l);
             const name = l.replace(/\b1[12]\d{3}\b/, ' ').replace(/[=:,;\t]/g, ' ').trim().split(/\s+/).filter(Boolean)[0];
-            if (uid && name) names['oap_' + uid[1]] = name;
+            if (uid && name && !names['oap_' + uid[1]]) names['oap_' + uid[1]] = name;
         });
     } catch (e) { /* not readable */ }
     return names;
@@ -193,6 +196,9 @@ function appNames(root) {
 
 /** The name in an app folder's package.json (installed apps keep it at the top or in source/). */
 function packageName(dir) {
+    for (const f of ['source/javascript/kit/app-spec.json', 'source/app.json']) {
+        try { const spec = JSON.parse(fs.readFileSync(path.join(dir,f),'utf8')); if (typeof spec.title === 'string' && spec.title) return spec.title; } catch(e) {}
+    }
     for (const f of ['package.json', 'source/package.json']) {
         try {
             const j = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
@@ -216,7 +222,7 @@ async function appFolders(root, onProgress) {
         const stat = await pLstat(dir);
         if (!stat || !stat.isDirectory()) continue;
         const s = await folderSize(dir, 300000);
-        list.push(Object.assign({ folder: dirs[i], name: packageName(dir) || names[dirs[i]] || null }, s));
+        list.push(Object.assign({ folder: dirs[i], name: names[dirs[i]] || packageName(dir) || null }, s));
         if (onProgress) onProgress(i + 1, dirs.length);
     }
     list.sort((a, b) => b.bytes - a.bytes);
@@ -229,7 +235,7 @@ function appIdentities(root) {
         fs.readdirSync(root).filter((name) => /^oap_\d+$/.test(name)).forEach((folder) => {
             try {
                 const dir = path.join(root, folder), stat = fs.lstatSync(dir);
-                if (stat.isDirectory() && !stat.isSymbolicLink()) apps.push({ uid: Number(folder.slice(4)), name: String(packageName(dir) || names[folder] || folder).slice(0,96) });
+                if (stat.isDirectory() && !stat.isSymbolicLink()) apps.push({ uid: Number(folder.slice(4)), name: String(names[folder] || packageName(dir) || folder).slice(0,96) });
             } catch (e) { error = String(e.code || e.message); }
         });
         return { apps, error };

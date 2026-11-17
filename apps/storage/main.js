@@ -78,7 +78,7 @@ mgu.run({
         const usageView = new UsageView(() => render());
         await sampleUsage();
         const usageTimer = setInterval(sampleUsage, INTERVAL);
-        process.on('exit', () => clearInterval(usageTimer));
+        process.on('exit', () => { clearInterval(usageTimer); usage.logger.flush(); });
 
         /* ---------- data ---------- */
         let disks = { list: [], how: '', error: '', t: 0 }, mem = null, up = null, diskBusy = false, isDemo = false;
@@ -340,7 +340,7 @@ mgu.run({
         settings.onChange((k) => {
             if (k === 'page') page = Math.max(0, PAGES.indexOf(settings.get('page')));
             if (k === 'demo') sampleUsage();
-            if (k === 'usageLogging') usage.logging = settings.get('usageLogging') !== false;
+            if (k === 'usageLogging') { usage.logging = settings.get('usageLogging') !== false; if (!usage.logging) usage.logger.flush(); }
         });
 
         if (ctx.widget) {

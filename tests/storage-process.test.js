@@ -29,8 +29,8 @@ function total(user,idle){fs.writeFileSync(path.join(proc,'stat'),`cpu ${user} 0
     const denied=await sampler.sample();assert(denied.denied>0);assert(denied.apps.some(a=>a.uid===12210));
     fs.chmodSync(path.join(proc,'103/status'),0o600);
     const base=Date.parse('2026-11-17T00:00:00Z');
-    const history=Array.from({length:31},(_,i)=>({time:base+i*30000,apps:[{uid:12210,name:'growing',cpu:20+i,rss:(32+i*2)*1048576,partial:false}]}));
-    const trend=appTrend(history,history[30].apps[0]);assert(trend.memoryRising&&trend.leakSuspected);assert.strictEqual(trend.memoryDelta,20);
-    history[15].apps[0].partial=true;assert(!appTrend(history,history[30].apps[0]).leakSuspected);
+    const history=Array.from({length:91},(_,i)=>({time:base+i*10000,apps:[{uid:12210,name:'growing',cpu:20+i/3,rss:(32+i*2/3)*1048576,partial:false}]}));
+    const trend=appTrend(history,history[90].apps[0]);assert(trend.memoryRising&&trend.leakSuspected);assert.strictEqual(trend.memoryDelta,20);
+    history[15].apps[0].partial=true;assert(!appTrend(history,history[90].apps[0]).leakSuspected);
     console.log('PASS: per-app UID grouping, summed RSS/helpers, normalized CPU, PID reuse, inaccessible/disappearing processes and app memory-growth indicators');
 })().catch(e=>{console.error(e);global.process.exitCode=1;}).finally(()=>fs.rmSync(root,{recursive:true,force:true}));

@@ -44,6 +44,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## MGU Monitor (formerly Storage)
 
+### 1.1.1
+
+- Resolve installed app names from a read-only UID/title export instead of relying on other apps' protected folders. Bundle the mgu-monitor-names 0.1.0 dependency; preserve app permissions and use actual UID mappings rather than fixed UID guesses.
+- Sample CPU/RAM and per-app usage every 10 seconds, retain 181 points/30 minutes and keep the five/fifteen-minute growth windows and one-minute confirmation.
+- Preserve all 10-second records in three-sample gzip blocks, keeping the existing 30-day retention and storage bounds; flush buffered rows on graceful exit or recording disable.
+- Keep storage/storage_en identities and existing settings/data. Test the actual Store parser/tool package, title export, UID movement, log batching and both packaged renderers. On-car verification of this fix remains pending.
+
 ### 1.1.0
 
 - Rename the visible app, native entry and widget to MGU Monitor / MGU 모니터; preserve storage/storage_en IDs for existing installs.

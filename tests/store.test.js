@@ -98,14 +98,15 @@ async function checkSettingsEntry(file, id, version) {
         sourceParser = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'sources'));
         const catalog = await sourceParser.repoCatalog((name) => Promise.resolve(fs.readFileSync(path.join(ROOT, name))), null, 'local');
         assert.deepStrictEqual(catalog.skipped, []);
-        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'seats_easy_access', 'seats_easy_access_ko', 'storage', 'storage_en']);
-        assert(catalog.components.every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
+        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'mgu-monitor-names', 'seats_easy_access', 'seats_easy_access_ko', 'storage', 'storage_en']);
+        assert(catalog.components.filter((c) => c.kind === 'app').every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         for (const id of ['cluster_redline', 'cluster_redline_en']) {
             assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.4.0');
         }
     }
     const identities = new Set();
     for (const component of doc.components) {
+        if (component.kind !== 'app') continue;
         const id = component.id, spec = JSON.parse(fs.readFileSync(path.join(ROOT, component.path, 'app.json')));
         const args = component.build.args.map((a) => a.replace('{id}', id).replace('{version}', spec.version).replace('{dir}', component.path));
         const options = Object.assign(optionsFor(args), { out: path.join(temp, id) });

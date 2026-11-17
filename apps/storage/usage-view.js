@@ -1,8 +1,13 @@
 'use strict';
 const G = require('./kit/gauges');
-const { t } = require('./kit/i18n');
+const { t, getLanguage } = require('./kit/i18n');
 const { WINDOW, INTERVAL, memoryPercent } = require('./usage');
-const tr = (s, values) => Object.keys(values || {}).reduce((out,k) => out.split('{'+k+'}').join(String(values[k])),t(s));
+const labels={
+    'Sampling period':{en:'{seconds}s - last 30m',ko:'{seconds}초 간격 · 최근 30분'},
+    'Usage log period':{en:'Compressed log: {seconds}s / 30 days',ko:'압축 로그 · {seconds}초 간격 · 30일 보관'},
+    'App name pending':{en:'App name pending',ko:'앱 이름 조회 대기'},
+};
+const tr = (s, values) => Object.keys(values || {}).reduce((out,k) => out.split('{'+k+'}').join(String(values[k])),labels[s]?(labels[s][getLanguage()]||labels[s].en):t(s));
 const pct = (v) => G.isNum(v) ? v.toFixed(1)+'%' : '--';
 const MB = 1048576;
 class UsageView {
@@ -28,7 +33,7 @@ class UsageView {
             const y=top+82+i*44, chosen=app.uid===this.selected, trend=app.trend||{};
             if(chosen)cv.roundRect(36,y,586,42,5,theme.track);
             const color=trend.leakSuspected||trend.memoryRising||trend.cpuRising?theme.warn:theme.text;
-            cv.text(fit(cv,t(app.name),20,244,'label'),46,y+23,20,color);
+            cv.text(fit(cv,/^oap_\d+$/.test(app.name)?tr('App name pending'):t(app.name),20,244,'label'),46,y+23,20,color);
             const tags=[];
             if(app.uid!==null)tags.push('UID '+app.uid);
             if(trend.cpuRising)tags.push(tr('CPU rising'));
@@ -72,8 +77,8 @@ class UsageView {
         chart(top+chartHeight+16,selected?'App memory (RSS)':'Memory usage (RAM)',theme.cold||theme.accent2,memOf,memoryMax,trend.memoryDelta,selected?' MB':'%',trend.memoryRising);
         const coverage=last?last.coverage:{};
         const limited=coverage.error||coverage.denied||coverage.skipped;
-        cv.text(tr('30s - last 30m')+' · '+(limited?tr('Partial access: {count} unreadable',{count:coverage.denied||coverage.skipped||'?' }):tr('Readable processes; RSS can share pages')),48,bottom-32,16,limited?theme.warn:theme.dim);
-        const status=usage.demo?tr('Demo data is not logged'):!usage.logging?tr('Usage logging off'):usage.logger.error?tr('Log error: {error}',{error:usage.logger.error}):tr('Compressed log: 30s / 30 days');
+        cv.text(tr('Sampling period',{seconds:INTERVAL/1000})+' · '+(limited?tr('Partial access: {count} unreadable',{count:coverage.denied||coverage.skipped||'?' }):tr('Readable processes; RSS can share pages')),48,bottom-32,16,limited?theme.warn:theme.dim);
+        const status=usage.demo?tr('Demo data is not logged'):!usage.logging?tr('Usage logging off'):usage.logger.error?tr('Log error: {error}',{error:usage.logger.error}):tr('Usage log period',{seconds:INTERVAL/1000});
         cv.text(fit(cv,status,17,650,'label'),1552,bottom-32,17,usage.logger.error&&!usage.demo?theme.warn:theme.dim,{align:'right'});
         const note=trend.leakSuspected?tr('Memory keeps growing - possible leak; investigation needed'):tr('A usage increase alone does not prove a memory leak');
         cv.text(!last||(selected?selected.cpu:last.cpu)===null?tr('CPU: waiting for two valid samples'):note,48,bottom-8,16,trend.leakSuspected?theme.warn:theme.dim);

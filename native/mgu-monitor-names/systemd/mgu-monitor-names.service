@@ -1,0 +1,12 @@
+[Unit]
+Description=Export installed OAP app names for MGU Monitor
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/node /var/opt/mgu-monitor-names/current/export-names.js
+TimeoutStartSec=15
+UMask=0022
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes

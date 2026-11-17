@@ -1,7 +1,7 @@
 'use strict';
 const S = require('./sysinfo');
 const { UsageLog } = require('./usage-log');
-const INTERVAL = 30000, LOG_INTERVAL = 30000, WINDOW = 30 * 60000;
+const INTERVAL = 10000, LOG_INTERVAL = 10000, WINDOW = 30 * 60000;
 const FIVE_MINUTES = 5 * 60000;
 const valid = (v) => typeof v === 'number' && isFinite(v);
 const memoryPercent = (s) => s.memory && s.memory.total > 0 ? s.memory.used * 100 / s.memory.total : null;
@@ -12,7 +12,8 @@ function trends(history, policy) {
     if (!history.length) return result;
     const last = history[history.length - 1], now = last.time;
     const at = (time) => history.find((s) => Math.abs(s.time - time) <= INTERVAL / 2);
-    const base = at(now - FIVE_MINUTES), recent = history.filter((s) => s.time >= now - 2 * INTERVAL);
+    const base = at(now - FIVE_MINUTES), recent = history.filter((s) => s.time >= now - 60000 - INTERVAL / 2);
+    const confirmationCount = Math.round(60000 / INTERVAL) + 1;
     const window = history.filter((s) => s.time >= now - 3 * FIVE_MINUTES);
     const continuous = (since) => {
         const list = window.filter((s) => s.time >= since);
@@ -21,8 +22,8 @@ function trends(history, policy) {
     if (base && continuous(base.time)) {
         if (valid(base.cpu) && valid(last.cpu)) result.cpuDelta = last.cpu - base.cpu;
         if (valid(p.memory(base)) && valid(p.memory(last))) result.memoryDelta = p.memory(last) - p.memory(base);
-        result.cpuRising = result.cpuDelta >= 15 && recent.length >= 3 && recent.every((s) => valid(s.cpu) && s.cpu >= base.cpu + 10);
-        result.memoryRising = result.memoryDelta >= p.rise && recent.length >= 3 && recent.every((s) => valid(p.memory(s)) && p.memory(s) >= p.memory(base) + p.sustain);
+        result.cpuRising = result.cpuDelta >= 15 && recent.length >= confirmationCount && recent.every((s) => valid(s.cpu) && s.cpu >= base.cpu + 10);
+        result.memoryRising = result.memoryDelta >= p.rise && recent.length >= confirmationCount && recent.every((s) => valid(p.memory(s)) && p.memory(s) >= p.memory(base) + p.sustain);
     }
     const checkpoints = [3, 2, 1, 0].map((n) => at(now - n * FIVE_MINUTES));
     if (checkpoints.every((s) => s && valid(p.memory(s))) && window.every((s) => valid(p.memory(s))) && continuous(now - 3 * FIVE_MINUTES)) {
@@ -47,6 +48,7 @@ class UsageMonitor {
     }
     sample(now, demo, logging, processes) {
         const mode = demo || null;
+        if (mode !== this.demo || (logging === false && this.logging)) this.logger.flush();
         if (mode !== this.demo || (this.history.length && now < this.history[this.history.length - 1].time)) {
             this.history = []; this.previous = null; this.lastLog = null;
         }
@@ -72,12 +74,12 @@ class UsageMonitor {
         sample.coverage = mode ? { denied:0, skipped:0, error:'' } : Object.assign({ denied:0, skipped:0, error:'' }, processes || {});
         delete sample.coverage.apps;
         this.history.push(sample);
-        this.history = this.history.filter((s) => s.time >= now - WINDOW).slice(-61);
+        this.history = this.history.filter((s) => s.time >= now - WINDOW).slice(-181);
         sample.trend = trends(this.history);
         sample.apps.forEach((app) => { app.trend = appTrend(this.history,app); });
         if (!mode && !this.logging) this.logger.prune(now);
         if (!mode && this.logging && (this.lastLog === null || now < this.lastLog || now - this.lastLog >= LOG_INTERVAL)) {
-            // Advance even on error: retry at the next 30-second sample.
+            // Advance even on error: retry at the next 10-second sample.
             this.logger.append(sample); this.lastLog = now;
         }
         return sample;

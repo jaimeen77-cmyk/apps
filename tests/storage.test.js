@@ -8,14 +8,14 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'storage-test-'));
 const previews = process.env.STORAGE_PREVIEW_DIR;
 async function checkRenderer(language) {
     const id = language === 'ko' ? 'storage' : 'storage_en';
-    const file = build({ template:'storage', id, version:'1.1.0', language,
+    const file = build({ template:'storage', id, version:'1.1.1', language,
         dir:language === 'ko' ? 'apps/storage' : 'store/apps/storage_en',
         source:'apps/storage', out:path.join(temp,id) });
     const stage = path.join(temp,id,'installed');fs.mkdirSync(stage);
     cp.execFileSync('tar',['-xzf',file,'-C',stage]);
     const js = path.join(stage,'package/javascript');
     const spec = require(path.join(js,'kit/app-spec.json'));
-    assert.strictEqual(spec.version,'1.1.0');
+    assert.strictEqual(spec.version,'1.1.1');
     assert.strictEqual(spec.title,language==='ko'?'MGU 모니터':'MGU Monitor');
     const pkg=require(path.join(stage,'package/package.json'));
     assert.strictEqual(pkg.displayName,spec.title);
@@ -64,12 +64,12 @@ async function checkRenderer(language) {
         assert(labels.some(s=>s.toLowerCase()===t('Installed apps').toLowerCase()));
         assert(labels.some(s=>s.includes(language==='ko'?'앱 4개':'4 apps')));
         if(previews)fs.writeFileSync(path.join(previews,`apps-${language}.png`),play(frame.words(),new Canvas(frame.w,frame.h)).png());
-        assert(timers.some(timer=>timer.ms===30000),'collection interval must be 30 seconds');
-        for(let i=0;i<=60;i++) {
-            clock+=30000;
+        assert(timers.some(timer=>timer.ms===10000),'collection interval must be 10 seconds');
+        for(let i=0;i<=180;i++) {
+            clock+=10000;
             activeMonitor.sample(clock,null,false,{apps:[
                 {uid:12201,name:'App platform (MainApp)',cpu:8,rss:80*1048576,processes:2,partial:false},
-                {uid:12210,name:'Redline',cpu:10+i,rss:(32+i*2)*1048576,processes:1,partial:false}
+                {uid:12210,name:'Redline',cpu:10+i/3,rss:(32+i*2/3)*1048576,processes:1,partial:false}
             ],denied:2,skipped:0,error:''});
         }
         await handlers.BTN_APP();await handlers.BTN_APP();labels.length=0;await loop();
@@ -115,5 +115,5 @@ async function checkRenderer(language) {
     assert((await S.appFolders(path.join(temp,'missing'))).error);
     const real=await S.fileSystems();assert(!real.error&&real.list.length);assert(S.memory().total>0&&S.uptime()>0);
     await checkRenderer('ko');await checkRenderer('en');
-    console.log('PASS: Storage 1.1.0 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
+    console.log('PASS: Storage 1.1.1 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>fs.rmSync(temp,{recursive:true,force:true}));

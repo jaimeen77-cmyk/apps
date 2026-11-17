@@ -150,12 +150,13 @@
       "kind": "app",
       "path": "apps/storage",
       "title": "MGU 모니터 (한국어)",
-      "description": "앱별 CPU·RAM 그래프 · 메모리 증가 알림 · 30초 수집 · 30일 로그",
+      "description": "앱별 CPU·RAM 그래프 · 메모리 증가 알림 · 10초 수집 · 30일 로그",
       "mguHmi": [
         "ID7"
       ],
       "requires": {
-        "mgu-deploy": "0.7.17"
+        "mgu-deploy": "0.7.17",
+        "mgu-monitor-names": "0.1.0"
       },
       "build": {
         "node": "tools/store-build.js",
@@ -184,12 +185,13 @@
       "kind": "app",
       "path": "store/apps/storage_en",
       "title": "MGU Monitor (English)",
-      "description": "Per-app CPU / RAM graphs, growth alerts, 30-second samples and 30-day logs",
+      "description": "Per-app CPU / RAM graphs, growth alerts, 10-second samples and 30-day logs",
       "mguHmi": [
         "ID7"
       ],
       "requires": {
-        "mgu-deploy": "0.7.17"
+        "mgu-deploy": "0.7.17",
+        "mgu-monitor-names": "0.1.0"
       },
       "build": {
         "node": "tools/store-build.js",
@@ -249,6 +251,13 @@
         "network": false,
         "shared": ["store/runtime", "tools/store-build.js", "localization/ko-additions.tsv", "apps/seats_easy_access"]
       }
+    },
+    {
+      "id": "mgu-monitor-names",
+      "kind": "tool",
+      "path": "native/mgu-monitor-names",
+      "title": "MGU Monitor app names",
+      "description": "앱 이름 조회 보조 도구 · exports app names without changing app permissions"
     }
   ]
 }

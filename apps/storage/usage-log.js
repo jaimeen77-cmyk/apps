@@ -9,9 +9,10 @@ const FILE = /^usage-(\d{4}-\d{2}-\d{2})\.csv\.gz$/;
 const HEADER = 'timestamp_utc,cpu_percent,memory_percent,memory_used_bytes,memory_total_bytes,uptime_seconds,cpu_delta_5m_pp,memory_delta_5m_pp,cpu_rising,memory_rising,memory_leak_suspected,status,unreadable_processes,skipped_processes,apps_json\n';
 const number = (n, digits) => typeof n === 'number' && isFinite(n) ? n.toFixed(digits || 0) : '';
 class UsageLog {
-    constructor(dataDir) {
+    constructor(dataDir, options) {
         this.dir = dataDir ? path.join(dataDir, 'usage-logs') : null;
         this.error = ''; this.lastCleanup = null;
+        this.pending = []; this.batchSize = (options && options.batchSize) || 3;
     }
     _directory() {
         if (!this.dir) throw new Error('App data directory unavailable');
@@ -71,12 +72,25 @@ class UsageLog {
             const row = [new Date(now).toISOString(), number(sample.cpu, 2), number(m && m.used * 100 / m.total, 2),
                 number(m && m.used), number(m && m.total), number(sample.uptime, 1), number(trend.cpuDelta, 2), number(trend.memoryDelta, 2),
                 trend.cpuRising ? '1' : '0', trend.memoryRising ? '1' : '0', trend.leakSuspected ? '1' : '0', status, coverage.denied || 0, coverage.skipped || 0, json].join(',') + '\n';
-            const data = zlib.gzipSync(Buffer.from((existing && existing.size ? '' : HEADER) + row));
-            if ((existing ? existing.size : 0) + data.length > MAX_FILE ||
-                files.reduce((sum, entry) => sum + entry.size, 0) + data.length > MAX_TOTAL) throw new Error('Usage log size limit reached');
-            fs.appendFileSync(file, data, { mode: 0o600 });
-            this.error = ''; return true;
+            if (this.pending.length && this.pending[0].file !== file) { this.flush(); this.pending = []; }
+            this.pending.push({ file, row });
+            // Three 10-second samples share one gzip member. This keeps the
+            // 30-day disk budget close to the older 30-second log cadence.
+            if (this.pending.length > this.batchSize) this.pending.shift();
+            if (!existing || this.pending.length >= this.batchSize) return this.flush();
+            return true;
         } catch (e) { this.error = String(e.code || e.message || e); return false; }
+    }
+    flush() {
+        if (!this.pending.length) return true;
+        try {
+            this._directory();
+            const file = this.pending[0].file, files = this._files(), existing = files.find((entry) => entry.file === file);
+            const data = zlib.gzipSync(Buffer.from((existing && existing.size ? '' : HEADER) + this.pending.map((p) => p.row).join('')));
+            if ((existing ? existing.size : 0) + data.length > MAX_FILE || files.reduce((n,e) => n + e.size,0) + data.length > MAX_TOTAL) throw new Error('Usage log size limit reached');
+            fs.appendFileSync(file,data,{mode:0o600});
+            this.pending = []; this.error = ''; return true;
+        } catch(e) { this.error = String(e.code || e.message || e); return false; }
     }
     prune(now) {
         try {

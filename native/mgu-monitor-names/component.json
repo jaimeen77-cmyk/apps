@@ -1,0 +1,53 @@
+{
+  "id": "mgu-monitor-names",
+  "kind": "tool",
+  "version": "0.1.0",
+  "title": "MGU Monitor app names",
+  "description": "Read-only installed app name export for MGU Monitor; no app permission changes",
+  "mguHmi": [
+    "ID7"
+  ],
+  "requires": {
+    "mgu-deploy": "0.7.17"
+  },
+  "files": [
+    {
+      "path": "export-names.js",
+      "mode": "0644"
+    },
+    {
+      "path": "update.sh",
+      "mode": "0644"
+    },
+    {
+      "path": "LICENSE",
+      "mode": "0644"
+    }
+  ],
+  "units": [
+    {
+      "name": "mgu-monitor-names.service",
+      "from": "systemd/mgu-monitor-names.service"
+    },
+    {
+      "name": "mgu-monitor-names.timer",
+      "from": "systemd/mgu-monitor-names.timer"
+    }
+  ],
+  "enable": [
+    {
+      "unit": "mgu-monitor-names.timer",
+      "target": "timers.target"
+    }
+  ],
+  "restart": [
+    "mgu-monitor-names.timer"
+  ],
+  "postInstall": [
+    "update.sh"
+  ],
+  "check": [
+    "export-names.js",
+    "--check"
+  ]
+}
