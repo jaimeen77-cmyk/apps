@@ -1,8 +1,8 @@
 {
   "id": "storage",
-  "title": "Storage",
-  "description": "Head-unit storage: free space per file system, RAM in use, per-app size, with a usage alert",
-  "version": "1.0.4",
+  "title": "MGU Monitor",
+  "description": "Storage and per-app CPU / RAM graphs, growth alerts and 30-day usage logs",
+  "version": "1.1.0",
   "vendor": "custom",
   "loggingId": "OST1",
   "iconGlyph": "GB",
@@ -11,7 +11,7 @@
     {
       "name": "MAIN",
       "kind": "canvas",
-      "title": "Storage",
+      "title": "MGU Monitor",
       "buttons": [
         [
           "BTN_ACTION",
@@ -22,6 +22,10 @@
           "Next page"
         ],
         [
+          "BTN_APP",
+          "Next app"
+        ],
+        [
           "BTN_SETTINGS",
           "Settings"
         ]
@@ -30,7 +34,7 @@
   ],
   "startWidget": {
     "comment": "Home-screen widget (eDrive / Drive Recorder layout). Big widget shows a drawn gauge of the apps file system; small widget shows text + the layout progress bar. Turns red at the alert threshold.",
-    "name": "Storage",
+    "name": "MGU Monitor",
     "layout": "LT_Table_OnlineApps_DriveRecorderWidget",
     "image": "BackgroundImage1",
     "scale": 2,
@@ -88,8 +92,18 @@
         [
           "apps",
           "Apps"
+        ],
+        [
+          "usage",
+          "CPU / Memory"
         ]
       ]
+    },
+    {
+      "key": "usageLogging",
+      "label": "Save CPU / memory usage logs",
+      "type": "bool",
+      "default": true
     },
     {
       "key": "showRam",
@@ -228,7 +242,46 @@
       "Demo 44%": "예시 44%",
       "Demo 78%": "예시 78%",
       "Demo 95%": "예시 95%",
-      "Head-unit storage: free space per file system, RAM in use, per-app size, with a usage alert": "헤드유닛 디스크·RAM·앱별 용량과 사용률 경고"
+      "Head-unit storage: free space per file system, RAM in use, per-app size, with a usage alert": "헤드유닛 디스크·RAM·앱별 용량과 사용률 경고",
+      "CPU / Memory": "CPU / 메모리",
+      "CPU usage": "CPU 사용률",
+      "Memory usage (RAM)": "메모리 사용률 (RAM)",
+      "All cores combined - 0 to 100%": "전체 코어 기준 · 0~100%",
+      "Now": "현재",
+      "{minutes}m ago": "{minutes}분 전",
+      "Demo data is not logged": "예시 데이터는 기록하지 않습니다",
+      "Usage logging off": "사용률 로그 기록 꺼짐",
+      "Log error: {error}": "로그 오류: {error}",
+      "CPU: waiting for two valid samples": "CPU: 유효한 측정값 2개를 기다리는 중",
+      "Save CPU / memory usage logs": "CPU·메모리 사용률 로그 저장",
+      "Head-unit storage, CPU and memory graphs with 30-day usage logs": "헤드유닛 저장공간·CPU·메모리 그래프와 30일 사용률 로그",
+      "30-second samples - last 30 minutes": "30초 간격 · 최근 30분",
+      "CSV log: every 30 seconds - kept for 30 days": "CSV 기록 중 · 30초 간격 · 30일 보관",
+      "5-minute change: {delta} pp": "5분 변화: {delta}%p",
+      "Trend: collecting 5 minutes of data": "추세: 5분간 데이터 수집 중",
+      "Rising": "상승 중",
+      "Memory keeps growing - possible leak; investigation needed": "메모리 지속 증가 · 누수 의심, 원인 확인 필요",
+      "A usage increase alone does not prove a memory leak": "사용량 증가만으로 메모리 누수를 확정할 수 없습니다",
+      "Memory leak suspected": "메모리 누수 의심",
+      "Memory rising": "메모리 상승",
+      "CPU rising": "CPU 상승",
+      "Next app": "다음 앱",
+      "App CPU / RAM": "앱별 CPU / RAM",
+      "Whole head unit": "전체 헤드유닛",
+      "CPU %": "CPU %",
+      "5m MB": "5분 MB",
+      "CPU order - select a row or Next app": "CPU 순 · 행 선택 또는 다음 앱",
+      "No readable app processes": "조회 가능한 앱 프로세스 없음",
+      "App memory (RSS)": "앱 메모리 (RSS)",
+      "5m: {delta}": "5분: {delta}",
+      "Collecting 5-minute trend": "5분 추세 수집 중",
+      "30s - last 30m": "30초 간격 · 최근 30분",
+      "Partial access: {count} unreadable": "일부 접근 제한: {count}개 조회 불가",
+      "Readable processes; RSS can share pages": "조회 가능한 프로세스 기준 · RSS 공유 페이지 포함",
+      "Compressed log: 30s / 30 days": "압축 로그 · 30초 간격 · 30일 보관",
+      "Storage and per-app CPU / RAM graphs, growth alerts and 30-day usage logs": "저장공간·앱별 CPU/RAM 그래프, 증가 알림과 30일 사용률 로그",
+      "pp": "%p",
+      "MGU Monitor": "MGU 모니터"
     }
   }
 }

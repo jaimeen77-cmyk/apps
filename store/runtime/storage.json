@@ -2,10 +2,10 @@
   "schema": 1,
   "id": "storage",
   "language": "ko",
-  "source_version": "1.0.1",
-  "ui_sha256": "7bc4dfbf4945c7d9907995405c1817a6dd85f791142b2b71bd1d539205cf3730",
-  "size": 995292,
-  "sha256": "0cc9d2ba9af34229d1cede1621c97dd921efb71d0507a1751a742bbb79fa2c39",
+  "source_version": "1.1.0",
+  "ui_sha256": "c494f66f0d198a5962b7ec8287a926ee73b80bccaf29e97db37a3e9f6c0c7657",
+  "size": 1050270,
+  "sha256": "2bd3b68809707004c669075abb5cb4e11c38202f76c043d7bf316ec316a60816",
   "parts": [
     "storage.tgz.part-00",
     "storage.tgz.part-01",
@@ -27,7 +27,8 @@
     "storage.tgz.part-17",
     "storage.tgz.part-18",
     "storage.tgz.part-19",
-    "storage.tgz.part-20"
+    "storage.tgz.part-20",
+    "storage.tgz.part-21"
   ],
   "provenance": {
     "runtime": "jaimeen77-cmyk/appsKOR",

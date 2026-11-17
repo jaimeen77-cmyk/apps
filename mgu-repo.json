@@ -149,8 +149,8 @@
       "id": "storage",
       "kind": "app",
       "path": "apps/storage",
-      "title": "저장공간 (한국어)",
-      "description": "디스크·RAM·앱별 용량과 홈 위젯 사용률 경고",
+      "title": "MGU 모니터 (한국어)",
+      "description": "앱별 CPU·RAM 그래프 · 메모리 증가 알림 · 30초 수집 · 30일 로그",
       "mguHmi": [
         "ID7"
       ],
@@ -183,8 +183,8 @@
       "id": "storage_en",
       "kind": "app",
       "path": "store/apps/storage_en",
-      "title": "Storage (English)",
-      "description": "Disk, RAM and per-app usage with a home-screen widget",
+      "title": "MGU Monitor (English)",
+      "description": "Per-app CPU / RAM graphs, growth alerts, 30-second samples and 30-day logs",
       "mguHmi": [
         "ID7"
       ],

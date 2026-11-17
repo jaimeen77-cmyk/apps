@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Storage — 헤드유닛이 얼마나 찼는지 차 화면에서 바로 본다(읽기 전용).
+ * MGU Monitor — 헤드유닛 저장공간·CPU·메모리 조회 및 앱 자체 사용률 로그.
  *
  *   Disks  유닛의 각 파일시스템(df): 여유/사용/크기, 사용률 색 막대. 앱이 설치된
  *          파티션은 APPS 로 표시. 오른쪽에 '앱용 여유'와 RAM.
@@ -19,12 +19,15 @@ const G = require('./kit/gauges');
 const { withAlpha, ScaledCanvas } = require('./kit/canvas');
 const S = require('./sysinfo');
 const BG = require('./bg');
+const { UsageMonitor, memoryPercent, INTERVAL } = require('./usage');
+const { ProcessUsage } = require('./process-usage');
+const { UsageView } = require('./usage-view');
 const { t } = require('./kit/i18n');
 const tr = (text, values) => Object.keys(values || {}).reduce((out, key) => out.split('{' + key + '}').join(String(values[key])), t(text));
 
 const W = 1600, H = 520;
-const PAGES = ['disks', 'apps'];
-const TABS = ['Disks', 'Apps'].map((s) => tr(s));
+const PAGES = ['disks', 'apps', 'usage'];
+const TABS = ['Disks', 'Apps', 'CPU / Memory'].map((s) => tr(s));
 const DISK_MS = 10000;
 const GB = 1024 * 1024 * 1024, MB = 1024 * 1024;
 
@@ -45,7 +48,7 @@ function demoApps() {
         { folder: 'oap_12201', name: 'App platform (MainApp)', bytes: 220 * MB, files: 0, denied: 0 },
         { folder: 'oap_12210', name: 'Redline', bytes: 48 * MB, files: 0, denied: 0 },
         { folder: 'oap_12211', name: 'G-Force', bytes: 22 * MB, files: 0, denied: 0 },
-        { folder: 'oap_12212', name: 'Storage', bytes: 6 * MB, files: 0, denied: 0 },
+        { folder: 'oap_12212', name: 'MGU Monitor', bytes: 6 * MB, files: 0, denied: 0 },
     ], error: '', scanning: false, done: 4, total: 4, t: Date.now() };
 }
 
@@ -60,6 +63,22 @@ mgu.run({
         const alertOf = () => { const v = Number(settings.get('alertPct')); return isFinite(v) && v > 0 ? v : 80; };
         const demoMode = () => settings.get('demo');
         const useDemo = () => { const d = demoMode(); return (d && d !== 'auto') ? d : (!onCar() ? 'ok' : null); };
+        const usage = new UsageMonitor(ctx.dataDir);
+        let processUsage = new ProcessUsage(ROOT), usageBusy = false, lastMode;
+        const sampleUsage = async () => {
+            if (usageBusy) return;
+            usageBusy = true;
+            try {
+                const mode = useDemo();
+                if (mode !== lastMode) { processUsage = new ProcessUsage(ROOT); lastMode = mode; }
+                const processes = mode ? null : await processUsage.sample();
+                if (mode === useDemo()) usage.sample(Date.now(), mode, settings.get('usageLogging'), processes);
+            } finally { usageBusy = false; }
+        };
+        const usageView = new UsageView(() => render());
+        await sampleUsage();
+        const usageTimer = setInterval(sampleUsage, INTERVAL);
+        process.on('exit', () => clearInterval(usageTimer));
 
         /* ---------- data ---------- */
         let disks = { list: [], how: '', error: '', t: 0 }, mem = null, up = null, diskBusy = false, isDemo = false;
@@ -236,6 +255,10 @@ mgu.run({
             if (base - 60 >= rtop + second * rowH) BG.mark(cv, 1552, base);
         }
 
+        function drawUsage(cv, t, top) {
+            usageView.draw(cv, t, usage, top, G.BOTTOM, fit);
+        }
+
         async function render() {
             const now = Date.now();
             if (now - lastDraw > 2000 || now - disks.t > DISK_MS) readDisks();
@@ -248,8 +271,16 @@ mgu.run({
             const alert = over();
             const BH = 50, top = G.TOP + (alert ? BH + 8 : 0);
             if (alert) drawBanner(cv, t, G.TOP + 2, BH);
-            (PAGES[page] === 'apps' ? drawApps : drawDisks)(cv, t, top);
+            (PAGES[page] === 'usage' ? drawUsage : PAGES[page] === 'apps' ? drawApps : drawDisks)(cv, t, top);
             const badges = [];
+            const latest = usage.history[usage.history.length - 1];
+            const percentText = (v) => G.isNum(v) ? v.toFixed(1) + '%' : '--';
+            badges.push({ text: 'CPU ' + percentText(latest && latest.cpu) + ' | RAM ' + percentText(latest ? memoryPercent(latest) : null) });
+            const culprit = latest && (latest.apps.find((a) => a.trend.leakSuspected) || latest.apps.find((a) => a.trend.cpuRising || a.trend.memoryRising));
+            if (culprit) badges.push({ text: (culprit.trend.leakSuspected ? tr('Memory leak suspected') : culprit.trend.cpuRising ? tr('CPU rising') : tr('Memory rising')) + ': ' + String(culprit.name).slice(0,16) });
+            else if (latest && latest.trend.leakSuspected) badges.push({ text: tr('Memory leak suspected') });
+            else if (latest && latest.trend.memoryRising) badges.push({ text: tr('Memory rising') });
+            else if (latest && latest.trend.cpuRising) badges.push({ text: tr('CPU rising') });
             if (alert) badges.push({ text: tr('LOW {percent}%', { percent: appPct().toFixed(0) }) });
             if (isDemo) badges.push({ text: tr('DEMO') });
             G.frame(cv, t, TABS, page, badges);
@@ -274,7 +305,7 @@ mgu.run({
             const alert = p !== null && p >= alertOf();
             if (appFs) {
                 setCells(inst, {
-                    Title: [(alert ? '! ' : '') + tr('Storage'), 'Text'],
+                    Title: [(alert ? '! ' : '') + tr('MGU Monitor'), 'Text'],
                     TextRecordings: [tr('App storage {percent}% - free {size}', { percent: p.toFixed(0), size: sz(appFs.avail) }), 'Text'],
                     ProgressbarVisible: [true, 'Bool'],
                     Progress: [Math.round(p), 'Float'],
@@ -304,8 +335,13 @@ mgu.run({
         /* ---------- wiring ---------- */
         ui.onClick('BTN_ACTION', () => { readDisks(); if (PAGES[page] === 'apps') { apps.t = 0; scanApps(); } return render(); });
         ui.onClick('BTN_PAGE', () => { page = (page + 1) % PAGES.length; return render(); });
-        ctx.onTab((i) => { page = i; return render(); });
-        settings.onChange((k) => { if (k === 'page') page = Math.max(0, PAGES.indexOf(settings.get('page'))); });
+        ui.onClick('BTN_APP', () => { page = 2; usageView.next(usage); return render(); });
+        ctx.onTab((i) => { if (i >= 0 && i < PAGES.length) page = i; return render(); });
+        settings.onChange((k) => {
+            if (k === 'page') page = Math.max(0, PAGES.indexOf(settings.get('page')));
+            if (k === 'demo') sampleUsage();
+            if (k === 'usageLogging') usage.logging = settings.get('usageLogging') !== false;
+        });
 
         if (ctx.widget) {
             ctx.widget.loop(() => 1, renderWidget);

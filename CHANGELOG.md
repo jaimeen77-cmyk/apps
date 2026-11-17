@@ -42,7 +42,17 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - Show the BMW Coding photo behind the controls with a lighter veil, as on Cluster Redline's settings screen.
 - Add the Cluster Redline brand mark in the free space at the top: profile picture, 서울II잼님 · blog address and "BMW Coding 배움터" (English: address and "BMW Coding"). The picture is a gradient-only layer for native renderers.
 
-## Storage
+## MGU Monitor (formerly Storage)
+
+### 1.1.0
+
+- Rename the visible app, native entry and widget to MGU Monitor / MGU 모니터; preserve storage/storage_en IDs for existing installs.
+
+- Add a CPU / Memory tab with per-app CPU, RSS, five-minute growth and selectable 30-minute graphs. Keep whole-unit CPU/RAM percentages visible on every tab.
+- Read aggregate CPU counters and group readable processes/helpers by OAP UID every 30 seconds. Handle PID reuse, permissions and disappearing processes without inventing zero values.
+- Add sustained CPU/memory growth and possible-leak indicators; require continuous valid history and document thresholds and RSS limitations.
+- Write real whole-unit/per-app samples to daily compressed CSV every 30 seconds. Retain 30 days with startup/hourly expiry, file/total bounds, error reporting and no demo logging.
+- Release both Korean and English editions as 1.1.0; keep existing IDs, settings and the background/watermark. Host package/renderer/process/retention tests pass; vehicle verification remains pending.
 
 ### 1.0.4
 

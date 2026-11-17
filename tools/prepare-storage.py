@@ -64,9 +64,9 @@ def generate(kit_root):
             new = "        if ((type || 'Text') === 'Text') {\n            if (!this._storageText) this._storageText = new HmiText();\n            return Promise.resolve(this._storageText.set(this.comp, 'STORAGE_WIDGET', Number(spawnId), cell, value))\n                .catch((e) => log.warn('widget ' + cell + ': ' + e));\n        }\n        return Promise.resolve(this.comp.setValue(Number(spawnId), cell, value, type || 'Text'))"
             if code.count(old) != 1: raise ValueError('Unsupported widget runtime')
             module.write_text(code.replace(old, new))
-            pkg = {'name': 'storage', 'version': original['version'], 'description': spec['description'], 'main': 'javascript/app.js',
+            pkg = {'name': 'storage', 'displayName': spec['title'], 'version': original['version'], 'description': spec['description'], 'main': 'javascript/app.js',
                 'private': False, 'author': 'jaimeen77-cmyk', 'license': 'SEE NOTICE', 'mguHmi': ['ID7'], 'mguLocalOnly': True,
-                'engines': {'node': '>=8.7.0'}, 'oapAppSettings': {'maxDiskUsage': 20971520, 'cpuLimit': 35,
+                'engines': {'node': '>=8.7.0'}, 'oapAppSettings': {'maxDiskUsage': 134217728, 'cpuLimit': 35,
                     'memoryThresholdKB': 131072, 'priority': 'PRIO_LOW', 'visibility': 'FOREGROUND', 'latencyClass': 'FOREGROUND',
                     'loggingId': original['loggingId'], 'userLoginRequired': False, 'backgroundPriority': 200, 'someipManifest': 'manifest.json'}}
             write(package / 'package.json', pkg)

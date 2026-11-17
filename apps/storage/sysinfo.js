@@ -108,17 +108,40 @@ function fsOf(list, p) {
 }
 
 /** Memory from /proc/meminfo, bytes: { total, avail, used, swapTotal, swapFree } or null. */
-function memory() {
-    try {
+function parseMemory(text) {
         const kv = {};
-        fs.readFileSync('/proc/meminfo', 'utf8').split('\n').forEach((l) => {
+        String(text).split('\n').forEach((l) => {
             const m = /^(\w+):\s+(\d+)/.exec(l);
             if (m) kv[m[1]] = Number(m[2]) * 1024;
         });
         if (!kv.MemTotal) return null;
-        const avail = kv.MemAvailable != null ? kv.MemAvailable : (kv.MemFree || 0) + (kv.Buffers || 0) + (kv.Cached || 0);
+        const available = kv.MemAvailable != null ? kv.MemAvailable : (kv.MemFree || 0) + (kv.Buffers || 0) + (kv.Cached || 0) + (kv.SReclaimable || 0) - (kv.Shmem || 0);
+        const avail = Math.max(0, Math.min(kv.MemTotal, available));
         return { total: kv.MemTotal, avail, used: kv.MemTotal - avail, swapTotal: kv.SwapTotal || 0, swapFree: kv.SwapFree || 0 };
+}
+function memory() {
+    try { return parseMemory(fs.readFileSync('/proc/meminfo', 'utf8'));
     } catch (e) { return null; }
+}
+
+// Aggregate CPU jiffies, normalized across all cores. guest/guest_nice are
+// already included in user/nice and must not be added a second time.
+function parseCpu(text) {
+    const line = /^cpu\s+(.+)$/m.exec(String(text));
+    if (!line) return null;
+    const values = line[1].trim().split(/\s+/).slice(0, 8).map(Number);
+    if (values.length < 4 || values.some((n) => !isFinite(n) || n < 0)) return null;
+    return { total: values.reduce((a, b) => a + b, 0), idle: values[3] + (values[4] || 0) };
+}
+function cpu() {
+    try { return parseCpu(fs.readFileSync('/proc/stat', 'utf8')); }
+    catch (e) { return null; }
+}
+function cpuPercent(previous, current) {
+    if (!previous || !current) return null;
+    const total = current.total - previous.total, idle = current.idle - previous.idle;
+    if (total <= 0 || idle < 0 || idle > total) return null;
+    return Math.max(0, Math.min(100, (total - idle) * 100 / total));
 }
 
 /** Seconds the unit has been up, or null. */
@@ -200,4 +223,17 @@ async function appFolders(root, onProgress) {
     return { list, error: '' };
 }
 
-module.exports = { fileSystems, fsOf, memory, uptime, folderSize, appFolders, parseDf, RAM, VIRTUAL };
+function appIdentities(root) {
+    try {
+        const names = appNames(root), apps = []; let error = '';
+        fs.readdirSync(root).filter((name) => /^oap_\d+$/.test(name)).forEach((folder) => {
+            try {
+                const dir = path.join(root, folder), stat = fs.lstatSync(dir);
+                if (stat.isDirectory() && !stat.isSymbolicLink()) apps.push({ uid: Number(folder.slice(4)), name: String(packageName(dir) || names[folder] || folder).slice(0,96) });
+            } catch (e) { error = String(e.code || e.message); }
+        });
+        return { apps, error };
+    } catch (e) { return { apps: [], error: String(e.code || e.message) }; }
+}
+
+module.exports = { fileSystems, fsOf, memory, parseMemory, cpu, parseCpu, cpuPercent, uptime, folderSize, appFolders, appIdentities, parseDf, RAM, VIRTUAL };
