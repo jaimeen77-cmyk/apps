@@ -1,5 +1,9 @@
 # iDrive 7 Jam Apps
 
+Store listings are visible on ID8 with unspecified catalog compatibility.
+**ID8 is unverified**; the current install packages and UI resources retain
+their ID7 restrictions. Listing visibility does not enable ID8 installation.
+
 ![BMW Coding Study Cafe](screenshots/banner.png)
 
 **Made by 잼님 (jaimeen77)** · Download: [github.com/jaimeen77-cmyk/apps](https://github.com/jaimeen77-cmyk/apps) · MGU Store source: `jaimeen77-cmyk/apps` (branch `main`) · Blog: [blog.naver.com/jaimeen77](https://blog.naver.com/jaimeen77) · Korean guide: [설치·사용 설명서](docs/CLUSTER-REDLINE.ko.md)

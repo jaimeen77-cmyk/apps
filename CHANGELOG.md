@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Store listing visibility
+
+- Remove the catalog's ID7-only visibility filter for all eight app listings and the name-map helper. Explicit `mguHmi: null` overrides manifest defaults, so ID8 sees compatibility as unknown and the Store lists the items.
+- Label ID8 unverified in each listing. Preserve existing package ID7 restrictions and UI resources; this changes discovery only and does not claim or enable ID8 installation support.
+
 ## Seats Easy Access
 
 ### 0.6.11
