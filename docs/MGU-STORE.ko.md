@@ -9,7 +9,7 @@ Store 런타임 템플릿(`store/runtime`)을 `appsKOR`의 최신 App Kit(2bb790
 설치 패키지에 iDrive 7과 iDrive 8 화면 정의(`rhmiData/uiDescriptions/ID7`, `ID8`)가 함께 들어가고
 `package.json`과 Store 목록의 `mguHmi`가 모두 `["ID7", "ID8"]`입니다.
 iDrive 8 실차 검증은 아직 하지 않았으므로 설명의 **ID8 미검증** 표시는 유지합니다.
-버전을 올렸으므로(Circuit 1.0.1, Cluster Redline 1.2.59, MGU 모니터 1.1.2, Seats 0.6.12) iDrive 7 설치본도 Store에서 업데이트됩니다.
+버전을 올렸으므로(Circuit 1.0.1, Cluster Redline 1.3.0, MGU 모니터 1.1.2, Seats 0.6.12) iDrive 7 설치본도 Store에서 업데이트됩니다.
 
 재생성 방법(유지보수):
 

@@ -3,9 +3,9 @@
   "id": "seats_easy_access",
   "language": "en",
   "source_version": "0.6.12",
-  "ui_sha256": "3375aa0f24136c30aab42c8ddd45a947f788ad432361a7b11f2f24a7f62ab751",
-  "size": 1653485,
-  "sha256": "6c0828cf1e107bf32327e98e6247008c7c6959dc43df4488ad8ae1efd6d31fcb",
+  "ui_sha256": "4db20a9ced35873481e0e6456c8d069518dc58c05670beef60c112b696c5cb69",
+  "size": 1653846,
+  "sha256": "86088bf3d06d74115d59f86aabe22aa6686bd1b6815ecb7018d1a4b3b0497e5c",
   "parts": [
     "seats_easy_access.en.tgz.part-00",
     "seats_easy_access.en.tgz.part-01",

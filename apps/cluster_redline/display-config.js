@@ -14,7 +14,7 @@ const LEGACY_PARTS=['Aux'];
 // outside app.json, so the Store's settings templates stay valid.
 const RL_PARTS=['RlCar','RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlTemp','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];
 const NAV_PARTS=[{key:'Direction',label:'Direction',prefix:'hudNav',scale:'navUniformScale',w:240,h:112},{key:'Text',label:'Text',prefix:'hudText',scale:'hudTextScale',w:240,h:48},{key:'Lanes',label:'Lane guidance',prefix:'hudLanes',scale:'hudLanesScale',w:240,h:72}];
-const defaults={displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own',clusterDesign:'own'};
+const defaults={hudTurnSignals:'off',hudTurnStyle:'arrow',hudTurnColor:'green',hudTurnOffsetX:0,hudTurnOffsetY:0,hudTurnScale:100,hudTurnLeftOffsetX:0,hudTurnLeftOffsetY:0,hudTurnRightOffsetX:0,hudTurnRightOffsetY:0,hudTurnHidden:false,hudTurnLeftHidden:false,hudTurnRightHidden:false,displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own',clusterDesign:'own'};
 NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
 ['hud','cluster'].forEach(d=>{
  defaults[d+'AuxConfig']=JSON.stringify({mode:'gauges',items:['boost','torque']});
@@ -59,13 +59,33 @@ function normalize(raw,out){
  out.clockZone=['auto','utc9'].includes(raw.clockZone)?raw.clockZone:require('./strings').language()==='ko'?'utc9':'auto';
  out.hudDesign=HUD_ONLY_DESIGNS.includes(raw.hudDesign)?raw.hudDesign:'own';
  out.clusterDesign=HUD_DESIGNS.includes(raw.clusterDesign)&&raw.clusterDesign!=='rl-sporthud'?raw.clusterDesign:'own';
+ out.hudTurnSignals=raw.hudTurnSignals==='on'?'on':'off';out.hudTurnStyle=TURN_STYLES.includes(raw.hudTurnStyle)?raw.hudTurnStyle:'arrow';out.hudTurnColor=Object.prototype.hasOwnProperty.call(TURN_COLORS,raw.hudTurnColor)?raw.hudTurnColor:'green';
+ TURN_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
+ if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
  out.layoutPreview=typeof raw.layoutPreview==='string'&&/^(hud|cluster|nav):[A-Za-z]{1,20}@[0-9]{1,15}$/.test(raw.layoutPreview)?raw.layoutPreview:'';
  return out;
 }
 function metricSlots(items){if(items.length<3)return items.map((id,i)=>({id,side:i,row:0,rows:1,index:i+1}));return items.map((id,i)=>({id,side:i<2?0:1,row:i%2,rows:i<2||items.length===4?2:1,index:i+1}));}
 function sportMode(mode){return /^(SPORT|PHEV_SPORT)/.test(String(mode||''));}
 function navAllowed(cfg,mode){return cfg.hudNavigationEnabled&&cfg.navDisplayMode!=='stock'&&!(cfg.navDisplayMode==='excludeSport'&&sportMode(mode));}
-function rpmOutput(cfg,name,mode){return cfg['all'+name+'Output']==='redline'||sportMode(mode)&&cfg['sport'+name+'Output']==='redline';}
+// All modes RPM display: 'redline' every mode, 'nosport' every mode but Sport (Sport then follows its own row).
+function allOutput(cfg,name,mode){const v=cfg['all'+name+'Output'];return v==='redline'||v==='nosport'&&!sportMode(mode);}
+function rpmOutput(cfg,name,mode){return allOutput(cfg,name,mode)||sportMode(mode)&&cfg['sport'+name+'Output']==='redline';}
+// HUD turn signals: the pair (Turn: position and size of both), then each side's own position.
+const TURN_STYLES=['arrow','chevron3','chevron'],TURN_COLORS={green:'#2fd65a',blue:'#3d8bff',orange:'#ff9a1f'};
+const TURN_PARTS=[{key:'Turn',label:'Both turn signals',prefix:'hudTurn',scale:'hudTurnScale'},{key:'TurnLeft',label:'Left turn signal',prefix:'hudTurnLeft',scale:'hudTurnScale'},{key:'TurnRight',label:'Right turn signal',prefix:'hudTurnRight',scale:'hudTurnScale'}];
+const TURN_BASE={w:44,h:36,gap:44,x:400,y:62};
+function turnRect(cfg,side){
+ const s=(cfg.hudTurnScale||100)/100,w=Math.round(TURN_BASE.w*s),h=Math.round(TURN_BASE.h*s),own=side==='left'?'hudTurnLeft':'hudTurnRight';
+ const cx=TURN_BASE.x+(side==='left'?-1:1)*(TURN_BASE.gap*s+w/2)+(cfg.hudTurnOffsetX||0)+(cfg[own+'OffsetX']||0),cy=TURN_BASE.y+(cfg.hudTurnOffsetY||0)+(cfg[own+'OffsetY']||0);
+ return {x:Math.max(0,Math.min(800-w,Math.round(cx-w/2))),y:Math.max(0,Math.min(480-h,Math.round(cy-h/2))),w,h};
+}
+// The sides drawn now: lit ones, or both while a turn signal part is being moved in Position / size.
+function turnSides(cfg,indicator,lit,preview){
+ const on=preview||cfg.hudTurnSignals==='on'&&!cfg.hudTurnHidden;if(!on)return [];
+ const want=preview?['left','right']:lit?indicator==='both'?['left','right']:indicator==='left'||indicator==='right'?[indicator]:[]:[];
+ return want.filter(side=>!cfg[(side==='left'?'hudTurnLeft':'hudTurnRight')+'Hidden']||preview);
+}
 function navVisible(cfg,mode){const on=navAllowed(cfg,mode);return {direction:on&&!cfg.hudNavHidden,text:on&&!cfg.hudTextHidden,lanes:on&&!cfg.hudLanesHidden};}
 // Settings layout editor: the part being adjusted, honoured for two minutes after the last edit.
 function layoutPreview(cfg,now){const m=/^(hud|cluster|nav):([A-Za-z]+)@([0-9]+)$/.exec(cfg.layoutPreview||'');if(!m)return null;const at=Number(m[3]),t=typeof now==='number'?now:Date.now();return t>=at-5000&&t-at<=120000?{display:m[1]==='nav'?'hud':m[1],tab:m[1],part:m[2]}:null;}
@@ -77,4 +97,4 @@ function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig'])
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !cfg[d+'RpmGaugeHidden']&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={allOutput,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

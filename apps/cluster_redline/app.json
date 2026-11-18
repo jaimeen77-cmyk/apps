@@ -2,7 +2,7 @@
   "id": "cluster_redline",
   "title": "Cluster Redline",
   "description": "Independent cluster/HUD RPM and navigation with retained component rendering and batched custom settings",
-  "version": "1.2.59",
+  "version": "1.3.0",
   "vendor": "custom",
   "loggingId": "OAC7",
   "iconGlyph": "rpm",
@@ -90,6 +90,11 @@
       "_optional": "CarPlay lane guidance unavailable",
       "_instances": "Main_Instance",
       "currentLaneGuiding": "rs"
+    },
+    "de.bmw.body.Light": {
+      "_optional": "HUD turn signal arrows; without it the HUD shows none",
+      "StatusFunctionsIndicators": "s",
+      "StatusFunctionsIndicators2": "s"
     }
   },
   "screens": [
@@ -344,6 +349,10 @@
           "Redline app"
         ],
         [
+          "nosport",
+          "Redline app · except Sport modes"
+        ],
+        [
           "stock",
           "Stock display"
         ]
@@ -358,6 +367,10 @@
         [
           "redline",
           "Redline app"
+        ],
+        [
+          "nosport",
+          "Redline app · except Sport modes"
         ],
         [
           "stock",

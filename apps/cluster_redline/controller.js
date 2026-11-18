@@ -112,6 +112,8 @@ class Controller {
         const painter = hud ? this.hudPainter : this.painter;
         d.navigation = hud ? this.navigation : null;
         d.renderRpm=this.renderRpm!==false;d.aux=this.aux||{};
+        // HUD turn signals (worker: TurnSignal.read); a turn signal part being moved shows both, lit.
+        const turn=this.turn||{};d.indicator=turn.indicator||'off';d.turnLit=!!turn.lit;d.turnPreview=!!(this.preview&&/^Turn/.test(this.preview.part||''));
         d.rendering=this.renderCache?this.renderCache.stats():null;
         const targetWidth = panel ? 1920 : hud ? 800 : 1088, targetHeight = panel ? 720 : 480;
         const geometry = cfg.displayTarget + ':' + targetWidth + 'x' + targetHeight;

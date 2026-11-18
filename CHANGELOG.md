@@ -2,12 +2,18 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.0
+
+- CLUSTER and HUD display tabs: All modes RPM display has a third choice, **Redline app · except Sport modes**. Every drive mode but Sport (Sport, Sport+, Sport Individual and the plug-in hybrid Sport modes) shows the Redline display; Sport follows the Sport mode RPM display row.
+- HUD display tab, last row: **Turn signals on HUD** (off by default). On / off, shape (default arrow, `<<< >>>`, `< >`) and colour (green, blue, orange). Position / size moves both arrows together (and sizes them), or the left or right arrow on its own; each can be hidden. The arrows flash with the car's flasher (about 640 ms a cycle) from the light module's indicator fields (`de.bmw.body.Light` StatusFunctionsIndicators / StatusFunctionsIndicators2, optional and read-only). Only the lit arrow is in the HUD frame, so a flash uploads just its own rectangle. They show while the Redline HUD is on (RPM display or navigation).
+- The settings are kept outside app.json (like the designs) and saved in favourites. All Store runtime templates are regenerated (new Korean strings in `localization/ko-additions.tsv`).
+
 ## iDrive 7 and iDrive 8 Store packages
 
 - Rebuild every Store runtime template (Circuit, Cluster Redline, MGU Monitor, Seats Easy Access; Korean and English) with the latest appsKOR App Kit (2bb7902) through the existing overlay. Each package now carries the iDrive 7 and iDrive 8 RHMI descriptions, and `package.json` says `mguHmi: ["ID7", "ID8"]` like the catalog, so iDrive 8 no longer refuses the install.
 - `tools/prepare-storage.py` writes the iDrive 8 description too and takes the kit commit for provenance (`--kit-commit`); `tools/store-build.js` stamps both HMIs.
 - `mgu-monitor-names` is for iDrive 7 and iDrive 8 (it only reads installed app metadata).
-- Versions: iDrive Circuit 1.0.1, Cluster Redline 1.2.59, MGU Monitor 1.1.2, Seats Easy Access 0.6.12, so iDrive 7 installs update to the new packages too. iDrive 8 has not been tested on a car yet.
+- Versions: iDrive Circuit 1.0.1, Cluster Redline 1.2.59 (1.3.0 above), MGU Monitor 1.1.2, Seats Easy Access 0.6.12, so iDrive 7 installs update to the new packages too. iDrive 8 has not been tested on a car yet.
 
 ## Store listing visibility
 

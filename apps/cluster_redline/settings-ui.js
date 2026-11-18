@@ -6,7 +6,7 @@ const {settings:effective,PROFILES,DEFAULTS}=require('./policy');
 const D=require('./display-config'),RL=require('./redline-hud'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
 const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
 const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting','Favorites'],FAV_TAB=4,FAV_COUNT=5,FAV_GAP=1500,FAV_ARM=4000;
-const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','clusterYieldGuidance','layout']];
+const GROUPS=[['autoStart','appEnabled','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout','turn'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','clusterYieldGuidance','layout']];
 const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
@@ -14,7 +14,11 @@ const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data
 const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaultOf=(schema,k)=>{const d=schema.find(s=>s.key===k);return d&&d.default!==undefined?d.default:DEFAULTS[k];};
 // A favourite is the whole setup: every setting except running / preview state and the saved slots
 // themselves, plus the values kept outside app.json (designs, Redline layout elements, per-design positions).
-const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts'];
+// HUD turn signals: kept outside app.json, like the designs.
+const TURN_KEYS=Object.keys(D.defaults).filter(k=>/^hudTurn/.test(k));
+const TURN_ITEM={key:'turn',label:'Turn signals on HUD',type:'action'};
+const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
+const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts'].concat(TURN_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
 const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlCar|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
@@ -54,47 +58,50 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance'].concat(RL_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance'].concat(RL_KEYS,TURN_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:GROUPS[this.tab];}
- item(){const key=this.keys()[this.focus];if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
+ item(){const key=this.keys()[this.focus];if(key==='turn')return TURN_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
  // Keep Basic a normal tab, including repeated taps from older hosts.
  tapBasic(){this.selectTab(0);}
  selectTab(i){this.tab=Math.max(0,Math.min(FAV_TAB,i|0));this.favArmed=null;this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
  // The settings screen left without Back (Home, another app, screen off): end Position / size so its
  // preview never stays on the HUD or cluster.
- leave(){if(this.open==='layout'||this.open==='layoutPresets'){this.setPreview(false);this.open=null;this.draft=null;this.resetArmed=false;this.presetMessage='';this.choice=0;this.changed();}else if(this.settings.get('layoutPreview'))this.setPreview(false);}
+ leave(){if(this.open==='layout'||this.open==='layoutPresets'){this.setPreview(false);this.open=null;this.layoutKind=null;this.draft=null;this.resetArmed=false;this.presetMessage='';this.choice=0;this.changed();}else if(this.settings.get('layoutPreview'))this.setPreview(false);}
  back(){
   if(this.open==='favView'){this.open=null;}
   else if(this.open==='rlDesign'){this.open='design';this.choice=2;}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
   else if(this.open==='layoutPresets'){this.open='layout';this.choice=0;this.presetMessage='';}
-  else{if(this.open==='layout')this.setPreview(false);this.open=null;this.draft=null;}
+  else if(this.open==='layout'&&this.layoutKind==='turn'){this.setPreview(false);this.layoutKind=null;this.open='turn';this.choice=0;}
+  else{if(this.open==='layout')this.setPreview(false);this.open=null;this.draft=null;this.layoutKind=null;}
   this.changed();
  }
  move(delta){
   if(this.tab===FAV_TAB&&!this.open){const n=FAV_COUNT*3;this.focus=(this.focus+delta+n)%n;}
   else if(this.open==='favView'){this.choice=(this.choice+delta+2)%2;}
   else if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
-  else{const n=this.open==='layout'||this.open==='layoutPresets'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.stylesFor(this.display()).length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
+  else{const n=this.open==='layout'||this.open==='layoutPresets'||this.open==='turn'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.stylesFor(this.display()).length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
  }
  value(item,cfg){
   if(item.key==='aux'){const a=D.auxConfig(cfg[this.display()+'AuxConfig']);return t(a.mode==='values'?'Text':'Gauges')+' · '+a.items.map(k=>tr(D.LABELS[k])).join(' / ');}
   if(item.key==='design'){const d=this.display();if(RL.active(cfg,d))return tr('Redline app layouts')+' · '+tr(RL.NAMES[RL.style(cfg,d)]);return t(cfg[this.display()+'AlertStyle']==='circle'?'Circle beside gear':'Top alert bar');}
   if(item.key==='layout')return t('Adjust');
+  if(item.key==='turn')return cfg.hudTurnSignals==='on'?tr('On')+' · '+tr(TURN_STYLE_LABELS[cfg.hudTurnStyle])+' · '+tr(TURN_COLOR_LABELS[cfg.hudTurnColor]):tr('Off');
   if(item.key==='appEnabled')return t(cfg.appEnabled?'Running':'Stopped');
   if(item.key==='shiftRpm'&&!this.settings.get(item.key))return cfg.shiftRpm+' rpm';
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'?cfg.clusterYieldGuidance:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
- change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
   if(index!==undefined)this.focus=index;
   if(this.tab===FAV_TAB&&!this.open){this.favAction(Math.floor(this.focus/3)+1,this.focus%3);return;}
   const item=this.item();if(!item)return;
   this.choice=0;
-  if(item.key==='aux')this.open='auxMode';
+  if(item.key==='turn')this.open='turn';
+  else if(item.key==='aux')this.open='auxMode';
   else if(item.key==='design'){this.open='design';this.choice=RL.active(this.config(),this.display())?2:this.config()[this.display()+'AlertStyle']==='circle'?1:0;}
   else if(item.key==='layout'){this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set([this.layoutParts()[0].key]);this.setPreview(true);}
   else if(item.type==='bool'){this.change(1);return;}
@@ -103,7 +110,7 @@ class SettingsPage{
  }
  choose(index){
   if(this.open==='favView'){if(index===0)this.loadFavorite(this.favIndex);else this.back();return;}
-  if(this.open==='layout'||this.open==='layoutPresets'){const a=this.layoutActions[index];if(a)a.act();return;}
+  if(this.open==='layout'||this.open==='layoutPresets'||this.open==='turn'){const a=this.layoutActions[index];if(a)a.act();return;}
   if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
   if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else if(index===D.METRICS.length+1)this.toggleClockZone();else this.toggleMetric(D.METRICS[index]);return;}
   if(this.open==='design'){
@@ -119,7 +126,7 @@ class SettingsPage{
  toggleMetric(id){if(!this.draft||!D.METRICS.includes(id)||this.auxBlocked(id)&&!this.draft.items.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
  commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.open=null;this.draft=null;this.changed();}
  button(cv,targets,label,x,y,w,h,act,on,id){
-  const layoutFocus=(this.open==='layout'||this.open==='layoutPresets')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice||this.tab===FAV_TAB&&!this.open&&id==='fav-'+this.focus||this.open==='favView'&&id==='favview-'+this.choice;
+  const layoutFocus=(this.open==='layout'||this.open==='layoutPresets'||this.open==='turn')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice||this.tab===FAV_TAB&&!this.open&&id==='fav-'+this.focus||this.open==='favView'&&id==='favview-'+this.choice;
   // On the design pickers the fill marks the design in use and a white outline the cursor; elsewhere the cursor fills.
   const picker=(this.open==='design'||this.open==='rlDesign')&&focused;
   cv.roundRect(x,y,w,h,6,on||focused&&!picker?'#57202d':'#252a31');if(picker)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],3,'#f3f5f7');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
@@ -135,6 +142,7 @@ class SettingsPage{
   if(cv.chrome)G.frame(cv,theme,tabs,this.tab,badges);else{header(cv,theme,0,0,W,80,'Cluster Redline',tabs,this.tab,badges,true,false);(cv.tabRects||[]).forEach(r=>targets.push(Object.assign({},r,{act:()=>r.i===0?this.tapBasic():this.selectTab(r.i),label:TABS[r.i],id:'tab'+r.i})));}
   if(this.open==='layout')this.drawLayout(cv,cfg,targets);
   else if(this.open==='layoutPresets')this.drawPresets(cv,cfg,targets);
+  else if(this.open==='turn')this.drawTurn(cv,cfg,targets);
   else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
   else if(this.open==='auxSelect')this.drawAuxSelect(cv,cfg,targets);
   else if(this.open==='design')this.drawDesign(cv,cfg,targets);
@@ -149,7 +157,7 @@ class SettingsPage{
  drawRows(cv,cfg,targets,status){
   let y=100;
   this.keys().forEach((key,i)=>{
-   const item=key==='comfortShiftRpm'?COMFORT_ITEM:key==='clusterYieldGuidance'?YIELD_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
+   const item=key==='turn'?TURN_ITEM:key==='comfortShiftRpm'?COMFORT_ITEM:key==='clusterYieldGuidance'?YIELD_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
    const h=this.tab===0?(key==='autoStart'?108:50):this.tab===1?56:68,ty=h===50?35:39;
    if(i===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+(h===50?6:8),4,h===50?37:42,'#f32b40');}
    const label=/^sport/.test(key)?'Sport mode RPM display':/^all/.test(key)?'All modes RPM display':ROW_LABELS[key]||item.label;
@@ -160,10 +168,10 @@ class SettingsPage{
     let size=30,value=this.value(item,cfg);while(size>18&&cv.textWidth(value,size)>850)size--;
     cv.text(value,1480,y+ty,size,'#c1cddd',{align:'right'});targets.push({x:78,y,w:1460,h:h-1,act:()=>this.activate(i),label,id:key});
    }
-   if(key==='autoStart'){cv.text(RENDERER_NOTICE,100,y+72,24,'#ff9e36');cv.text(cfg.sportHudOutput==='redline'||cfg.allHudOutput==='redline'?HUD_WARNING:MAP_WARNING,100,y+101,23,'#ff9e36');}
+   if(key==='autoStart'){cv.text(RENDERER_NOTICE,100,y+72,24,'#ff9e36');cv.text(cfg.sportHudOutput==='redline'||cfg.allHudOutput!=='stock'?HUD_WARNING:MAP_WARNING,100,y+101,23,'#ff9e36');}
    cv.line(84,y+h-1,1536,y+h-1,0.6,'#292d34');y+=h;
   });
-  if(this.tab===1||this.tab===2){cv.text('All modes Redline also applies in Sport.',84,492,23,'#91a1b6');let o=this.outsideStatus(cfg);if(o){while(o.length>5&&cv.textWidth(o,21,{literal:true})>1000)o=o.slice(0,-2);cv.text(o,84,462,21,'#ffad45',{literal:true});}}
+  if(this.tab===1||this.tab===2){cv.text(tr('All modes: Sport too · Except Sport modes: Sport follows its own row.'),84,492,23,'#91a1b6',{literal:true});let o=this.outsideStatus(cfg);if(o){while(o.length>5&&cv.textWidth(o,21,{literal:true})>1000)o=o.slice(0,-2);cv.text(o,84,462,21,'#ffad45',{literal:true});}}
   if(this.tab===3){const y=this.yieldStatus(cfg);if(y)cv.text(y,84,462,22,'#ffad45',{literal:true});}
   // Cafe watermark in the free bottom-right corner of the HUD, cluster and navigation tabs (not on Basic: its rows fill the screen).
   if(this.tab>0)require('./settings-bg').mark(cv,W,H);
@@ -244,13 +252,28 @@ class SettingsPage{
   if(rows<=4)cv.text(tr('Redline app layouts (appsKOR, MIT) and Cluster Redline layouts. Navigation, lanes and auxiliary items stay as set.'),84,476,20,'#a8b6c8',{literal:true});
   this.backButton(cv,targets);
  }
+ // HUD turn signals: on / off, shape, colour, and Position / size (both, left, right).
+ drawTurn(cv,cfg,targets){
+  const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
+  cv.text(tr('Turn signals on HUD'),100,126,32,'#ef4050',{literal:true});
+  [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*740,146,712,64,()=>set('hudTurnSignals',o[0]),(cfg.hudTurnSignals===o[0]),'turn-'+o[0]));
+  const {Canvas}=require('./kit/canvas'),draw=require('./turn-draw');
+  D.TURN_STYLES.forEach((st,i)=>{const x=84+i*490;this.button(cv,local,tr(TURN_STYLE_LABELS[st]),x,222,464,86,()=>set('hudTurnStyle',st),cfg.hudTurnStyle===st,'turn-style-'+st);
+   ['left','right'].forEach((side,n)=>{const im=new Canvas(36,30);im.clear([0,0,0,0]);draw.paint(im,36,30,side,st,cfg.hudTurnColor);cached(cv,'turn|'+st+'|'+cfg.hudTurnColor+'|'+side,x+16+n*386,250,36,30,(c,px,py)=>vector(c,px,py,1).blit(im,0,0));});});
+  Object.keys(D.TURN_COLORS).forEach((k,i)=>{const x=84+i*490;this.button(cv,local,tr(TURN_COLOR_LABELS[k]),x,320,464,64,()=>set('hudTurnColor',k),cfg.hudTurnColor===k,'turn-color-'+k);cv.fillRect(x+20,320+52,424,5,D.TURN_COLORS[k]);});
+  cv.text(tr('Shown while the Redline HUD is on (RPM display or navigation).'),100,418,22,'#91a1b6',{literal:true});
+  this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='turn';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Turn']);this.setPreview(true);this.changed();},false,'turn-layout');
+  this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
+ }
  drawColors(cv,cfg,targets){
   [['gray','Gray'],['white','White'],['blue','Blue']].forEach((o,i)=>{
    const x=84+i*490;this.button(cv,targets,o[1],x,112,464,70,()=>this.choose(i),this.choice===i,'color'+i);
    NAV.draw({visible:true,maneuver:'RIGHT',color:o[0],distanceText:'300 m'},vector(cv,x+75,225,1.25));
   });this.backButton(cv,targets);
  }
- layoutParts(){return this.tab===3?D.NAV_PARTS:D.partsFor(this.display(),this.config());}
+ // Parts placed by their own rectangle (navigation, turn signals) rather than measured on the face.
+ rectKind(){return this.tab===3||this.layoutKind==='turn';}
+ layoutParts(){return this.layoutKind==='turn'?D.TURN_PARTS:this.tab===3?D.NAV_PARTS:D.partsFor(this.display(),this.config());}
  // Tell the renderer which part is being adjusted so hidden or unused parts are drawn while moving them.
  previewValue(){const p=this.layoutParts()[this.layoutPart];return p?(this.tab===3?'nav':this.display())+':'+p.key+'@'+Date.now():'';}
  // Refresh the marker only when the part changed or it is a minute old (it expires after two).
@@ -279,7 +302,7 @@ class SettingsPage{
   this.layoutPart=this.layoutSelected.has(p.key)?index:Math.max(0,parts.findIndex(v=>this.layoutSelected.has(v.key)));this.choice=index;const refresh=this.previewRefresh();if(refresh.layoutPreview!==undefined)this.settings.set('layoutPreview',refresh.layoutPreview);this.changed();
  }
  selectedLayoutParts(){return this.layoutParts().filter(p=>this.layoutSelected.has(p.key));}
- layoutPrefix(p){return this.tab===3?p.prefix:this.display()+p.key;}
+ layoutPrefix(p){return this.rectKind()?p.prefix:this.display()+p.key;}
  // ---- Favourites (tab 5): register the whole setup, load it back, or look at it first.
  // Parsed once per stored text (the tab redraws twice a second; parsing and summarising five favourites each
  // frame cost ~5 ms).
@@ -384,7 +407,7 @@ class SettingsPage{
  toggleMMark(){const d=this.display(),on=!this.config()[d+'RlMarkHidden'],values=this.previewRefresh();values[d+'RlMarkHidden']=on;this.setValues(values);
   if(!on){const i=this.layoutParts().findIndex(p=>p.key==='RlMark');if(i>=0){this.layoutPart=i;this.layoutSelected=new Set(['RlMark']);}}this.changed();}
  adjust(param,delta){
-  this.layoutParam=param;const cfg=this.config(),nav=this.tab===3,parts=this.selectedLayoutParts();if(!parts.length)return;
+  this.layoutParam=param;const cfg=this.config(),nav=this.rectKind(),parts=this.selectedLayoutParts();if(!parts.length)return;
   // Several parts (or All) resize as one picture: every part by the same factor, about the group's
   // centre, so their sizes and the gaps between them keep their proportions.
   if(!nav&&parts.length>1&&!parts.some(p=>p.uniform)&&param>=2){this.groupScale(cfg,parts,delta);return;}
@@ -414,7 +437,7 @@ class SettingsPage{
   this.setValues(changes);this.changed();
  }
  // A Redline layout already as large as the HUD allows (or held at its edge) does not store a size it cannot show.
- rlUnchanged(cfg,parts,changes){if(this.tab===3||!RL.active(cfg,this.display()))return false;const after=Object.assign({},cfg,changes);return JSON.stringify(parts.map(p=>this.rlRect(cfg,p)))===JSON.stringify(parts.map(p=>this.rlRect(after,p)));}
+ rlUnchanged(cfg,parts,changes){if(this.rectKind()||!RL.active(cfg,this.display()))return false;const after=Object.assign({},cfg,changes);return JSON.stringify(parts.map(p=>this.rlRect(cfg,p)))===JSON.stringify(parts.map(p=>this.rlRect(after,p)));}
  partBase(cfg,p){
   const display=this.display();
   if(RL.active(cfg,display)){const e=RL.elements(cfg,display).find(v=>v.key===p.key);return e?RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display):null;}
@@ -440,14 +463,14 @@ class SettingsPage{
   const refresh=this.previewRefresh();if(refresh.layoutPreview!==undefined)this.settings.set('layoutPreview',refresh.layoutPreview);this.changed();}
  rlRect(cfg,p){const display=this.display(),face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display);if(p.key==='RpmGauge')return layout;const shown=RL.placed({config:cfg,rpm:0,gear:'--',aux:{}},layout,display,face).find(v=>v.key===p.key);if(shown)return shown.r;const e=RL.elements(cfg,display).find(v=>v.key===p.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display);return b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;}
  drawLayout(cv,cfg,targets){
-  const local=[],nav=this.tab===3,display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
+  const local=[],nav=this.rectKind(),turn=this.layoutKind==='turn',display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
   // Five columns, or six when a layout has many elements (two rows with Save / load in the last cell).
   const columns=parts.length>=10?6:5,cell=columns===6?243:292;
   parts.forEach((p,i)=>this.button(cv,local,tr(p.label),84+(i%columns)*cell,96+Math.floor(i/columns)*62,cell-14,56,()=>this.selectLayoutPart(i),this.layoutSelected.has(p.key),'part'+i));
-  const allButton=this.tab!==3&&!RL.active(cfg,display),allCell=parts.length;
+  const allButton=!nav&&!RL.active(cfg,display),allCell=parts.length;
   if(allButton){const sel=parts.every(p=>this.layoutSelected.has(p.key));this.button(cv,local,tr('All'),84+(allCell%columns)*cell,96+Math.floor(allCell/columns)*62,cell-14,56,()=>this.selectAllParts(),sel,'part-all');}
   const presetCell=parts.length+(allButton?1:0)<=columns-1?columns-1:2*columns-1;
-  this.button(cv,local,tr('Save / load'),84+(presetCell%columns)*cell,96+Math.floor(presetCell/columns)*62,cell-14,56,()=>{this.open='layoutPresets';this.choice=0;this.resetArmed=false;this.presetMessage='';this.changed();},false,'presets');
+  if(!turn)this.button(cv,local,tr('Save / load'),84+(presetCell%columns)*cell,96+Math.floor(presetCell/columns)*62,cell-14,56,()=>{this.open='layoutPresets';this.choice=0;this.resetArmed=false;this.presetMessage='';this.changed();},false,'presets');
   const selected=parts[this.layoutPart],prefix=this.layoutPrefix(selected),group=this.selectedLayoutParts();
   cv.text('Position',100,241,28,'#b8c5d4');
   const btn=(label,x,y,act,id)=>this.button(cv,local,label,x,y,110,56,act,false,id);
@@ -457,7 +480,8 @@ class SettingsPage{
    cv.text(label,790,y+20,28,'#b8c5d4');btn('−',1010,y+26,()=>this.adjust(i+2,-1),'size-minus'+i);btn('+',1140,y+26,()=>this.adjust(i+2,1),'size-plus'+i);cv.text(!nav&&group.length>1&&!uniform?cfg[prefix+'WidthScale']+' × '+cfg[prefix+'HeightScale']+' %':String(cfg[key])+' %',1500,y+67,30,'#f3f5f7',{align:'right',font:'num'});
   });
   let width,height;
-  if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
+  if(turn){const rect=D.turnRect(cfg,selected.key==='TurnRight'?'right':'left');width=rect.w;height=rect.h;}
+  else if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
   else if(RL.active(cfg,display)){const face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;width=r.w;height=r.h;}
   else{const painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,selected.key,cv)||{w:0,h:0},r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
   cv.text(group.length?group.length+' '+t('selected')+' · '+tr(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});

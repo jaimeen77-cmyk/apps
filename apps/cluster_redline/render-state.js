@@ -34,6 +34,7 @@ function key(s,d){
   if(c[d+'Design']&&c[d+'Design']!=='own')values.push(['redline',require('./redline-hud').key(s,d)]);
  }
  if(d==='hud')D.NAV_PARTS.forEach(p=>{const n=navKey(s,p.key);if(n)values.push([p.key,n,D.navRect(c,p.key)]);});
+ if(d==='hud'){const sides=D.turnSides(c,s.indicator,s.turnLit,!!s.turnPreview);if(sides.length)values.push(['turn',sides,c.hudTurnStyle,c.hudTurnColor,sides.map(v=>D.turnRect(c,v))]);}
  return JSON.stringify(values);
 }
 module.exports={key,partKey,navKey,auxiliary};

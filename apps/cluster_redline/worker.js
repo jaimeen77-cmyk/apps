@@ -26,6 +26,8 @@ const FES = 'de.bmw.infotainment.drivingexcitement.FES';
 const MODE_FIELD = 'statusFESVehicleDynamicSwitchHMI';
 const VEHICLE_INFO = 'de.bmw.infrastructure.VehicleInformation';
 const MDRIVE = 'de.bmw.infotainment.misc.MDrive';
+const LIGHT = 'de.bmw.body.Light';
+const {TurnSignal} = require('./turn-signal');
 function mono() { const p = process.hrtime(); return p[0] * 1000 + p[1] / 1000000; }
 function supportedRenderer() { return renderer.inspect(undefined, fs).compatible; }
 function start(ctx) {
@@ -74,6 +76,7 @@ function start(ctx) {
     const hudGuidance=new HudGuidance(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const lanes=new LaneGuidance(mono);
+    const turnSignal=new TurnSignal();let lightSub=null;
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
     const reportError = (name, e) => { const s = (name + ': ' + e).slice(0, 320); if (errors.indexOf(s) < 0) { errors.push(s); if (errors.length > 8) errors.shift(); } };   // kept for the settings screen, not logged
@@ -136,6 +139,14 @@ function start(ctx) {
         if (hasProgram) signals.watch(MDRIVE, '1', {
             dataDisplayGearbox: (v) => gearbox.sample('programme', v),
         }, log, { pollMs: 1000 }).then((s) => { programSub = s; keep(s); if (s.error) reportError('optional gearbox programme', s.error); }).catch((e) => reportError('optional gearbox programme', e));
+        // HUD turn signals: the light module's indicator fields (notify only; read, never set). A car or build
+        // without them leaves the HUD without arrows.
+        let hasLight = false;
+        try { const cfg = signals.loadConfig(LIGHT); hasLight = !!(cfg.fields && (cfg.fields.StatusFunctionsIndicators || cfg.fields.StatusFunctionsIndicators2)); } catch (e) {}
+        if (hasLight) signals.watch(LIGHT, '1', {
+            StatusFunctionsIndicators: (v) => turnSignal.sample(v, mono()),
+            StatusFunctionsIndicators2: (v) => turnSignal.sample(v, mono()),
+        }, log, {}).then((s) => { lightSub = s; keep(s); if (s.error) reportError('optional turn signals', s.error); }).catch((e) => reportError('optional turn signals', e));
         // Read the common native/projection guidance channel. Never set routes,
         // call vehicle methods, or alter the BMW HUD/menu configuration.
         try {
@@ -226,6 +237,8 @@ function start(ctx) {
             if (gearSub && (gearSub.available === false || gearSub.error)) gearbox.clear();
             if (programSub && (programSub.available === false || programSub.error)) gearbox.programMode = null;
             controller.gear = gearbox.gear; controller.gearMode = gearbox.programMode || gearbox.mode;
+            if (lightSub && (lightSub.available === false || lightSub.error)) turnSignal.clear();
+            controller.turn = turnSignal.read(at);
             if (fesSub && (fesSub.available === false || fesSub.error)) controller.telemetry.clear();
             const raw = {};
             Object.keys(DEFAULTS).forEach((k) => { if (k !== 'frameRate') raw[k] = ctx.settings.get(k); });
@@ -339,7 +352,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, turnSignal: Object.assign({ subscribed: !!lightSub && lightSub.available !== false && !lightSub.error }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
