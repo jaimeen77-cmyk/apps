@@ -2,7 +2,7 @@
 const {Canvas}=require('./kit/canvas');
 const face=require('./hud-draw'),nav=require('./nav-draw'),text=require('./nav-text');
 const lanes=require('./lane-draw'),RL=require('./redline-hud');
-const D=require('./display-config');
+const D=require('./display-config'),turn=require('./turn-draw');
 const {placement}=require('./layout');
 const W=800,H=480;
 const {blitScaled,drawWithParts}=require('./component-canvas');
@@ -41,6 +41,15 @@ function draw(state) {
             paintNav('Lanes',lanes,Object.assign({},state.navigation.lanes,{color:state.config.navColor}));
         }
         if(hasTurn&&!state.config.hudTextHidden)paintNav('Text',text,state.navigation);
+    }
+    // Turn signals, when the Redline HUD is on screen (turnInLayer; otherwise turn-overlay.js shows them): only the
+    // lit side is in the scene, so a flash uploads just its own small rectangle.
+    if(state.turnInLayer){
+        const c=state.config,preview=!!state.turnPreview,count=D.turnCount(c,state.turnStep,preview);
+        D.turnSides(c,state.indicator,state.turnLit,preview).forEach(side=>{
+            const r=D.turnRect(c,side),painter=turn.painter(r.w,r.h,side,c.hudTurnStyle,c.hudTurnColor,count);
+            if(cache)cache.navigation('turn.'+side,[c.hudTurnStyle,c.hudTurnColor,r.w,r.h,count],painter,state,r);else blitScaled(cv,painter.draw(state),r);
+        });
     }
     return cache?cache.finish():cv;
 }

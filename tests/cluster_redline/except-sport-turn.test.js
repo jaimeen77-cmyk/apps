@@ -97,6 +97,30 @@ assert.strictEqual(K.key(state('left',true),'hud'),K.key(state('off',false),'hud
     assert(rec.uploads>before,'<<< >>> steps are redrawn');assert.strictEqual(ov.status().sides.join(),'right','<<< >>> stays on between flashes');
     ov.close();assert.strictEqual(rec.l.size,0);Module._load=orig;
 }
+// Option 2: in the Redline HUD image while it is on screen, else on the overlay layers.
+{
+    const {redlineHudShown}=require('../../apps/cluster_redline/outputs');
+    const shown={requested:true,layerState:'shown',targetState:'shown',targetHolder:'cluster-redline'};
+    assert.strictEqual(redlineHudShown(shown),true);
+    assert.strictEqual(redlineHudShown(Object.assign({},shown,{targetHolder:'stock'})),false,'stock HUD holds the slot: overlay');
+    assert.strictEqual(redlineHudShown(Object.assign({},shown,{targetHolder:'foreign'})),false);
+    assert.strictEqual(redlineHudShown(Object.assign({},shown,{layerState:'waiting'})),false,'not on screen yet: overlay');
+    assert.strictEqual(redlineHudShown(Object.assign({},shown,{requested:false})),false,'stock HUD selected: overlay');
+    const st=(inLayer,ind,lit)=>({config:on2,renderRpm:false,navigation:null,indicator:ind,turnLit:lit,turnInLayer:inLayer});const on2=settings({hudTurnSignals:'on'});
+    assert.notStrictEqual(K.key(st(true,'left',true),'hud'),K.key(st(true,'left',false),'hud'),'in the Redline HUD each flash repaints');
+    assert.strictEqual(K.key(st(false,'left',true),'hud'),K.key(st(false,'off',false),'hud'),'not in the Redline HUD image while the overlay shows them');
+    // the controller learns where they go: after the HUD layer is reported on screen, the next frame carries them
+    let seen=null;const client=new Client(),hud=Object.assign(painter(800,480),{fullTarget:true,key:d=>JSON.stringify([d.indicator,d.turnLit,d.turnInLayer]),draw:d=>{seen=d;return {d:Buffer.alloc(64)};}});
+    const out=new Outputs(client,painter(1088,480),hud);out.turn={indicator:'left',lit:true};const cfg={allHudOutput:'redline',hudTurnSignals:'on'};
+    out.policy.modeSample(4,0);out.policy.rpmSample(3000,1000);out.tick(1000,cfg);assert.strictEqual(seen.turnInLayer,false,'first frame: overlay');assert.strictEqual(out.turnInLayer,false);
+    const ref=out.hud.ref;client.emit('layer',ref,'shown');client.emit('target','hud','shown','cluster-redline','');
+    out.policy.rpmSample(3000,1100);out.tick(1100,cfg);out.policy.rpmSample(3000,1200);out.tick(1200,cfg);
+    assert.strictEqual(out.turnPainted,false,'until a frame with the arrows is sent, the overlay stays');
+    out.policy.rpmSample(3000,1600);out.tick(1600,cfg);
+    assert.strictEqual(seen.turnInLayer,true,'Redline HUD on screen: drawn in it');assert.strictEqual(out.turnPainted&&out.hudShown,true,'the worker hides the overlay');
+    client.emit('target','hud','shown','stock','');out.policy.rpmSample(3000,1700);out.tick(1700,cfg);assert.strictEqual(out.hudShown,false,'stock takes the slot: back to the overlay');
+    out.close();
+}
 // The Redline HUD face is not forced on for a turn signal preview (the overlay shows it), and other
 // Position / size previews end when the settings screen stops being drawn, even without a "hidden" event.
 {

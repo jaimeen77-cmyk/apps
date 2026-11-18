@@ -41,6 +41,7 @@ function previewConfig(cfg,name,pv){
     else{out[name+pv.part+'Hidden']=false;if(name==='hud'&&pv.part==='Gear')out.hudAlertHidden=false;}
     return out;
 }
+function redlineHudShown(s){return !!(s&&s.requested&&s.layerState==='shown'&&s.targetState==='shown'&&s.targetHolder!=='stock'&&s.targetHolder!=='foreign');}
 function sampleNavigation(){
     const lane=(d,hl)=>({directions:[d],other:[],highlighted:hl,blocked:false});
     return {visible:true,maneuverVisible:true,reason:'layout_preview',kind:'intersection',maneuver:'RIGHT',distanceText:'300 m',description:tr('Navigation preview'),provider:'PREVIEW',
@@ -56,6 +57,8 @@ class Outputs {
         this.hud = new Controller(new OutputClient(client), clusterPainter, hudPainter, { upload: this.upload, liveLayout: true });
         [this.cluster, this.hud].forEach((out) => { out.policy = this.policy; out.telemetry = this.telemetry; });
     }
+    // The last frame sent to the Redline HUD carries the turn signals (the overlay can step aside).
+    get turnPainted() { return !!this.hud.turnPainted; }
     get refused() { return this.cluster.refused || this.hud.refused; }
     set refused(value) { this.cluster.refused = this.hud.refused = value; }
     get transitions() { return this.cluster.transitions.concat(this.hud.transitions).sort((a,b) => a.at-b.at).slice(-24); }
@@ -70,6 +73,10 @@ class Outputs {
         // Settings layout editor: draw the part being moved even when it is hidden, unused
         // in the current drive mode or has no live data (sample guidance / lit alert).
         const preview = presence.fresh()?D.layoutPreview(cfg):null;
+        // HUD turn signals go into the Redline HUD image while it is on screen (shown, its slot not held by the
+        // stock HUD or another app); otherwise turn-overlay.js shows them above whatever the HUD shows.
+        const turnPreview=!!(preview&&preview.display==='hud'&&/^Turn/.test(preview.part||'')),turnInLayer=!!this.hudShown;
+        this.turnInLayer=turnInLayer;
         order.forEach((name) => {
             // Turn signal parts are previewed on their own overlay layers (turn-overlay.js), not by the Redline face.
             const out=this[name],pv=preview&&preview.display===name&&!/^Turn/.test(preview.part||'')?preview:null,local=pv?previewConfig(cfg,name,pv):cfg;
@@ -78,7 +85,7 @@ class Outputs {
             const nav=name==='hud'&&(pv&&pv.tab==='nav'||navAllowed(local,this.policy.mode)&&navigation&&navigation.visible);
             const selected=rpm||nav?'redline':'stock';
             out.renderRpm=rpm;out.aux=this.aux||{};out.turn=this.turn||null;
-            out.requiresRpm=!pv&&rpm&&D.faceRpmNeeded(local,name);out.preview=pv;
+            out.requiresRpm=!pv&&rpm&&D.faceRpmNeeded(local,name);out.preview=pv;out.turnPreview=name==='hud'&&turnPreview;out.turnInLayer=name==='hud'&&turnInLayer;
             out.profile = cfg.engineProfile; out.gear = this.gear; out.gearMode = this.gearMode;
             out.navigation = name === 'hud' && navAllowed(local,this.policy.mode) ? navigation : null;
             // Navigation setting: the cluster gives way to route guidance (Waze over CarPlay / Android Auto, or any).
@@ -89,6 +96,7 @@ class Outputs {
             else if(yielded && cfg.appEnabled)states[name].reason='cluster_yield';
             else if(blocked && cfg.appEnabled)states[name].reason=this.hudBlockReason || 'hud_safety';
         });
+        this.hudShown=redlineHudShown(states.hud);
         const active = states.cluster.requested ? states.cluster : states.hud.requested ? states.hud :
             (cfg[prefix+'ClusterOutput'] === 'redline' ? states.cluster : states.hud);
         return Object.assign({}, active, { requested: !!(states.cluster.requested || states.hud.requested), outputs: states, config: cfg });
@@ -98,4 +106,4 @@ class Outputs {
         this.client.removeListener('budget', this.onBudget); this.client.removeListener('ready', this.onReady);
     }
 }
-module.exports = { Outputs, previewConfig, sampleNavigation };
+module.exports = { Outputs, previewConfig, sampleNavigation, redlineHudShown };
