@@ -9,6 +9,7 @@ const worker = require('./worker');
 const { migrate } = require('./migrate');
 const { mapStatus } = require('./output-status');
 const { RenderQueue } = require('./render-queue');
+const presence = require('./preview-presence');
 const REASONS = {
     disabled: 'Automatic display off', renderer_unavailable: 'Waiting for cluster renderer',
     profile_unknown: 'Check engine profile', hybrid_engine_stopped: 'Hybrid engine stopped · hidden',
@@ -106,6 +107,8 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     let periodicAt = -Infinity;
     ctx.loop('MAIN', 2, () => {
         const now = Date.now();
+        // Position / size previews last only while this screen is drawn (preview-presence.js).
+        presence.touch(now);
         if (now < periodicAt || now - periodicAt >= 500) { periodicAt = now; queue.request(); }
     });
     // Static native button labels are set once, not on every position update.

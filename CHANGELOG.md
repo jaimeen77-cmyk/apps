@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.3
+
+- Battery voltage no longer drops to `--` for half a minute at a time. One late reply was taken as "this ECU has no such value": the reader moved on to the next way of asking, tried the other two and waited 30 s before coming back. A transport turning the request away while busy (other apps such as car_vitals use the same diagnostic link) also meant 30 s, and another app's refusal of a `0x22` read to the DME counted as this request's answer. Now a way that answered is kept until four misses in a row, a missed or busy reply is asked again after 1-2 s, only "not supported" refusals move on, and the last value stays for up to 20 s through a gap.
+- HUD turn signals show whenever a turn signal or the hazards flash, also with the stock HUD (no Redline RPM face or guidance), as Cluster Info does. The HUD layer is held about 8 s after the signal ends so a lane change does not drop and re-upload it.
+- The turn signal (and every other) Position / size preview stays only while the settings screen is drawn: a tab button now ends it, and it lapses within about 3 s when the screen is left by any route, even without a "screen hidden" event.
+
 ## iDrive 8: Korean editions start (Circuit 1.0.3, Cluster Redline 1.3.2, MGU Monitor 1.1.4, Seats Easy Access 0.6.14)
 
 - On iDrive 8 the kit writes a setting's On / Off as text. Korean values are not ASCII, so the kit's `hmi-text.js` sent them through the component's HMI string bundle; where that bundle is missing it threw and the app's whole start failed, so the Korean editions stayed on "Loading" while the English ones ran. All eight runtime templates now carry the fixed `hmi-text.js` from appsKOR (plain Text when the bundle is missing or refuses; the start goes on). Only that file changes in the templates.
