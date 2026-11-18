@@ -75,6 +75,28 @@ assert.strictEqual(K.key(state('off',false),'hud'),K.key(state('left',false),'hu
     out.tick(1600,{allHudOutput:'redline',layoutPreview:'hud:TurnLeft@'+Date.now()});assert.strictEqual(seen.turnPreview,true);
     out.close();
 }
+// A turn signal shows on the HUD by itself, with the stock HUD (no RPM face, no navigation), like Cluster Info.
+{
+    const client=new Client(),out=new Outputs(client,painter(1088,480),Object.assign(painter(800,480),{fullTarget:true}));
+    const tick=(t,ind,cfg)=>{out.turn={indicator:ind,lit:true,step:1};out.policy.modeSample(4,t-1);out.policy.rpmSample(800,t);return out.tick(t,cfg).outputs.hud;};
+    assert(!tick(1000,'off',{hudTurnSignals:'on'}).requested,'no signal: the stock HUD is left alone');
+    assert(tick(2000,'left',{hudTurnSignals:'on'}).requested,'a turn signal takes the HUD with the stock HUD selected');
+    assert(tick(3000,'both',{hudTurnSignals:'on'}).requested,'hazards too');
+    assert(tick(9000,'off',{hudTurnSignals:'on'}).requested,'held a few seconds after the stalk returns');
+    assert(!tick(12000,'off',{hudTurnSignals:'on'}).requested,'then released');
+    assert(!tick(13000,'right',{}).requested,'turn signals off: nothing');
+    assert(!tick(14000,'right',{hudTurnSignals:'on',hudTurnHidden:true}).requested,'hidden: nothing');
+    out.close();
+}
+// Position / size ends when the settings screen stops being drawn, even without a "hidden" event.
+{
+    const presence=require('../../apps/cluster_redline/preview-presence');
+    const client=new Client(),out=new Outputs(client,painter(1088,480),Object.assign(painter(800,480),{fullTarget:true}));
+    const tick=t=>{out.turn={indicator:'off',lit:false,step:0};out.policy.modeSample(4,t-1);out.policy.rpmSample(800,t);return out.tick(t,{layoutPreview:'hud:Turn@'+Date.now()}).outputs.hud;};
+    presence.touch();assert(tick(1000).requested,'shown while the screen is drawn');
+    presence.touch(Date.now()-presence.STALE_MS-100);assert(!tick(2000).requested,'gone once the screen is no longer drawn');
+    presence.reset();out.close();
+}
 if(process.argv[2]){
     const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),hud=require(path.join(dir,'hud-compose'));
     const count=(cv,r)=>{let n=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++)if(cv.d[(y*cv.w+x)*4+3])n++;return n;};
@@ -96,5 +118,6 @@ if(process.argv[2]){
     page.adjust(0,1);assert.strictEqual(vals.hudTurnOffsetX,10);
     page.selectLayoutPart(1,true);page.adjust(1,1);assert.strictEqual(vals.hudTurnLeftOffsetY,10);page.adjust(2,1);assert.strictEqual(vals.hudTurnScale,105);
     page.back();assert.strictEqual(page.open,'turn');assert.strictEqual(vals.layoutPreview,'');page.back();assert.strictEqual(page.open,null);
+    page.focus=page.keys().indexOf('turn');page.activate();screen().find(t=>t.id==='turn-layout').run();assert(/^hud:Turn@/.test(vals.layoutPreview));page.selectTab(0);assert.strictEqual(vals.layoutPreview,'','a tab button ends Position / size');assert.strictEqual(page.open,null);
 }
 console.log('PASS: all modes except Sport (cluster, HUD), HUD turn signals: decode, flash, sides, position, size, colour, shape'+(process.argv[2]?', drawn frame and settings screen':''));
