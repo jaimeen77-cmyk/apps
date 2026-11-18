@@ -2,9 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## iDrive 8: fit the manifest to the head unit
+## iDrive 8: fit the manifest to the head unit (Circuit 1.0.2, Cluster Redline 1.3.1, MGU Monitor 1.1.3, Seats Easy Access 0.6.13)
 
 - `tools/store-build.js` takes out of the app's SOME/IP manifest whatever the head unit's interface catalog lacks (missing fields, methods, broadcasts, named instances; r / s / w without a getter / notifier / setter; absent `_optional` interfaces), the same as the App Kit's `build.py` `fit_to_unit` does for the kit's own apps, and writes `javascript/kit/missing-interfaces.json`. iDrive 8 firmware has a different catalog from the iDrive 7 one the templates were prepared against; apps could install there and stay on "Loading". Without a catalog (not on a head unit) nothing changes.
+- New versions for all eight Store entries (Korean and English), so cars that already installed them get the fitted package as an update.
 
 ## Cluster Redline 1.3.0
 
