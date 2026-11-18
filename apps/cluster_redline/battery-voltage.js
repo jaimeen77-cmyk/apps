@@ -8,10 +8,11 @@ function supported(catalog){
 }
 // Three ways to ask the DME (0x12) or the gearbox (0x18) for the same voltage. One that answered is kept: a
 // missed or refused reply is usually traffic (another app such as car_vitals polls the DME, the transport turns
-// requests away while busy), not a sign that the way stopped working. The last good value is shown through a
-// short gap instead of dropping to -- at once; only repeated misses move on to the next way.
+// requests away while busy), not a sign that the way stopped working. The last good value stays on screen until
+// the next good one (12 V moves slowly); it is cleared only when reading stops: the item is deselected, the engine
+// has been off for 3 minutes, or the app stops. Only repeated misses move on to the next way.
 const CANDIDATES=[[18,1,[0x42]],[18,0x22,[0xF4,0x42]],[24,1,[0x42]]];
-const POLL_MS=5000,QUICK_MS=1000,SCAN_MS=2000,IDLE_MS=30000,FRESH_MS=20000,LOCK_MISSES=4;
+const POLL_MS=5000,QUICK_MS=1000,SCAN_MS=2000,IDLE_MS=30000,LOCK_MISSES=4;
 // Refusals that mean "this ECU has no such value"; any other (busy, conditions not correct, another app's
 // refusal of the same service) is transient.
 const UNSUPPORTED=[0x11,0x12,0x31];
@@ -49,8 +50,8 @@ class BatteryVoltage{
   this.locked=false;this.misses=0;this.stats.switched++;
   this.choice=(this.choice+1)%CANDIDATES.length;this.retry=this.choice===0?IDLE_MS:SCAN_MS;
  }
- read(now){return !this.stopped&&this.value!==null&&now>=this.at&&now-this.at<=FRESH_MS?this.value:null;}
+ read(){return !this.stopped&&this.value!==null?this.value:null;}
  release(){this.epoch++;this.value=null;this.pending=false;this.locked=false;this.misses=0;const d=this.diag;this.diag=null;this.initializing=false;close(d);}
  stop(){this.stopped=true;this.release();}
 }
-module.exports={BatteryVoltage,supported,IFACE,FRESH_MS,LOCK_MISSES};
+module.exports={BatteryVoltage,supported,IFACE,LOCK_MISSES};

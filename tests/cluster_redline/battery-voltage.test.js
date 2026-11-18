@@ -1,5 +1,5 @@
 'use strict';
-const assert=require('assert'),{BatteryVoltage,supported,IFACE,FRESH_MS,LOCK_MISSES}=require('../../apps/cluster_redline/battery-voltage');
+const assert=require('assert'),{BatteryVoltage,supported,IFACE,LOCK_MISSES}=require('../../apps/cluster_redline/battery-voltage');
 const settle=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
 (async()=>{
  let now=0,created=0,shut=0,resolveRead,requests=[],initResolve;
@@ -9,7 +9,7 @@ const settle=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
  b.tick(now,true,true);await settle();assert.strictEqual(created,1);
  now=2100;b.tick(now,true,true);b.tick(now+1,true,true);assert.strictEqual(requests.length,0);await settle();assert.strictEqual(requests.length,1);
  assert.deepStrictEqual([requests[0].ecu,requests[0].sid,requests[0].bytes],[18,1,[0x42]]);assert.strictEqual(requests[0].opts.maxRetries,2,'a busy transport is asked again briefly, not left for 30 s');assert(requests[0].accept([0x41,0x42,0x36,0xB0]));assert(!requests[0].accept([0x41,0x43,0,0]));
- resolveRead([0x41,0x42,0x36,0xB0]);await settle();assert.strictEqual(b.read(now),14);assert.strictEqual(b.read(now+FRESH_MS+1),null);
+ resolveRead([0x41,0x42,0x36,0xB0]);await settle();assert.strictEqual(b.read(now),14);assert.strictEqual(b.read(now+600000),14,'kept until the next good reading');
  now+=2100;b.tick(now,true,true);await settle();assert.strictEqual(requests.length,1,'valid voltage is polled at a slower five-second cadence');now+=3000;b.tick(now,true,true);await settle();b.tick(now+50,true,true);await settle();assert.strictEqual(requests.length,2,'one request in flight');b.tick(now,false,true);await settle();resolveRead([0x41,0x42,0x35,0x10]);await settle();assert.strictEqual(b.read(now),null,'late result after deselection must not reappear');assert(shut>=1);
  b.stop();now+=4000;b.tick(now,true,true);await settle();assert.strictEqual(created,1,'stopped reader cannot reinitialize');
  let closes=0,calls=0,finishOld,finishNew;
@@ -28,7 +28,8 @@ const settle=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
 await step(1000);assert.strictEqual(asked.length,6,'a busy transport is retried within a second, not after 30 s');assert.strictEqual(v.read(t),12.608);
   for(let i=0;i<LOCK_MISSES;i++){reply=null;await step(5000);}
   reply=[0x62,0xF4,0x42,0x31,0x38];await step(2000);assert.deepStrictEqual(asked[asked.length-1],[18,0x22],'only repeated misses move on to the next way');assert.strictEqual(v.read(t),12.6);
-  assert.strictEqual(v.read(t+FRESH_MS+1),null,'an old value is not shown for ever');
+  for(let i=0;i<20;i++){reply=null;await step(5000);}assert.strictEqual(v.read(t),12.6,'a long run of misses still shows the last good value');
+  v.tick(t,false,true);assert.strictEqual(v.read(t),null,'cleared when deselected');
   v.stop();
  }
  // A way the ECU says it does not have is left at once while still searching.
@@ -39,5 +40,5 @@ await step(1000);assert.strictEqual(asked.length,6,'a busy transport is retried 
  }
  const good={interfaces:{[IFACE]:{serviceId:63654,version:{major:1},methods:{sendTasuRequest:{methodId:1}},events:{sendTasuResponse:{eventId:32769}}}},instanceIDs:{[IFACE]:{SystemFunctionsInternalTasuInst1:128}}};
  assert(supported(good));assert(!supported({}));const bad=JSON.parse(JSON.stringify(good));bad.interfaces[IFACE].methods.sendTasuRequest.methodId=3;assert(!supported(bad));
- console.log('PASS: lazy standardized voltage reads, no dropouts on a missed, refused or busy reply, one in-flight request, freshness, stop/deselect and initialization-race guards, bounded request options and strict catalog whitelist');
+ console.log('PASS: lazy standardized voltage reads, no dropouts on a missed, refused or busy reply, one in-flight request, last value kept until the next good one, stop/deselect and initialization-race guards, bounded request options and strict catalog whitelist');
 })().catch(e=>{console.error(e);process.exitCode=1;});
