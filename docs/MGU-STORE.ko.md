@@ -44,7 +44,7 @@ jaimeen77-cmyk/apps
 | iDrive Circuit (English) | 영어 | 앱 목록에서 수동 실행 | 위와 동일 |
 | 계기판 레드라인 (한국어) | 한국어 | 백그라운드 자동 시작 | 위 조건 + cluster-render 0.4.0+ |
 | Cluster Redline (English) | 영어 | 백그라운드 자동 시작 | 위와 동일 |
-| MGU 모니터 (한국어) 1.1.2 | 한국어 | 앱 목록에서 수동 실행 | iDrive 7·8, mgu-deploy 0.7.17+ |
+| MGU 모니터 (한국어) 1.1.3 | 한국어 | 앱 목록에서 수동 실행 | iDrive 7·8, mgu-deploy 0.7.17+ |
 | MGU Monitor (English) 1.1.3 | 영어 | 앱 목록에서 수동 실행 | 위와 동일 |
 
 ## 언어 선택과 변경
