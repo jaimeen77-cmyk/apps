@@ -39,10 +39,16 @@ assert.strictEqual(direction({controlIndicateDirection:'BEIDSEITIGES_BLINKEN_EIN
 assert.strictEqual(direction({status:{controlIndicateDirection:0,activeFunctionIndicateDirection:'DAUERBLINKEN_RECHTS'}}),'right');
 assert.strictEqual(direction({controlIndicateDirection:0,activeFunctionIndicateDirection:0}),'off');
 assert.strictEqual(direction({}),null);
-const ts=new TurnSignal();assert.deepStrictEqual(ts.read(0),{indicator:'off',lit:false});
+const ts=new TurnSignal();assert.deepStrictEqual(ts.read(0),{indicator:'off',lit:false,step:0});
 ts.sample({controlIndicateDirection:3},1000);
 const phases=[];for(let t=1000;t<2300;t+=50)phases.push(ts.read(t).lit?1:0);
 assert(phases[0]===1&&phases.includes(0),'flashes');assert.strictEqual(phases.filter(Boolean).length,14,'lit about 335 of every 638 ms');
+// <<< >>>: one, two, three chevrons in turn, a third of the cycle each, never dark while the signal is on.
+{const q=new TurnSignal();q.sample({controlIndicateDirection:2},1040);const steps=[];for(let t=1000;t<2276;t+=50)steps.push(q.read(t).step);
+ assert.strictEqual(steps.join(''),'11111222233331111122223333');assert.strictEqual(new TurnSignal().read(0).step,0);
+ const c3=settings({hudTurnSignals:'on',hudTurnStyle:'chevron3'});assert.deepStrictEqual(D.turnSides(c3,'right',false,false),['right'],'<<< >>> stays on between flashes');
+ assert.deepStrictEqual(D.turnSides(c3,'off',false,false),[]);
+ const k=n=>K.key({config:c3,renderRpm:false,navigation:null,indicator:'right',turnLit:true,turnStep:n},'hud');assert(k(1)!==k(2)&&k(2)!==k(3),'each step repaints');}
 ts.sample({controlIndicateDirection:3},5000);assert.strictEqual(ts.read(9000).indicator,'left','a held stalk (no new notification) keeps flashing');
 ts.clear();assert.strictEqual(ts.read(9100).indicator,'off');
 const cfg=settings({hudTurnSignals:'on'});assert.strictEqual(settings({}).hudTurnSignals,'off','off by default');
@@ -75,7 +81,8 @@ if(process.argv[2]){
     D.TURN_STYLES.forEach(style=>Object.keys(D.TURN_COLORS).forEach(color=>{
         const c=settings({hudTurnSignals:'on',hudTurnStyle:style,hudTurnColor:color}),s=(ind,lit)=>({config:c,renderRpm:false,navigation:null,indicator:ind,turnLit:lit});
         const lit=hud.draw(s('left',true)),dark=hud.draw(s('left',false));
-        assert(count(lit,D.turnRect(c,'left'))>50,style+' '+color+' draws');assert.strictEqual(count(lit,D.turnRect(c,'right')),0);assert.strictEqual(count(dark,D.turnRect(c,'left')),0);
+        assert(count(lit,D.turnRect(c,'left'))>50,style+' '+color+' draws');
+        if(style==='chevron3'){const n=k=>count(hud.draw(Object.assign(s('left',false),{turnStep:k})),D.turnRect(c,'left'));assert(n(1)>0&&n(1)<n(2)&&n(2)<n(3),'one, two, three chevrons');return;}assert.strictEqual(count(lit,D.turnRect(c,'right')),0);assert.strictEqual(count(dark,D.turnRect(c,'left')),0);
     }));
     const {SettingsPage}=require(path.join(dir,'settings-ui')),{Canvas}=require(path.join(dir,'kit/canvas'));
     const spec=require(path.join(dir,'kit/app-spec.json')),vals={};spec.settings.forEach(s=>{vals[s.key]=s.default;});

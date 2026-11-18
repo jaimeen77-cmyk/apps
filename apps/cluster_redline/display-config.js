@@ -74,15 +74,18 @@ function rpmOutput(cfg,name,mode){return allOutput(cfg,name,mode)||sportMode(mod
 // HUD turn signals: the pair (Turn: position and size of both), then each side's own position.
 const TURN_STYLES=['arrow','chevron3','chevron'],TURN_COLORS={green:'#2fd65a',blue:'#3d8bff',orange:'#ff9a1f'};
 const TURN_PARTS=[{key:'Turn',label:'Both turn signals',prefix:'hudTurn',scale:'hudTurnScale'},{key:'TurnLeft',label:'Left turn signal',prefix:'hudTurnLeft',scale:'hudTurnScale'},{key:'TurnRight',label:'Right turn signal',prefix:'hudTurnRight',scale:'hudTurnScale'}];
-const TURN_BASE={w:44,h:36,gap:44,x:400,y:62};
+// Default: a pair just under the default HUD design's RPM gauge (it spans x 146-559, y 93-234), centred on it.
+const TURN_BASE={w:44,h:36,gap:44,x:352,y:264};
 function turnRect(cfg,side){
  const s=(cfg.hudTurnScale||100)/100,w=Math.round(TURN_BASE.w*s),h=Math.round(TURN_BASE.h*s),own=side==='left'?'hudTurnLeft':'hudTurnRight';
  const cx=TURN_BASE.x+(side==='left'?-1:1)*(TURN_BASE.gap*s+w/2)+(cfg.hudTurnOffsetX||0)+(cfg[own+'OffsetX']||0),cy=TURN_BASE.y+(cfg.hudTurnOffsetY||0)+(cfg[own+'OffsetY']||0);
  return {x:Math.max(0,Math.min(800-w,Math.round(cx-w/2))),y:Math.max(0,Math.min(480-h,Math.round(cy-h/2))),w,h};
 }
 // The sides drawn now: lit ones, or both while a turn signal part is being moved in Position / size.
+// <<< >>> does not go dark: it fills one, two, three chevrons in turn (turnStep) while the signal is on.
 function turnSides(cfg,indicator,lit,preview){
  const on=preview||cfg.hudTurnSignals==='on'&&!cfg.hudTurnHidden;if(!on)return [];
+ if(cfg.hudTurnStyle==='chevron3')lit=indicator==='left'||indicator==='right'||indicator==='both';
  const want=preview?['left','right']:lit?indicator==='both'?['left','right']:indicator==='left'||indicator==='right'?[indicator]:[]:[];
  return want.filter(side=>!cfg[(side==='left'?'hudTurnLeft':'hudTurnRight')+'Hidden']||preview);
 }

@@ -45,8 +45,8 @@ function draw(state) {
     // Turn signals: only the lit side is in the scene, so a flash uploads just its own small rectangle.
     const turnPreview=!!(state.turnPreview);
     D.turnSides(state.config,state.indicator,state.turnLit,turnPreview).forEach(side=>{
-        const r=D.turnRect(state.config,side),c=state.config,painter=turn.painter(r.w,r.h,side,c.hudTurnStyle,c.hudTurnColor);
-        if(cache)cache.navigation('turn.'+side,[c.hudTurnStyle,c.hudTurnColor,r.w,r.h],painter,state,r);else blitScaled(cv,painter.draw(state),r);
+        const r=D.turnRect(state.config,side),c=state.config,count=turnPreview?3:state.turnStep||3,painter=turn.painter(r.w,r.h,side,c.hudTurnStyle,c.hudTurnColor,count);
+        if(cache)cache.navigation('turn.'+side,[c.hudTurnStyle,c.hudTurnColor,r.w,r.h,c.hudTurnStyle==='chevron3'?count:0],painter,state,r);else blitScaled(cv,painter.draw(state),r);
     });
     return cache?cache.finish():cv;
 }

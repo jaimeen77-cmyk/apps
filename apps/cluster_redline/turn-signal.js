@@ -33,6 +33,8 @@ class TurnSignal{
  // The fields notify on change only: the direction holds (flashing) until the car says otherwise or the
  // interface goes away (clear()).
  read(now){const dir=this.at!==null?this.dir:'off';
-  return {indicator:dir,lit:dir!=='off'&&((now-this.since)%CYCLE_MS+CYCLE_MS)%CYCLE_MS<ON_MS};}
+  const t=((now-this.since)%CYCLE_MS+CYCLE_MS)%CYCLE_MS;
+  // step: 1, 2, 3 chevrons, a third of the flasher's cycle each (the sequential <<< >>> style).
+  return {indicator:dir,lit:dir!=='off'&&t<ON_MS,step:dir==='off'?0:Math.min(3,1+Math.floor(t*3/CYCLE_MS))};}
 }
 module.exports={direction,TurnSignal,ON_MS,CYCLE_MS};

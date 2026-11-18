@@ -8,11 +8,12 @@ function chevron(x0,w,h,t){
  // a filled ">" of stroke thickness t, from x0, w wide, the full height
  return [[x0,0],[x0+t,0],[x0+w,h/2],[x0+t,h],[x0,h],[x0+w-t,h/2]];
 }
-function paint(cv,w,h,side,style,color){
+// count: chevrons drawn by <<< >>> (1-3, the innermost first; default all three).
+function paint(cv,w,h,side,style,color,count){
  const c=TURN_COLORS[color]||TURN_COLORS.green;
  if(style==='chevron3'){
   const t=Math.max(2,w*0.13),cw=w*0.42,step=(w-cw)/2;
-  for(let i=0;i<3;i++)cv.fill(mirror(chevron(i*step,cw,h,t),w,side),c);
+  const n=count>=1&&count<=3?count:3;for(let i=0;i<n;i++)cv.fill(mirror(chevron(i*step,cw,h,t),w,side),c);
  }else if(style==='chevron'){
   const t=Math.max(3,w*0.26),cw=Math.min(w,h*0.8);
   cv.fill(mirror(chevron((w-cw)/2,cw,h,t),w,side),c);
@@ -24,8 +25,8 @@ function paint(cv,w,h,side,style,color){
  }
 }
 /** A painter for retained-scene / blitScaled: W x H, draw(state) -> Canvas. */
-function painter(w,h,side,style,color){
- return {W:w,H:h,draw:()=>{const cv=new Canvas(w,h);cv.clear([0,0,0,0]);paint(cv,w,h,side,style,color);return cv;},
-  into:(cv)=>paint(cv,w,h,side,style,color)};
+function painter(w,h,side,style,color,count){
+ return {W:w,H:h,draw:()=>{const cv=new Canvas(w,h);cv.clear([0,0,0,0]);paint(cv,w,h,side,style,color,count);return cv;},
+  into:(cv)=>paint(cv,w,h,side,style,color,count)};
 }
 module.exports={paint,painter};
