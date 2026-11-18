@@ -2,10 +2,10 @@
   "schema": 1,
   "id": "storage",
   "language": "en",
-  "source_version": "1.1.0",
+  "source_version": "1.1.1",
   "ui_sha256": "c494f66f0d198a5962b7ec8287a926ee73b80bccaf29e97db37a3e9f6c0c7657",
-  "size": 496321,
-  "sha256": "92138bd893f2b5a008945f8beb8294bb4b06ec22646dfe026c78e8bf1a34f74f",
+  "size": 521367,
+  "sha256": "a934632f0725ac74d4126bbe1c38449510f454c8cae38b39d0145db27c6d25e8",
   "parts": [
     "storage.en.tgz.part-00",
     "storage.en.tgz.part-01",
@@ -21,7 +21,7 @@
   ],
   "provenance": {
     "runtime": "jaimeen77-cmyk/appsKOR",
-    "commit": "ce660077eb89b59bdaf318a63f8c0a388af383f4",
+    "commit": "2bb79029f663deee42289268a5ae845e7d2f2303",
     "license": "MIT",
     "sdk_included": false
   }

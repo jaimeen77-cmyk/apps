@@ -2,6 +2,13 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## iDrive 7 and iDrive 8 Store packages
+
+- Rebuild every Store runtime template (Circuit, Cluster Redline, MGU Monitor, Seats Easy Access; Korean and English) with the latest appsKOR App Kit (2bb7902) through the existing overlay. Each package now carries the iDrive 7 and iDrive 8 RHMI descriptions, and `package.json` says `mguHmi: ["ID7", "ID8"]` like the catalog, so iDrive 8 no longer refuses the install.
+- `tools/prepare-storage.py` writes the iDrive 8 description too and takes the kit commit for provenance (`--kit-commit`); `tools/store-build.js` stamps both HMIs.
+- `mgu-monitor-names` is for iDrive 7 and iDrive 8 (it only reads installed app metadata).
+- Versions are unchanged; iDrive 8 has not been tested on a car yet.
+
 ## Store listing visibility
 
 - Remove the catalog's ID7-only visibility filter for all eight app listings and the name-map helper. Explicit `mguHmi: null` overrides manifest defaults, so ID8 sees compatibility as unknown and the Store lists the items.

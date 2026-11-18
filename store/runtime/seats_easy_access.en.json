@@ -2,10 +2,10 @@
   "schema": 1,
   "id": "seats_easy_access",
   "language": "en",
-  "source_version": "0.6.6",
+  "source_version": "0.6.11",
   "ui_sha256": "3375aa0f24136c30aab42c8ddd45a947f788ad432361a7b11f2f24a7f62ab751",
-  "size": 1612678,
-  "sha256": "e71ff8f94d574c46606199ac440d31d29d82d10cbfae1547eef2975fc364b0e5",
+  "size": 1653485,
+  "sha256": "6c0828cf1e107bf32327e98e6247008c7c6959dc43df4488ad8ae1efd6d31fcb",
   "parts": [
     "seats_easy_access.en.tgz.part-00",
     "seats_easy_access.en.tgz.part-01",

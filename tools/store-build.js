@@ -144,7 +144,7 @@ function build(options) {
             if (base.indexOf(template) >= 0) fs.renameSync(file, path.join(path.dirname(file), base.split(template).join(id)));
         });
         const ready = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
-        ready.name = id; ready.version = version; ready.mguHmi = ['ID7']; ready.mguLocalOnly = true;
+        ready.name = id; ready.version = version; ready.mguHmi = ['ID7', 'ID8']; ready.mguLocalOnly = true;
         fs.writeFileSync(packageFile, JSON.stringify(ready, null, 2) + '\n');
         // Missing optional inputs must not prevent installing the app. Native
         // navigation uses a getter only; a notifier-only field cannot establish

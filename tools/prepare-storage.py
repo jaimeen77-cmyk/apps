@@ -19,7 +19,7 @@ def write(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
-def generate(kit_root):
+def generate(kit_root, kit_commit):
     sys.path.insert(0, str(kit_root / 'kit/tools'))
     loader = importlib.util.spec_from_file_location('storage_kit_build', kit_root / 'kit/tools/build.py')
     kit = importlib.util.module_from_spec(loader); loader.loader.exec_module(kit)
@@ -54,6 +54,11 @@ def generate(kit_root):
             write(rt / 'locale.json', {'language': language, 'strings': locale})
             xml, ui, strings, states = kit.build_ui(spec, language)
             kit.unicode_resources(ui, strings, language)
+            # iDrive 8 description: same state ids, its own static string slots (as the kit's build.py)
+            xml8, ui8, strings8, states8 = kit.build_ui(copy.deepcopy(spec), language, 'ID8')
+            kit.unicode_resources(ui8, strings8, language, 'SID_CN_STATIC8_')
+            if states8 != states: raise ValueError('iDrive 8 description must keep the iDrive 7 state ids')
+            strings.update(strings8)
             runtime_spec = {k: spec.get(k) for k in ['id', 'title', 'version', 'screens', 'settings', 'config', 'startWidget']}
             runtime_spec['stateIds'] = states
             write(rt / 'app-spec.json', runtime_spec)
@@ -65,7 +70,7 @@ def generate(kit_root):
             if code.count(old) != 1: raise ValueError('Unsupported widget runtime')
             module.write_text(code.replace(old, new))
             pkg = {'name': 'storage', 'displayName': spec['title'], 'version': original['version'], 'description': spec['description'], 'main': 'javascript/app.js',
-                'private': False, 'author': 'jaimeen77-cmyk', 'license': 'SEE NOTICE', 'mguHmi': ['ID7'], 'mguLocalOnly': True,
+                'private': False, 'author': 'jaimeen77-cmyk', 'license': 'SEE NOTICE', 'mguHmi': ['ID7', 'ID8'], 'mguLocalOnly': True,
                 'engines': {'node': '>=8.7.0'}, 'oapAppSettings': {'maxDiskUsage': 134217728, 'cpuLimit': 35,
                     'memoryThresholdKB': 131072, 'priority': 'PRIO_LOW', 'visibility': 'FOREGROUND', 'latencyClass': 'FOREGROUND',
                     'loggingId': original['loggingId'], 'userLoginRequired': False, 'backgroundPriority': 200, 'someipManifest': 'manifest.json'}}
@@ -81,11 +86,13 @@ def generate(kit_root):
                 'entryPoints': [{'name':'STORAGE_ENTRY','uuid':kit.u('storage','entry'),'textId':kit.sid('storage','TITLE'),
                     'icon':'storage_icon.png','insertionStateId':20974,'insertionFocusId':2,'insertionMode':'INSERT_BELOW','insertionOrder':0,
                     'insertionPriority':0,'previewType':'NONE','bookmarkable':True,'private':False,'appearance':'DEFAULT','isGroupHeader':False,'insertionGroup':0}],
-                'uiDescriptions':[{'applicationFilePath':'./uiDescriptions/ID7/application.xml','uiDescriptionFilePath':'./uiDescriptions/ID7/uiDescription.json','hmi':['ID7']}],
-                'variantGroups':[{'stringsPath':'./variantGroups/Common/texts','resourcesPath':'./variantGroups/Common/images','hmi':['ID7'],'brands':['BMW']}]}}
+                'uiDescriptions':[{'applicationFilePath':'./uiDescriptions/%s/application.xml' % h,'uiDescriptionFilePath':'./uiDescriptions/%s/uiDescription.json' % h,'hmi':[h]} for h in ('ID7', 'ID8')],
+                'variantGroups':[{'stringsPath':'./variantGroups/Common/texts','resourcesPath':'./variantGroups/Common/images','hmi':['ID7', 'ID8'],'brands':['BMW']}]}}
             write(rhmi / 'application.json', description)
             write(rhmi / 'uiDescriptions/ID7/uiDescription.json', ui)
             (rhmi / 'uiDescriptions/ID7/application.xml').write_text(xml)
+            write(rhmi / 'uiDescriptions/ID8/uiDescription.json', ui8)
+            (rhmi / 'uiDescriptions/ID8/application.xml').write_text(xml8)
             for tag in kit.LANGS: write(rhmi / 'variantGroups/Common/texts' / (tag + '.json'), strings)
             image = rhmi / 'variantGroups/Common/images/storage_icon.png'; image.parent.mkdir(parents=True)
             shutil.copyfile(ROOT / 'apps/storage/icon.png', image)
@@ -112,9 +119,10 @@ def generate(kit_root):
             fingerprint = subprocess.check_output(['node','-e',command,str(ROOT / 'tools/store-build.js'),str(ROOT / 'apps/storage/app.json')],text=True).strip()
             write(runtime_root / (runtime + '.json'), {'schema':1,'id':'storage','language':language,'source_version':original['version'],
                 'ui_sha256':fingerprint,'size':len(data),'sha256':hashlib.sha256(data).hexdigest(),'parts':parts,
-                'provenance':{'runtime':'jaimeen77-cmyk/appsKOR','commit':'ce660077eb89b59bdaf318a63f8c0a388af383f4','license':'MIT','sdk_included':False}})
+                'provenance':{'runtime':'jaimeen77-cmyk/appsKOR','commit':kit_commit,'license':'MIT','sdk_included':False}})
             print(runtime + ': ' + str(len(data)) + ' bytes, ' + str(len(parts)) + ' SDK-free parts; version ' + original['version'])
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--kit-root',required=True,type=Path)
-    generate(parser.parse_args().kit_root.resolve())
+    parser.add_argument('--kit-commit',required=True,help='appsKOR commit the kit root was taken from (provenance)')
+    a=parser.parse_args();generate(a.kit_root.resolve(), a.kit_commit)

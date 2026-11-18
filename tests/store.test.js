@@ -19,7 +19,7 @@ function checkPackage(file, id, version, start, language) {
     assert(!names.some((n) => /(^|\/)node_modules\//.test(n) || /(^|\/)oap-sdk\//.test(n)), 'published/build output must contain no SDK');
     const p = json(file, 'package.json');
     assert.strictEqual(p.name, id); assert.strictEqual(p.version, version);
-    assert.deepStrictEqual(p.mguHmi, ['ID7']); assert.strictEqual(p.mguLocalOnly, true);
+    assert.deepStrictEqual(p.mguHmi, ['ID7', 'ID8']); assert.strictEqual(p.mguLocalOnly, true);
     assert.strictEqual(p.mguAppStartType || 'manually', start);
     assert.strictEqual(json(file, 'javascript/kit/locale.json').language, language);
     const title = json(file, 'rhmiData/variantGroups/Common/texts/en_GB.json')['SID_' + id.toUpperCase() + '_TITLE'];
@@ -137,7 +137,7 @@ async function checkSettingsEntry(file, id, version) {
             const members = await tar.untgz(fs.readFileSync(file), 30 << 20);
             const entry = sourceParser.packageEntry(members, fs.readFileSync(file), {}, 'tgz');
             assert.strictEqual(entry.id, id); assert.strictEqual(entry.version, spec.version);
-            assert.deepStrictEqual(entry.mguHmi, ['ID7']);
+            assert.deepStrictEqual(entry.mguHmi, ['ID7', 'ID8']);
         }
         if (options.template === 'cluster_redline') {
             const optional = 'de.bmw.infotainment.misc.MDrive';

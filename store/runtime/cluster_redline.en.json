@@ -2,10 +2,10 @@
   "schema": 1,
   "id": "cluster_redline",
   "language": "en",
-  "source_version": "1.2.2",
+  "source_version": "1.2.58",
   "ui_sha256": "3cf06cdbb824d4a74b5440350d7eb0123be59cad9502ad66ae7d1d7a347bbf72",
-  "size": 1403654,
-  "sha256": "1a1f627242f55c297550a12fd487db4c7e8b37aed8318e183225857f62464d45",
+  "size": 1518761,
+  "sha256": "0c3725fbe9de1641334f07928b803e6780f3e238dc89ee4f13d91d1e50086fe3",
   "parts": [
     "cluster_redline.en.tgz.part-00",
     "cluster_redline.en.tgz.part-01",

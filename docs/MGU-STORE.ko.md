@@ -2,14 +2,24 @@
 
 이 저장소는 **Repo tree 방식**을 사용합니다. GitHub Release나 별도 catalog 주소를 만들 필요가 없습니다.
 
-## ID8 목록 노출
+## iDrive 7·8
 
-이 소스의 앱 8개와 이름 조회 보조 도구는 카탈로그에서 `mguHmi: null`로
-등록해 ID8에서도 목록을 숨기지 않습니다. 이는 Store의 **호환 여부 미지정**
-상태이며 ID8 지원 확인을 뜻하지 않습니다. 설명에도 ID8 미검증을 표시합니다.
-기존 패키지의 ID7 설치 제한과 ID7 화면 리소스는 유지하므로, ID8에서
-설치를 시도하면 설치 단계에서 거부될 수 있습니다. 목록은 **Check now**로
-갱신하며, 이 노출 변경을 위해 기존 앱을 재설치할 필요는 없습니다.
+이 소스의 앱 8개(한국어·영어판)와 이름 조회 보조 도구는 iDrive 7과 iDrive 8에 설치됩니다.
+Store 런타임 템플릿(`store/runtime`)을 `appsKOR`의 최신 App Kit(2bb7902)으로 다시 만들어,
+설치 패키지에 iDrive 7과 iDrive 8 화면 정의(`rhmiData/uiDescriptions/ID7`, `ID8`)가 함께 들어가고
+`package.json`과 Store 목록의 `mguHmi`가 모두 `["ID7", "ID8"]`입니다.
+iDrive 8 실차 검증은 아직 하지 않았으므로 설명의 **ID8 미검증** 표시는 유지합니다.
+기존 iDrive 7 설치본은 버전이 같으므로 자동으로 다시 설치되지 않습니다.
+
+재생성 방법(유지보수):
+
+```sh
+python3 tools/install-overlay.py <appsKOR 사본>
+# 사본에서: python3 kit/tools/build.py --preview-only --language ko|en idrive_circuit cluster_redline seats_easy_access
+# dist/<id>/source 를 package/ 로 묶어 <id>@<버전>[-ko.1].tgz 로 만든 뒤
+python3 tools/prepare-store.py --dist <tgz 폴더> --language ko|en --apps idrive_circuit cluster_redline seats_easy_access
+python3 tools/prepare-storage.py --kit-root <appsKOR 사본> --kit-commit <appsKOR 커밋>
+```
 
 ## 차량에서 등록
 
