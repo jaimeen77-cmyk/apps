@@ -29,6 +29,8 @@ const MDRIVE = 'de.bmw.infotainment.misc.MDrive';
 const LIGHT = 'de.bmw.body.Light';
 const {TurnSignal} = require('./turn-signal');
 const {TurnOverlay} = require('./turn-overlay');
+const {VehicleAlerts,SAMPLE:ALERT_SAMPLE} = require('./vehicle-alerts');
+const {AlertOverlay} = require('./alert-overlay');
 const previewPresence = require('./preview-presence');
 function mono() { const p = process.hrtime(); return p[0] * 1000 + p[1] / 1000000; }
 function supportedRenderer() { return renderer.inspect(undefined, fs).compatible; }
@@ -78,6 +80,7 @@ function start(ctx) {
     const hudGuidance=new HudGuidance(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const lanes=new LaneGuidance(mono);
+    const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client);
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
@@ -202,7 +205,7 @@ function start(ctx) {
     if(live)try {
         const cfg=signals.loadConfig(ROUTE_EVENTS);
         if(cfg.methods&&ROUTE_METHODS.every(name=>cfg.methods[name])&&typeof signals.call==='function') {
-            signals.watch(ROUTE_EVENTS,ROUTE_INSTANCE,{},log,{}).then(sub=>{keep(sub);routeEvents.attach(sub);})
+            signals.watch(ROUTE_EVENTS,ROUTE_INSTANCE,{},log,{}).then(sub=>{keep(sub);routeEvents.attach(sub);vehicleAlerts.attach(sub);})
                 .catch(e=>reportError('optional route events',e));
         }
     }catch(e){ /* Optional query unavailable: retain the existing fallback. */ }
@@ -217,7 +220,7 @@ function start(ctx) {
     }catch(e){ /* No lane capability: existing arrows/RPM continue normally. */ }
     function stop() {
         if (stopped) return;
-        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); turnOverlay.close(); controller.close();
+        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); vehicleAlerts.stop(); alertOverlay.close(); turnOverlay.close(); controller.close();
         process.removeListener('exit', stop);
         if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
@@ -356,9 +359,13 @@ function start(ctx) {
             const state = controller.tick(at, config);
             // HUD turn signals: in the Redline HUD image while it is on screen, else on their own overlay layers
             // (turn-overlay.js) above the stock HUD. Only one of the two carries them at a time.
+            const pv = previewPresence.fresh() ? D.layoutPreview(config) : null;
             if (controller.turnPainted && controller.hudShown) turnOverlay.hide();
-            else { const pv = previewPresence.fresh() ? D.layoutPreview(config) : null;
-              turnOverlay.tick(at, config, controller.turn, !!(pv && /^Turn/.test(pv.part || ''))); }
+            else turnOverlay.tick(at, config, controller.turn, !!(pv && /^Turn/.test(pv.part || '')));
+            // Vehicle alerts (vehicle-alerts.js): the car's speeding, school zone and speed camera events, on their
+            // own HUD overlay; the Position / size preview shows every alert at once.
+            vehicleAlerts.tick(at, live && config.appEnabled && config.hudCarAlerts !== 'off' && !config.hudCarAlertHidden);
+            alertOverlay.tick(config, pv && pv.part === 'CarAlert' ? Object.assign({ preview: true }, ALERT_SAMPLE) : vehicleAlerts.read(at, config.hudCarAlerts));
             if (at - lastStatus >= 500) {
                 lastStatus = at;
                 latest = ({
@@ -367,7 +374,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status() }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},

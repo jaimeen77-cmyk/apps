@@ -79,7 +79,7 @@ class Outputs {
         this.turnInLayer=turnInLayer;
         order.forEach((name) => {
             // Turn signal parts are previewed on their own overlay layers (turn-overlay.js), not by the Redline face.
-            const out=this[name],pv=preview&&preview.display===name&&!/^Turn/.test(preview.part||'')?preview:null,local=pv?previewConfig(cfg,name,pv):cfg;
+            const out=this[name],pv=preview&&preview.display===name&&!/^(Turn|CarAlert)/.test(preview.part||'')?preview:null,local=pv?previewConfig(cfg,name,pv):cfg;
             const rpm=pv&&pv.tab!=='nav'?true:rpmOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)&&D.faceVisible(local,name);
             const navigation=pv&&pv.tab==='nav'?sampleNavigation():this.navigation;
             const nav=name==='hud'&&(pv&&pv.tab==='nav'||navAllowed(local,this.policy.mode)&&navigation&&navigation.visible);
