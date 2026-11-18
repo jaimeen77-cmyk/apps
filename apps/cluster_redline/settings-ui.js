@@ -254,6 +254,15 @@ class SettingsPage{
   if(rows<=4)cv.text(tr('Redline app layouts (appsKOR, MIT) and Cluster Redline layouts. Navigation, lanes and auxiliary items stay as set.'),84,476,20,'#a8b6c8',{literal:true});
   this.backButton(cv,targets);
  }
+ // The car's turn signal input, for checking in the car: subscription, notifications received, last direction.
+ turnStatus(){
+  const head=tr('Turn signal input'),s=this.liveState&&this.liveState.turnSignal;if(!s)return [head,tr('waiting for the background app')];
+  if(s.state==='not_installed')return [head,tr('not installed (reinstall from the Store)')];
+  if(s.state==='error')return [head,tr('subscription error')];
+  if(!s.received)return [head,tr('no value from the car yet')];
+  const dir={off:'Off',left:'Left',right:'Right',both:'Both (hazards)'}[s.indicator]||String(s.indicator);
+  return [head+': '+tr('received')+' '+s.received,tr(dir)+(s.drawnIn?' · '+tr(s.drawnIn==='redline-hud'?'in the Redline HUD':'overlay'):'')];
+ }
  // HUD turn signals: on / off, shape, colour, and Position / size (both, left, right).
  drawTurn(cv,cfg,targets){
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
@@ -265,6 +274,7 @@ class SettingsPage{
    ['left','right'].forEach((side,n)=>cached(cv,'turn|'+st+'|'+cfg.hudTurnColor+'|'+side,x+16+n*386,250,36,30,(c,px,py)=>{const im=new Canvas(36,30);im.clear([0,0,0,0]);draw.paint(im,36,30,side,st,cfg.hudTurnColor);vector(c,px,py,1).blit(im,0,0);}));});
   Object.keys(D.TURN_COLORS).forEach((k,i)=>{const x=84+i*490;this.button(cv,local,tr(TURN_COLOR_LABELS[k]),x,320,464,64,()=>set('hudTurnColor',k),cfg.hudTurnColor===k,'turn-color-'+k);cv.fillRect(x+20,320+52,424,5,D.TURN_COLORS[k]);});
   cv.text(tr('Shown on the HUD whenever a turn signal or the hazards flash, even with the stock HUD.'),100,418,22,'#91a1b6',{literal:true});
+  this.turnStatus().forEach((line,i)=>cv.text(line,804,474+i*28,20,'#8d97a4',{literal:true}));
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='turn';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Turn']);this.setPreview(true);this.changed();},false,'turn-layout');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
