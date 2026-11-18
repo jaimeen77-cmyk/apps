@@ -4,8 +4,8 @@
   "language": "ko",
   "source_version": "1.1.2",
   "ui_sha256": "75efd2c3c001676141fc8c62c437b9280f72398ad438ff621d6ef67671cb2980",
-  "size": 1088724,
-  "sha256": "14679e48f7a11db62457e61cd44936b639c62a929f537800a381afa23d27948b",
+  "size": 1089005,
+  "sha256": "ab1f5cb5a17c0765a14510711607f9ee5e2ff761600b22d2b6d224292c1dabb1",
   "parts": [
     "storage.tgz.part-00",
     "storage.tgz.part-01",

@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## iDrive 8: Korean editions start (Circuit 1.0.3, Cluster Redline 1.3.2, MGU Monitor 1.1.4, Seats Easy Access 0.6.14)
+
+- On iDrive 8 the kit writes a setting's On / Off as text. Korean values are not ASCII, so the kit's `hmi-text.js` sent them through the component's HMI string bundle; where that bundle is missing it threw and the app's whole start failed, so the Korean editions stayed on "Loading" while the English ones ran. All eight runtime templates now carry the fixed `hmi-text.js` from appsKOR (plain Text when the bundle is missing or refuses; the start goes on). Only that file changes in the templates.
+
 ## iDrive 8: fit the manifest to the head unit (Circuit 1.0.2, Cluster Redline 1.3.1, MGU Monitor 1.1.3, Seats Easy Access 0.6.13)
 
 - `tools/store-build.js` takes out of the app's SOME/IP manifest whatever the head unit's interface catalog lacks (missing fields, methods, broadcasts, named instances; r / s / w without a getter / notifier / setter; absent `_optional` interfaces), the same as the App Kit's `build.py` `fit_to_unit` does for the kit's own apps, and writes `javascript/kit/missing-interfaces.json`. iDrive 8 firmware has a different catalog from the iDrive 7 one the templates were prepared against; apps could install there and stay on "Loading". Without a catalog (not on a head unit) nothing changes.

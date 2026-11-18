@@ -4,8 +4,8 @@
   "language": "ko",
   "source_version": "1.0.1",
   "ui_sha256": "fd2f13594eb995d3dc01039c698cdf69029daf69cf707fdd361a80c5162b3dee",
-  "size": 1186000,
-  "sha256": "96a3dacb11a7284791ffc8930dd49e8825519afe1cb27c36926e029b4d313aff",
+  "size": 1186244,
+  "sha256": "c109a3ebdb58add3d614247e363c486b72f834ac3d11f8f5012a49d038896f73",
   "parts": [
     "idrive_circuit.tgz.part-00",
     "idrive_circuit.tgz.part-01",

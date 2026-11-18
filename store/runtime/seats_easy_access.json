@@ -4,8 +4,8 @@
   "language": "ko",
   "source_version": "0.6.12",
   "ui_sha256": "4db20a9ced35873481e0e6456c8d069518dc58c05670beef60c112b696c5cb69",
-  "size": 1857368,
-  "sha256": "50c9a1f13d6cf3060b148f8a41faa4a4ce828ee3bf157f57edf20536e394978a",
+  "size": 1857640,
+  "sha256": "9e6d71be000f291ddef01baa0553f44ca405c206f24a36eec0f758122b86b94c",
   "parts": [
     "seats_easy_access.tgz.part-00",
     "seats_easy_access.tgz.part-01",
