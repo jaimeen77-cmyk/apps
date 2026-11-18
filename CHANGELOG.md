@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## iDrive 8: fit the manifest to the head unit
+
+- `tools/store-build.js` takes out of the app's SOME/IP manifest whatever the head unit's interface catalog lacks (missing fields, methods, broadcasts, named instances; r / s / w without a getter / notifier / setter; absent `_optional` interfaces), the same as the App Kit's `build.py` `fit_to_unit` does for the kit's own apps, and writes `javascript/kit/missing-interfaces.json`. iDrive 8 firmware has a different catalog from the iDrive 7 one the templates were prepared against; apps could install there and stay on "Loading". Without a catalog (not on a head unit) nothing changes.
+
 ## Cluster Redline 1.3.0
 
 - CLUSTER and HUD display tabs: All modes RPM display has a third choice, **Redline app · except Sport modes**. Every drive mode but Sport (Sport, Sport+, Sport Individual and the plug-in hybrid Sport modes) shows the Redline display; Sport follows the Sport mode RPM display row.

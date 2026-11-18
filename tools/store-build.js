@@ -74,6 +74,80 @@ function filterOptionalProxies(manifest, catalog, optional) {
     if(optional&&optional['de.bmw.infotainment.navigation.projectedmodeguiding.ProjectedModeGuiding'])require('../apps/cluster_redline/lane-config').filterLanes(manifest,catalog,optional);
     return manifest;
 }
+// The general pass of the App Kit's build.py fit_to_unit (issue #145), as the Store does for the kit's own
+// apps when it builds them on the head unit: whatever this unit's interface catalog lacks (an iDrive 8
+// firmware's differs from the iDrive 7 one the runtime template was prepared without) is taken out, so the
+// installer accepts the app: missing fields, methods, broadcasts and named instances; a field's r / s / w
+// without its getter / notifier / setter; an absent interface only when app.json marks it "_optional".
+// Returns { what is missing: what the app loses } for javascript/kit/missing-interfaces.json; {} without a catalog.
+function fitToUnit(manifest, signals, catalog) {
+    const have = catalog && catalog.interfaces, instanceIds = catalog && catalog.instanceIDs;
+    if (!have || typeof have !== 'object' || !Object.keys(have).length) return {};
+    const proxies = manifest.proxies || {}, missing = {}, reason = {};
+    Object.keys(signals || {}).forEach((i) => { if (signals[i] && signals[i]._optional) reason[i] = signals[i]._optional; });
+    const names = (x) => Array.isArray(x) ? x.filter((e) => e && typeof e === 'object').map((e) => e.name) : Object.keys(x || {});
+    const isObj = (x) => x && typeof x === 'object' && !Array.isArray(x);
+    Object.keys(signals || {}).forEach((iface) => {
+        const entry = proxies[iface];
+        if (entry === undefined) return;
+        const unit = have[iface];
+        if (!isObj(unit)) {
+            if (reason[iface]) { delete proxies[iface]; missing[iface] = reason[iface]; }
+            return;
+        }
+        if (!isObj(entry)) return;
+        let gone = [];
+        const inst = entry.instances;
+        if (isObj(instanceIds) && inst !== undefined && inst !== null && inst !== '*') {
+            const known = instanceIds[iface], asked = Array.isArray(inst) ? inst : [inst];
+            const lost = asked.filter((n) => String(n).indexOf('${') < 0 && !(isObj(known) && known[String(n)]));
+            if (lost.length) {
+                gone = gone.concat(lost.map((n) => 'instance ' + n));
+                const keep = asked.filter((n) => lost.indexOf(n) < 0);
+                if (!keep.length) {
+                    delete proxies[iface];
+                    missing[iface + ': ' + gone.join(', ')] = reason[iface] || 'these signals';
+                    return;
+                }
+                entry.instances = Array.isArray(inst) ? keep : keep[0];
+            }
+        }
+        const attrs = entry.attributes;
+        if (isObj(attrs)) {
+            const fields = isObj(unit.fields) ? unit.fields : {};
+            Object.keys(attrs).forEach((n) => {
+                const f = fields[n], mode = attrs[n];
+                if (!isObj(f) || typeof mode !== 'string') return;
+                const need = { r: 'getter', s: 'notifier', w: 'setter' };
+                const left = mode.split('').filter((c) => 'rsw'.indexOf(c) < 0 || need[c] in f).join('');
+                if (left !== mode) {
+                    gone.push(n + ' (' + mode.split('').filter((c) => left.indexOf(c) < 0).join('') + ')');
+                    if (left) attrs[n] = left; else delete attrs[n];
+                }
+            });
+            if (!Object.keys(attrs).length) delete entry.attributes;
+        }
+        [['attributes', 'fields'], ['methods', 'methods'], ['broadcasts', 'events']].forEach((kp) => {
+            const asked = entry[kp[0]];
+            if (!asked || (Array.isArray(asked) ? !asked.length : !Object.keys(asked).length)) return;
+            const known = names(unit[kp[1]]);
+            const list = Array.isArray(asked) ? asked : Object.keys(asked);
+            const lost = list.filter((n) => known.indexOf(n) < 0);
+            if (!lost.length) return;
+            gone = gone.concat(lost);
+            if (Array.isArray(asked)) entry[kp[0]] = asked.filter((n) => known.indexOf(n) >= 0);
+            else { const kept = {}; Object.keys(asked).forEach((n) => { if (known.indexOf(n) >= 0) kept[n] = asked[n]; }); entry[kp[0]] = kept; }
+            const now = entry[kp[0]];
+            if (Array.isArray(now) ? !now.length : !Object.keys(now).length) delete entry[kp[0]];
+        });
+        if (gone.length) {
+            missing[iface + ': ' + gone.join(', ')] = reason[iface] || 'these signals';
+            const used = (k) => entry[k] && (Array.isArray(entry[k]) ? entry[k].length : Object.keys(entry[k]).length);
+            if (!['attributes', 'methods', 'broadcasts'].some(used)) delete proxies[iface];
+        }
+    });
+    return missing;
+}
 function build(options) {
     const template = options.template, id = options.id, version = options.version;
     let language = options.language;
@@ -158,6 +232,10 @@ function build(options) {
         });
         const manifestFile = path.join(stage, 'manifest.json');
         const manifest = filterOptionalProxies(JSON.parse(fs.readFileSync(manifestFile, 'utf8')), catalog, optional);
+        const missing = fitToUnit(manifest, sourceSpec.signals, catalog);
+        Object.keys(missing).forEach((what) => console.log('  this unit has no ' + what + ' - built without it: ' + missing[what]));
+        if (Object.keys(missing).length && fs.existsSync(path.join(stage, 'javascript/kit')))
+            fs.writeFileSync(path.join(stage, 'javascript/kit/missing-interfaces.json'), JSON.stringify(missing, null, 1));
         fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2) + '\n');
         const target = path.join(out, id + '@' + version + '.tgz');
         cp.execFileSync('tar', ['-czf', target, '-C', work, 'package']);
@@ -174,4 +252,4 @@ function cli(args) {
     build(options);
 }
 if (require.main === module) { try { cli(process.argv.slice(2)); } catch (e) { console.error(e.message); process.exitCode = 1; } }
-module.exports = { build, canonical, fingerprint, uuidFor, filterOptionalProxies };
+module.exports = { build, canonical, fingerprint, uuidFor, filterOptionalProxies, fitToUnit };
