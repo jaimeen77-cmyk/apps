@@ -20,13 +20,17 @@ function demand(cfg,mode){
  SOURCES.forEach(s=>{if(Object.keys(s.members).some(k=>aux.has(auxOf(k))))add(s.iface,s.field);});
  // Cluster yields to route guidance: watch the guidance state while the cluster face is shown.
  const yieldNav=enabled&&cfg.clusterYieldGuidance!=='off'&&faces.includes('cluster');
- if(yieldNav&&!navAny){add(G,'guidanceState');add(G,'guidingProvider');}
+ // Yield also follows the phone's own guidance flags (Waze over CarPlay / Android Auto), not only the guidance channel.
+ if(yieldNav&&!navAny){add(G,'guidanceState');add(G,'guidingProvider');Object.keys(PROJECTED).forEach(p=>['projectedGuidanceActive','projectedGuidanceMetadataAvailable'].forEach(f=>add(PROJECTED[p].iface,f)));}
  if(navAny){add(G,'guidanceState');add(G,'guidingProvider');Object.keys(PROJECTED).forEach(p=>['projectedGuidanceActive','projectedGuidanceMetadataAvailable'].forEach(f=>add(PROJECTED[p].iface,f)));}
  // HUD turn signals: the light module's two indicator fields, whenever the arrows are switched on (they show with
  // the stock HUD too, so no RPM face or navigation is needed).
  const turnSignals=enabled&&cfg.hudTurnSignals==='on'&&!cfg.hudTurnHidden;
  if(turnSignals){add('de.bmw.body.Light','StatusFunctionsIndicators');add('de.bmw.body.Light','StatusFunctionsIndicators2');}
+ // Vehicle alerts: the car's route events (speeding, school zones, speed cameras) by query, whenever they are on.
+ const carAlerts=enabled&&cfg.hudCarAlerts!=='off'&&!cfg.hudCarAlertHidden;
+ if(carAlerts)add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');
  if(turns){add(G,'conclusiveDart');add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');add('de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent');}
- return {fields,aux,rpm,torque,gear,mode:modeNeeded,nav:navAny,turns,turnSignals,lanes:enabled&&nav.lanes,parts:nav};
+ return {fields,aux,rpm,torque,gear,mode:modeNeeded,nav:navAny,turns,turnSignals,carAlerts,lanes:enabled&&nav.lanes,parts:nav};
 }
 module.exports={demand};

@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.8
+
+- **Vehicle alerts on the HUD** (NAV tab → Vehicle alerts: off / speeding / school zone / speed camera / show all). Read from the car navigation's own route events with the existing read-only `GuidanceEventList.queryContent` (`INCLUDE_SPEED_CAMERA`, `INCLUDE_SCHOOL_ZONES`, `INCLUDE_SPEED_LIMIT_ASSIST`; if the car refuses the set, each kind is asked alone and only accepted ones are kept). Speeding is the car's own `speedingInfo: TOO_FAST`; school zones show from 300 m and inside; speed cameras from 1 km, section cameras with their average speed and while inside. Shown on an overlay layer of their own above the stock or Redline HUD; the speeding and children drawings are the 1.2.54-1.2.57 ones, the camera icon is new.
+- The NAV tab's Position / size has a **Vehicle alerts** part (move, size, hide; the preview shows all three). The NAV tab shows the alert input: replies, alert kinds in the last reply, whether one is shown.
+- Audit of registered vs. demanded signals: cluster yield to Waze now also subscribes the phone's guidance flags (`projectedGuidanceActive`, `projectedGuidanceMetadataAvailable`) when HUD navigation is off; before, only the guidance channel's provider was read. Every other registered input is in the demand set for the features that use it (lane guidance joins while CarPlay guides, by design).
+
 ## Cluster Redline 1.3.7
 
 - HUD turn signals never appeared because the car's turn signal fields were never subscribed. The worker subscribes only to what `data-demand.js` lists for the current settings (`demand-signals.js`), and `de.bmw.body.Light` was not in that list, so no notification ever reached the app since 1.3.0 (the Position / size preview draws without the signal, so it looked fine). The two indicator fields are now in the demand set whenever HUD turn signals are on.
