@@ -9,7 +9,7 @@ Store 런타임 템플릿(`store/runtime`)을 `appsKOR`의 최신 App Kit(2bb790
 설치 패키지에 iDrive 7과 iDrive 8 화면 정의(`rhmiData/uiDescriptions/ID7`, `ID8`)가 함께 들어가고
 `package.json`과 Store 목록의 `mguHmi`가 모두 `["ID7", "ID8"]`입니다.
 iDrive 8 실차 검증은 아직 하지 않았으므로 설명의 **ID8 미검증** 표시는 유지합니다.
-버전을 올렸으므로(Circuit 1.0.3, Cluster Redline 1.3.2, MGU 모니터 1.1.4, Seats 0.6.14) iDrive 7 설치본도 Store에서 업데이트됩니다.
+버전을 올렸으므로(Circuit 1.0.4, Cluster Redline 1.3.3, MGU 모니터 1.1.5, Seats 0.6.15) iDrive 7 설치본도 Store에서 업데이트됩니다.
 
 재생성 방법(유지보수):
 
@@ -44,8 +44,8 @@ jaimeen77-cmyk/apps
 | iDrive Circuit (English) | 영어 | 앱 목록에서 수동 실행 | 위와 동일 |
 | 계기판 레드라인 (한국어) | 한국어 | 백그라운드 자동 시작 | 위 조건 + cluster-render 0.4.0+ |
 | Cluster Redline (English) | 영어 | 백그라운드 자동 시작 | 위와 동일 |
-| MGU 모니터 (한국어) 1.1.4 | 한국어 | 앱 목록에서 수동 실행 | iDrive 7·8, mgu-deploy 0.7.17+ |
-| MGU Monitor (English) 1.1.4 | 영어 | 앱 목록에서 수동 실행 | 위와 동일 |
+| MGU 모니터 (한국어) 1.1.6 | 한국어 | 앱 목록에서 수동 실행 | iDrive 7·8, mgu-deploy 0.7.17+ |
+| MGU Monitor (English) 1.1.6 | 영어 | 앱 목록에서 수동 실행 | 위와 동일 |
 
 ## 언어 선택과 변경
 
@@ -56,6 +56,6 @@ Store 자체에 언어 선택 버튼을 추가하는 방식이 아니라 **두 �
 
 기존 한국어판 ID(`idrive_circuit`, `cluster_redline`)는 유지합니다.
 영문판은 `idrive_circuit_en`, `cluster_redline_en`이며, 설정과 기록은 자동으로 옮겨지지 않습니다.
-MGU 모니터는 한국어 `storage`, 영어 `storage_en`이며 두 항목 모두 1.1.4입니다.
+MGU 모니터는 한국어 `storage`, 영어 `storage_en`이며 두 항목 모두 1.1.6입니다.
 언어를 바꾸려면 사용할 언어판을 설치하고, 불필요한 기존 언어판은 제거하세요.
 

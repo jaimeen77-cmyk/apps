@@ -28,6 +28,7 @@
           "--language",
           "ko"
         ],
+        "sdk": "oap-sdk",
         "network": false,
         "shared": [
           "store/runtime",
@@ -64,6 +65,7 @@
           "--language",
           "ko"
         ],
+        "sdk": "oap-sdk",
         "network": false,
         "shared": [
           "store/runtime",
@@ -101,6 +103,7 @@
           "--source",
           "apps/idrive_circuit"
         ],
+        "sdk": "oap-sdk",
         "network": false,
         "shared": [
           "store/runtime",
@@ -140,6 +143,7 @@
           "--source",
           "apps/cluster_redline"
         ],
+        "sdk": "oap-sdk",
         "network": false,
         "shared": [
           "store/runtime",
@@ -177,6 +181,7 @@
           "--language",
           "ko"
         ],
+        "sdk": "oap-sdk",
         "network": false,
         "shared": [
           "store/runtime",
@@ -215,6 +220,7 @@
           "--source",
           "apps/storage"
         ],
+        "sdk": "oap-sdk",
         "network": false,
         "shared": [
           "store/runtime",
@@ -226,7 +232,7 @@
     },
     {
       "id": "seats_easy_access",
-      "version": "0.6.14",
+      "version": "0.6.15",
       "kind": "app",
       "title": "Seats Easy Access (English)",
       "description": "Seat controls, memories, Easy Access and passenger Make room · ID8 unverified",
@@ -243,12 +249,13 @@
       "build": {
         "node": "tools/store-build.js",
         "args": ["--template", "seats_easy_access", "--id", "{id}", "--version", "{version}", "--dir", "{dir}", "--language", "en"],
+        "sdk": "oap-sdk",
         "network": false,
         "shared": ["store/runtime", "tools/store-build.js", "localization/ko-additions.tsv"]
       }
     },
     {
-      "id": "seats_easy_access_ko", "version": "0.6.14", "kind": "app",
+      "id": "seats_easy_access_ko", "version": "0.6.15", "kind": "app",
       "title": "시트 Easy Access (한국어)", "description": "시트 조절·메모리·승하차 편의·조수석 공간 확보 · ID8 미검증",
       "path": "store/apps/seats_easy_access_ko", "mguHmi": [
         "ID7",
@@ -258,6 +265,7 @@
       "build": {
         "node": "tools/store-build.js",
         "args": ["--template", "seats_easy_access", "--id", "{id}", "--version", "{version}", "--dir", "{dir}", "--language", "ko", "--source", "apps/seats_easy_access"],
+        "sdk": "oap-sdk",
         "network": false,
         "shared": ["store/runtime", "tools/store-build.js", "localization/ko-additions.tsv", "apps/seats_easy_access"]
       }

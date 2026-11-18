@@ -2,11 +2,19 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## Cluster Redline 1.3.3
+## Cluster Redline 1.3.4
 
 - Battery voltage no longer drops to `--` for half a minute at a time. One late reply was taken as "this ECU has no such value": the reader moved on to the next way of asking, tried the other two and waited 30 s before coming back. A transport turning the request away while busy (other apps such as car_vitals use the same diagnostic link) also meant 30 s, and another app's refusal of a `0x22` read to the DME counted as this request's answer. Now a way that answered is kept until four misses in a row, a missed or busy reply is asked again after 1-2 s, only "not supported" refusals move on, and the last good value stays on screen until the next good one (cleared only when the item is deselected, the engine has been off for 3 minutes or the app stops).
 - HUD turn signals show whenever a turn signal or the hazards flash, also with the stock HUD (no Redline RPM face or guidance), as Cluster Info does. The HUD layer is held about 8 s after the signal ends so a lane change does not drop and re-upload it.
 - The turn signal (and every other) Position / size preview stays only while the settings screen is drawn: a tab button now ends it, and it lapses within about 3 s when the screen is left by any route, even without a "screen hidden" event.
+
+## MGU Monitor 1.1.6: Log history tab
+
+- A fourth tab, **Log history** (로그 이력): the daily average of the head unit's CPU and memory over the last 30 days from the saved usage logs, and each app's average CPU and average / highest RAM, for all days or the day chosen (tap a day or Next app). A day's log is read once in the background and its summary kept in `usage-summary.json`; today's is read again at most once a minute. `app.json` is unchanged but for the version, so the runtime templates stay as they are.
+
+## iDrive 8: the head unit's oap-sdk in the package, as the original apps (Circuit 1.0.4, Cluster Redline 1.3.3, MGU Monitor 1.1.5, Seats Easy Access 0.6.15)
+
+- On an iDrive 8 car the original idrive7-apps (English) open while these apps, English editions included, stayed on "Loading". The one way the packages are made differently: the original's Store build has `"sdk": "oap-sdk"`, so the Store puts the oap-sdk module it makes from the unit's own donor into the build and the package carries it in `node_modules/oap-sdk`; these were built without it and left the module to the installer's module mode. Every Store entry now has `"sdk": "oap-sdk"` and `tools/store-build.js` puts that module into the package. It is never in this repository; without it (not on a head unit) the package is as before.
 
 ## iDrive 8: Korean editions start (Circuit 1.0.3, Cluster Redline 1.3.2, MGU Monitor 1.1.4, Seats Easy Access 0.6.14)
 

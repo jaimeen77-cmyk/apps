@@ -8,14 +8,14 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'storage-test-'));
 const previews = process.env.STORAGE_PREVIEW_DIR;
 async function checkRenderer(language) {
     const id = language === 'ko' ? 'storage' : 'storage_en';
-    const file = build({ template:'storage', id, version:'1.1.4', language,
+    const file = build({ template:'storage', id, version:'1.1.6', language,
         dir:language === 'ko' ? 'apps/storage' : 'store/apps/storage_en',
         source:'apps/storage', out:path.join(temp,id) });
     const stage = path.join(temp,id,'installed');fs.mkdirSync(stage);
     cp.execFileSync('tar',['-xzf',file,'-C',stage]);
     const js = path.join(stage,'package/javascript');
     const spec = require(path.join(js,'kit/app-spec.json'));
-    assert.strictEqual(spec.version,'1.1.4');
+    assert.strictEqual(spec.version,'1.1.6');
     assert.strictEqual(spec.title,language==='ko'?'MGU 모니터':'MGU Monitor');
     const pkg=require(path.join(stage,'package/package.json'));
     assert.strictEqual(pkg.displayName,spec.title);
@@ -81,6 +81,19 @@ async function checkRenderer(language) {
         // Cycle from selected Redline back to whole-unit graphs.
         await handlers.BTN_APP();
         if(previews)fs.writeFileSync(path.join(previews,`usage-total-${language}.png`),play(frame.words(),new Canvas(frame.w,frame.h)).png());
+        // Log history (4th tab): demo daily averages and the average by app; Next app picks the newest day.
+        labels.length=0;await handlers.BTN_PAGE();await loop();
+        assert(labels.some(s=>s.includes(language==='ko'?'1일 평균 · 최근 30일':'Daily average · last 30 days')));
+        assert(labels.some(s=>s.includes(language==='ko'?'앱별 평균 사용량':'Average by app')));
+        assert(labels.includes(language==='ko'?'헤드유닛 전체':'Whole head unit'));
+        assert(labels.some(s=>s.includes(t('Redline'))));
+        assert(frame.targets.some(x=>/^history-day-/.test(x.key)),'days must be selectable');
+        if(previews)fs.writeFileSync(path.join(previews,`history-${language}.png`),play(frame.words(),new Canvas(frame.w,frame.h)).png());
+        labels.length=0;await handlers.BTN_APP();
+        const newest=new Date(clock).toISOString().slice(5,10).replace('-','/');
+        assert(labels.some(s=>s.includes(newest)),'Next app picks the newest day');
+        if(previews)fs.writeFileSync(path.join(previews,`history-day-${language}.png`),play(frame.words(),new Canvas(frame.w,frame.h)).png());
+        await handlers.BTN_PAGE();
         // Exercise the packaged Widget.set and real HmiText with an SDK bridge mock.
         const box={module:{exports:{}},__dirname:path.join(js,'kit'),console,process,Buffer,setTimeout,clearTimeout,
             require(name){if(name==='oap-sdk')return {logging:{getSDKLogger:()=>({info(){},warn(e){throw Error(e);},error(){}})}};
@@ -115,5 +128,5 @@ async function checkRenderer(language) {
     assert((await S.appFolders(path.join(temp,'missing'))).error);
     const real=await S.fileSystems();assert(!real.error&&real.list.length);assert(S.memory().total>0&&S.uptime()>0);
     await checkRenderer('ko');await checkRenderer('en');
-    console.log('PASS: Storage 1.1.4 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
+    console.log('PASS: Storage 1.1.6 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>fs.rmSync(temp,{recursive:true,force:true}));

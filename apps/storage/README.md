@@ -33,6 +33,18 @@ These examples use the installed package's renderer and demo values:
 ![Disks, example data](screenshots/disks-ok-en.png)
 ![Widget, example 95% usage](screenshots/widget-crit-en.png)
 
+## Log history (1.1.6)
+
+The **Log history** tab reads the saved 30-day usage logs: on the left the
+**daily average** of the whole head unit's CPU (bars) and memory (line) for
+the last 30 days, on the right the **average use by app** (CPU %, average and
+highest RAM MB) over all logged days. Tap a day, or press **Next app**, for
+that day only; again for all days. A day's log is read once and its summary is
+kept (`usage-summary.json` beside the logs); today's log is read again at most
+once a minute. Averages cover only the time the app was running and logging.
+
+![Log history, example data](screenshots/history-en.png)
+
 ## Per-app CPU / memory (1.1.1)
 
 The **CPU / Memory** tab lists running apps by CPU usage. Select a row with
