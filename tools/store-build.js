@@ -1,5 +1,5 @@
 'use strict';
-// MGU Store repo-tree builder. Node 8, unprivileged, no network or local SDK needed.
+// MGU Store repo-tree builder. Node 8, unprivileged, no network; the head unit's oap-sdk module goes in when the Store provides it.
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -237,9 +237,18 @@ function build(options) {
         if (Object.keys(missing).length && fs.existsSync(path.join(stage, 'javascript/kit')))
             fs.writeFileSync(path.join(stage, 'javascript/kit/missing-interfaces.json'), JSON.stringify(missing, null, 1));
         fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2) + '\n');
+        // As the App Kit's build.py does with the Store's "sdk": "oap-sdk": the oap-sdk module the Store made on
+        // this head unit from its own donor goes into the package (it is never in this repository). Without it
+        // (not on a head unit) the package is as before, and the installer makes the module itself.
+        const sdk = path.join(ROOT, 'oap-sdk');
+        if (fs.existsSync(path.join(sdk, 'index.js')) && fs.existsSync(path.join(sdk, 'package.json'))) {
+            const dest = path.join(stage, 'node_modules', 'oap-sdk');
+            [path.join(stage, 'node_modules'), dest].forEach((d) => { if (!fs.existsSync(d)) fs.mkdirSync(d); });
+            ['index.js', 'package.json'].forEach((n) => fs.writeFileSync(path.join(dest, n), fs.readFileSync(path.join(sdk, n))));
+        }
         const target = path.join(out, id + '@' + version + '.tgz');
         cp.execFileSync('tar', ['-czf', target, '-C', work, 'package']);
-        console.log('Built ' + language + ' Store app (SDK-free): ' + target);
+        console.log('Built ' + language + ' Store app (' + (fs.existsSync(path.join(stage, 'node_modules', 'oap-sdk')) ? 'with the head unit\'s oap-sdk' : 'SDK-free') + '): ' + target);
         return target;
     } finally { clean(work); }
 }

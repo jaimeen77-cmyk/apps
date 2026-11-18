@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## iDrive 8: the head unit's oap-sdk in the package, as the original apps (Circuit 1.0.4, Cluster Redline 1.3.3, MGU Monitor 1.1.5, Seats Easy Access 0.6.15)
+
+- On an iDrive 8 car the original idrive7-apps (English) open while these apps, English editions included, stayed on "Loading". The one way the packages are made differently: the original's Store build has `"sdk": "oap-sdk"`, so the Store puts the oap-sdk module it makes from the unit's own donor into the build and the package carries it in `node_modules/oap-sdk`; these were built without it and left the module to the installer's module mode. Every Store entry now has `"sdk": "oap-sdk"` and `tools/store-build.js` puts that module into the package. It is never in this repository; without it (not on a head unit) the package is as before.
+
 ## iDrive 8: Korean editions start (Circuit 1.0.3, Cluster Redline 1.3.2, MGU Monitor 1.1.4, Seats Easy Access 0.6.14)
 
 - On iDrive 8 the kit writes a setting's On / Off as text. Korean values are not ASCII, so the kit's `hmi-text.js` sent them through the component's HMI string bundle; where that bundle is missing it threw and the app's whole start failed, so the Korean editions stayed on "Loading" while the English ones ran. All eight runtime templates now carry the fixed `hmi-text.js` from appsKOR (plain Text when the bundle is missing or refuses; the start goes on). Only that file changes in the templates.

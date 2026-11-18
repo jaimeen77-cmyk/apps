@@ -2,7 +2,7 @@
   "id": "storage",
   "title": "MGU Monitor",
   "description": "Storage and per-app CPU / RAM graphs, growth alerts and 30-day usage logs",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "vendor": "custom",
   "loggingId": "OST1",
   "iconGlyph": "GB",
