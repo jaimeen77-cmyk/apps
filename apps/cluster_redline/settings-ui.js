@@ -17,6 +17,8 @@ const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaul
 // HUD turn signals: kept outside app.json, like the designs.
 const TURN_KEYS=Object.keys(D.defaults).filter(k=>/^hudTurn/.test(k));
 const TURN_ITEM={key:'turn',label:'Turn signals on HUD',type:'action'};
+// Screens whose buttons are the cursor's stops (layoutActions).
+const ACTION_SCREENS=['layout','layoutPresets','turn'];
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
 const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts'].concat(TURN_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
@@ -81,7 +83,7 @@ class SettingsPage{
   if(this.tab===FAV_TAB&&!this.open){const n=FAV_COUNT*3;this.focus=(this.focus+delta+n)%n;}
   else if(this.open==='favView'){this.choice=(this.choice+delta+2)%2;}
   else if(!this.open)this.focus=(this.focus+delta+this.keys().length)%this.keys().length;
-  else{const n=this.open==='layout'||this.open==='layoutPresets'||this.open==='turn'?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.stylesFor(this.display()).length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
+  else{const n=ACTION_SCREENS.includes(this.open)?this.layoutActions.length:this.open==='auxMode'?2:this.open==='design'?3:this.open==='rlDesign'?RL.stylesFor(this.display()).length:this.open==='auxSelect'?D.METRICS.length+1+(this.draft&&this.draft.items.includes('clock')?1:0):options(this.item(),this.config()).length;this.choice=(this.choice+delta+Math.max(1,n))%Math.max(1,n);}
   this.changed();
  }
  value(item,cfg){
@@ -110,7 +112,7 @@ class SettingsPage{
  }
  choose(index){
   if(this.open==='favView'){if(index===0)this.loadFavorite(this.favIndex);else this.back();return;}
-  if(this.open==='layout'||this.open==='layoutPresets'||this.open==='turn'){const a=this.layoutActions[index];if(a)a.act();return;}
+  if(ACTION_SCREENS.includes(this.open)){const a=this.layoutActions[index];if(a)a.act();return;}
   if(this.open==='auxMode'){this.draft={mode:index===1?'values':'gauges',items:[]};this.open='auxSelect';this.choice=0;this.changed();return;}
   if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else if(index===D.METRICS.length+1)this.toggleClockZone();else this.toggleMetric(D.METRICS[index]);return;}
   if(this.open==='design'){
@@ -126,7 +128,7 @@ class SettingsPage{
  toggleMetric(id){if(!this.draft||!D.METRICS.includes(id)||this.auxBlocked(id)&&!this.draft.items.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
  commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.open=null;this.draft=null;this.changed();}
  button(cv,targets,label,x,y,w,h,act,on,id){
-  const layoutFocus=(this.open==='layout'||this.open==='layoutPresets'||this.open==='turn')&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice||this.tab===FAV_TAB&&!this.open&&id==='fav-'+this.focus||this.open==='favView'&&id==='favview-'+this.choice;
+  const layoutFocus=ACTION_SCREENS.includes(this.open)&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice||this.tab===FAV_TAB&&!this.open&&id==='fav-'+this.focus||this.open==='favView'&&id==='favview-'+this.choice;
   // On the design pickers the fill marks the design in use and a white outline the cursor; elsewhere the cursor fills.
   const picker=(this.open==='design'||this.open==='rlDesign')&&focused;
   cv.roundRect(x,y,w,h,6,on||focused&&!picker?'#57202d':'#252a31');if(picker)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],3,'#f3f5f7');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
@@ -259,7 +261,8 @@ class SettingsPage{
   [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*740,146,712,64,()=>set('hudTurnSignals',o[0]),(cfg.hudTurnSignals===o[0]),'turn-'+o[0]));
   const {Canvas}=require('./kit/canvas'),draw=require('./turn-draw');
   D.TURN_STYLES.forEach((st,i)=>{const x=84+i*490;this.button(cv,local,tr(TURN_STYLE_LABELS[st]),x,222,464,86,()=>set('hudTurnStyle',st),cfg.hudTurnStyle===st,'turn-style-'+st);
-   ['left','right'].forEach((side,n)=>{const im=new Canvas(36,30);im.clear([0,0,0,0]);draw.paint(im,36,30,side,st,cfg.hudTurnColor);cached(cv,'turn|'+st+'|'+cfg.hudTurnColor+'|'+side,x+16+n*386,250,36,30,(c,px,py)=>vector(c,px,py,1).blit(im,0,0));});});
+   // the shape is painted only when the preview cache has no copy of it
+   ['left','right'].forEach((side,n)=>cached(cv,'turn|'+st+'|'+cfg.hudTurnColor+'|'+side,x+16+n*386,250,36,30,(c,px,py)=>{const im=new Canvas(36,30);im.clear([0,0,0,0]);draw.paint(im,36,30,side,st,cfg.hudTurnColor);vector(c,px,py,1).blit(im,0,0);}));});
   Object.keys(D.TURN_COLORS).forEach((k,i)=>{const x=84+i*490;this.button(cv,local,tr(TURN_COLOR_LABELS[k]),x,320,464,64,()=>set('hudTurnColor',k),cfg.hudTurnColor===k,'turn-color-'+k);cv.fillRect(x+20,320+52,424,5,D.TURN_COLORS[k]);});
   cv.text(tr('Shown while the Redline HUD is on (RPM display or navigation).'),100,418,22,'#91a1b6',{literal:true});
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='turn';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Turn']);this.setPreview(true);this.changed();},false,'turn-layout');

@@ -8,7 +8,7 @@ function chevron(x0,w,h,t){
  // a filled ">" of stroke thickness t, from x0, w wide, the full height
  return [[x0,0],[x0+t,0],[x0+w,h/2],[x0+t,h],[x0,h],[x0+w-t,h/2]];
 }
-// count: chevrons drawn by <<< >>> (1-3, the innermost first; default all three).
+// count: chevrons drawn by <<< >>> (1-3, the innermost first; 0 or missing: all three).
 function paint(cv,w,h,side,style,color,count){
  const c=TURN_COLORS[color]||TURN_COLORS.green;
  if(style==='chevron3'){

@@ -29,9 +29,9 @@ class TurnSignal{
  constructor(){this.dir='off';this.at=null;this.since=0;}
  sample(value,now){const d=direction(value);if(d===null)return;if(d!==this.dir){this.dir=d;this.since=now-LEAD_MS;}this.at=now;}
  clear(){this.dir='off';this.at=null;}
- /** { indicator, lit }: lit is the flash phase (on while the cluster's arrow is lit). */
  // The fields notify on change only: the direction holds (flashing) until the car says otherwise or the
  // interface goes away (clear()).
+ /** { indicator, lit, step }: lit is the flash phase (on while the cluster's arrow is lit). */
  read(now){const dir=this.at!==null?this.dir:'off';
   const t=((now-this.since)%CYCLE_MS+CYCLE_MS)%CYCLE_MS;
   // step: 1, 2, 3 chevrons, a third of the flasher's cycle each (the sequential <<< >>> style).

@@ -43,10 +43,10 @@ function draw(state) {
         if(hasTurn&&!state.config.hudTextHidden)paintNav('Text',text,state.navigation);
     }
     // Turn signals: only the lit side is in the scene, so a flash uploads just its own small rectangle.
-    const turnPreview=!!(state.turnPreview);
-    D.turnSides(state.config,state.indicator,state.turnLit,turnPreview).forEach(side=>{
-        const r=D.turnRect(state.config,side),c=state.config,count=turnPreview?3:state.turnStep||3,painter=turn.painter(r.w,r.h,side,c.hudTurnStyle,c.hudTurnColor,count);
-        if(cache)cache.navigation('turn.'+side,[c.hudTurnStyle,c.hudTurnColor,r.w,r.h,c.hudTurnStyle==='chevron3'?count:0],painter,state,r);else blitScaled(cv,painter.draw(state),r);
+    const c=state.config,preview=!!state.turnPreview,count=D.turnCount(c,state.turnStep,preview);
+    D.turnSides(c,state.indicator,state.turnLit,preview).forEach(side=>{
+        const r=D.turnRect(c,side),painter=turn.painter(r.w,r.h,side,c.hudTurnStyle,c.hudTurnColor,count);
+        if(cache)cache.navigation('turn.'+side,[c.hudTurnStyle,c.hudTurnColor,r.w,r.h,count],painter,state,r);else blitScaled(cv,painter.draw(state),r);
     });
     return cache?cache.finish():cv;
 }

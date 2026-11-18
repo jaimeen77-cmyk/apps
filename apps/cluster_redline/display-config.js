@@ -71,6 +71,8 @@ function navAllowed(cfg,mode){return cfg.hudNavigationEnabled&&cfg.navDisplayMod
 // All modes RPM display: 'redline' every mode, 'nosport' every mode but Sport (Sport then follows its own row).
 function allOutput(cfg,name,mode){const v=cfg['all'+name+'Output'];return v==='redline'||v==='nosport'&&!sportMode(mode);}
 function rpmOutput(cfg,name,mode){return allOutput(cfg,name,mode)||sportMode(mode)&&cfg['sport'+name+'Output']==='redline';}
+// Whether some drive mode shows the Redline display (the mode not known yet).
+function rpmOutputPossible(cfg,name){return ['redline','nosport'].includes(cfg['all'+name+'Output'])||cfg['sport'+name+'Output']==='redline';}
 // HUD turn signals: the pair (Turn: position and size of both), then each side's own position.
 const TURN_STYLES=['arrow','chevron3','chevron'],TURN_COLORS={green:'#2fd65a',blue:'#3d8bff',orange:'#ff9a1f'};
 const TURN_PARTS=[{key:'Turn',label:'Both turn signals',prefix:'hudTurn',scale:'hudTurnScale'},{key:'TurnLeft',label:'Left turn signal',prefix:'hudTurnLeft',scale:'hudTurnScale'},{key:'TurnRight',label:'Right turn signal',prefix:'hudTurnRight',scale:'hudTurnScale'}];
@@ -83,12 +85,15 @@ function turnRect(cfg,side){
 }
 // The sides drawn now: lit ones, or both while a turn signal part is being moved in Position / size.
 // <<< >>> does not go dark: it fills one, two, three chevrons in turn (turnStep) while the signal is on.
+const TURN_SIDES={left:['left'],right:['right'],both:['left','right']};
 function turnSides(cfg,indicator,lit,preview){
- const on=preview||cfg.hudTurnSignals==='on'&&!cfg.hudTurnHidden;if(!on)return [];
- if(cfg.hudTurnStyle==='chevron3')lit=indicator==='left'||indicator==='right'||indicator==='both';
- const want=preview?['left','right']:lit?indicator==='both'?['left','right']:indicator==='left'||indicator==='right'?[indicator]:[]:[];
- return want.filter(side=>!cfg[(side==='left'?'hudTurnLeft':'hudTurnRight')+'Hidden']||preview);
+ if(preview)return ['left','right'];
+ if(cfg.hudTurnSignals!=='on'||cfg.hudTurnHidden)return [];
+ const sides=TURN_SIDES[indicator]||[],shown=cfg.hudTurnStyle==='chevron3'||lit;
+ return shown?sides.filter(side=>!cfg[(side==='left'?'hudTurnLeft':'hudTurnRight')+'Hidden']):[];
 }
+// Chevrons <<< >>> draws now (1-3); every other shape, and the Position / size preview, is whole (0).
+function turnCount(cfg,step,preview){return cfg.hudTurnStyle==='chevron3'&&!preview?Math.max(1,Math.min(3,step||3)):0;}
 function navVisible(cfg,mode){const on=navAllowed(cfg,mode);return {direction:on&&!cfg.hudNavHidden,text:on&&!cfg.hudTextHidden,lanes:on&&!cfg.hudLanesHidden};}
 // Settings layout editor: the part being adjusted, honoured for two minutes after the last edit.
 function layoutPreview(cfg,now){const m=/^(hud|cluster|nav):([A-Za-z]+)@([0-9]+)$/.exec(cfg.layoutPreview||'');if(!m)return null;const at=Number(m[3]),t=typeof now==='number'?now:Date.now();return t>=at-5000&&t-at<=120000?{display:m[1]==='nav'?'hud':m[1],tab:m[1],part:m[2]}:null;}
@@ -100,4 +105,4 @@ function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig'])
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !cfg[d+'RpmGaugeHidden']&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={allOutput,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
