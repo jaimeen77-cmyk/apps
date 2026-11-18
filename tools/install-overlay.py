@@ -85,7 +85,7 @@ def main():
         shutil.copy2(HERE / relative, destination)
     # Removed diagnostics must not remain in an older overlay and be bundled again.
     if 'cluster_redline' in selected:
-        for name in ('speed-probe', 'speed-probe-config', 'probe-archive', 'traffic-signs', 'traffic-live', 'traffic-draw'):
+        for name in ('speed-probe', 'speed-probe-config', 'probe-archive', 'traffic-draw'):
             retired = target / 'apps/cluster_redline' / (name + '.js')
             if retired.is_file():
                 retired.unlink()

@@ -31,6 +31,8 @@ const {TurnSignal} = require('./turn-signal');
 const {TurnOverlay} = require('./turn-overlay');
 const {VehicleAlerts,SAMPLE:ALERT_SAMPLE} = require('./vehicle-alerts');
 const {AlertOverlay} = require('./alert-overlay');
+const {TrafficSigns,FIELDS:TRAFFIC_FIELDS} = require('./traffic-signs');
+const {live:trafficLive} = require('./traffic-live');
 const previewPresence = require('./preview-presence');
 function mono() { const p = process.hrtime(); return p[0] * 1000 + p[1] / 1000000; }
 function supportedRenderer() { return renderer.inspect(undefined, fs).compatible; }
@@ -80,6 +82,7 @@ function start(ctx) {
     const hudGuidance=new HudGuidance(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const lanes=new LaneGuidance(mono);
+    const traffic=new TrafficSigns(),trafficSubs=[];
     const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client);
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
@@ -153,6 +156,22 @@ function start(ctx) {
             StatusFunctionsIndicators: (v) => turnSignal.sample(v, mono()),
             StatusFunctionsIndicators2: (v) => turnSignal.sample(v, mono()),
         }, log, {}).then((s) => { lightSub = s; keep(s); lightState = s.error ? 'error' : 'subscribed'; if (s.error) reportError('optional turn signals', s.error); }).catch((e) => { lightState = 'error'; reportError('optional turn signals', e); });
+        // Vehicle alerts: the vehicle speed and the camera's sign recognition (added at install by traffic-config.js
+        // when the car's catalog has them). Events and fields notify; availability may never be reported, so a fresh
+        // event counts as live (traffic-live.js).
+        const here = typeof __dirname === 'string' ? __dirname : '.';
+        const instanceOf = (iface) => { for (const file of [path.resolve(here, '..', 'manifest.json'), path.resolve(here, '..', '..', 'manifest.json')]) {
+            try { const m = JSON.parse(fs.readFileSync(file, 'utf8')), p = m.proxies && m.proxies[iface]; if (p && p.instances) return String(p.instances).split(',')[0]; } catch (e) {} } return '1'; };
+        TRAFFIC_FIELDS.forEach(([iface, field]) => {
+            const entry = { iface, field, configured: false, received: 0, at: null, sub: null, error: null, wasAvailable: false, lostReceived: 0 }; trafficSubs.push(entry);
+            try {
+                const cfg = signals.loadConfig(iface);
+                if (!(cfg.fields && cfg.fields[field] || cfg.events && cfg.events[field] || cfg.broadcasts && cfg.broadcasts[field])) return;
+                entry.configured = true;
+                const handlers = {}; handlers[field] = (v) => { if (!stopped) { entry.received++; entry.at = mono(); traffic.sample(field, v, entry.at); } };
+                signals.watch(iface, instanceOf(iface), handlers, log, {}).then((s) => { entry.sub = s; keep(s); }).catch((e) => { entry.error = String(e && e.message || e); });
+            } catch (e) { entry.error = String(e && e.message || e); }
+        });
         // Read the common native/projection guidance channel. Never set routes,
         // call vehicle methods, or alter the BMW HUD/menu configuration.
         try {
@@ -364,8 +383,22 @@ function start(ctx) {
             else turnOverlay.tick(at, config, controller.turn, !!(pv && /^Turn/.test(pv.part || '')));
             // Vehicle alerts (vehicle-alerts.js): the car's speeding, school zone and speed camera events, on their
             // own HUD overlay; the Position / size preview shows every alert at once.
-            vehicleAlerts.tick(at, live && config.appEnabled && config.hudCarAlerts !== 'off' && !config.hudCarAlertHidden);
-            alertOverlay.tick(config, pv && pv.part === 'CarAlert' ? Object.assign({ preview: true }, ALERT_SAMPLE) : vehicleAlerts.read(at, config.hudCarAlerts));
+            // Speeding and children signs from the camera's sign recognition (traffic-signs.js, as the drive logs
+            // showed them); speed cameras from the navigation's route events (vehicle-alerts.js).
+            const alertsOn = live && config.appEnabled && config.hudCarAlerts !== 'off' && !config.hudCarAlertHidden;
+            const trafficStates = {}; trafficSubs.forEach((e) => { trafficStates[e.field] = trafficLive(e, at); });
+            const trafficOk = (f) => trafficStates[f] === true;
+            if (!alertsOn) traffic.clear();
+            else {
+                if (!trafficOk(TRAFFIC_FIELDS[0][1])) { traffic.speed = null; traffic.speedAt = null; }
+                if (!trafficOk(TRAFFIC_FIELDS[1][1])) { traffic.limit = null; traffic.limitAt = null; }
+                if (!trafficOk(TRAFFIC_FIELDS[2][1])) { traffic.camera = null; traffic.cameraAt = null; traffic.childAt = null; }
+            }
+            vehicleAlerts.tick(at, alertsOn && (config.hudCarAlerts === 'camera' || config.hudCarAlerts === 'all'));
+            const signAlerts = alertsOn ? traffic.alerts(at, config.hudCarAlerts, trafficOk(TRAFFIC_FIELDS[2][1])) : null, routeAlerts = alertsOn ? vehicleAlerts.read(at, config.hudCarAlerts) : null;
+            const carAlerts = signAlerts || routeAlerts ? { speeding: (signAlerts && signAlerts.speeding) || (routeAlerts && routeAlerts.speeding) || null,
+                school: (signAlerts && signAlerts.school) || (routeAlerts && routeAlerts.school) || null, camera: routeAlerts && routeAlerts.camera || null } : null;
+            alertOverlay.tick(config, pv && pv.part === 'CarAlert' ? Object.assign({ preview: true }, ALERT_SAMPLE) : carAlerts);
             if (at - lastStatus >= 500) {
                 lastStatus = at;
                 latest = ({
@@ -374,7 +407,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status() }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},

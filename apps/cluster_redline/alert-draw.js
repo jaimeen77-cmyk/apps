@@ -53,7 +53,7 @@ function paint(cv,v){
  }
  if(v.school){
   const x=at();children(cv,x-44,2);
-  label(cv,x,tr('School zone'),v.school.inside?tr('In the zone'):v.school.text||'');
+  label(cv,x,tr('School zone'),v.school.sign?tr('Sign detected'):v.school.inside?tr('In the zone'):v.school.text||'');
  }
  if(v.camera){
   const x=at(),c=v.camera;camera(cv,x,42,c.section);
@@ -65,5 +65,5 @@ function paint(cv,v){
 function draw(v){return paint(new Canvas(W,H).clear([0,0,0,0]),v);}
 // At w x h (the Position / size scale), anti-aliased at that size rather than resampled.
 function drawSized(v,w,h){const cv=new ScaledCanvas(W,H,Math.min(w/W,h/H));cv.clear([0,0,0,0]);paint(cv,v);return cv.canvas;}
-function key(v){return v?JSON.stringify([v.speeding&&v.speeding.limit,!!v.speeding,v.school&&[v.school.inside,v.school.text],v.camera&&[v.camera.section,v.camera.inside,v.camera.text,v.camera.limit]]):'';}
+function key(v){return v?JSON.stringify([v.speeding&&v.speeding.limit,!!v.speeding,v.school&&[v.school.sign,v.school.inside,v.school.text],v.camera&&[v.camera.section,v.camera.inside,v.camera.text,v.camera.limit]]):'';}
 module.exports={W,H,SLOT,draw,drawSized,key};

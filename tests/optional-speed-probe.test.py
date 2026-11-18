@@ -24,9 +24,10 @@ def run(d,m,opt,parity=True):
   store=json.loads(subprocess.check_output(['node','-e',js,str(R/'tools/store-build.js'),str(p/'input.json')],text=True))
   if parity:assert desktop==store,(desktop,store)
   else:
-   for i in [veh,tsd,ccp,adas]:assert i not in desktop['proxies'] and i not in store['proxies']
+   for i in [tsd,ccp,adas]:assert i not in desktop['proxies'] and i not in store['proxies']
   return store
-# Removed collection: neither installer may add traffic/probe-only inputs.
+# Removed collection: neither installer may add probe-only inputs. The vehicle alerts (1.3.9) add back three
+# read-only inputs, identically in both: the vehicle speed and the camera's sign recognition events.
 veh='de.bmw.infotainment.vehicle.Vehicle2';tsd='de.bmw.dass.driverassistanceapplications.TrafficSignDisplayControl';ccp='de.bmw.infotainment.navigation.externalize.adasng.CCP'
 adas='de.bmw.infotainment.navigation.ADAS';sdaf='de.bmw.dass.settingsdriverassistancefunctions.SettingsDriverAssistanceFunctions';sli='de.bmw.x.Other'
 opt={cds+'2':'optional aux',kombi:'optional economy'}
@@ -50,12 +51,14 @@ for kind in ['full','none','bad_ids','cap','other_instance','other_app','school'
  o=dict(opt) if kind!='other_app' else {}
  out=run(d,m,o,kind!='other_app');P=out['proxies']
  if kind=='other_app':continue
- if kind!='other_instance':assert all(i not in P for i in [veh,tsd,ccp,adas,sdaf,sli]),P
+ if kind!='other_instance':assert all(i not in P for i in [tsd,ccp,adas,sdaf,sli]),P
  else:assert P[adas]=={'instances':'2','attributes':{'routeX':'r'}},P[adas]
+ assert (veh not in P) if kind in ('none','bad_ids') else P.get(veh)=={'instances':'1','attributes':{'statusCarSpeed2':'rs'}},(kind,P.get(veh))
 tsr='de.bmw.dass.TrafficSignRecognition';camera='de.bmw.environmentalmodel.SignRecognitionFrontCamera'
 d=cat()
 for iface,event in [(tsr,'TrafficSignRecognition'),(camera,'TrafficSignRecognitionFrontCamera')]:
  d['interfaces'][iface]={'events':{event:{'eventId':32900}}};d['instanceIDs'][iface]={'1':1}
 P=run(d,copy.deepcopy(manifest),dict(opt))['proxies']
-assert tsr not in P and camera not in P
-print('PASS: removed probe/traffic inputs stay absent with desktop/Store parity')
+assert P[tsr]=={'instances':'1','broadcasts':['TrafficSignRecognition']} and P[camera]=={'instances':'1','broadcasts':['TrafficSignRecognitionFrontCamera']},P
+d['interfaces'][camera]['events']['TrafficSignRecognitionFrontCamera']['eventId']=7;P=run(d,copy.deepcopy(manifest),dict(opt))['proxies'];assert camera not in P,'invalid eventId: not added'
+print('PASS: removed probe inputs stay absent; vehicle alert inputs (speed, sign recognition) added read-only, with desktop/Store parity')

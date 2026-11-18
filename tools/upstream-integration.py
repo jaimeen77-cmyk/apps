@@ -216,9 +216,9 @@ def optional_lane_source(text):
 
 
 def optional_aux_source(text):
-    if '// Jam optional auxiliary fields v15' in text:
+    if '// Jam optional auxiliary fields v16' in text:
         return optional_lane_source(text)
-    addition = r"""        // Jam optional auxiliary fields v15: never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed; driving time and TPMS tyre data are added read-only when the catalog has a getter.
+    addition = r"""        // Jam optional auxiliary fields v16 (v15 + the vehicle alert speed and camera sign inputs, as traffic-config.js): never drop required RPM/torque for an absent extra field; notifier-only fields and the exterior temperature (as eDrive) are subscribed; driving time and TPMS tyre data are added read-only when the catalog has a getter.
         [["de.bmw.infotainment.KombiIF","statusBordcomputerTravelData"],["de.bmw.infotainment.vehicle.TPMS","statusTyreTemperature"],["de.bmw.infotainment.vehicle.TPMS","statusTyrePressure"]].forEach(e=>{
             const d=have[e[0]],f=d&&d.fields&&d.fields[e[1]],ids=all.instanceIDs&&all.instanceIDs[e[0]];
             if(!f||!f.getter||!Number.isInteger(f.getter.id)||f.getter.id<1||f.getter.id>32767)return;
@@ -255,8 +255,17 @@ def optional_aux_source(text):
             if(!def||def.serviceId!==63654||!def.version||def.version.major!==1||!ids||ids.SystemFunctionsInternalTasuInst1!==128||!def.methods||!def.methods.sendTasuRequest||def.methods.sendTasuRequest.methodId!==1||!def.events||!def.events.sendTasuResponse||def.events.sendTasuResponse.eventId!==32769)delete m.proxies[tasu];
             else m.proxies[tasu]={instances:"SystemFunctionsInternalTasuInst1",methods:["sendTasuRequest"],broadcasts:["sendTasuResponse"]};
         }
+        // Vehicle alerts: the vehicle speed and the camera sign recognition, read-only (traffic-config.js).
+        [["de.bmw.infotainment.vehicle.Vehicle2","statusCarSpeed2","field"],["de.bmw.dass.TrafficSignRecognition","TrafficSignRecognition","event"],["de.bmw.environmentalmodel.SignRecognitionFrontCamera","TrafficSignRecognitionFrontCamera","event"]].forEach(e=>{
+            const d=have[e[0]],ids=all.instanceIDs&&all.instanceIDs[e[0]];if(!d||!ids)return;
+            const keys=Object.keys(ids).filter(k=>ids[k]!==null&&ids[k]!==undefined),inst=keys.includes("1")?"1":keys.includes("Main_Instance")?"Main_Instance":keys[0];if(!inst)return;
+            const ok=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;let p=m.proxies[e[0]];if(p&&String(p.instances||"").split(",")[0]!==inst)return;
+            if(e[2]==="event"){const ev=d.events&&d.events[e[1]];if(!ev||!ok(ev.eventId,32768,65535))return;p=p||(m.proxies[e[0]]={instances:inst});p.broadcasts=p.broadcasts||[];if(p.broadcasts.indexOf(e[1])<0)p.broadcasts.push(e[1]);return;}
+            const f=d.fields&&d.fields[e[1]];if(!f)return;const get=f.getter&&ok(f.getter.id,1,32767),notify=f.notifier&&ok(f.notifier.id,32768,65535);if(!get&&!notify)return;
+            p=p||(m.proxies[e[0]]={instances:inst});p.attributes=p.attributes||{};if(p.attributes[e[1]]===undefined)p.attributes[e[1]]=get?(notify?"rs":"r"):"s";
+        });
 """
-    marker = next((m for m in ('        // Jam optional auxiliary fields v14', '        // Jam optional auxiliary fields v13', '        // Jam optional auxiliary fields v12', '        // Jam optional auxiliary fields v11', '        // Jam optional auxiliary fields v10', '        // Jam optional auxiliary fields v9', '        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
+    marker = next((m for m in ('        // Jam optional auxiliary fields v15', '        // Jam optional auxiliary fields v14', '        // Jam optional auxiliary fields v13', '        // Jam optional auxiliary fields v12', '        // Jam optional auxiliary fields v11', '        // Jam optional auxiliary fields v10', '        // Jam optional auxiliary fields v9', '        // Jam optional auxiliary fields v8', '        // Jam optional auxiliary fields v7') if m in text), None)
     if marker:
         start = text.index(marker)
         end = text.index('        // Jam optional guidance field persistence v3', start)

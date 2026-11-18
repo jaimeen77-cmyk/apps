@@ -13,7 +13,8 @@ assert(!cv.targets.some(t=>/probe|traffic/i.test(t.id||'')));
 const cfg=settings({hudTrafficMode:'both',appEnabled:true,allHudOutput:'redline'});
 assert.equal(cfg.hudTrafficMode,'off','old settings and favorites cannot reactivate alerts');
 assert(!Array.from(demand(cfg,'COMFORT').fields).some(f=>/TrafficSign|FrontCamera|Vehicle2\.statusCarSpeed2/.test(f)));
-for(const name of ['speed-probe','speed-probe-config','probe-archive','traffic-signs','traffic-live','traffic-draw'])assert(!fs.existsSync(root+'/'+name+'.js'),name+' must not be bundled');
+// traffic-signs / traffic-live are back for the vehicle alerts (1.3.9); the probe stays retired.
+for(const name of ['speed-probe','speed-probe-config','probe-archive','traffic-draw'])assert(!fs.existsSync(root+'/'+name+'.js'),name+' must not be bundled');
 const main=fs.readFileSync(root+'/app.js','utf8');
 assert(!/speedProbe|SpeedProbe|speed-probe|page\.probe/.test(main),'no collector can resume from an old recording flag');
 console.log('PASS retired menus, legacy saved settings, no traffic readers and no recording runtime');

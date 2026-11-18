@@ -40,8 +40,12 @@ const ok=(events)=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInVie
   assert.strictEqual(v.read(t+4000,'camera'),null,'stale after 3 s');
   v.tick(t+5000,false);assert.strictEqual(v.state,'off');assert.strictEqual(v.read(t+5000,'all'),null);v.stop();}
  {let t=0;const v=new VehicleAlerts(()=>t,()=>Promise.resolve({GuidanceEventListError:'INVALID_VIEW_PARAMS'}));v.attach({proxy:{}});
-  for(let i=0;i<4;i++){t+=1000;v.tick(t,true);await settle();}assert.strictEqual(v.state,'types_rejected');
-  t+=1000;v.tick(t,true);await settle();assert.strictEqual(v.queries,4,'rejected: not asked again for 30 s');}
+  for(let i=0;i<5;i++){t+=1000;v.tick(t,true);await settle();}assert.strictEqual(v.state,'types_rejected');
+  t+=1000;v.tick(t,true);await settle();assert.strictEqual(v.queries,5,'rejected (empty list too): not asked again for 30 s');}
+ // the 2026-11-14 drive log: every named type refused, the empty list accepted
+ {let t=0;const asked=[];const v=new VehicleAlerts(()=>t,(p,m,args)=>{const ty=args.viewConfigs[0].viewport.includedTypes;asked.push(ty);return Promise.resolve(ty.length?{GuidanceEventListError:'INVALID_VIEW_PARAMS'}:ok([{speedCamera:{formattedDistance:dist(300)}}]));});
+  v.attach({proxy:{}});for(let i=0;i<6;i++){t+=1000;v.tick(t,true);await settle();}
+  assert.deepStrictEqual(asked[4],[],'then the empty list');assert.deepStrictEqual(v.types,[]);assert.deepStrictEqual(asked[5],[],'kept');assert(v.read(t,'camera'));}
  // demand: GuidanceEventList only while alerts are on; yield follows the phone's guidance flags
  {const on=demand(settings({appEnabled:true,hudCarAlerts:'all',navDisplayMode:'stock'}),null),off=demand(settings({appEnabled:true,navDisplayMode:'stock'}),null);
   assert(on.fields.has('de.bmw.infotainment.navigation.guiding.GuidanceEventList'));assert(!off.fields.has('de.bmw.infotainment.navigation.guiding.GuidanceEventList'));
@@ -69,6 +73,34 @@ const ok=(events)=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInVie
   ov.tick(settings({hudCarAlerts:'all',hudCarAlertHidden:true}),{school:{inside:true}});assert.strictEqual(l.visible,false,'hidden in Position / size');
   ov.tick(settings({hudCarAlerts:'all',hudCarAlertHidden:true}),Object.assign({preview:true},SAMPLE));assert.strictEqual(l.visible,true,'preview while adjusting');
   ov.close();assert.strictEqual(layers.size,0);Module._load=orig;}
+ // speeding and children signs from the camera's sign recognition (shapes as in the 2026-11-14 drive log)
+ {const {TrafficSigns}=require('../../apps/cluster_redline/traffic-signs');const {filterTraffic}=require('../../apps/cluster_redline/traffic-config');
+  const sign=(type,value)=>({type,value,trafficSignForm:'ROUND',position:{left:false,right:true,overhead:false},firstSupplementalType:'SIGNAL_UNFILLED',secondSupplementalType:'SIGNAL_UNFILLED',additionalInfo:'NO_ADDITIONAL_RESTRICTION',variable:false,location:{locationInvalidFlags:0,x:30,y:-12,z:1.5}});
+  const cam=signs=>({eventDataQualifier:'EVENT_DATA_AVAILABLE',extendedQualifier:'NORMAL_OPERATION_MODE',trafficSignRecognition:{version:98,numberSigns:signs.length,speedLimitUnit:'KM_H'},trafficSign:signs,trafficSignRecognitionQuality:signs.map(()=>({qualityType:100,qualityValue:47}))});
+  const tsr=cls=>({presentWithdrawalLimitSpeed:1,presentClassLimitSpeed:cls,nextClassLimitSpeed:254,unitOfMeasurementSpeedLimit:0});
+  const t=new TrafficSigns();t.sample('TrafficSignRecognition',tsr(6),0);t.sample('TrafficSignRecognitionFrontCamera',cam([sign('SPEED_LIMIT',30)]),0);
+  t.sample('statusCarSpeed2',{speedVehicleCentreOfGravity:36*64},0);
+  assert.strictEqual(t.alerts(500,'all',true),null,'over for less than a second: nothing yet');
+  t.sample('statusCarSpeed2',{speedVehicleCentreOfGravity:36*64},1500);assert.deepStrictEqual(t.alerts(1600,'speed',true),{speeding:{limit:30},school:null},'36 in a 30 for a second: speeding');
+  assert.strictEqual(t.alerts(1600,'camera',true),null,'camera mode: not from signs');
+  t.sample('statusCarSpeed2',{speedVehicleCentreOfGravity:30*64},1700);assert.strictEqual(t.alerts(1800,'speed',true),null,'back at the limit');
+  t.sample('TrafficSignRecognitionFrontCamera',cam([sign('DS_CHILDREN',0),sign('SPEED_LIMIT',30)]),2000);
+  assert.deepStrictEqual(t.alerts(2100,'school',true),{speeding:null,school:{sign:true}},'children sign');assert.strictEqual(t.alerts(8500,'school',true),null,'6 s');
+  t.sample('TrafficSignRecognitionFrontCamera',cam([sign('DS_CHILDREN',0)]),9000);assert.strictEqual(t.alerts(9100,'school',true),null,'30 s between children alerts');
+  assert.strictEqual(t.alerts(9100,'all',false),null,'camera input not live: nothing');
+  // install time: added read-only from the catalog, only with valid ids and a known instance
+  const catalog={interfaces:{'de.bmw.infotainment.vehicle.Vehicle2':{fields:{statusCarSpeed2:{getter:{id:7},notifier:{id:32775}}}},'de.bmw.dass.TrafficSignRecognition':{events:{TrafficSignRecognition:{eventId:32900}}},'de.bmw.environmentalmodel.SignRecognitionFrontCamera':{events:{TrafficSignRecognitionFrontCamera:{eventId:5}}}},
+   instanceIDs:{'de.bmw.infotainment.vehicle.Vehicle2':{'1':1},'de.bmw.dass.TrafficSignRecognition':{'1':1},'de.bmw.environmentalmodel.SignRecognitionFrontCamera':{'1':1}}};
+  const m=filterTraffic({proxies:{}},catalog).proxies;
+  assert.deepStrictEqual(m['de.bmw.infotainment.vehicle.Vehicle2'],{instances:'1',attributes:{statusCarSpeed2:'rs'}});
+  assert.deepStrictEqual(m['de.bmw.dass.TrafficSignRecognition'],{instances:'1',broadcasts:['TrafficSignRecognition']});
+  assert(!m['de.bmw.environmentalmodel.SignRecognitionFrontCamera'],'invalid eventId: not added');assert.deepStrictEqual(filterTraffic({proxies:{}},{}).proxies,{},'no catalog: nothing');
+  // demand: signs for speeding / school / all, route events for camera / all
+  const f=mode=>Array.from(demand(settings({appEnabled:true,hudCarAlerts:mode,navDisplayMode:'stock'}),null).fields);
+  assert(f('speed').some(x=>/SignRecognitionFrontCamera/.test(x))&&f('speed').some(x=>/Vehicle2\.statusCarSpeed2/.test(x))&&!f('speed').some(x=>/GuidanceEventList/.test(x)));
+  assert(f('camera').some(x=>/GuidanceEventList/.test(x))&&!f('camera').some(x=>/TrafficSign/.test(x)));
+  assert(f('all').some(x=>/GuidanceEventList/.test(x))&&f('all').some(x=>/TrafficSignRecognition\.TrafficSignRecognition$/.test(x)));
+  assert(!f('off').some(x=>/TrafficSign|Vehicle2|GuidanceEventList/.test(x)));}
  if(process.argv[2]){
   const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),A=require(path.join(dir,'alert-draw'));
   const count=cv=>{let k=0;for(let i=3;i<cv.d.length;i+=4)if(cv.d[i])k++;return k;};
@@ -85,5 +117,5 @@ const ok=(events)=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInVie
   page.back();assert.strictEqual(vals.layoutPreview,'');
   const cv=new Canvas(1600,520);page.draw(cv,'',{vehicleAlerts:{state:'ready',queries:3,replies:2,kinds:{speedCamera:1}}});
  }
- console.log('PASS: vehicle alerts: route event decoding (camera, section, school zone, the car\'s TOO_FAST), includedTypes fallback, freshness and modes, HUD overlay, demand (alerts, yield flags), NAV tab row and Position / size'+(process.argv[2]?', icons and settings screen':''));
+ console.log('PASS: vehicle alerts: speeding and children signs from the camera sign recognition (log shapes), install-time inputs, route event decoding (camera, section, school zone, the car\'s TOO_FAST), includedTypes fallback, freshness and modes, HUD overlay, demand (alerts, yield flags), NAV tab row and Position / size'+(process.argv[2]?', icons and settings screen':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});
