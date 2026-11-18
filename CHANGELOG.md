@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## MGU Monitor 1.1.6: Log history tab
+
+- A fourth tab, **Log history** (로그 이력): the daily average of the head unit's CPU and memory over the last 30 days from the saved usage logs, and each app's average CPU and average / highest RAM, for all days or the day chosen (tap a day or Next app). A day's log is read once in the background and its summary kept in `usage-summary.json`; today's is read again at most once a minute. `app.json` is unchanged but for the version, so the runtime templates stay as they are.
+
 ## iDrive 8: the head unit's oap-sdk in the package, as the original apps (Circuit 1.0.4, Cluster Redline 1.3.3, MGU Monitor 1.1.5, Seats Easy Access 0.6.15)
 
 - On an iDrive 8 car the original idrive7-apps (English) open while these apps, English editions included, stayed on "Loading". The one way the packages are made differently: the original's Store build has `"sdk": "oap-sdk"`, so the Store puts the oap-sdk module it makes from the unit's own donor into the build and the package carries it in `node_modules/oap-sdk`; these were built without it and left the module to the installer's module mode. Every Store entry now has `"sdk": "oap-sdk"` and `tools/store-build.js` puts that module into the package. It is never in this repository; without it (not on a head unit) the package is as before.

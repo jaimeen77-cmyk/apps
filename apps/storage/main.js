@@ -5,6 +5,8 @@
  *   Disks  유닛의 각 파일시스템(df): 여유/사용/크기, 사용률 색 막대. 앱이 설치된
  *          파티션은 APPS 로 표시. 오른쪽에 '앱용 여유'와 RAM.
  *   Apps   /var/opt/public/oap 아래 앱별 폴더 용량, 큰 것부터.
+ *   Usage  CPU / 메모리: 최근 30분 그래프, 앱별 CPU·RSS.
+ *   Log history  저장된 30일 로그의 1일 평균과 앱별 평균 사용량(usage-history.js).
  *
  *   + 알림: 앱 파티션 사용률이 설정 임계(기본 80%)를 넘으면
  *       · 화면 상단 빨강 배너
@@ -22,12 +24,16 @@ const BG = require('./bg');
 const { UsageMonitor, memoryPercent, INTERVAL } = require('./usage');
 const { ProcessUsage } = require('./process-usage');
 const { UsageView } = require('./usage-view');
+const { UsageHistory, demoDays } = require('./usage-history');
+const { UsageHistoryView, labels: historyLabels } = require('./usage-history-view');
+const { getLanguage } = require('./kit/i18n');
 const { t } = require('./kit/i18n');
 const tr = (text, values) => Object.keys(values || {}).reduce((out, key) => out.split('{' + key + '}').join(String(values[key])), t(text));
 
 const W = 1600, H = 520;
-const PAGES = ['disks', 'apps', 'usage'];
-const TABS = ['Disks', 'Apps', 'CPU / Memory'].map((s) => tr(s));
+const PAGES = ['disks', 'apps', 'usage', 'history'];
+const TABS = ['Disks', 'Apps', 'CPU / Memory'].map((s) => tr(s))
+    .concat([historyLabels['Log history'][getLanguage()] || historyLabels['Log history'].en]);
 const DISK_MS = 10000;
 const GB = 1024 * 1024 * 1024, MB = 1024 * 1024;
 
@@ -76,6 +82,20 @@ mgu.run({
             } finally { usageBusy = false; }
         };
         const usageView = new UsageView(() => render());
+        // Log history: daily averages from the saved usage logs (read in the background, a day's file once)
+        const history = new UsageHistory(ctx.dataDir);
+        const historyView = new UsageHistoryView(() => render());
+        const refreshHistory = () => {
+            if (useDemo() || history.busy) return;
+            usage.logger.flush();
+            history.refresh(Date.now()).then((ok) => { if (!ok && history.error) log.warn('usage history: ' + history.error); if (PAGES[page] === 'history') render(); })
+                .catch((e) => log.warn('usage history: ' + e));
+        };
+        const historyState = () => {
+            const now = Date.now();
+            return useDemo() ? { days: demoDays(now), demo: true, now, logging: true }
+                : { days: history.days, busy: history.busy, done: history.done, total: history.total, error: history.error, logging: usage.logging, now };
+        };
         await sampleUsage();
         const usageTimer = setInterval(sampleUsage, INTERVAL);
         process.on('exit', () => { clearInterval(usageTimer); usage.logger.flush(); });
@@ -259,10 +279,15 @@ mgu.run({
             usageView.draw(cv, t, usage, top, G.BOTTOM, fit);
         }
 
+        function drawHistory(cv, t, top) {
+            historyView.draw(cv, t, historyState(), top, G.BOTTOM, fit);
+        }
+
         async function render() {
             const now = Date.now();
             if (now - lastDraw > 2000 || now - disks.t > DISK_MS) readDisks();
             if (PAGES[page] === 'apps' && !apps.t && !apps.scanning) scanApps();
+            if (PAGES[page] === 'history' && !history.busy && now - history.read >= 60000) refreshHistory();
             lastDraw = now;
             const t = ctx.theme(), cv = ctx.canvas(W, H).clear(t.bg);
             // the photo from the menu's left edge (right of the HMI's back arrow column on the full-screen layout)
@@ -271,7 +296,7 @@ mgu.run({
             const alert = over();
             const BH = 50, top = G.TOP + (alert ? BH + 8 : 0);
             if (alert) drawBanner(cv, t, G.TOP + 2, BH);
-            (PAGES[page] === 'usage' ? drawUsage : PAGES[page] === 'apps' ? drawApps : drawDisks)(cv, t, top);
+            (PAGES[page] === 'history' ? drawHistory : PAGES[page] === 'usage' ? drawUsage : PAGES[page] === 'apps' ? drawApps : drawDisks)(cv, t, top);
             const badges = [];
             const latest = usage.history[usage.history.length - 1];
             const percentText = (v) => G.isNum(v) ? v.toFixed(1) + '%' : '--';
@@ -333,9 +358,10 @@ mgu.run({
         }
 
         /* ---------- wiring ---------- */
-        ui.onClick('BTN_ACTION', () => { readDisks(); if (PAGES[page] === 'apps') { apps.t = 0; scanApps(); } return render(); });
+        ui.onClick('BTN_ACTION', () => { readDisks(); if (PAGES[page] === 'apps') { apps.t = 0; scanApps(); } if (PAGES[page] === 'history') { history.read = 0; refreshHistory(); } return render(); });
         ui.onClick('BTN_PAGE', () => { page = (page + 1) % PAGES.length; return render(); });
-        ui.onClick('BTN_APP', () => { page = 2; usageView.next(usage); return render(); });
+        // Next app: the next app's graphs; on Log history the next day (all days -> newest -> ... -> all days)
+        ui.onClick('BTN_APP', () => { if (PAGES[page] === 'history') historyView.next(historyState().days); else { page = 2; usageView.next(usage); } return render(); });
         ctx.onTab((i) => { if (i >= 0 && i < PAGES.length) page = i; return render(); });
         settings.onChange((k) => {
             if (k === 'page') page = Math.max(0, PAGES.indexOf(settings.get('page')));
