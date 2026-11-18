@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.6
+
+- HUD turn signals are drawn into the Redline HUD image while it is on screen (its layer shown and the HUD slot not held by the stock HUD or another app), so they are part of the same picture; otherwise the overlay layers of 1.3.5 show them above the stock HUD. The overlay steps aside only once a Redline HUD frame carrying the arrows has been sent, so there is no gap when the Redline HUD comes up.
+
 ## Cluster Redline 1.3.5
 
 - HUD turn signals still did not appear with 1.3.4. They were drawn into the Redline HUD image, a content layer that gives way to the stock HUD, so with the stock HUD showing the arrows were behind it. They are now two small overlay layers of their own on the HUD (as Cluster Info shows them), above the stock or Redline HUD: each side is drawn once and a flash only switches its opacity; the layers go 1.2 s after the signal ends. The Position / size preview uses the same layers and no longer brings up the Redline RPM face.

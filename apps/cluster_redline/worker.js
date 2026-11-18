@@ -345,10 +345,12 @@ function start(ctx) {
             // The native renderer still yields to real stock content/popups.
             controller.hudBlocked=rendererInfo.hudGuidanceSafe===false;
             controller.hudBlockReason=rendererInfo.hudGuidanceSafe===false?'hud_safety':(navigationState.active||Object.prototype.hasOwnProperty.call(PROJECTED,maneuverState.provider))&&config.hudNavigationEnabled?maneuverState.reason:navigationState.reason;
-            // HUD turn signals: their own overlay layers (turn-overlay.js), above the stock or Redline HUD.
-            { const pv = previewPresence.fresh() ? D.layoutPreview(config) : null;
-              turnOverlay.tick(at, config, controller.turn, !!(pv && /^Turn/.test(pv.part || ''))); }
             const state = controller.tick(at, config);
+            // HUD turn signals: in the Redline HUD image while it is on screen, else on their own overlay layers
+            // (turn-overlay.js) above the stock HUD. Only one of the two carries them at a time.
+            if (controller.turnPainted && controller.hudShown) turnOverlay.hide();
+            else { const pv = previewPresence.fresh() ? D.layoutPreview(config) : null;
+              turnOverlay.tick(at, config, controller.turn, !!(pv && /^Turn/.test(pv.part || ''))); }
             if (at - lastStatus >= 500) {
                 lastStatus = at;
                 latest = ({
@@ -357,7 +359,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, turnSignal: Object.assign({ subscribed: !!lightSub && lightSub.available !== false && !lightSub.error, overlay: turnOverlay.status() }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, turnSignal: Object.assign({ subscribed: !!lightSub && lightSub.available !== false && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},

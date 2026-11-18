@@ -49,7 +49,7 @@ class Controller {
     }
     hide() {
         if (this.ref) this.client.drop(this.ref);
-        this.ref = 0; this.previous = null; this.paintKey = null; this.layerState = 'hidden';
+        this.ref = 0; this.previous = null; this.paintKey = null; this.layerState = 'hidden'; this.turnPainted = false;
         if (this.ownsUpload) this.upload.reset();
         this.placementKey = null;
         this.targetName = null; this.layerReason = ''; this.healthySince = null;
@@ -113,7 +113,7 @@ class Controller {
         d.navigation = hud ? this.navigation : null;
         d.renderRpm=this.renderRpm!==false;d.aux=this.aux||{};
         // HUD turn signals (worker: TurnSignal.read); a turn signal part being moved shows both, lit.
-        const turn=this.turn||{};d.indicator=turn.indicator||'off';d.turnLit=!!turn.lit;d.turnStep=turn.step||0;d.turnPreview=!!(this.preview&&/^Turn/.test(this.preview.part||''));
+        const turn=this.turn||{};d.indicator=turn.indicator||'off';d.turnLit=!!turn.lit;d.turnStep=turn.step||0;d.turnPreview=!!(this.turnPreview||this.preview&&/^Turn/.test(this.preview.part||''));d.turnInLayer=!!this.turnInLayer;
         d.rendering=this.renderCache?this.renderCache.stats():null;
         const targetWidth = panel ? 1920 : hud ? 800 : 1088, targetHeight = panel ? 720 : 480;
         const geometry = cfg.displayTarget + ':' + targetWidth + 'x' + targetHeight;
@@ -201,7 +201,7 @@ class Controller {
         if(!this.previous||this.previous.length!==pixels.length)this.previous=Buffer.alloc(pixels.length);
         pixels.copy(this.previous);
         d.rendering=this.renderCache?this.renderCache.stats():null;
-        this.paintKey = paintKey;
+        this.paintKey = paintKey; this.turnPainted = !!d.turnInLayer;
         if (navContend && !this.navContend) {
             if (typeof this.client.contendWhenSent === 'function') this.client.contendWhenSent(this.ref);
             else this.client.set(this.ref, { contend: true });
