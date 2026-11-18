@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.5
+
+- HUD turn signals still did not appear with 1.3.4. They were drawn into the Redline HUD image, a content layer that gives way to the stock HUD, so with the stock HUD showing the arrows were behind it. They are now two small overlay layers of their own on the HUD (as Cluster Info shows them), above the stock or Redline HUD: each side is drawn once and a flash only switches its opacity; the layers go 1.2 s after the signal ends. The Position / size preview uses the same layers and no longer brings up the Redline RPM face.
+
 ## Cluster Redline 1.3.4
 
 - Battery voltage no longer drops to `--` for half a minute at a time. One late reply was taken as "this ECU has no such value": the reader moved on to the next way of asking, tried the other two and waited 30 s before coming back. A transport turning the request away while busy (other apps such as car_vitals use the same diagnostic link) also meant 30 s, and another app's refusal of a `0x22` read to the DME counted as this request's answer. Now a way that answered is kept until four misses in a row, a missed or busy reply is asked again after 1-2 s, only "not supported" refusals move on, and the last good value stays on screen until the next good one (cleared only when the item is deselected, the engine has been off for 3 minutes or the app stops).

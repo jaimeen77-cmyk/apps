@@ -48,7 +48,7 @@ assert(phases[0]===1&&phases.includes(0),'flashes');assert.strictEqual(phases.fi
  assert.strictEqual(steps.join(''),'11111222233331111122223333');assert.strictEqual(new TurnSignal().read(0).step,0);
  const c3=settings({hudTurnSignals:'on',hudTurnStyle:'chevron3'});assert.deepStrictEqual(D.turnSides(c3,'right',false,false),['right'],'<<< >>> stays on between flashes');
  assert.deepStrictEqual(D.turnSides(c3,'off',false,false),[]);
- const k=n=>K.key({config:c3,renderRpm:false,navigation:null,indicator:'right',turnLit:true,turnStep:n},'hud');assert(k(1)!==k(2)&&k(2)!==k(3),'each step repaints');}
+ assert.deepStrictEqual([1,2,3].map(n=>D.turnCount(c3,n,false)),[1,2,3],'each step its own chevron count');}
 ts.sample({controlIndicateDirection:3},5000);assert.strictEqual(ts.read(9000).indicator,'left','a held stalk (no new notification) keeps flashing');
 ts.clear();assert.strictEqual(ts.read(9100).indicator,'off');
 const cfg=settings({hudTurnSignals:'on'});assert.strictEqual(settings({}).hudTurnSignals,'off','off by default');
@@ -63,8 +63,7 @@ assert.strictEqual(D.turnRect(moved,'left').y,L.y-10);assert.strictEqual(D.turnR
 assert(D.turnRect(settings({hudTurnScale:150}),'left').w>L.w);
 assert.strictEqual(settings({hudTurnStyle:'bad',hudTurnColor:'pink'}).hudTurnStyle,'arrow');assert.strictEqual(settings({hudTurnColor:'pink'}).hudTurnColor,'green');
 const state=(ind,lit)=>({config:cfg,renderRpm:false,navigation:null,indicator:ind,turnLit:lit});
-assert.notStrictEqual(K.key(state('left',true),'hud'),K.key(state('left',false),'hud'),'each flash repaints');
-assert.strictEqual(K.key(state('off',false),'hud'),K.key(state('left',false),'hud'),'unlit draws nothing');
+assert.strictEqual(K.key(state('left',true),'hud'),K.key(state('off',false),'hud'),'turn signals are not in the Redline HUD image (own overlay layers)');
 // The controller hands the worker's turn state to the HUD painter; a turn part in Position / size lights both.
 {
     let seen=null;const client=new Client(),hud=Object.assign(painter(800,480),{fullTarget:true,key:d=>JSON.stringify([d.indicator,d.turnLit,d.turnPreview]),draw:d=>{seen=d;return {d:Buffer.alloc(64)};}});
@@ -72,39 +71,50 @@ assert.strictEqual(K.key(state('off',false),'hud'),K.key(state('left',false),'hu
     out.policy.modeSample(4,0);out.policy.rpmSample(3000,1000);out.tick(1000,{allHudOutput:'redline',hudTurnSignals:'on'});
     assert.strictEqual(seen.indicator,'right');assert.strictEqual(seen.turnLit,true);assert.strictEqual(seen.turnPreview,false);
     out.turn={indicator:'right',lit:false};out.tick(1300,{allHudOutput:'redline',hudTurnSignals:'on'});assert.strictEqual(seen.turnLit,false);
-    out.tick(1600,{allHudOutput:'redline',layoutPreview:'hud:TurnLeft@'+Date.now()});assert.strictEqual(seen.turnPreview,true);
     out.close();
 }
-// A turn signal shows on the HUD by itself, with the stock HUD (no RPM face, no navigation), like Cluster Info.
+// HUD turn signals: two overlay layers of their own (above the stock or Redline HUD, as Cluster Info), lit by opacity.
 {
-    const client=new Client(),out=new Outputs(client,painter(1088,480),Object.assign(painter(800,480),{fullTarget:true}));
-    const tick=(t,ind,cfg)=>{out.turn={indicator:ind,lit:true,step:1};out.policy.modeSample(4,t-1);out.policy.rpmSample(800,t);return out.tick(t,cfg).outputs.hud;};
-    assert(!tick(1000,'off',{hudTurnSignals:'on'}).requested,'no signal: the stock HUD is left alone');
-    assert(tick(2000,'left',{hudTurnSignals:'on'}).requested,'a turn signal takes the HUD with the stock HUD selected');
-    assert(tick(3000,'both',{hudTurnSignals:'on'}).requested,'hazards too');
-    assert(tick(9000,'off',{hudTurnSignals:'on'}).requested,'held a few seconds after the stalk returns');
-    assert(!tick(12000,'off',{hudTurnSignals:'on'}).requested,'then released');
-    assert(!tick(13000,'right',{}).requested,'turn signals off: nothing');
-    assert(!tick(14000,'right',{hudTurnSignals:'on',hudTurnHidden:true}).requested,'hidden: nothing');
-    out.close();
+    const {TurnOverlay,HIDE_MS}=require('../../apps/cluster_redline/turn-overlay');
+    class Rec{constructor(){this.next=0;this.l=new Map();this.uploads=0;}image(o){const r=++this.next;this.l.set(r,Object.assign({},o));return r;}pixels(){this.uploads++;}set(r,o){Object.assign(this.l.get(r),o);}drop(r){this.l.delete(r);}}
+    const rec=new Rec(),ov=new TurnOverlay(rec),on=settings({hudTurnSignals:'on'});
+    // turn-draw needs the kit canvas: count uploads with a stub painter
+    const Module=require('module'),orig=Module._load;Module._load=function(req,parent){if(req==='./turn-draw')return {painter:()=>({draw:()=>({d:new Uint8Array(16)})})};return orig.apply(this,arguments);};
+    const layers=()=>[...rec.l.values()],op=side=>layers().find(l=>l.x===D.turnRect(on,side).x);
+    ov.tick(0,on,{indicator:'off'},false);assert.strictEqual(rec.l.size,0,'no layers before a signal');
+    ov.tick(100,on,{indicator:'left',lit:true,step:1},false);
+    assert.strictEqual(rec.l.size,2);assert(layers().every(l=>l.target==='hud'&&l.klass==='overlay'),'overlay layers on the HUD');
+    assert.strictEqual(op('left').visible,true);assert.strictEqual(op('left').opacity,1);assert.strictEqual(op('right').opacity,0);
+    const sent=rec.uploads;ov.tick(400,on,{indicator:'left',lit:false,step:1},false);assert.strictEqual(op('left').opacity,0,'dark between flashes');assert.strictEqual(op('left').visible,true);assert.strictEqual(rec.uploads,sent,'a flash sends no pixels');
+    ov.tick(700,on,{indicator:'both',lit:true,step:1},false);assert.strictEqual(op('right').opacity,1,'hazards light both');
+    ov.tick(800,on,{indicator:'off'},false);assert.strictEqual(op('left').visible,true,'kept a moment after the stalk returns');
+    ov.tick(800+HIDE_MS+1,on,{indicator:'off'},false);assert.strictEqual(op('left').visible,false,'then hidden');
+    ov.tick(5000,settings({}),{indicator:'left',lit:true},false);assert.strictEqual(op('left').visible,false,'turn signals off: nothing');
+    ov.tick(6000,settings({}),{indicator:'off'},true);assert(op('left').visible&&op('left').opacity===1&&op('right').opacity===1,'Position / size lights both, setting off or not');
+    ov.tick(6100,settings({hudTurnOffsetX:30}),{indicator:'off'},true);assert(layers().some(l=>l.x===D.turnRect(settings({hudTurnOffsetX:30}),'left').x),'moves with Position / size');
+    ov.tick(6200+HIDE_MS+1,settings({}),{indicator:'off'},false);ov.tick(6300+HIDE_MS*2,settings({}),{indicator:'off'},false);assert(layers().every(l=>!l.visible),'preview ends: arrows gone');
+    const c3=settings({hudTurnSignals:'on',hudTurnStyle:'chevron3'}),before=rec.uploads;ov.tick(9000,c3,{indicator:'right',lit:false,step:1},false);ov.tick(9200,c3,{indicator:'right',lit:false,step:2},false);
+    assert(rec.uploads>before,'<<< >>> steps are redrawn');assert.strictEqual(ov.status().sides.join(),'right','<<< >>> stays on between flashes');
+    ov.close();assert.strictEqual(rec.l.size,0);Module._load=orig;
 }
-// Position / size ends when the settings screen stops being drawn, even without a "hidden" event.
+// The Redline HUD face is not forced on for a turn signal preview (the overlay shows it), and other
+// Position / size previews end when the settings screen stops being drawn, even without a "hidden" event.
 {
     const presence=require('../../apps/cluster_redline/preview-presence');
     const client=new Client(),out=new Outputs(client,painter(1088,480),Object.assign(painter(800,480),{fullTarget:true}));
-    const tick=t=>{out.turn={indicator:'off',lit:false,step:0};out.policy.modeSample(4,t-1);out.policy.rpmSample(800,t);return out.tick(t,{layoutPreview:'hud:Turn@'+Date.now()}).outputs.hud;};
-    presence.touch();assert(tick(1000).requested,'shown while the screen is drawn');
-    presence.touch(Date.now()-presence.STALE_MS-100);assert(!tick(2000).requested,'gone once the screen is no longer drawn');
+    const tick=(t,part)=>{out.turn={indicator:'off',lit:false,step:0};out.policy.modeSample(4,t-1);out.policy.rpmSample(800,t);return out.tick(t,{layoutPreview:'hud:'+part+'@'+Date.now()}).outputs.hud;};
+    presence.touch();assert(!tick(500,'Turn').requested,'turn preview: no Redline face');
+    assert(tick(1000,'Gear').requested,'shown while the screen is drawn');
+    presence.touch(Date.now()-presence.STALE_MS-100);assert(!tick(2000,'Gear').requested,'gone once the screen is no longer drawn');
     presence.reset();out.close();
 }
 if(process.argv[2]){
-    const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),hud=require(path.join(dir,'hud-compose'));
-    const count=(cv,r)=>{let n=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++)if(cv.d[(y*cv.w+x)*4+3])n++;return n;};
+    const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),turnDraw=require(path.join(dir,'turn-draw'));
+    const count=cv=>{let n=0;for(let i=3;i<cv.d.length;i+=4)if(cv.d[i])n++;return n;};
     D.TURN_STYLES.forEach(style=>Object.keys(D.TURN_COLORS).forEach(color=>{
-        const c=settings({hudTurnSignals:'on',hudTurnStyle:style,hudTurnColor:color}),s=(ind,lit)=>({config:c,renderRpm:false,navigation:null,indicator:ind,turnLit:lit});
-        const lit=hud.draw(s('left',true)),dark=hud.draw(s('left',false));
-        assert(count(lit,D.turnRect(c,'left'))>50,style+' '+color+' draws');
-        if(style==='chevron3'){const n=k=>count(hud.draw(Object.assign(s('left',false),{turnStep:k})),D.turnRect(c,'left'));assert(n(1)>0&&n(1)<n(2)&&n(2)<n(3),'one, two, three chevrons');return;}assert.strictEqual(count(lit,D.turnRect(c,'right')),0);assert.strictEqual(count(dark,D.turnRect(c,'left')),0);
+        const c=settings({hudTurnSignals:'on',hudTurnStyle:style,hudTurnColor:color}),r=D.turnRect(c,'left');
+        assert(count(turnDraw.painter(r.w,r.h,'left',style,color,0).draw())>50,style+' '+color+' draws');
+        if(style==='chevron3'){const n=k=>count(turnDraw.painter(r.w,r.h,'left',style,color,k).draw());assert(n(1)>0&&n(1)<n(2)&&n(2)<n(3),'one, two, three chevrons');}
     }));
     const {SettingsPage}=require(path.join(dir,'settings-ui')),{Canvas}=require(path.join(dir,'kit/canvas'));
     const spec=require(path.join(dir,'kit/app-spec.json')),vals={};spec.settings.forEach(s=>{vals[s.key]=s.default;});

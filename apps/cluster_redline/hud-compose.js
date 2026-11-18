@@ -2,7 +2,7 @@
 const {Canvas}=require('./kit/canvas');
 const face=require('./hud-draw'),nav=require('./nav-draw'),text=require('./nav-text');
 const lanes=require('./lane-draw'),RL=require('./redline-hud');
-const D=require('./display-config'),turn=require('./turn-draw');
+const D=require('./display-config');
 const {placement}=require('./layout');
 const W=800,H=480;
 const {blitScaled,drawWithParts}=require('./component-canvas');
@@ -42,12 +42,6 @@ function draw(state) {
         }
         if(hasTurn&&!state.config.hudTextHidden)paintNav('Text',text,state.navigation);
     }
-    // Turn signals: only the lit side is in the scene, so a flash uploads just its own small rectangle.
-    const c=state.config,preview=!!state.turnPreview,count=D.turnCount(c,state.turnStep,preview);
-    D.turnSides(c,state.indicator,state.turnLit,preview).forEach(side=>{
-        const r=D.turnRect(c,side),painter=turn.painter(r.w,r.h,side,c.hudTurnStyle,c.hudTurnColor,count);
-        if(cache)cache.navigation('turn.'+side,[c.hudTurnStyle,c.hudTurnColor,r.w,r.h,count],painter,state,r);else blitScaled(cv,painter.draw(state),r);
-    });
     return cache?cache.finish():cv;
 }
 function difference(previous,next) { return require('./component-canvas').dirtyRects(previous,next,W,H); }
