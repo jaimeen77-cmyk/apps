@@ -12,7 +12,8 @@
 // Speeding is the car's own TOO_FAST verdict; nothing is guessed from the vehicle speed.
 //
 // includedTypes: the three alert kinds together; if the car refuses that set, each kind is asked alone once and
-// only the accepted ones are kept (the 1.2.5x probe saw a car accept only some type lists).
+// only the accepted ones are kept; if none is accepted, the empty list (the only one the 2026-11-14 drive log saw
+// accepted: NO_ERROR, no events on that drive), whatever the car then sends.
 const {distanceText}=require('./native-navigation');
 const KINDS=['speedCamera','speedSectionCamera','schoolZone','speedLimitAssist'];
 const TYPES=['INCLUDE_SPEED_CAMERA','INCLUDE_SCHOOL_ZONES','INCLUDE_SPEED_LIMIT_ASSIST'];
@@ -64,12 +65,15 @@ class VehicleAlerts{
  attach(sub){if(this.sub!==sub){this.epoch++;this.last=null;this.at=null;}this.sub=sub;}
  stop(){this.closed=true;this.epoch++;this.sub=null;this.last=null;this.at=null;this.state='stopped';}
  // The type list to ask next: the accepted one, else the full set, else each kind alone in turn.
- next(){if(this.types)return this.types;if(!this.trying)this.trying={list:[TYPES.slice()].concat(TYPES.map(t=>[t])),index:0,accepted:[]};return this.trying.list[this.trying.index];}
+ next(){if(this.types)return this.types;if(!this.trying)this.trying={list:[TYPES.slice()].concat(TYPES.map(t=>[t]),[[]]),index:0,accepted:[]};return this.trying.list[this.trying.index];}
  result(types,ok){
   if(this.types){if(!ok)this.error=this.error||'query_failed';return;}
   const t=this.trying;if(!t)return;
   if(ok&&t.index===0){this.types=types.slice();this.trying=null;return;}
-  if(ok&&t.index>0)t.accepted.push(types[0]);
+  if(ok&&types.length===1)t.accepted.push(types[0]);
+  // the empty list is tried only when no kind was accepted alone
+  if(t.index===t.list.length-2&&t.accepted.length){this.types=t.accepted;this.trying=null;return;}
+  if(ok&&!types.length){this.types=[];this.trying=null;return;}
   t.index++;if(t.index<t.list.length)return;
   this.trying=null;if(t.accepted.length)this.types=t.accepted;else{this.state='types_rejected';this.types=null;this.trying=null;this.rejectedAt=this.clock();}
  }

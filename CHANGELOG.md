@@ -2,6 +2,14 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.9
+
+- Vehicle alerts now use the inputs the 2026-11-14 drive logs (speed-probe, speed-probe2) actually showed. In the first log the route event query passed only with an empty type list and returned no events; `speedLimitAssistInfo` was always `NO_VALUE`. In the second, the camera sign recognition delivered speed limits and 13 children signs. So:
+  - **Speeding** and **children signs** come from the camera sign recognition again (`traffic-signs.js`, `traffic-live.js` restored from 1.2.57): the TSR class must agree with the camera's SPEED_LIMIT (2/6/8/10 = 10/30/40/50 km/h, the pairs in the log), speeding at limit +3 km/h for 1 s, children signs for 6 s with 30 s between alerts. Replaying speed-probe2 gives speeding in the 30 zone at 04:51:21, 04:52:02, 04:52:27 and children signs at 04:51:51, 04:52:39.
+  - The three inputs (`Vehicle2.statusCarSpeed2`, `TrafficSignRecognition`, `SignRecognitionFrontCamera.TrafficSignRecognitionFrontCamera`) are added read-only at install when the car's catalog has them (`traffic-config.js`; desktop installer patch v16 does the same, parity tested).
+  - **Speed cameras** stay on the route events; the empty type list (the one the car accepted) is the last fallback. No speed camera event was in either log, so this is still unverified; the status line shows it.
+- NAV tab status line: sign recognition / camera / speed receive counts and the speed camera replies.
+
 ## Cluster Redline 1.3.8
 
 - **Vehicle alerts on the HUD** (NAV tab → Vehicle alerts: off / speeding / school zone / speed camera / show all). Read from the car navigation's own route events with the existing read-only `GuidanceEventList.queryContent` (`INCLUDE_SPEED_CAMERA`, `INCLUDE_SCHOOL_ZONES`, `INCLUDE_SPEED_LIMIT_ASSIST`; if the car refuses the set, each kind is asked alone and only accepted ones are kept). Speeding is the car's own `speedingInfo: TOO_FAST`; school zones show from 300 m and inside; speed cameras from 1 km, section cameras with their average speed and while inside. Shown on an overlay layer of their own above the stock or Redline HUD; the speeding and children drawings are the 1.2.54-1.2.57 ones, the camera icon is new.

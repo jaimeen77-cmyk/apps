@@ -29,7 +29,10 @@ function demand(cfg,mode){
  if(turnSignals){add('de.bmw.body.Light','StatusFunctionsIndicators');add('de.bmw.body.Light','StatusFunctionsIndicators2');}
  // Vehicle alerts: the car's route events (speeding, school zones, speed cameras) by query, whenever they are on.
  const carAlerts=enabled&&cfg.hudCarAlerts!=='off'&&!cfg.hudCarAlertHidden;
- if(carAlerts)add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');
+ // Speeding and children signs: the vehicle speed and the camera's sign recognition (traffic-signs.js);
+ // speed cameras: the navigation's route events by query.
+ if(carAlerts&&cfg.hudCarAlerts!=='camera')require('./traffic-signs').FIELDS.forEach(([i,f])=>add(i,f));
+ if(carAlerts&&(cfg.hudCarAlerts==='camera'||cfg.hudCarAlerts==='all'))add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');
  if(turns){add(G,'conclusiveDart');add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');add('de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent');}
  return {fields,aux,rpm,torque,gear,mode:modeNeeded,nav:navAny,turns,turnSignals,carAlerts,lanes:enabled&&nav.lanes,parts:nav};
 }

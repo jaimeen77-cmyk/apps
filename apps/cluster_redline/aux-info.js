@@ -79,6 +79,8 @@ function filterAux(manifest,catalog){
  });
  [CDS2,KOMBI,TPMS].forEach(i=>{if(proxies[i]&&!Object.keys(proxies[i].attributes||{}).length)delete proxies[i];});
  if(proxies[TASU]){if(!voltageSupported(catalog))delete proxies[TASU];else proxies[TASU]={instances:'SystemFunctionsInternalTasuInst1',methods:['sendTasuRequest'],broadcasts:['sendTasuResponse']};}
+ // vehicle alerts: the vehicle speed and the camera sign inputs, read-only (traffic-config.js)
+ require('./traffic-config').filterTraffic(manifest,catalog);
  return manifest;
 }
 module.exports={AuxInfo,SOURCES,filterAux,economy,avgSpeed,tripTime,auxOf,TPMS};

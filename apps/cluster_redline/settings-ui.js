@@ -199,11 +199,15 @@ class SettingsPage{
  // Vehicle alerts from the car: query state, replies, the alert kinds in the last reply, what shows now.
  alertStatus(cfg){
   if(cfg.hudCarAlerts==='off')return '';const head=tr('Vehicle alerts'),a=this.liveState&&this.liveState.vehicleAlerts;if(!a)return head+': '+tr('waiting for the background app');
-  if(a.state==='waiting')return head+': '+tr('route events not available yet');if(a.state==='interface_error')return head+': '+tr('subscription error');
-  if(a.state==='types_rejected')return head+': '+tr('the car refused the alert query')+(a.error?' · '+a.error:'');
-  if(!a.replies)return head+': '+tr('asked')+' '+a.queries+' · '+tr('no reply yet')+(a.error?' · '+a.error:'');
-  const n=k=>(a.kinds&&a.kinds[k])||0,o=a.overlay||{};
-  return head+': '+tr('received')+' '+a.replies+' · '+tr('Speed camera')+' '+(n('speedCamera')+n('speedSectionCamera'))+' · '+tr('School zone')+' '+n('schoolZone')+' · '+tr('Speed limit')+' '+n('speedLimitAssist')+(o.shown?' · '+tr('shown'):'');
+  const parts=[],o=a.overlay||{};
+  // speeding / children signs: the camera's sign recognition and the vehicle speed (received counts)
+  if(cfg.hudCarAlerts!=='camera'){const s=a.signs||[],n=f=>{const e=s.find(x=>x.field===f);return !e||!e.configured?'X':String(e.received);};
+   parts.push(tr('Sign recognition')+' '+n('TrafficSignRecognition')+' · '+tr('Camera')+' '+n('TrafficSignRecognitionFrontCamera')+' · '+tr('Speed')+' '+n('statusCarSpeed2'));}
+  // speed cameras: the navigation's route events
+  if(cfg.hudCarAlerts==='camera'||cfg.hudCarAlerts==='all'){const k=x=>(a.kinds&&a.kinds[x])||0;
+   parts.push(a.state==='waiting'?tr('route events not available yet'):a.state==='types_rejected'?tr('the car refused the alert query'):!a.replies?tr('Speed camera')+' '+tr('no reply yet'):tr('Speed camera')+' '+(k('speedCamera')+k('speedSectionCamera'))+'/'+a.replies);}
+  if(o.shown)parts.push(tr('shown'));
+  return head+': '+parts.join(' · ');
  }
  yieldStatus(cfg){
   if(cfg.clusterYieldGuidance==='off')return '';const y=this.liveState&&this.liveState.clusterYield;if(!y)return tr('Yield')+': '+tr('waiting for the background app');
