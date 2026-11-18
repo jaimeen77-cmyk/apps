@@ -22,7 +22,11 @@ function demand(cfg,mode){
  const yieldNav=enabled&&cfg.clusterYieldGuidance!=='off'&&faces.includes('cluster');
  if(yieldNav&&!navAny){add(G,'guidanceState');add(G,'guidingProvider');}
  if(navAny){add(G,'guidanceState');add(G,'guidingProvider');Object.keys(PROJECTED).forEach(p=>['projectedGuidanceActive','projectedGuidanceMetadataAvailable'].forEach(f=>add(PROJECTED[p].iface,f)));}
+ // HUD turn signals: the light module's two indicator fields, whenever the arrows are switched on (they show with
+ // the stock HUD too, so no RPM face or navigation is needed).
+ const turnSignals=enabled&&cfg.hudTurnSignals==='on'&&!cfg.hudTurnHidden;
+ if(turnSignals){add('de.bmw.body.Light','StatusFunctionsIndicators');add('de.bmw.body.Light','StatusFunctionsIndicators2');}
  if(turns){add(G,'conclusiveDart');add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');add('de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent');}
- return {fields,aux,rpm,torque,gear,mode:modeNeeded,nav:navAny,turns,lanes:enabled&&nav.lanes,parts:nav};
+ return {fields,aux,rpm,torque,gear,mode:modeNeeded,nav:navAny,turns,turnSignals,lanes:enabled&&nav.lanes,parts:nav};
 }
 module.exports={demand};

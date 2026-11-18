@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.7
+
+- HUD turn signals never appeared because the car's turn signal fields were never subscribed. The worker subscribes only to what `data-demand.js` lists for the current settings (`demand-signals.js`), and `de.bmw.body.Light` was not in that list, so no notification ever reached the app since 1.3.0 (the Position / size preview draws without the signal, so it looked fine). The two indicator fields are now in the demand set whenever HUD turn signals are on.
+- The direction is no longer cleared every frame while the light module has not reported availability (only on an error, or when a provider that was available goes away), as Cluster Info does.
+- The HUD turn signal screen shows the car's input: notifications received, the last direction, and whether the arrows are drawn in the Redline HUD or as the overlay.
+
 ## Cluster Redline 1.3.6
 
 - HUD turn signals are drawn into the Redline HUD image while it is on screen (its layer shown and the HUD slot not held by the stock HUD or another app), so they are part of the same picture; otherwise the overlay layers of 1.3.5 show them above the stock HUD. The overlay steps aside only once a Redline HUD frame carrying the arrows has been sent, so there is no gap when the Redline HUD comes up.

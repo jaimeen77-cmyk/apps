@@ -26,8 +26,9 @@ function direction(value){
  return dir;
 }
 class TurnSignal{
- constructor(){this.dir='off';this.at=null;this.since=0;}
- sample(value,now){const d=direction(value);if(d===null)return;if(d!==this.dir){this.dir=d;this.since=now-LEAD_MS;}this.at=now;}
+ constructor(){this.dir='off';this.at=null;this.since=0;this.received=0;this.raw=null;this.lastAt=null;}
+ sample(value,now){this.received++;this.lastAt=now;try{this.raw=JSON.stringify(value);if(this.raw&&this.raw.length>160)this.raw=this.raw.slice(0,160)+'…';}catch(e){this.raw=String(value);}
+  const d=direction(value);if(d===null)return;if(d!==this.dir){this.dir=d;this.since=now-LEAD_MS;}this.at=now;}
  clear(){this.dir='off';this.at=null;}
  // The fields notify on change only: the direction holds (flashing) until the car says otherwise or the
  // interface goes away (clear()).

@@ -78,7 +78,7 @@ function start(ctx) {
     const hudGuidance=new HudGuidance(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const lanes=new LaneGuidance(mono);
-    const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null;
+    const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
     const reportError = (name, e) => { const s = (name + ': ' + e).slice(0, 320); if (errors.indexOf(s) < 0) { errors.push(s); if (errors.length > 8) errors.shift(); } };   // kept for the settings screen, not logged
@@ -145,10 +145,11 @@ function start(ctx) {
         // without them leaves the HUD without arrows.
         let hasLight = false;
         try { const cfg = signals.loadConfig(LIGHT); hasLight = !!(cfg.fields && (cfg.fields.StatusFunctionsIndicators || cfg.fields.StatusFunctionsIndicators2)); } catch (e) {}
+        lightState = hasLight ? 'subscribing' : 'not_installed';
         if (hasLight) signals.watch(LIGHT, '1', {
             StatusFunctionsIndicators: (v) => turnSignal.sample(v, mono()),
             StatusFunctionsIndicators2: (v) => turnSignal.sample(v, mono()),
-        }, log, {}).then((s) => { lightSub = s; keep(s); if (s.error) reportError('optional turn signals', s.error); }).catch((e) => reportError('optional turn signals', e));
+        }, log, {}).then((s) => { lightSub = s; keep(s); lightState = s.error ? 'error' : 'subscribed'; if (s.error) reportError('optional turn signals', s.error); }).catch((e) => { lightState = 'error'; reportError('optional turn signals', e); });
         // Read the common native/projection guidance channel. Never set routes,
         // call vehicle methods, or alter the BMW HUD/menu configuration.
         try {
@@ -239,7 +240,14 @@ function start(ctx) {
             if (gearSub && (gearSub.available === false || gearSub.error)) gearbox.clear();
             if (programSub && (programSub.available === false || programSub.error)) gearbox.programMode = null;
             controller.gear = gearbox.gear; controller.gearMode = gearbox.programMode || gearbox.mode;
-            if (lightSub && (lightSub.available === false || lightSub.error)) turnSignal.clear();
+            // The light module notifies on change only. Clear the direction on an error, or when a provider that was
+            // available goes away; never because availability was not (yet) reported: a provider that does not report it
+            // had every arrived notification wiped on the next frame. Cluster Info does not look at it either.
+            if (lightSub) {
+                if (lightSub.available === true) lightSeenAvailable = true;
+                else if (lightSeenAvailable && lightSub.available === false) { lightSeenAvailable = false; turnSignal.clear(); }
+                if (lightSub.error) turnSignal.clear();
+            }
             controller.turn = turnSignal.read(at);
             if (fesSub && (fesSub.available === false || fesSub.error)) controller.telemetry.clear();
             const raw = {};
@@ -359,7 +367,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, turnSignal: Object.assign({ subscribed: !!lightSub && lightSub.available !== false && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
