@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.10
+
+- **License: permission required.** From this version Cluster Redline's own code, drawings and screens are licensed by 잼님 (jaimeen77) under `apps/cluster_redline/LICENSE` (all rights reserved): installing it from this repository / its MGU Store source and using it privately in your own vehicle is allowed; copying, redistributing, modifying, putting it into other apps or commercial use needs prior permission. Versions up to 1.3.9 were MIT and stay so.
+- Components by others keep their licenses (`apps/cluster_redline/NOTICE`, `NOTICE.cluster-redline.md`): `cluster_render_client.js` MPL-2.0 (its license text moved from `LICENSE` to `NOTICE`, still shipped in the package), the runtime kit, the Redline HUD drawing and the drive mode mappings MIT, the font OFL-1.1, the `patches/` GPL-3.0-or-later.
+- No functional change; the version is raised so installed copies get the new license files.
+
 ## Cluster Redline 1.3.9
 
 - Vehicle alerts now use the inputs the 2026-11-14 drive logs (speed-probe, speed-probe2) actually showed. In the first log the route event query passed only with an empty type list and returned no events; `speedLimitAssistInfo` was always `NO_VALUE`. In the second, the camera sign recognition delivered speed limits and 13 children signs. So:

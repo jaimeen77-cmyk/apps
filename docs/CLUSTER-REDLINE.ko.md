@@ -299,3 +299,9 @@ Redline 앱 레이아웃은 Redline 앱(appsKOR, MIT 라이선스)의 디자인�
 ---
 
 제작: **잼님** · 다운로드: [github.com/jaimeen77-cmyk/apps](https://github.com/jaimeen77-cmyk/apps) · MGU Store 소스: `jaimeen77-cmyk/apps` (`main`) · [라이선스·원작 고지](../NOTICE.cluster-redline.md)
+
+---
+
+## 라이선스
+
+Cluster Redline 1.3.10부터는 **허락 필요** 라이선스입니다([apps/cluster_redline/LICENSE](../apps/cluster_redline/LICENSE)). 이 저장소(MGU Store 소스)에서 설치해 본인 차량에서 쓰는 것은 자유이고, 복사·재배포·수정·다른 앱에 넣기·상업적 이용은 미리 허락을 받아야 합니다(저장소 이슈 또는 blog.naver.com/jaimeen77). 1.3.9까지 공개된 버전은 MIT였고, 다른 사람이 만든 구성 요소는 원래 라이선스를 따릅니다([NOTICE.cluster-redline.md](../NOTICE.cluster-redline.md)).
