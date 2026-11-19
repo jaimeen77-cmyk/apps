@@ -2,7 +2,7 @@
   "id": "idrive_circuit",
   "title": "iDrive Circuit",
   "description": "A parked-only circuit puzzle: rotate the wiring to power every vehicle module",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "vendor": "JaimeenSHIm",
   "loggingId": "OAA3",
   "iconGlyph": "CIR",

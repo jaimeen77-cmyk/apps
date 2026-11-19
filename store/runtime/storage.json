@@ -4,8 +4,8 @@
   "language": "ko",
   "source_version": "1.1.2",
   "ui_sha256": "75efd2c3c001676141fc8c62c437b9280f72398ad438ff621d6ef67671cb2980",
-  "size": 1089005,
-  "sha256": "ab1f5cb5a17c0765a14510711607f9ee5e2ff761600b22d2b6d224292c1dabb1",
+  "size": 1090012,
+  "sha256": "43f18b8e3939568a8a1acfcb26b1131353f89cc9c658ce35c6e8679c47e3e775",
   "parts": [
     "storage.tgz.part-00",
     "storage.tgz.part-01",
@@ -33,7 +33,7 @@
   ],
   "provenance": {
     "runtime": "jaimeen77-cmyk/appsKOR",
-    "commit": "55c7b626baf4e36f8a33e141bb07db33ea55f573",
+    "commit": "87d450d2221f9e3a5846153ed8f5cd6557fe1201",
     "license": "MIT",
     "sdk_included": false
   }

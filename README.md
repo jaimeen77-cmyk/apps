@@ -8,7 +8,7 @@ their ID7 restrictions. Listing visibility does not enable ID8 installation.
 
 **Made by 잼님 (jaimeen77)** · Download: [github.com/jaimeen77-cmyk/apps](https://github.com/jaimeen77-cmyk/apps) · MGU Store source: `jaimeen77-cmyk/apps` (branch `main`) · Blog: [blog.naver.com/jaimeen77](https://blog.naver.com/jaimeen77) · Korean guide: [설치·사용 설명서](docs/CLUSTER-REDLINE.ko.md)
 
-**Cluster Redline 1.3.10** (now permission required, see License below): vehicle alerts on the HUD (speeding and children signs from the camera sign recognition, speed cameras); HUD turn signals work (the light module is now subscribed), in the Redline HUD while it shows, on their own overlay layers over the stock HUD, Position / size preview ends when the screen is left, battery voltage kept through missed replies; all modes RPM display can leave out Sport modes (cluster and HUD), turn signal arrows on the HUD (shape, colour, position); cluster released while guidance shows on the HUD (Waze included), tuned HUD layout defaults, outside temperature fix (1.2.8: Redline layouts element by element, Korean time for the clock). **iDrive Circuit 1.0.4** and **MGU Monitor 1.1.6** (Log history tab: daily averages and average use by app) are also available.
+**Cluster Redline 1.3.11** (now permission required, see License below): vehicle alerts on the HUD (speeding and children signs from the camera sign recognition, speed cameras); HUD turn signals work (the light module is now subscribed), in the Redline HUD while it shows, on their own overlay layers over the stock HUD, Position / size preview ends when the screen is left, battery voltage kept through missed replies; all modes RPM display can leave out Sport modes (cluster and HUD), turn signal arrows on the HUD (shape, colour, position); cluster released while guidance shows on the HUD (Waze included), tuned HUD layout defaults, outside temperature fix (1.2.8: Redline layouts element by element, Korean time for the clock). **iDrive Circuit 1.0.5** and **MGU Monitor 1.1.7** (Log history tab: daily averages and average use by app) are also available.
 
 [한국어](README.ko.md)
 
@@ -19,7 +19,7 @@ their ID7 restrictions. Listing visibility does not enable ID8 installation.
 | Use MGU Monitor | [MGU Monitor](apps/storage/README.md) | [MGU 모니터](apps/storage/README.ko.md) |
 | Use Circuit | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
 
-Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.3.10** in the app. Stop and disable auto-start in an unused language edition if both are installed.
+Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.3.11** in the app. Stop and disable auto-start in an unused language edition if both are installed.
 
 | HUD circle | HUD bar |
 |---|---|
@@ -37,4 +37,4 @@ Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and c
 
 For the 15 localized upstream iDrive apps, use the separate [appsKOR repository](https://github.com/jaimeen77-cmyk/appsKOR). This repository offers Circuit, Cluster Redline, MGU Monitor and Seats Easy Access in Korean and English.
 
-The 15 general Korean app listings and their latest compiled packages have moved to [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR). Refresh both main sources in MGU Store. This source lists eight app entries: the Korean and English editions of Circuit, Cluster Redline, MGU Monitor and Seats Easy Access. Both MGU Monitor editions are version 1.1.6; they also require the app-name helper tool from this source.
+The 15 general Korean app listings and their latest compiled packages have moved to [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR). Refresh both main sources in MGU Store. This source lists eight app entries: the Korean and English editions of Circuit, Cluster Redline, MGU Monitor and Seats Easy Access. Both MGU Monitor editions are version 1.1.7; they also require the app-name helper tool from this source.

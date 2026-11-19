@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Hangul in the apps again (Circuit 1.0.5, Cluster Redline 1.3.11, MGU Monitor 1.1.7, Seats Easy Access 0.6.16)
+
+- On an iDrive 8 car, once appsKOR's GPU renderer (`idrive7-renderd`) was installed, every Korean text inside the apps came out blank (the HMI's own titles, Latin letters and numbers still showed), in Cluster Redline too. The runtime connects to that renderer before the Store's `mgu-render`, and it keeps every app's glyph atlases in one shared texture, two 1024 x 4096 columns, first come first served until it restarts. The Korean atlas needs one stretch of 2976 rows; after the HUD / cluster / number atlases took more than 1120 rows of each column it no longer fitted ("glyph atlas texture full").
+- The kit runtime from appsKOR (appsKOR_fork 44b159e) sends an atlas taller than 512 rows as pieces of at most 512 rows (Korean: 6), each with its own id, and records one glyph run per piece; the text is drawn pixel for pixel as before. All eight runtime templates now carry those `kit/fonts.js` and `kit/record.js`; only these two files change.
+- New versions so installed cars get it as an update.
+
 ## Cluster Redline 1.3.10
 
 - **License: permission required.** From this version Cluster Redline's own code, drawings and screens are licensed by 잼님 (jaimeen77) under `apps/cluster_redline/LICENSE` (all rights reserved): installing it from this repository / its MGU Store source and using it privately in your own vehicle is allowed; copying, redistributing, modifying, putting it into other apps or commercial use needs prior permission. Versions up to 1.3.9 were MIT and stay so.
