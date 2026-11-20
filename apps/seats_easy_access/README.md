@@ -19,6 +19,8 @@ MGU Store offers **Seats Easy Access (English)** (`seats_easy_access`) and **시
 
 Version 0.7.2 recognizes the active BMW driver profile and displays its name when available. With their own BMW profile selected, each driver can adjust the seat, press **Save memory → M1**, and turn on **Ignition M1**. Manual M1 and Ignition M1 both recall the recognized driver's personal position. Each personal M1 uses one free slot of Comfort's three driver-seat memories. Allocated slots are locked in the shared driver M2/M3 controls. Existing shared memories keep their positions when a driver registers. A 0.7.1 M1 opt-in is carried over when exactly one profile matches the stored shared M1. Requires Comfort 0.6.1 or later.
 
+Version 0.7.5 retries missing profile names. If only occupied shared slots remain, repeat Save memory → M1 within 30 seconds to confirm replacing the indicated common slot.
+
 Version 0.7.4 starts checking for ignition M1 at 3 seconds. If the seat stays idle off target for 2 seconds, the app retries, up to five total calls within the original 45-second window. A running seat job delays the next attempt.
 
 Version 0.7.3 adds a shared power-off exit position. With the driver's seat adjusted back, press **Save exit** on the driver page. The car must be stationary and the active driver must have **Ignition M1** on. An observed power-off moves the driver seat to the saved exit position even with the door closed. Power-on then recalls the recognized driver's personal M1. The shared exit takes one additional free Comfort driver-memory slot. The head unit and Comfort must still be running when power-off is reported.

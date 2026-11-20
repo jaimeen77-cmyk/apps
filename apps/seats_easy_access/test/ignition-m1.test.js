@@ -187,6 +187,17 @@ function fixture(values, makeDriver) {
             };
         },
     }, dataDir, now);
+    {
+        let time = 0, nameReady = false;
+        const profile = new Driver({ proxy: async (iface) => ({ getValue: async () =>
+            iface.endsWith('SessionManager') ? 'profile-2' : nameReady ? 'Driver Two' : '' }) }, null, () => time);
+        await profile.refresh(true); await profile.nameRequest;
+        assert.ok(profile.known()); assert.equal(profile.name, null);
+        nameReady = true; time = 3000; await profile.refresh(true);
+        time = 5000; await profile.refresh(true); await profile.nameRequest;
+        assert.equal(profile.name, 'Driver Two');
+        profile.close();
+    }
     const file = path.join(dataDir, 'driver-m1.json');
     async function savePersonalM1(f, position) {
         f.client.state.seats.pos.driver.SLV = position;
@@ -251,7 +262,7 @@ function fixture(values, makeDriver) {
 
         active = 'driver C';
         await f.driver.refresh(true);
-        await assert.rejects(() => savePersonalM1(f, 500), /빈 Comfort 메모리/);
+        await assert.rejects(() => savePersonalM1(f, 500), /공용 M3/);
         assert.deepStrictEqual(f.client.state.seats.memories.driver, [{ SLV: 456 }, { SLV: 700 }, { SLV: 900 }],
             'a full store cannot overwrite another profile or the existing M3');
 
@@ -327,6 +338,16 @@ function fixture(values, makeDriver) {
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 2, save: false });
         f.driver.close();
 
+        // A previous common memory can be repurposed only by an explicit repeated save.
+        const common = fixture({}, (now) => new Driver(null, null, now));
+        common.driver.id = 'test'; common.driver.at = 10000;
+        common.driver.exit = { slot: 1, target: null };
+        common.driver.profiles.other = { slot: 0, target: null, enabled: true };
+        common.client.state.seats.memories.driver = [{ SLV: 100 }, { SLV: 200 }, { SLV: 300 }];
+        assert.throws(() => common.driver.saveM1(common.client, common.client.state), /공용 M3/);
+        assert.equal(common.client.sent.length, 0);
+        await common.driver.saveM1(common.client, common.client.state);
+        assert.deepStrictEqual(common.client.state.seats.memories.driver, [{ SLV: 100 }, { SLV: 200 }, { SLV: 123 }]);
         const digest = (input) => crypto.createHash('sha256').update(input).digest('hex');
         const oldTarget = digest(JSON.stringify([[['SLV', 456]], []]));
         const old = { [digest('driver A')]: oldTarget, [digest('driver B')]: oldTarget };

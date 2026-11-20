@@ -4,7 +4,7 @@
 const EventEmitter = require('events');
 const net = require('net');
 const SOCKET = '/run/iteriodev-comfort/ctl.sock';
-const VERSION = '0.7.4';
+const VERSION = '0.7.5';
 const JOG_REPEAT_MS = 250;
 const JOG_LIMIT_MS = 8000;
 
@@ -284,7 +284,9 @@ class EasyAccess extends EventEmitter {
     armMemorySave() {
         if (!this.foreground) throw new Error('앱 화면이 활성화되어 있어야 합니다.');
         this.saveMemory = !this.saveMemory;
-        this.message = this.saveMemory ? '저장할 M1~M3 버튼을 누르세요.' : '메모리 저장을 취소했습니다.';
+        if (this.saveMemory && this.selectedSeat === 'driver' && this.driver) {
+            this.message = '현재 운전자의 개인 위치를 저장하려면 M1을 누르세요.';
+        } else this.message = this.saveMemory ? '저장할 M1~M3 버튼을 누르세요.' : '메모리 저장을 취소했습니다.';
         this.emit('change');
     }
     async memory(slot) {

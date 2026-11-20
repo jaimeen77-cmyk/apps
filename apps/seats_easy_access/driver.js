@@ -87,6 +87,9 @@ class Driver {
         this.at = -Infinity;
         this.since = -Infinity;
         this.lastRead = -Infinity;
+        this.nextNameRead = 0;
+        this.nameRequest = null;
+        this.replaceSlot = null;
         this.proxy = null;
         this.reading = null;
         this.closed = false;
@@ -161,7 +164,21 @@ class Driver {
 
     saveM1(client, state) {
         const id = this.id;
-        return this.saveMemory(client, state, this.profiles[id], (entry) => this.write(id,
+        let entry = this.profiles[id];
+        const free = MEMORY_SLOTS.filter((slot) => !this.reserved(slot));
+        if (!entry && free.length && free.every((slot) => targetOf(state, slot))) {
+            const slot = free.find((index) => index !== 0 || !Object.keys(this.legacy).length);
+            if (slot === undefined) throw new Error('저장할 빈 Comfort 메모리가 없습니다.');
+            const key = targetKey(targetOf(state, slot)), prior = this.replaceSlot;
+            if (!prior || prior.id !== id || prior.slot !== slot || prior.key !== key || this.now() > prior.until) {
+                this.replaceSlot = { id, slot, key, until: this.now() + 30000 };
+                throw new Error('공용 M' + (slot + 1) + ' 덮어쓰기: 30초 안에 메모리 저장 → M1을 다시 누르세요.');
+            }
+            entry = { slot, target: null };
+            this.write(id, Object.assign({ enabled: false }, entry));
+        }
+        this.replaceSlot = null;
+        return this.saveMemory(client, state, entry, (entry) => this.write(id,
             Object.assign({ enabled: !!(this.profiles[id] && this.profiles[id].enabled) }, entry)));
     }
 
@@ -234,11 +251,20 @@ class Driver {
         const id = reference && !/^(guest|anonymous|unknown|none|null|undefined)$/i.test(reference) ? digest(reference) : null;
         const changed = id !== this.id || !this.known();
         this.at = this.now();
-        if (!changed) return;
-        this.id = id;
-        this.name = null;
-        this.since = this.at;
-        if (id) this.readName(reference, id, this.since);
+        if (changed) {
+            this.id = id;
+            this.name = null;
+            this.since = this.at;
+            this.replaceSlot = null;
+            this.nextNameRead = 0;
+            this.nameRequest = null;
+        }
+        if (id && !this.name && !this.nameRequest && this.at >= this.nextNameRead) {
+            const request = this.readName(reference, id, this.since);
+            this.nameRequest = request;
+            this.nextNameRead = this.at + 5000;
+            request.then(() => { if (this.nameRequest === request) this.nameRequest = null; });
+        }
     }
 
     async readName(reference, id, since) {

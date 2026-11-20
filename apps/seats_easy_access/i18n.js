@@ -4,6 +4,7 @@
 const ENGLISH = {
     '시트 Easy Access': 'Seats Easy Access',
     '운전석': 'Driver', '조수석': 'Passenger',
+    '현재 운전자의 개인 위치를 저장하려면 M1을 누르세요.': 'Press M1 to save the active driver’s personal position.',
     'BMW 운전자 인식됨': 'BMW driver recognized',
     'BMW 운전자 미인식': 'No BMW driver recognized',
     'M1 우선': 'M1 priority',
@@ -111,6 +112,10 @@ const KOREAN = {
     'M1 left to target': 'M1 목표까지 남은 거리',
     'App events + Comfort journal (C) by time': '앱 기록 + Comfort 로그(C) 시간순',
 };
+for (let slot = 1; slot <= 3; slot++) {
+    ENGLISH['공용 M' + slot + ' 덮어쓰기: 30초 안에 메모리 저장 → M1을 다시 누르세요.'] =
+        'Replace shared M' + slot + '? Repeat Save memory → M1 within 30s.';
+}
 const koreanKeys = Object.keys(KOREAN).sort((a, b) => b.length - a.length);
 const keys = Object.keys(ENGLISH).sort((a, b) => b.length - a.length);
 function language() {
