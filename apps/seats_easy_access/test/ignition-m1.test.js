@@ -35,12 +35,17 @@ function fixture(values, makeDriver) {
     let f = fixture();
     f.emit({}); await f.advance(6000);
     assert.equal(f.client.sent.length, 0, 'starting an already-on car is not a trigger');
-    f.cycle(); await f.advance(7999); assert.equal(f.client.sent.length, 0, 'waits eight seconds after power-on');
-    assert.ok(f.logs.some((s) => s.includes('waiting 8 seconds')));
+    f.cycle(); await f.advance(2999); assert.equal(f.client.sent.length, 0, 'waits three seconds after power-on');
+    assert.ok(f.logs.some((s) => s.includes('waiting 3 seconds')));
     await f.advance(1);
     assert.deepStrictEqual(f.client.sent, [{ op: 'memory', seat: 'driver', slot: 0, save: false }]);
-    await f.advance(10000); f.emit({}); await f.advance(1000);
-    assert.equal(f.client.sent.length, 1, 'no duplicate recalls from repeated power/status events');
+    for (let attempt = 2; attempt <= 5; attempt++) {
+        await f.advance(1999); f.emit({}); assert.equal(f.client.sent.length, attempt - 1);
+        await f.advance(1); f.emit({}); await f.advance(0);
+        assert.equal(f.client.sent.length, attempt, 'ignored recall retries every two idle seconds');
+    }
+    await f.advance(2000); f.emit({}); await f.advance(0);
+    assert.equal(f.client.sent.length, 5, 'bounded even if no job ever appears');
     assert.ok(f.logs.some((s) => s.includes('checking arrival')));
 
     f = fixture({ ignitionM1: false }); f.cycle(); await f.advance(6000);
@@ -123,7 +128,7 @@ function fixture(values, makeDriver) {
         clock += 15000; await runtime.poll();
         assert.equal(f.client.sent.length, 1, 'background recall needs no open screen');
     } finally { runtime.close(); }
-    // arrival check: a recall that ends short (the seat module held its motors) is tried once more, never a third time
+    // arrival check: a recall that ends short (the seat module held its motors) is retried while still off target
     const job = (f, run, slv) => { f.client.state.seats.job = run ? 'memory' : null; f.client.state.seats.jobSeat = run ? 'driver' : null;
         if (slv !== undefined) f.client.state.seats.pos.driver.SLV = slv; f.client.emit('state', f.client.state); };
     f = fixture(); f.cycle(); await f.advance(15000);
@@ -136,9 +141,11 @@ function fixture(values, makeDriver) {
     assert.equal(f.client.sent.length, 2, 'one retry after the wait and 2 s of idle Comfort');
     assert.ok(f.logs.some((s) => s.includes('retry: calling driver memory again')));
     job(f, true); job(f, false, 140);                          // still short
-    assert.ok(f.logs.some((s) => s.includes('still short after retry')));
+    await f.advance(2000); assert.equal(f.client.sent.length, 3);
+    job(f, true); await f.advance(5000); f.emit({});
+    assert.equal(f.client.sent.length, 3); job(f, false, 456);
     await f.advance(60000); await f.advance(5000);
-    assert.equal(f.client.sent.length, 2, 'never a third recall');
+    assert.equal(f.client.sent.length, 3, 'arrival ends retries');
 
     f = fixture(); f.cycle(); await f.advance(8000);
     job(f, true); job(f, false, 130);
@@ -211,7 +218,7 @@ function fixture(values, makeDriver) {
         f = fixture({}, makeDriver);
         f.client.state.seats.memories.driver[2] = { SLV: 900 };
         await f.driver.refresh(true);
-        f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        f.cycle(); await f.advance(3000);
         assert.equal(f.client.sent.length, 1, 'the recognized driver keeps the opt-in across a restart');
         job(f, true); job(f, false, 130);
         active = 'driver B';
@@ -230,7 +237,7 @@ function fixture(values, makeDriver) {
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: true });
         assert.deepStrictEqual(f.client.state.seats.memories.driver, [{ SLV: 456 }, { SLV: 700 }, { SLV: 900 }]);
         assert.equal(f.auto.toggle(f.client.state), true);
-        f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        f.cycle(); await f.advance(3000);
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: false },
             'driver B starts in their own M1 slot');
         job(f, true); job(f, false, 500);
@@ -250,7 +257,7 @@ function fixture(values, makeDriver) {
 
         active = 'driver A';
         await f.driver.refresh(true);
-        f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        f.cycle(); await f.advance(3000);
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 0, save: false },
             'switching back restores driver A’s M1');
         f.client.state.seats.memories.driver[0].SLV = 600;
@@ -295,7 +302,7 @@ function fixture(values, makeDriver) {
         f.emit({ carOn: true });
         assert.equal(f.client.sent.pop().op, 'stop', 'power-on stops a still-running exit movement');
         job(f, false);
-        await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        await f.advance(3000);
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: false },
             'driver B returns to their own M1 on power-on');
 
@@ -309,7 +316,7 @@ function fixture(values, makeDriver) {
         active = 'driver A';
         await f.driver.refresh(true);
         f.emit({ carOn: true });
-        await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        await f.advance(3000);
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 0, save: false },
             'driver A also returns to their own M1 from the same shared exit position');
 
