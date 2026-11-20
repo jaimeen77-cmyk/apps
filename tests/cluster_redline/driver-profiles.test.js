@@ -38,5 +38,7 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
   const p=new DriverProfiles({settings:st,signals:sg,fs:f2,file:'/p',keys:()=>['hudDesign','favorite1']});await settle();
   assert.deepStrictEqual(JSON.parse(fl['/p']).profiles.B,{hudDesign:'own',favorite1:'shared'},'kept drivers start with the shared favourites');
   h('A');st.set('favorite1','A-fav');h('B');assert.strictEqual(v.favorite1,'shared','B keeps theirs');st.set('favorite1','B-fav');h('A');assert.strictEqual(v.favorite1,'A-fav','A gets theirs back');p.stop();}
+ {const broken=new DriverProfiles({settings:{get:()=>'on',set(){},onChange(){}},signals:null,fs:{readFileSync:()=>JSON.stringify({profiles:{A:{}},order:['A']}),writeFileSync(){}},file:'/b',keys:()=>{throw new Error('no key list');}});
+  assert.deepStrictEqual(broken.keys(),[],'a broken key list never stops the app');}
  console.log('PASS: settings per driver: favourites per driver (shared ones handed to every kept driver), names from the user account (number when none), off reads nothing, the user account picks the settings, changes kept per driver, new driver keeps current, car settings shared, kept across restarts');
 })().catch(e=>{console.error(e);process.exitCode=1;});
