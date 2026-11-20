@@ -88,6 +88,7 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
         async send(command) { this.sent.push(command); return super.send(command); }
     }
     const car = new Recording(), stops = () => car.sent.filter((q) => q.op === 'stop').length;
+    car.state.seats.memories.driver[0] = null;
     ctx.signals = { async proxy(iface) {
         return { async getValue() { return iface.endsWith('SessionManager') ? 'screen-fixture' : 'MIN'; }, shutdown() {} };
     } };
@@ -96,6 +97,8 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
     await new Promise((resolve) => setImmediate(resolve));
     await real.render(true);
     assert.ok(frames[frames.length - 1].capturedText.includes('MIN'), 'the recognized driver’s name is drawn');
+    await handlers.BTN_SAVE();
+    await handlers.BTN_M1();
     await handlers.BTN_IGNITION_M1();
     assert.equal(real.auto.enabled(), true);
     assert.equal(real.auto.pending, null, 'enabling for the recognized profile is not a recall');

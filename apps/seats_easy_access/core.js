@@ -4,7 +4,7 @@
 const EventEmitter = require('events');
 const net = require('net');
 const SOCKET = '/run/iteriodev-comfort/ctl.sock';
-const VERSION = '0.7.1';
+const VERSION = '0.7.2';
 const JOG_REPEAT_MS = 250;
 const JOG_LIMIT_MS = 8000;
 
@@ -16,6 +16,14 @@ function bounded(promise, ms, message) {
     });
 }
 
+function counters(source, axes) {
+    const result = {};
+    for (const axis of axes) {
+        if (source && Number.isFinite(source[axis])) result[axis] = source[axis];
+    }
+    return result;
+}
+
 function stateOf(message) {
     const state = message && message.state;
     const seats = state && state.seats;
@@ -25,8 +33,8 @@ function stateOf(message) {
         carOn: state.carOn === true,
         settings: { easyExit: !!(state.settings && state.settings.easyExit) },
         seats: {
-            axes: { driver: [], passenger: [] }, pos: { driver: {}, passenger: {} },
-            m1Target: { driver: {}, passenger: {} },
+            axes: { driver: [], passenger: [] }, pos: { driver: {}, passenger: {}, wheel: counters(seats.pos.wheel, ['LEN', 'HGT']) },
+            memories: { driver: [], passenger: [] },
             exit: { driver: !!(seats.exit && seats.exit.driver), passenger: !!(seats.exit && seats.exit.passenger) },
             pre: { driver: !!(seats.pre && seats.pre.driver), passenger: !!(seats.pre && seats.pre.passenger) },
             moving: seats.moving && typeof seats.moving === 'object' ? {
@@ -37,26 +45,21 @@ function stateOf(message) {
             jobSeat: seats.jobSeat === 'driver' || seats.jobSeat === 'passenger' ? seats.jobSeat : null,
             wheel: seats.wheel === true,
             roomOut: seats.roomOut === true,
-            memory1: { driver: !!(seats.memories && seats.memories.driver && seats.memories.driver[0]),
-                passenger: !!(seats.memories && seats.memories.passenger && seats.memories.passenger[0]) },
         },
     };
     ['driver', 'passenger'].forEach((who) => {
-        const target = seats.memories && seats.memories[who] && seats.memories[who][0];
         const axes = Array.isArray(seats.axes[who]) ? seats.axes[who] : [];
         clean.seats.axes[who] = axes.filter((axis) => typeof axis === 'string' && /^[A-Z]{3}$/.test(axis));
-        clean.seats.axes[who].forEach((axis) => {
-            const value = seats.pos[who] && seats.pos[who][axis];
-            if (typeof value === 'number' && isFinite(value)) clean.seats.pos[who][axis] = value;
-            if (target && typeof target[axis] === 'number' && isFinite(target[axis])) clean.seats.m1Target[who][axis] = target[axis];
+        clean.seats.pos[who] = counters(seats.pos[who], clean.seats.axes[who]);
+        const slots = seats.memories && seats.memories[who];
+        clean.seats.memories[who] = [0, 1, 2].map((slot) => {
+            const target = slots && slots[slot];
+            if (!target || typeof target !== 'object') return null;
+            const saved = counters(target, Object.keys(target).filter((axis) => /^[A-Z]{3}$/.test(axis)));
+            const wheel = counters(target.wheel, ['LEN', 'HGT']);
+            if (who === 'driver' && Object.keys(wheel).length) saved.wheel = wheel;
+            return saved;
         });
-        if (target && target.wheel && who === 'driver') {
-            const wheel = {};
-            ['LEN', 'HGT'].forEach((axis) => {
-                if (typeof target.wheel[axis] === 'number' && isFinite(target.wheel[axis])) wheel[axis] = target.wheel[axis];
-            });
-            if (Object.keys(wheel).length) clean.seats.m1Target.driver.wheel = wheel;
-        }
     });
     return clean;
 }
@@ -137,8 +140,9 @@ class ComfortClient extends EventEmitter {
 }
 
 class EasyAccess extends EventEmitter {
-    constructor(client) {
+    constructor(client, driver) {
         super(); this.client = client; this.foreground = false; this.pending = false; this.moving = false;
+        this.driver = driver;
         this.heldJog = null;
         this.selectedSeat = 'driver'; this.saveMemory = false; this.message = '상태를 확인하세요.';
         client.on('state', () => this.emit('change'));
@@ -182,7 +186,11 @@ class EasyAccess extends EventEmitter {
     }
     async request(message, success) {
         this.pending = true; this.message = '요청 전송 중…'; this.emit('change');
-        try { await this.client.send(message); await this.client.refresh(); this.message = success; }
+        try {
+            if (typeof message === 'function') await message();
+            else { await this.client.send(message); await this.client.refresh(); }
+            this.message = success;
+        }
         catch (error) { this.message = '요청 실패: ' + error.message; throw error; }
         finally { this.pending = false; this.emit('change'); }
     }
@@ -268,8 +276,30 @@ class EasyAccess extends EventEmitter {
         const who = this.selectedSeat;
         const blocked = this.actionReady(who, true); if (blocked) throw new Error(blocked);
         const save = this.saveMemory; this.saveMemory = false;
+        if (who === 'driver' && this.driver) {
+            if (slot === 0) return this.personalMemory(save);
+            if (this.driver.reserved(slot)) throw new Error('이 메모리는 운전자 개인 M1에 사용 중입니다.');
+        }
         return this.request({ op: 'memory', seat: who, slot: slot, save: save },
             (who === 'driver' ? '운전석' : '조수석') + ' M' + (slot + 1) + (save ? '에 저장했습니다.' : ' 호출을 요청했습니다.'));
+    }
+    async personalMemory(save) {
+        const selected = this.driver.id;
+        if (!this.driver.known()) throw new Error('BMW 운전자 프로필을 먼저 선택하세요.');
+        return this.request(async () => {
+            await this.driver.refresh(true);
+            const state = await this.client.refresh();
+            if (this.driver.id !== selected || !this.driver.known()) throw new Error('BMW 운전자 프로필이 변경됐습니다.');
+            if (!this.foreground) throw new Error('앱 화면이 활성화되어 있어야 합니다.');
+            if (!state.parked) throw new Error('정차 상태에서만 사용할 수 있습니다.');
+            if (state.seats.moving || state.seats.job) throw new Error('시트가 움직이는 중입니다. 먼저 정지하세요.');
+            if (!Object.keys(state.seats.pos.driver).length) throw new Error('운전석 위치를 확인할 수 없습니다.');
+            if (save) return this.driver.saveM1(this.client, state);
+            const entry = this.driver.personalM1(state);
+            if (!entry) throw new Error('현재 운전자의 개인 M1을 먼저 저장하세요.');
+            await this.client.send({ op: 'memory', seat: 'driver', slot: entry.slot, save: false });
+            await this.client.refresh();
+        }, save ? '개인 M1에 저장했습니다.' : '개인 M1 호출을 요청했습니다.');
     }
     async stop() {
         if (!this.foreground) throw new Error('앱 화면이 활성화되어 있어야 합니다.');

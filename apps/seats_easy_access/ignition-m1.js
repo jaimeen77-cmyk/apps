@@ -43,8 +43,8 @@ class IgnitionM1 {
         this.log.add([reason]);
     }
     /** axes of the stored M1 more than TOL counts away from where the seat reports it: "SLV +250" */
-    short(s) {
-        const target = s.seats.m1Target.driver, pos = s.seats.pos.driver;
+    short(s, slot) {
+        const target = s.seats.memories.driver[slot] || {}, pos = s.seats.pos.driver;
         return Object.keys(target).filter((a) => typeof pos[a] === 'number' && Math.abs(target[a] - pos[a]) > TOL)
             .map((a) => a + ' ' + (target[a] - pos[a] > 0 ? '+' : '') + (target[a] - pos[a]));
     }
@@ -62,10 +62,10 @@ class IgnitionM1 {
             return;
         }
         this.verify = null;
-        const off = this.short(s), took = ((this.now() - v.at) / 1000).toFixed(1) + ' s';
+        const off = this.short(s, v.slot), took = ((this.now() - v.at) / 1000).toFixed(1) + ' s';
         if (!off.length) return this.log.add(['M1 arrived', '#' + v.attempt, took]);
         if (v.attempt >= ATTEMPTS) return this.log.add(['M1 still short after retry', off.join(', ')]);
-        this.retry = { due: this.now() + RETRY_MS, attempt: v.attempt + 1, idleAt: null, authorization: v.authorization };
+        this.retry = { due: this.now() + RETRY_MS, attempt: v.attempt + 1, idleAt: null, authorization: v.authorization, slot: v.slot };
         this.log.add(['M1 short of target', '#' + v.attempt, took, off.join(', '), 'M1 retry in ' + RETRY_MS / 1000 + ' s']);
     }
     observe(s) {
@@ -111,24 +111,25 @@ class IgnitionM1 {
             if (s.settings.easyExit) return;
             const authorization = this.driver && this.driver.ready(s);
             if (this.driver && !authorization) return;
+            const slot = authorization ? authorization.slot : 0;
             if (s.seats.job || s.seats.moving || p.idleAt === null || this.now() - p.idleAt < 3000) {
                 if (!p.waiting) { p.waiting = true; this.log.add(['M1 waiting for Comfort seat job to finish']); }
                 return;
             }
-            if (!s.seats.memory1.driver) return this.cancel('M1 cancelled: save driver M1 first');
+            if (!s.seats.memories.driver[slot]) return this.cancel('M1 cancelled: save driver M1 first');
             if (!s.seats.axes.driver.length || !Object.keys(s.seats.pos.driver).length)
                 return this.cancel('M1 cancelled: driver position unavailable');
             this.pending = null; // consume before sending: errors must not cause repeated movement commands
             this.log.add(['M1 calling driver memory']);
-            await this.recall(1, authorization);
+            await this.recall(1, authorization, slot);
         } catch (e) {
             this.cancel('M1 cancelled: status unavailable');
             this.log.add(['M1 request failed', e.message]);
         } finally { this.busy = false; }
     }
-    async recall(attempt, authorization) {
-        this.verify = { at: this.now(), seen: false, attempt, authorization };
-        try { await this.send({ op: 'memory', seat: 'driver', slot: 0, save: false }); }
+    async recall(attempt, authorization, slot) {
+        this.verify = { at: this.now(), seen: false, attempt, authorization, slot };
+        try { await this.send({ op: 'memory', seat: 'driver', slot, save: false }); }
         catch (e) { this.verify = null; throw e; }
         this.log.add(['M1 command sent: checking arrival', '#' + attempt]);
     }
@@ -149,10 +150,10 @@ class IgnitionM1 {
                 return this.cancel('M1 retry cancelled: driver or target changed');
             }
             if (s.settings.easyExit || s.seats.job || s.seats.moving || r.idleAt === null || this.now() - r.idleAt < 2000) return;
-            if (!this.short(s).length) { this.retry = null; return this.log.add(['M1 retry not needed: seat now at M1']); }
+            if (!this.short(s, r.slot).length) { this.retry = null; return this.log.add(['M1 retry not needed: seat now at M1']); }
             this.retry = null;   // consumed before sending: never a third recall
             this.log.add(['M1 retry: calling driver memory again']);
-            await this.recall(r.attempt, r.authorization);
+            await this.recall(r.attempt, r.authorization, r.slot);
         } catch (e) {
             this.retry = null;
             this.log.add(['M1 retry failed', e.message]);

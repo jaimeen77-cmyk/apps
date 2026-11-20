@@ -11,6 +11,8 @@ const REFERENCE = 'currentUserAccountReference';
 const POLL_MS = 1500;
 const FRESH_MS = 4500;
 const STABLE_MS = 2500;
+const MEMORY_SLOTS = [0, 1, 2];
+const HASH = /^[a-f0-9]{64}$/;
 
 function valueOf(raw, keys) {
     if (typeof raw === 'string' || typeof raw === 'number') return String(raw).trim();
@@ -27,14 +29,26 @@ function digest(value) {
     return crypto.createHash('sha256').update(value).digest('hex');
 }
 
-function targetOf(state) {
-    if (!state || !state.seats.memory1.driver) return null;
-    const target = state.seats.m1Target.driver;
-    const axes = Object.keys(target).filter((axis) => axis !== 'wheel').sort();
+function targetOf(state, slot) { return state && state.seats.memories.driver[slot]; }
+
+function targetKey(target, supportedAxes) {
+    if (!target) return null;
+    const axes = Object.keys(target).filter((axis) => axis !== 'wheel' && (!supportedAxes || supportedAxes.includes(axis))).sort();
     if (!axes.length) return null;
     const wheel = target.wheel || {};
     return digest(JSON.stringify([axes.map((axis) => [axis, target[axis]]),
         Object.keys(wheel).sort().map((axis) => [axis, wheel[axis]])]));
+}
+
+function atPosition(target, position, tolerance, exact) {
+    if (!target) return false;
+    const axes = Object.keys(position.driver);
+    const wheel = Object.keys(target.wheel || {});
+    return axes.length > 0 && axes.every((axis) => Math.abs(target[axis] - position.driver[axis]) <= tolerance) &&
+        (!exact || (axes.length === Object.keys(target).filter((axis) => axis !== 'wheel').length &&
+            wheel.length === Object.keys(position.wheel).length)) &&
+        wheel.every((axis) => (!exact && position.wheel[axis] === undefined) ||
+            Math.abs(target.wheel[axis] - position.wheel[axis]) <= tolerance);
 }
 
 class Driver {
@@ -42,13 +56,18 @@ class Driver {
         this.signals = signals;
         this.now = now || Date.now;
         this.file = dataDir && path.join(dataDir, 'driver-m1.json');
-        this.enabled = Object.create(null);
+        this.profiles = Object.create(null);
+        this.legacy = Object.create(null);
         if (this.file) {
             try {
                 const saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
                 for (const id of Object.keys(saved)) {
-                    if (/^[a-f0-9]{64}$/.test(id) && typeof saved[id] === 'string' && /^[a-f0-9]{64}$/.test(saved[id])) {
-                        this.enabled[id] = saved[id];
+                    const entry = saved[id];
+                    if (!HASH.test(id)) continue;
+                    if (typeof entry === 'string' && HASH.test(entry)) this.legacy[id] = entry;
+                    else if (entry && MEMORY_SLOTS.includes(entry.slot) && !this.reserved(entry.slot) &&
+                        (entry.target === null || (typeof entry.target === 'string' && HASH.test(entry.target)))) {
+                        this.profiles[id] = { slot: entry.slot, target: entry.target, enabled: entry.enabled === true };
                     }
                 }
             } catch (_) { /* no usable opt-ins */ }
@@ -67,30 +86,91 @@ class Driver {
 
     known() { return !!this.id && this.now() - this.at <= FRESH_MS; }
 
-    hasOptIns() { return Object.keys(this.enabled).length > 0; }
+    hasOptIns() { return Object.values(this.profiles).some((entry) => entry.enabled); }
 
-    authorization(state) {
-        const target = targetOf(state);
-        return this.known() && target && this.enabled[this.id] === target ? this.id + ':' + target : null;
+    reserved(slot) { return Object.values(this.profiles).some((entry) => entry.slot === slot); }
+
+    personalM1(state) {
+        const entry = this.known() && this.profiles[this.id];
+        return entry && entry.target && entry.target === targetKey(targetOf(state, entry.slot)) ? entry : null;
     }
 
-    canSet(state) { return this.known() && !!(this.enabled[this.id] || targetOf(state)); }
+    authorization(state) {
+        const entry = this.personalM1(state);
+        return entry && entry.enabled ? entry : null;
+    }
+
+    canSet(state) {
+        return this.known() && (!!this.personalM1(state) || !!(this.profiles[this.id] && this.profiles[this.id].enabled));
+    }
 
     ready(state) { return this.now() - this.since >= STABLE_MS ? this.authorization(state) : null; }
 
     toggle(state) {
         if (!this.canSet(state)) return false;
-        const updated = Object.assign(Object.create(null), this.enabled);
-        const target = targetOf(state);
-        if (this.authorization(state) || !target) delete updated[this.id];
-        else updated[this.id] = target;
+        const entry = this.profiles[this.id];
+        this.write(this.id, Object.assign({}, entry, { enabled: !entry.enabled }));
+        return true;
+    }
+
+    write(id, entry) {
+        const profiles = Object.assign(Object.create(null), this.profiles, { [id]: entry });
+        const legacy = Object.assign(Object.create(null), this.legacy);
+        delete legacy[id];
         if (this.file) {
             const temp = this.file + '.tmp';
-            fs.writeFileSync(temp, JSON.stringify(updated), { mode: 0o600 });
+            fs.writeFileSync(temp, JSON.stringify(Object.assign({}, legacy, profiles)), { mode: 0o600 });
             fs.renameSync(temp, this.file);
         }
-        this.enabled = updated;
-        return true;
+        this.profiles = profiles;
+        this.legacy = legacy;
+    }
+
+    adoptLegacy(state) {
+        if (this.reserved(0) || !Object.keys(this.legacy).length) return;
+        const memory = targetOf(state, 0);
+        const key = targetKey(memory, state.seats.axes.driver);
+        const owners = Object.keys(this.legacy).filter((id) => this.legacy[id] === key);
+        if (owners.length === 1) this.write(owners[0], { slot: 0, target: targetKey(memory), enabled: true });
+    }
+
+    async saveM1(client, state) {
+        const id = this.id;
+        let entry = this.profiles[id];
+        if (!entry) {
+            const slot = MEMORY_SLOTS.find((index) => !this.reserved(index) && targetOf(state, index) === null);
+            if (slot === undefined) throw new Error('개인 M1을 저장할 빈 Comfort 메모리가 없습니다.');
+            entry = { slot, target: null, enabled: false };
+            // Reserve first so a failed or interrupted save keeps the same slot on retry.
+            this.write(id, entry);
+        }
+        const slot = entry.slot;
+        const previous = targetKey(targetOf(state, slot));
+        await client.send({ op: 'memory', seat: 'driver', slot, save: true });
+        let received, lost;
+        const written = new Promise((resolve, reject) => {
+            received = (status) => {
+                const target = targetOf(status, slot), key = targetKey(target);
+                // Comfort refreshes its counters while saving. A seat moved by the physical switch can have stale
+                // displayed counters until that read, so compare the memory with the ensuing status.
+                if (key && key !== previous && atPosition(target, status.seats.pos, 40, false)) resolve(key);
+            };
+            lost = () => reject(new Error('Comfort 연결이 끊겼습니다.'));
+            client.on('state', received);
+            client.once('lost', lost);
+            received(client.state);
+        });
+        let target;
+        const timeoutMessage = 'Comfort에서 개인 M1 저장을 확인하지 못했습니다.';
+        try { target = await bounded(written, 12000, timeoutMessage); }
+        catch (error) {
+            const current = targetOf(client.state, slot);
+            if (error.message !== timeoutMessage || !previous || previous !== targetKey(current) ||
+                !atPosition(current, client.state.seats.pos, 0, true)) throw error;
+            target = previous;
+        }
+        finally { client.removeListener('state', received); client.removeListener('lost', lost); }
+        this.write(id, { slot, target, enabled: entry.enabled });
     }
 
     refresh(force) {

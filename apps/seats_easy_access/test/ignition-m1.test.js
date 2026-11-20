@@ -1,12 +1,13 @@
 'use strict';
 const assert = require('assert');
+const crypto = require('crypto');
 const EventEmitter = require('events');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { Driver } = require('../driver');
 const { IgnitionM1 } = require('../ignition-m1');
-const { ownMoves, stateOf } = require('../core');
+const { EasyAccess, ownMoves, stateOf } = require('../core');
 function fixture(values, makeDriver) {
     let now = 10000;
     const listeners = [], data = Object.assign({ ignitionM1: true, m1OffSeen: false }, values);
@@ -17,7 +18,10 @@ function fixture(values, makeDriver) {
         axes: { driver: ['SLV'], passenger: [] }, pos: { driver: { SLV: 123 }, passenger: {} },
         memories: { driver: [{ SLV: 456 }] }, job: null, moving: null,
     } } });
-    client.send = async (m) => { client.sent.push(m); };
+    client.send = async (m) => {
+        client.sent.push(m);
+        if (m.op === 'memory' && m.save) client.state.seats.memories[m.seat][m.slot] = Object.assign({}, client.state.seats.pos[m.seat]);
+    };
     client.refresh = async () => { client.emit('state', client.state); return client.state; };
     const logs = [];
     const driver = makeDriver && makeDriver(() => now);
@@ -65,7 +69,7 @@ function fixture(values, makeDriver) {
         if (reason === 'off') f.emit({ carOn: false });
         if (reason === 'lost') f.client.emit('lost');
         if (reason === 'manual') f.auto.cancel('manual');
-        if (reason === 'no memory') f.client.state.seats.memory1.driver = false;
+        if (reason === 'no memory') f.client.state.seats.memories.driver[0] = null;
         if (reason === 'no position') f.client.state.seats.pos.driver = {};
         await f.advance(reason === 'timeout' ? 45001 : 16000);
         assert.equal(f.client.sent.length, 0, reason + ' must prevent recall');
@@ -177,6 +181,14 @@ function fixture(values, makeDriver) {
         },
     }, dataDir, now);
     const file = path.join(dataDir, 'driver-m1.json');
+    async function savePersonalM1(f, position) {
+        f.client.state.seats.pos.driver.SLV = position;
+        const screen = new EasyAccess(f.client, f.driver);
+        screen.setForeground(true);
+        screen.armMemorySave();
+        await screen.memory(0);
+        return screen;
+    }
     try {
         f = fixture({ m1OffSeen: true }, makeDriver);
         await f.driver.refresh(true);
@@ -185,6 +197,10 @@ function fixture(values, makeDriver) {
         f.emit({}); await f.advance(10000);
         assert.equal(f.client.sent.length, 0, 'an older unscoped opt-in must not move a seat');
         await f.driver.refresh(true);
+        assert.equal(f.auto.toggle(f.client.state), false, 'the driver must save a personal M1 before enabling it');
+        f.client.state.seats.memories.driver = [null, null, { SLV: 900 }];
+        await savePersonalM1(f, 456);
+        assert.deepStrictEqual(f.client.sent.shift(), { op: 'memory', seat: 'driver', slot: 0, save: true });
         assert.equal(f.auto.toggle(f.client.state), true);
         assert.equal(f.auto.enabled(), true);
         assert.ok(!/driver A|민수/.test(fs.readFileSync(file, 'utf8')), 'store no raw driver ID or name');
@@ -193,6 +209,7 @@ function fixture(values, makeDriver) {
         f.driver.close();
 
         f = fixture({}, makeDriver);
+        f.client.state.seats.memories.driver[2] = { SLV: 900 };
         await f.driver.refresh(true);
         f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
         assert.equal(f.client.sent.length, 1, 'the recognized driver keeps the opt-in across a restart');
@@ -203,16 +220,66 @@ function fixture(values, makeDriver) {
         f.cycle(); await f.advance(8000); await f.advance(3000);
         assert.equal(f.client.sent.length, 1, 'another driver does not inherit M1 authorization');
 
+        const originalSend = f.client.send;
+        f.client.send = async (command) => {
+            if (command.op === 'memory' && command.save) f.client.state.seats.pos.driver.SLV = 700;
+            return originalSend(command);
+        };
+        const second = await savePersonalM1(f, 530);
+        f.client.send = originalSend;
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: true });
+        assert.deepStrictEqual(f.client.state.seats.memories.driver, [{ SLV: 456 }, { SLV: 700 }, { SLV: 900 }]);
+        assert.equal(f.auto.toggle(f.client.state), true);
+        f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: false },
+            'driver B starts in their own M1 slot');
+        job(f, true); job(f, false, 500);
+        await f.advance(2000);
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: false },
+            'a short recall retries driver B’s slot');
+        await second.memory(0);
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: false },
+            'the driver M1 button recalls the same personal memory');
+        await assert.rejects(() => second.memory(1), /개인 M1에 사용/);
+
+        active = 'driver C';
+        await f.driver.refresh(true);
+        await assert.rejects(() => savePersonalM1(f, 500), /빈 Comfort 메모리/);
+        assert.deepStrictEqual(f.client.state.seats.memories.driver, [{ SLV: 456 }, { SLV: 700 }, { SLV: 900 }],
+            'a full store cannot overwrite another profile or the existing M3');
+
         active = 'driver A';
         await f.driver.refresh(true);
-        f.client.state.seats.m1Target.driver.SLV = 600;
+        f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 0, save: false },
+            'switching back restores driver A’s M1');
+        f.client.state.seats.memories.driver[0].SLV = 600;
         f.cycle(); await f.advance(8000); await f.advance(3000);
         assert.equal(f.client.sent.length, 1, 'a changed shared M1 is never used under the old opt-in');
 
-        f.client.state.seats.m1Target.driver.SLV = 456;
+        f.client.state.seats.memories.driver[0].SLV = 456;
         f.cycle(); active = null; await f.advance(8000);
         assert.equal(f.client.sent.length, 1, 'a failed fresh profile read cannot trigger auto-M1');
         assert.equal(f.driver.known(), false);
+        f.driver.close();
+
+        const digest = (input) => crypto.createHash('sha256').update(input).digest('hex');
+        const oldTarget = digest(JSON.stringify([[['SLV', 456]], []]));
+        const old = { [digest('driver A')]: oldTarget, [digest('driver B')]: oldTarget };
+        fs.writeFileSync(file, JSON.stringify(old));
+        active = 'driver A';
+        f = fixture({}, makeDriver);
+        await f.driver.refresh(true);
+        f.driver.adoptLegacy(f.client.state);
+        assert.equal(f.auto.armed(), false, 'a shared legacy opt-in cannot assign ownership to the wrong driver');
+        f.driver.close();
+        delete old[digest('driver B')];
+        fs.writeFileSync(file, JSON.stringify(old));
+        f = fixture({}, makeDriver);
+        await f.driver.refresh(true);
+        f.driver.adoptLegacy(f.client.state);
+        assert.equal(f.auto.enabled(), true, 'the sole matching legacy owner keeps their saved settings');
+        assert.equal(f.driver.personalM1(f.client.state).slot, 0);
         f.driver.close();
     } finally {
         if (fs.existsSync(file)) fs.unlinkSync(file);

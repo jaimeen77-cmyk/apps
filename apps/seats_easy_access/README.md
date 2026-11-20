@@ -17,7 +17,9 @@ python kit/tools/make_kit.py seats_easy_access --language ko
 
 MGU Store offers **Seats Easy Access (English)** (`seats_easy_access`) and **시트 Easy Access (한국어)** (`seats_easy_access_ko`). Both provide driver/passenger controls, memories, Easy Access and Make room. Install the original Comfort tool separately from IterioDev/car-apps.
 
-Version 0.7.0 recognizes the active BMW driver profile and displays its name when available. Save the driver's M1, then turn on **Ignition M1** for that profile. The authorization belongs to that driver and the saved position in Comfort's shared M1 slot. A changed M1 position needs a fresh opt-in. Existing users also need to enable Ignition M1 once per recognized driver. Manual M1 remains available when the profile is unknown. In GPU full-screen mode, touch and iDrive controller adjustments move while held and stop on release. The regular HMI buttons make short adjustments. Requires Comfort 0.6.1 or later.
+Version 0.7.2 recognizes the active BMW driver profile and displays its name when available. With their own BMW profile selected, each driver can adjust the seat, press **Save memory → M1**, and turn on **Ignition M1**. Manual M1 and Ignition M1 both recall the recognized driver's personal position. Each personal M1 uses one free slot of Comfort's three driver-seat memories. Allocated slots are locked in the shared driver M2/M3 controls. Existing shared memories keep their positions when a driver registers. A 0.7.1 M1 opt-in is carried over when exactly one profile matches the stored shared M1. Requires Comfort 0.6.1 or later.
+
+In GPU full-screen mode, touch and iDrive controller adjustments move while held and stop on release. The regular HMI buttons make short adjustments.
 
 Starting in 0.7.1, with Ignition M1 on for any driver, Seats turns off Comfort's automatic Easy Access switch for both front seats. Manual Easy Access remains available. A return Comfort already stored can still run after the switch is turned off. To use automatic Easy Access again, turn off all enabled Ignition M1 profiles and then turn the automatic Easy Access switch on.
 

@@ -15,7 +15,7 @@ async function start(ctx, options) {
     const runtime = ctx.background || Runtime.start(ctx, opts);
     const { client, auto, driver, demo } = runtime;
     const moves = ownMoves(client);
-    const easy = new EasyAccess(client);
+    const easy = new EasyAccess(client, driver);
     // Native/Iterio renderers do not accept the upstream OP_IMAGE upload.
     // Cache the photo as gradient columns, as Storage does for its background.
     const pixels = seat.pixels();
@@ -74,13 +74,13 @@ async function start(ctx, options) {
     }
     const actions = {
         BTN_IGNITION_M1: async () => {
-            if (!easy.foreground || easy.selectedSeat !== 'driver') return;
+            if (!easy.foreground || easy.pending || easy.selectedSeat !== 'driver') return;
             if (driver) {
                 const shown = driver.id;
                 await driver.refresh(true);
                 if (shown !== driver.id) return;
             }
-            if (easy.foreground && easy.selectedSeat === 'driver' && auto.toggle(client.state)) await runtime.poll();
+            if (easy.foreground && !easy.pending && easy.selectedSeat === 'driver' && auto.toggle(client.state)) await runtime.poll();
         },
         BTN_DRIVER: () => { easy.selectSeat('driver'); page = 0; },
         BTN_PASSENGER: () => { easy.selectSeat('passenger'); page = 1; },
@@ -113,8 +113,10 @@ async function start(ctx, options) {
         const state = client.state, who = easy.selectedSeat;
         const m1On = auto.enabled(state), m1Toggle = auto.canToggle(state), m1Armed = auto.armed();
         const driverText = driver && (driver.known() ? driver.name || tr('BMW 운전자 인식됨') : tr('BMW 운전자 미인식'));
+        const personalM1 = driver && !!driver.personalM1(state);
+        const reserved = driver ? [driver.reserved(1), driver.reserved(2)] : [false, false];
         const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground,
-            easy.saveMemory, axis, page, m1On, m1Toggle, m1Armed, driverText]);
+            easy.saveMemory, axis, page, m1On, m1Toggle, m1Armed, driverText, personalM1, reserved]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
@@ -161,6 +163,9 @@ async function start(ctx, options) {
             button('BTN_IGNITION_M1', tr('Ignition M1') + ': ' + tr(m1On ? 'On' : 'Off'), 1200, 115, 350, 46,
                 ready && m1Toggle, m1On);
             if (driverText) cv.text(driverText, 1540, 188, 20, '#c2ccd7', { align: 'right', literal: true });
+            if (driver && driver.known()) {
+                cv.text(tr(personalM1 ? '개인 M1 저장됨' : '개인 M1을 저장하세요'), 1540, 218, 20, '#c2ccd7', { align: 'right', literal: true });
+            }
         }
         const controls = [ ['KHV', 470, 135], ['LNV', 994, 160], ['SNV', 255, 300], ['SHV', 440, 285], ['SLV', 995, 310] ];
         jogTargets = [];
@@ -181,7 +186,8 @@ async function start(ctx, options) {
         });
         const memory = ready && !easy.actionReady(who, true);
         cv.fillRect(28, 445, 1544, 1, [230, 235, 242, 65]);
-        ['M1', 'M2', 'M3'].forEach((label, i) => button('BTN_' + label, label, 55 + i * 155, 462, 140, 46, memory, false));
+        ['M1', 'M2', 'M3'].forEach((label, i) => button('BTN_' + label, label, 55 + i * 155, 462, 140, 46,
+            memory && (i === 0 || who === 'passenger' || !reserved[i - 1]), false));
         button('BTN_SAVE', 'Save memory', 540, 462, 200, 46, memory, easy.saveMemory);
         button('BTN_EXIT_SAVE', 'Save exit', 200, 387, 555, 50, memory, false);
         button('BTN_EXIT', 'Easy Access', 765, 462, 270, 46, memory && state.seats.exit[who], false);
