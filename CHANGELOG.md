@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.15
+
+- Settings per driver now keeps the **favourites** (Favorites tab, five slots) per driver too; before, all drivers shared them. On the update, every driver already kept starts with the favourites they all shared, then each keeps their own (`driver-profiles.js` `migrate()`, also used for any key added to the per-driver set later).
+
 ## Cluster Redline 1.3.14
 
 - Settings per driver shows the driver's **name**: `On · 홍길동 (2 / 3)`. The name is read from `personalization.UserAccount` (`name`, else `firstName`; the proxy is in the package from the kit template, all instances), asked on the instance the account reference names, once per driver change (given up after 15 s), and kept in `driver-profiles.json`. Without a name the number shows as before. Not yet seen on a car.
