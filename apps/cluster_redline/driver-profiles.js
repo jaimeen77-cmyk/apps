@@ -28,7 +28,7 @@ function idOf(v){
 class DriverProfiles{
  // o: { settings, signals, log, fs, file, keys: () => [setting keys], changed: () => void }
  constructor(o){
-  this.settings=o.settings;this.signals=o.signals;this.log=o.log||{warn(){},info(){}};this.fs=o.fs;this.file=o.file;this.keysOf=o.keys;this.changed=o.changed||(()=>{});
+  this.settings=o.settings;this.signals=o.signals;this.log=o.log||{warn(){},info(){}};this.fs=o.fs;this.file=o.file;this.keysOf=o.keys;this.changed=o.changed||(()=>{});this.greet=o.greet||null;this.greetFor=null;
   this.profiles={};this.order=[];this.names={};this.nameSub=null;this.nameState=null;this.current=null;this.sub=null;this.state='off';this.error=null;this.applying=false;this.reads=0;
   try{const d=JSON.parse(this.fs.readFileSync(this.file,'utf8'));if(d&&typeof d==='object'){this.profiles=d.profiles||{};this.order=Array.isArray(d.order)?d.order:Object.keys(this.profiles);this.names=d.names&&typeof d.names==='object'?d.names:{};}}catch(e){}
   this.migrate();
@@ -67,7 +67,9 @@ class DriverProfiles{
  sample(v){
   this.reads++;const id=idOf(v);if(!id||!this.on())return;
   this.state='ready';if(id===this.current)return;
-  this.current=id;if(this.order.indexOf(id)<0)this.order.push(id);this.askName(id);
+  this.current=id;if(this.order.indexOf(id)<0)this.order.push(id);
+  // a driver recognised (at the start or a change): hello on the HUD, with their name once it is known
+  this.greetFor=id;this.askName(id);if(this.names[id])this.hello(id);
   const saved=this.profiles[id];
   if(!saved){this.profiles[id]=this.snapshot();this.save();this.log.info('driver profile: first seen, current settings kept');this.changed();return;}
   const changes={};Object.keys(saved).forEach(k=>{if(this.keys().indexOf(k)>=0&&saved[k]!==undefined&&this.settings.get(k)!==saved[k])changes[k]=saved[k];});
@@ -75,15 +77,17 @@ class DriverProfiles{
    try{if(typeof this.settings.setMany==='function')this.settings.setMany(changes);else Object.keys(changes).forEach(k=>this.settings.set(k,changes[k]));}finally{this.applying=false;}}
   this.log.info('driver profile: their settings');this.changed();
  }
+ // Hello once per recognised driver, with the name if known by now.
+ hello(id){if(this.greetFor!==id)return;this.greetFor=null;if(this.greet)try{this.greet(this.names[id]||null);}catch(e){}}
  // Ask the driver's name on their account instance; kept in driver-profiles.json, refreshed each time they come back.
  askName(id){
   this.dropName();this.nameState='reading';const token={};this.nameToken=token;
-  const got=v=>{const n=nameOf(v);if(!n||this.nameToken!==token)return;this.nameState='ready';if(this.names[id]!==n){this.names[id]=n;this.save();}this.changed();this.dropName(true);};
+  const got=v=>{const n=nameOf(v);if(!n||this.nameToken!==token)return;this.nameState='ready';if(this.names[id]!==n){this.names[id]=n;this.save();}this.hello(id);this.changed();this.dropName(true);};
   Promise.resolve().then(()=>this.signals.watch(ACCOUNT,id,{name:got,firstName:got},this.log,{})).then(s=>{
    if(this.nameToken!==token){try{s.shutdown();}catch(e){}return;}
-   this.nameSub=s;if(s&&s.error){this.nameState='unreadable';this.dropName(true);this.changed();}
-  },()=>{if(this.nameToken===token){this.nameState='unreadable';this.changed();}});
-  this.nameTimer=setTimeout(()=>{if(this.nameToken===token&&this.nameState==='reading'){this.nameState='unreadable';this.dropName(true);this.changed();}},NAME_WAIT_MS);
+   this.nameSub=s;if(s&&s.error){this.nameState='unreadable';this.dropName(true);this.hello(id);this.changed();}
+  },()=>{if(this.nameToken===token){this.nameState='unreadable';this.hello(id);this.changed();}});
+  this.nameTimer=setTimeout(()=>{if(this.nameToken===token&&this.nameState==='reading'){this.nameState='unreadable';this.dropName(true);this.hello(id);this.changed();}},NAME_WAIT_MS);
   if(this.nameTimer&&this.nameTimer.unref)this.nameTimer.unref();
  }
  dropName(keepState){if(this.nameSub){try{this.nameSub.shutdown();}catch(e){}this.nameSub=null;}if(this.nameTimer){clearTimeout(this.nameTimer);this.nameTimer=null;}if(!keepState){this.nameToken=null;this.nameState=null;}}
