@@ -218,7 +218,7 @@ class SettingsPage{
  driverValue(){
   if(this.settings.get('driverProfiles')!=='on')return tr('Off');
   const s=typeof this.driverStatus==='function'?this.driverStatus():null;if(!s)return tr('On');
-  if(s.state==='ready'&&s.driver)return tr('On')+' · '+tr('Driver')+' '+s.driver+(s.drivers>1?' / '+s.drivers:'');
+  if(s.state==='ready'&&s.driver)return tr('On')+' · '+(s.name?s.name+(s.drivers>1?' ('+s.driver+' / '+s.drivers+')':''):tr('Driver')+' '+s.driver+(s.drivers>1?' / '+s.drivers:''));
   return tr('On')+' · '+tr(s.state==='error'||s.state==='unavailable'?'driver not readable':'reading the driver');
  }
  yieldStatus(cfg){

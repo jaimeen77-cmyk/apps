@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.14
+
+- Settings per driver shows the driver's **name**: `On · 홍길동 (2 / 3)`. The name is read from `personalization.UserAccount` (`name`, else `firstName`; the proxy is in the package from the kit template, all instances), asked on the instance the account reference names, once per driver change (given up after 15 s), and kept in `driver-profiles.json`. Without a name the number shows as before. Not yet seen on a car.
+
 ## Cluster Redline 1.3.13
 
 - **Settings per driver** (Basic tab, off by default): the head unit's current user account (`personalization.SessionManager.currentUserAccountReference`, read every 5 s, as Cluster Info in appscluster_fork does) picks whose settings are in use. Each driver keeps the favourite-style whole setup (without the vehicle preset and auto-start, which belong to the car) in `driver-profiles.json`: a change is kept for the driver at the time, a driver seen again gets theirs back in one write, a driver seen for the first time keeps the current settings. The row shows `On · Driver 2 / 2`, or that the driver cannot be read. Read directly from the settings host (not through the worker's demand set), only while on; the package already carries the SessionManager proxy from the kit template.
