@@ -58,8 +58,14 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
         await handlers.BTN_AUTO(); assert.equal(screen.client.state.settings.easyExit, true);
         await tab(0);
         await handlers.BTN_IGNITION_M1(); assert.equal(screen.auto.enabled(), true);
+        assert.equal(screen.client.state.settings.easyExit, false, 'M1 turns off automatic Easy Access for both seats');
         assert.equal(screen.auto.pending, null, 'enabling does not move a seat');
+        await handlers.BTN_AUTO();
+        assert.equal(screen.client.state.settings.easyExit, false, 'automatic Easy Access cannot be re-enabled while M1 is on');
         await handlers.BTN_IGNITION_M1(); assert.equal(screen.auto.enabled(), false);
+        assert.equal(screen.client.state.settings.easyExit, false, 'turning M1 off does not turn on automatic Easy Access');
+        await handlers.BTN_AUTO();
+        assert.equal(screen.client.state.settings.easyExit, true, 'automatic Easy Access can be enabled explicitly afterward');
         await tab(1);
         await handlers.BTN_MINUS(); assert.equal(screen.client.state.seats.pos.passenger.SLV, 99);
         await handlers.BTN_SAVE(); assert.equal(screen.easy.saveMemory, true);

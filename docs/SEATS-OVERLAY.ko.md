@@ -1,6 +1,6 @@
 # Seats 공용 빌드·설치
 
-Seats 0.7.0은 공용 캔버스 구조를 사용합니다. 기본은 영어이고 `--language ko`로 한국어를 선택합니다. 자동 시작하는 백그라운드 코드가 현재 BMW 운전자 프로필을 확인하고, 운전자별로 켠 시동 시 M1 복귀를 처리합니다.
+Seats는 공용 캔버스 구조를 사용합니다. 기본은 영어이고 `--language ko`로 한국어를 선택합니다. 자동 시작하는 백그라운드 코드가 현재 BMW 운전자 프로필을 확인하고, 운전자별로 켠 시동 시 M1 복귀를 처리합니다.
 
 ## 기존 idrive7-apps 프로젝트에 추가
 
@@ -24,7 +24,7 @@ python kit/tools/make_kit.py seats_easy_access
 python kit/tools/make_kit.py seats_easy_access --language ko
 ```
 
-첫 명령은 SDK 없이 오프라인 리소스를 준비합니다. 실제 `.mgu`와 `.tgz` 생성에는 본인 차량에서 추출한 `oap-sdk`가 필요합니다. 영어 키트는 `dist/mgu-custom-apps.tar.gz`, 한국어 키트는 `dist/mgu-custom-apps-ko.tar.gz`입니다. 버전은 영어 `0.7.0`, 한국어 `0.7.0-ko.1` 형식입니다.
+첫 명령은 SDK 없이 오프라인 리소스를 준비합니다. 실제 `.mgu`와 `.tgz` 생성에는 본인 차량에서 추출한 `oap-sdk`가 필요합니다. 영어 키트는 `dist/mgu-custom-apps.tar.gz`, 한국어 키트는 `dist/mgu-custom-apps-ko.tar.gz`입니다. 예를 들어 0.7.1의 패키지 버전은 영어 `0.7.1`, 한국어 `0.7.1-ko.1`입니다.
 
 에뮬레이터: `node kit/tools/emu.js seats_easy_access`. 실제 차량과 같은 그리기 코드를 실행하고, PC에서는 소켓을 사용하지 않는 모의 시트 상태로 시작합니다. PREVIEW 표시가 보이며 버튼은 모의 상태만 바꿉니다.
 

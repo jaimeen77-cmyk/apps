@@ -108,6 +108,7 @@ class IgnitionM1 {
             if (this.pending !== p || !this.armed()) return;
             if (!s.carOn || !s.parked) return this.cancel('M1 cancelled: power or stationary condition changed');
             if (this.now() > p.deadline) return this.cancel('M1 cancelled: readiness timeout');
+            if (s.settings.easyExit) return;
             const authorization = this.driver && this.driver.ready(s);
             if (this.driver && !authorization) return;
             if (s.seats.job || s.seats.moving || p.idleAt === null || this.now() - p.idleAt < 3000) {
@@ -136,6 +137,7 @@ class IgnitionM1 {
         const r = this.retry;
         if (!this.armed()) return this.cancel('M1 retry cancelled: option off');
         if (this.now() < r.due) return;
+        if (this.now() - r.due > 30000) return this.cancel('M1 retry cancelled: Comfort stayed busy');
         this.busy = true;
         try {
             if (this.driver) await this.driver.refresh(true);
@@ -146,10 +148,7 @@ class IgnitionM1 {
             if (this.driver && this.driver.ready(s) !== r.authorization) {
                 return this.cancel('M1 retry cancelled: driver or target changed');
             }
-            if (s.seats.job || s.seats.moving || r.idleAt === null || this.now() - r.idleAt < 2000) {
-                if (this.now() - r.due > 30000) this.cancel('M1 retry cancelled: Comfort stayed busy');
-                return;
-            }
+            if (s.settings.easyExit || s.seats.job || s.seats.moving || r.idleAt === null || this.now() - r.idleAt < 2000) return;
             if (!this.short(s).length) { this.retry = null; return this.log.add(['M1 retry not needed: seat now at M1']); }
             this.retry = null;   // consumed before sending: never a third recall
             this.log.add(['M1 retry: calling driver memory again']);

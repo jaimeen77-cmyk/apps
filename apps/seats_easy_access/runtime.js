@@ -21,7 +21,16 @@ function start(ctx, options) {
         if (closed || reading) return;
         if (driver) driver.refresh();
         reading = true;
-        try { await client.refresh(); if (!closed) await auto.tick(); }
+        try {
+            const state = await client.refresh();
+            if (closed) return;
+            // Comfort uses one Easy Access switch for both front seats.
+            if (auto.armed() && state.settings.easyExit) {
+                await client.send({ op: 'set', settings: { easyExit: false } });
+                return;
+            }
+            await auto.tick();
+        }
         catch (_) {} // lost/status failures: nothing restarts and no seat moves
         finally { reading = false; }
     }

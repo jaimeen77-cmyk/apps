@@ -51,6 +51,14 @@ function fixture(values, makeDriver) {
     await f.advance(2999); assert.equal(f.client.sent.length, 0);
     await f.advance(1); assert.equal(f.client.sent.length, 1, 'wait for stable idle after Comfort finishes');
 
+    f = fixture(); f.cycle();
+    f.client.state.settings.easyExit = true;
+    await f.advance(8000);
+    assert.equal(f.client.sent.length, 0, 'wait for Comfort to report automatic Easy Access off');
+    f.client.state.settings.easyExit = false;
+    await f.advance(1000);
+    assert.equal(f.client.sent.length, 1);
+
     for (const reason of ['driving', 'off', 'lost', 'manual', 'no memory', 'no position', 'timeout']) {
         f = fixture(); f.cycle();
         if (reason === 'driving') f.emit({ parked: false });
@@ -95,10 +103,18 @@ function fixture(values, makeDriver) {
     // A background runtime has no ui/visible-page loop, yet can recall after the next power cycle.
     f = fixture();
     f.client.removeAllListeners();
+    f.client.state.settings.easyExit = true;
+    const send = f.client.send;
+    f.client.send = async (command) => {
+        if (command.op === 'set') f.client.state.settings.easyExit = command.settings.easyExit;
+        return send(command);
+    };
     let clock = 10000;
     const runtime = require('../runtime').start({ settings: f.settings }, { demo: true, client: f.client, now: () => clock });
     try {
         await new Promise((resolve) => setImmediate(resolve));
+        assert.deepStrictEqual(f.client.sent.shift(), { op: 'set', settings: { easyExit: false } },
+            'an existing M1 opt-in switches off automatic Easy Access on startup');
         f.emit({ carOn: false }); f.emit({ carOn: true });
         clock += 15000; await runtime.poll();
         assert.equal(f.client.sent.length, 1, 'background recall needs no open screen');
@@ -119,6 +135,15 @@ function fixture(values, makeDriver) {
     assert.ok(f.logs.some((s) => s.includes('still short after retry')));
     await f.advance(60000); await f.advance(5000);
     assert.equal(f.client.sent.length, 2, 'never a third recall');
+
+    f = fixture(); f.cycle(); await f.advance(8000);
+    job(f, true); job(f, false, 130);
+    f.client.state.settings.easyExit = true;
+    await f.advance(3000);
+    assert.equal(f.client.sent.length, 1, 'a retry also waits for the shared switch to be off');
+    f.client.state.settings.easyExit = false;
+    await f.advance(1000);
+    assert.equal(f.client.sent.length, 2);
 
     f = fixture(); f.cycle(); await f.advance(15000);
     job(f, true); job(f, false, 440);                          // within tolerance of 456

@@ -6,6 +6,8 @@ const ENGLISH = {
     '운전석': 'Driver', '조수석': 'Passenger',
     'BMW 운전자 인식됨': 'BMW driver recognized',
     'BMW 운전자 미인식': 'No BMW driver recognized',
+    'M1 우선': 'M1 priority',
+    '자동 Easy Access를 켜려면 시동 시 M1 복귀를 끄세요.': 'Turn Ignition M1 off to enable automatic Easy Access.',
     '상태를 확인하세요.': 'Refresh status first.',
     'Comfort 연결이 끊겼습니다.': 'Comfort disconnected.',
     '지원하지 않는 시트입니다.': 'Unsupported seat.',

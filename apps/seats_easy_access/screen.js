@@ -80,11 +80,18 @@ async function start(ctx, options) {
                 await driver.refresh(true);
                 if (shown !== driver.id) return;
             }
-            if (easy.foreground && easy.selectedSeat === 'driver') auto.toggle(client.state);
+            if (easy.foreground && easy.selectedSeat === 'driver' && auto.toggle(client.state)) await runtime.poll();
         },
         BTN_DRIVER: () => { easy.selectSeat('driver'); page = 0; },
         BTN_PASSENGER: () => { easy.selectSeat('passenger'); page = 1; },
-        BTN_REFRESH: () => easy.refresh(), BTN_AUTO: () => easy.toggle(), BTN_AXIS: cycleAxis,
+        BTN_REFRESH: () => easy.refresh(),
+        BTN_AUTO: () => {
+            if (auto.armed() && client.state && !client.state.settings.easyExit) {
+                throw new Error('자동 Easy Access를 켜려면 시동 시 M1 복귀를 끄세요.');
+            }
+            return easy.toggle();
+        },
+        BTN_AXIS: cycleAxis,
         BTN_MINUS: () => easy.jog(axis, -1), BTN_PLUS: () => easy.jog(axis, 1),
         BTN_SAVE: () => easy.armMemorySave(), BTN_M1: () => easy.memory(0),
         BTN_M2: () => easy.memory(1), BTN_M3: () => easy.memory(2),
@@ -104,10 +111,10 @@ async function start(ctx, options) {
         if (closed) return Promise.resolve();
         if (rendering) return force ? rendering.then(() => render(true)) : rendering;
         const state = client.state, who = easy.selectedSeat;
-        const m1On = auto.enabled(state), m1Toggle = auto.canToggle(state);
+        const m1On = auto.enabled(state), m1Toggle = auto.canToggle(state), m1Armed = auto.armed();
         const driverText = driver && (driver.known() ? driver.name || tr('BMW 운전자 인식됨') : tr('BMW 운전자 미인식'));
         const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground,
-            easy.saveMemory, axis, page, m1On, m1Toggle, driverText]);
+            easy.saveMemory, axis, page, m1On, m1Toggle, m1Armed, driverText]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
@@ -121,7 +128,8 @@ async function start(ctx, options) {
         // Lighter veil than before so the BMW Coding photo shows, as on Cluster Redline's settings screen.
         cv.fillRect(left, TAB_BAR, 1600 - left, 520 - TAB_BAR, [7, 11, 17, 105]);
         // BMW Coding mark in the free space between the seat and the automatic Easy Access switch.
-        const autoWidth = cv.textWidth ? cv.textWidth(tr('자동 Easy Access'), 23, { literal: true }) : 230;
+        const autoLabel = tr('자동 Easy Access') + (m1Armed ? ' · ' + tr('M1 우선') : '');
+        const autoWidth = cv.textWidth ? cv.textWidth(autoLabel, 23, { literal: true }) : 230;
         BG.mark(cv, Math.min(1238, 1440 - autoWidth - 28), 100);
         cv.blit(seatLayer, 650, 48);
         const stationary = state ? (state.parked ? tr('정차') : tr('주행 중')) : tr('상태 없음');
@@ -144,7 +152,7 @@ async function start(ctx, options) {
             } else cv.text(tr(label), x + w / 2, y + h / 2 + 8, featured ? 24 : 21, ink, { align: 'center', literal: true });
             if (enabled) cv.target(x, y, w, h, () => act(fn || actions[id]), id, radius);
         }
-        cv.text(tr('자동 Easy Access'), 1440, 76, 23, '#dbe2e9', { align: 'right', literal: true });
+        cv.text(autoLabel, 1440, 76, 23, '#dbe2e9', { align: 'right', literal: true });
         const automatic = state && state.settings.easyExit;
         cv.card(1460, 49, 91, 40, 20, [[0, automatic ? '#f24954' : '#676b70'], [1, automatic ? '#920f20' : '#25292f']]);
         cv.roundRect(automatic ? 1516 : 1466, 53, 32, 32, 16, '#f7f7f7');
