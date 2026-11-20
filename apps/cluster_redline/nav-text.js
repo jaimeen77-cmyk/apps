@@ -10,7 +10,7 @@ function drawSized(state,w,h){
  let text=state.description,size=34;
  while(size>16&&width(text,size)>W-16)size--;
  while(text.length&&width(text,size)>W-16)text=Array.from(text).slice(0,-2).join('')+'…';
- cv.text(text,W/2*s,37*s,size*s,'#f4f7fb',{font:'bold',align:'center',literal:true});return cv;
+ cv.text(text,W/2*s,37*s,size*s,require('./display-config').NAV_COLORS[state.textColor]||'#f4f7fb',{font:'bold',align:'center',literal:true});return cv;
 }
 function draw(state){return drawSized(state,W,H);}
 module.exports={draw,drawSized,W,H};

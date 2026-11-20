@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.12
+
+- **Navigation colours**: the NAV tab's Navigation colour screen now sets both the **arrow colour** (turn arrow and the recommended lanes) and the **text colour** (distance, road name, exit name), each orange / green / blue / white, with a live preview. The text was always white before. Defaults are unchanged (blue arrow, white text); a saved grey arrow, no longer offered, becomes white. The text colour (`navTextColor`) is kept outside app.json, like the turn signal colour, and is part of favourites.
+
 ## Hangul in the apps again (Circuit 1.0.5, Cluster Redline 1.3.11, MGU Monitor 1.1.7, Seats Easy Access 0.6.16)
 
 - On an iDrive 8 car, once appsKOR's GPU renderer (`idrive7-renderd`) was installed, every Korean text inside the apps came out blank (the HMI's own titles, Latin letters and numbers still showed), in Cluster Redline too. The runtime connects to that renderer before the Store's `mgu-render`, and it keeps every app's glyph atlases in one shared texture, two 1024 x 4096 columns, first come first served until it restarts. The Korean atlas needs one stretch of 2976 rows; after the HUD / cluster / number atlases took more than 1120 rows of each column it no longer fitted ("glyph atlas texture full").
