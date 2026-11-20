@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.17
+
+- **Driver greeting**: with settings per driver on, a recognised driver (when the app starts, or on a change) is greeted on the HUD for 3 s: `홍길동님 안녕하세요` (English: `Hello, name`), a plain hello without a name. A cached name shows at once; a new driver's name once read (or a plain hello when it cannot be). Its own overlay layer in the middle below the RPM face; it waits for the HUD renderer, at most a minute (`driver-greeting.js`, `greeting-overlay.js`).
+
 ## Cluster Redline 1.3.16
 
 - Settings per driver also keeps the **Position / size save slots** (HUD, cluster and NAV tabs, three each) per driver; drivers already kept start with the shared slots.

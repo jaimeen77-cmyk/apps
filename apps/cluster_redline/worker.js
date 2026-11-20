@@ -31,6 +31,8 @@ const {TurnSignal} = require('./turn-signal');
 const {TurnOverlay} = require('./turn-overlay');
 const {VehicleAlerts,SAMPLE:ALERT_SAMPLE} = require('./vehicle-alerts');
 const {AlertOverlay} = require('./alert-overlay');
+const {GreetingOverlay} = require('./greeting-overlay');
+const driverGreeting = require('./driver-greeting');
 const {TrafficSigns,FIELDS:TRAFFIC_FIELDS} = require('./traffic-signs');
 const {live:trafficLive} = require('./traffic-live');
 const previewPresence = require('./preview-presence');
@@ -83,7 +85,7 @@ function start(ctx) {
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const lanes=new LaneGuidance(mono);
     const traffic=new TrafficSigns(),trafficSubs=[];
-    const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client);
+    const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client);
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
@@ -239,7 +241,7 @@ function start(ctx) {
     }catch(e){ /* No lane capability: existing arrows/RPM continue normally. */ }
     function stop() {
         if (stopped) return;
-        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); vehicleAlerts.stop(); alertOverlay.close(); turnOverlay.close(); controller.close();
+        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); vehicleAlerts.stop(); alertOverlay.close(); greetingOverlay.close(); turnOverlay.close(); controller.close();
         process.removeListener('exit', stop);
         if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
@@ -398,6 +400,8 @@ function start(ctx) {
             const signAlerts = alertsOn ? traffic.alerts(at, config.hudCarAlerts, trafficOk(TRAFFIC_FIELDS[2][1])) : null, routeAlerts = alertsOn ? vehicleAlerts.read(at, config.hudCarAlerts) : null;
             const carAlerts = signAlerts || routeAlerts ? { speeding: (signAlerts && signAlerts.speeding) || (routeAlerts && routeAlerts.speeding) || null,
                 school: (signAlerts && signAlerts.school) || (routeAlerts && routeAlerts.school) || null, camera: routeAlerts && routeAlerts.camera || null } : null;
+            // The driver greeting (settings per driver), once the renderer can take it.
+            greetingOverlay.tick(driverGreeting.read(live && config.appEnabled && !!client.ready && String(client.targets || '').indexOf('hud:') >= 0));
             alertOverlay.tick(config, pv && pv.part === 'CarAlert' ? Object.assign({ preview: true }, ALERT_SAMPLE) : carAlerts);
             if (at - lastStatus >= 500) {
                 lastStatus = at;
