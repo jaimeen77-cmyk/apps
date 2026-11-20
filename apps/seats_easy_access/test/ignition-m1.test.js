@@ -1,9 +1,13 @@
 'use strict';
 const assert = require('assert');
 const EventEmitter = require('events');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { Driver } = require('../driver');
 const { IgnitionM1 } = require('../ignition-m1');
 const { ownMoves, stateOf } = require('../core');
-function fixture(values) {
+function fixture(values, makeDriver) {
     let now = 10000;
     const listeners = [], data = Object.assign({ ignitionM1: true, m1OffSeen: false }, values);
     const settings = { get: (k) => data[k], set(k, v) { data[k] = v; listeners.forEach((fn) => fn(k, v)); },
@@ -16,11 +20,12 @@ function fixture(values) {
     client.send = async (m) => { client.sent.push(m); };
     client.refresh = async () => { client.emit('state', client.state); return client.state; };
     const logs = [];
-    const auto = new IgnitionM1(client, settings, { add: (p) => logs.push(p.join(' ')) }, { now: () => now });
+    const driver = makeDriver && makeDriver(() => now);
+    const auto = new IgnitionM1(client, settings, { add: (p) => logs.push(p.join(' ')) }, { now: () => now, driver });
     const emit = (changes) => { Object.assign(client.state, changes); client.emit('state', client.state); };
     const advance = async (ms) => { now += ms; await auto.tick(); };
     const cycle = () => { emit({ carOn: false }); emit({ carOn: true }); };
-    return { client, settings, auto, emit, advance, cycle, logs };
+    return { client, settings, auto, driver, emit, advance, cycle, logs };
 }
 (async () => {
     let f = fixture();
@@ -129,5 +134,64 @@ function fixture(values) {
         await f.advance(9000); await f.advance(3000); await f.advance(1);
         assert.equal(f.client.sent.length, 1, reason + ' cancels the retry');
     }
-    console.log('PASS ignition M1: delayed one-shot, idle/parked/memory guards, cancellation, restart, screen-hide ownership, arrival check and one retry');
+
+    const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'seat-driver-test-'));
+    let active = 'driver A';
+    const makeDriver = (now) => new Driver({
+        async proxy(iface, id) {
+            return {
+                async getValue(field) {
+                    if (iface.endsWith('SessionManager')) {
+                        if (active === null) throw new Error('BMW profile unavailable');
+                        return { currentUserAccountReference: { value: active } };
+                    }
+                    return { [field]: id === 'driver A' ? '민수' : '지연' };
+                },
+                shutdown() {},
+            };
+        },
+    }, dataDir, now);
+    const file = path.join(dataDir, 'driver-m1.json');
+    try {
+        f = fixture({ m1OffSeen: true }, makeDriver);
+        await f.driver.refresh(true);
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(f.driver.name, '민수');
+        f.emit({}); await f.advance(10000);
+        assert.equal(f.client.sent.length, 0, 'an older unscoped opt-in must not move a seat');
+        await f.driver.refresh(true);
+        assert.equal(f.auto.toggle(f.client.state), true);
+        assert.equal(f.auto.enabled(), true);
+        assert.ok(!/driver A|민수/.test(fs.readFileSync(file, 'utf8')), 'store no raw driver ID or name');
+        await f.advance(12000);
+        assert.equal(f.client.sent.length, 0, 'opting in while powered on is not a trigger');
+        f.driver.close();
+
+        f = fixture({}, makeDriver);
+        await f.driver.refresh(true);
+        f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        assert.equal(f.client.sent.length, 1, 'the recognized driver keeps the opt-in across a restart');
+        job(f, true); job(f, false, 130);
+        active = 'driver B';
+        await f.advance(2000);
+        assert.equal(f.client.sent.length, 1, 'a driver change prevents retrying another driver’s movement');
+        f.cycle(); await f.advance(8000); await f.advance(3000);
+        assert.equal(f.client.sent.length, 1, 'another driver does not inherit M1 authorization');
+
+        active = 'driver A';
+        await f.driver.refresh(true);
+        f.client.state.seats.m1Target.driver.SLV = 600;
+        f.cycle(); await f.advance(8000); await f.advance(3000);
+        assert.equal(f.client.sent.length, 1, 'a changed shared M1 is never used under the old opt-in');
+
+        f.client.state.seats.m1Target.driver.SLV = 456;
+        f.cycle(); active = null; await f.advance(8000);
+        assert.equal(f.client.sent.length, 1, 'a failed fresh profile read cannot trigger auto-M1');
+        assert.equal(f.driver.known(), false);
+        f.driver.close();
+    } finally {
+        if (fs.existsSync(file)) fs.unlinkSync(file);
+        fs.rmdirSync(dataDir);
+    }
+    console.log('PASS ignition M1 guards, retry, BMW profile recognition and per-driver authorization');
 })().catch((e) => { console.error(e); process.exitCode = 1; });

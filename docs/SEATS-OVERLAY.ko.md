@@ -1,6 +1,6 @@
 # Seats 공용 빌드·설치
 
-Seats 0.6.11은 Cluster Redline·Storage와 같은 `apps/<id>/app.json + main.js` 및 공용 캔버스 구조입니다. 기본은 영어이고 `--language ko`로 한국어를 선택합니다. 자동 시작하는 백그라운드 코드가 시동 시 M1 옵션을 처리하며, 옵션 기본값은 꺼짐입니다.
+Seats 0.7.0은 공용 캔버스 구조를 사용합니다. 기본은 영어이고 `--language ko`로 한국어를 선택합니다. 자동 시작하는 백그라운드 코드가 현재 BMW 운전자 프로필을 확인하고, 운전자별로 켠 시동 시 M1 복귀를 처리합니다.
 
 ## 기존 idrive7-apps 프로젝트에 추가
 
@@ -24,11 +24,11 @@ python kit/tools/make_kit.py seats_easy_access
 python kit/tools/make_kit.py seats_easy_access --language ko
 ```
 
-첫 명령은 SDK 없이 오프라인 리소스를 준비합니다. 실제 `.mgu`와 `.tgz` 생성에는 본인 차량에서 추출한 `oap-sdk`가 필요합니다. 영어 키트는 `dist/mgu-custom-apps.tar.gz`, 한국어 키트는 `dist/mgu-custom-apps-ko.tar.gz`입니다. 버전은 영어 `0.6.6`, 한국어 `0.6.6-ko.1` 형식입니다.
+첫 명령은 SDK 없이 오프라인 리소스를 준비합니다. 실제 `.mgu`와 `.tgz` 생성에는 본인 차량에서 추출한 `oap-sdk`가 필요합니다. 영어 키트는 `dist/mgu-custom-apps.tar.gz`, 한국어 키트는 `dist/mgu-custom-apps-ko.tar.gz`입니다. 버전은 영어 `0.7.0`, 한국어 `0.7.0-ko.1` 형식입니다.
 
 에뮬레이터: `node kit/tools/emu.js seats_easy_access`. 실제 차량과 같은 그리기 코드를 실행하고, PC에서는 소켓을 사용하지 않는 모의 시트 상태로 시작합니다. PREVIEW 표시가 보이며 버튼은 모의 상태만 바꿉니다.
 
-설치에는 기존 `deploy/push-to-car.ps1` 또는 `push-to-car.sh`를 사용합니다. Comfort 0.5.1 이상은 원본 `IterioDev/car-apps`에서 별도로 설치해야 합니다.
+설치에는 기존 `deploy/push-to-car.ps1` 또는 `push-to-car.sh`를 사용합니다. Comfort 0.6.1 이상은 원본 `IterioDev/car-apps`에서 별도로 설치해야 합니다.
 
 ## MGU Store
 

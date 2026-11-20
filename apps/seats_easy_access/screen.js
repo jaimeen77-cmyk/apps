@@ -13,7 +13,7 @@ const HMI_LEFT = 84, TAB_BAR = 38;
 async function start(ctx, options) {
     const opts = options || {}, translate = translator(opts.language), pre = korean(opts.language), tr = (value) => translate(t(pre(value)));
     const runtime = ctx.background || Runtime.start(ctx, opts);
-    const { client, auto, demo } = runtime;
+    const { client, auto, driver, demo } = runtime;
     const moves = ownMoves(client);
     const easy = new EasyAccess(client);
     // Native/Iterio renderers do not accept the upstream OP_IMAGE upload.
@@ -37,6 +37,7 @@ async function start(ctx, options) {
         }
     });
     let axis = 'SLV', last = '', rendering = null, closed = false, page = 0;
+    let jogTargets = [], touchJog = null, controllerJog = null;
     // the HMI bar buttons of the Logs tab (removed in 0.6.11) are still declared in app.json: kept hidden
     const RETIRED = ['BTN_LOGS', 'BTN_LOG_SOURCE', 'BTN_LOG_HOLD', 'BTN_LOG_OLDER', 'BTN_LOG_NEWER', 'BTN_LOG_REFRESH'];
     const axes = ['SLV', 'SHV', 'LNV', 'SNV', 'KHV'];
@@ -46,7 +47,7 @@ async function start(ctx, options) {
         const on = demo || (!!ctx.ui.isVisible('MAIN') && (!ctx.ui.hasFocus || ctx.ui.hasFocus('MAIN')));
         if (easy.foreground !== on) {
             easy.setForeground(on);
-            if (!on) moves.stop().catch(() => {});   // never Comfort's own door moves
+            if (!on) (endJog() || moves.stop()).catch(() => {});   // never Comfort's own door moves
         }
     }
     async function act(fn) {
@@ -59,12 +60,27 @@ async function start(ctx, options) {
         const list = axes.filter((a) => supported.indexOf(a) >= 0);
         axis = list[(list.indexOf(axis) + 1) % list.length] || 'SLV';
     }
+    function startJog(target) {
+        try {
+            auto.cancel('M1 cancelled: manual control');
+            easy.beginJog(target.axis, target.dir, true);
+            return true;
+        } catch (_) { return false; }
+    }
+    function endJog() {
+        touchJog = null;
+        controllerJog = null;
+        return easy.endJog();
+    }
     const actions = {
-        BTN_IGNITION_M1: () => {
-            const on = !auto.enabled();
-            runtime.settings.set('ignitionM1', on);
-            runtime.settings.set('m1OffSeen', false);
-            auto.cancel('M1 cancelled: option changed');
+        BTN_IGNITION_M1: async () => {
+            if (!easy.foreground || easy.selectedSeat !== 'driver') return;
+            if (driver) {
+                const shown = driver.id;
+                await driver.refresh(true);
+                if (shown !== driver.id) return;
+            }
+            if (easy.foreground && easy.selectedSeat === 'driver') auto.toggle(client.state);
         },
         BTN_DRIVER: () => { easy.selectSeat('driver'); page = 0; },
         BTN_PASSENGER: () => { easy.selectSeat('passenger'); page = 1; },
@@ -86,9 +102,12 @@ async function start(ctx, options) {
     if (ctx.hideButton) RETIRED.forEach((id) => ctx.hideButton(id));
     function render(force) {
         if (closed) return Promise.resolve();
-        if (rendering) return rendering;
+        if (rendering) return force ? rendering.then(() => render(true)) : rendering;
         const state = client.state, who = easy.selectedSeat;
-        const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground, easy.saveMemory, axis, page, auto.enabled()]);
+        const m1On = auto.enabled(state), m1Toggle = auto.canToggle(state);
+        const driverText = driver && (driver.known() ? driver.name || tr('BMW 운전자 인식됨') : tr('BMW 운전자 미인식'));
+        const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground,
+            easy.saveMemory, axis, page, m1On, m1Toggle, driverText]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
@@ -130,17 +149,27 @@ async function start(ctx, options) {
         cv.card(1460, 49, 91, 40, 20, [[0, automatic ? '#f24954' : '#676b70'], [1, automatic ? '#920f20' : '#25292f']]);
         cv.roundRect(automatic ? 1516 : 1466, 53, 32, 32, 16, '#f7f7f7');
         if (ready) cv.target(1160, 45, 400, 48, () => act(actions.BTN_AUTO), 'BTN_AUTO', 20);
-        button('BTN_IGNITION_M1', tr('Ignition M1') + ': ' + tr(auto.enabled() ? 'On' : 'Off'), 1200, 115, 350, 46,
-            ready && who === 'driver', auto.enabled());
+        if (who === 'driver') {
+            button('BTN_IGNITION_M1', tr('Ignition M1') + ': ' + tr(m1On ? 'On' : 'Off'), 1200, 115, 350, 46,
+                ready && m1Toggle, m1On);
+            if (driverText) cv.text(driverText, 1540, 188, 20, '#c2ccd7', { align: 'right', literal: true });
+        }
         const controls = [ ['KHV', 470, 135], ['LNV', 994, 160], ['SNV', 255, 300], ['SHV', 440, 285], ['SLV', 995, 310] ];
+        jogTargets = [];
         controls.forEach((row) => {
             const a = row[0], x = row[1], y = row[2];
             const supported = state && state.seats.axes[who].indexOf(a) >= 0;
-            const enabled = ready && supported && !easy.actionReady(who, false);
+            const enabled = ready && supported && !easy.actionReady(who, false, false);
             cv.text(tr(labels[a][2]), x + 61, y - 13, 21, '#d4dce5', { align: 'center', literal: true });
-            const jog = (dir) => { auto.cancel('M1 cancelled: manual control'); return easy.jog(a, dir); };
-            button(a + '_MINUS', labels[a][0], x, y, 54, 54, enabled, false, () => jog(-1));
-            button(a + '_PLUS', labels[a][1], x + 68, y, 54, 54, enabled, false, () => jog(1));
+            [-1, 1].forEach((dir, i) => {
+                const bx = x + 68 * i;
+                const id = a + (i ? '_PLUS' : '_MINUS');
+                if (enabled) jogTargets.push({ id, axis: a, dir, x: bx, y, size: 54 });
+                button(id, labels[a][i], bx, y, 54, 54, enabled, false, () => {
+                    auto.cancel('M1 cancelled: manual control');
+                    return easy.jog(a, dir);
+                });
+            });
         });
         const memory = ready && !easy.actionReady(who, true);
         cv.fillRect(28, 445, 1544, 1, [230, 235, 242, 65]);
@@ -160,8 +189,49 @@ async function start(ctx, options) {
         return rendering;
     }
     easy.on('change', () => { render().catch((e) => ctx.log.error(e)); });
-    ctx.onTab((index) => act(actions[index === 1 ? 'BTN_PASSENGER' : 'BTN_DRIVER']));
-    ctx.onLayout(() => render(true));
+    ctx.onTab(async (index) => {
+        await endJog();
+        await act(actions[index === 1 ? 'BTN_PASSENGER' : 'BTN_DRIVER']);
+    });
+    ctx.onLayout(() => { endJog(); return render(true); });
+    if (ctx.onTouch) ctx.onTouch((phase, x, y) => {
+        const hit = (r) => x >= r.x && x < r.x + r.size && y >= r.y && y < r.y + r.size;
+        if (phase !== 1) {
+            if (touchJog && (phase === 3 || !hit(touchJog))) endJog();
+            return false;
+        }
+        if (closed) return false;
+        foreground();
+        const target = jogTargets.find(hit);
+        if (!target || !startJog(target)) return false;
+        touchJog = target;
+        return true;
+    });
+    const display = ctx.display;
+    const handleController = display && display._ccu;
+    if (typeof handleController === 'function' && typeof display.own === 'function') {
+        // This kit sends raw press/release to Display. Keep its focus and navigation,
+        // and handle only presses on a focused jog button ourselves.
+        display._ccu = function (event) {
+            const previous = this.ccuLast;
+            const current = { k: Number(event.frontRotaryEncoderOperation),
+                pb: Number(event.frontRotaryEncoderPushButton), df: Number(event.frontRotaryEncoderDeflection) };
+            const down = (button) => button === 1 || button === 2;
+            const steady = previous && previous.k === current.k && previous.df === current.df;
+            const own = this.own() && !this.sheet;
+            if (controllerJog && (!down(current.pb) || !steady || !own || this.focusKey !== controllerJog)) endJog();
+            if (own && steady && down(current.pb) && !down(previous.pb) && !closed) {
+                foreground();
+                const target = jogTargets.find((item) => this.focusKey === 'tgt:' + item.id);
+                if (target && startJog(target)) {
+                    controllerJog = this.focusKey;
+                    this.ccuLast = current;
+                    return;
+                }
+            }
+            return handleController.call(this, event);
+        };
+    }
     if (ctx.ui.onVisible) ctx.ui.onVisible((name) => {
         if (name === 'MAIN') { foreground(); last = ''; render(); }
     });
@@ -170,14 +240,14 @@ async function start(ctx, options) {
         foreground();
         return render();
     });
-    async function close() {
+    runtime.beforeClose(async () => {
         closed = true; if (loop && loop.stop) loop.stop();
-        await moves.stop().catch(() => {}); runtime.close();
-    }
-    if (ctx.app && ctx.app.on) ctx.app.on('shutdown', close);
+        if (handleController) display._ccu = handleController;
+        await (endJog() || moves.stop()).catch(() => {});
+    });
     foreground();
     await render(true);
     await easy.refresh().catch(() => {});
-    return { easy, client, render, close, demo, auto };
+    return { easy, client, render, close: runtime.close, demo, auto };
 }
 module.exports = { start };

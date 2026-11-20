@@ -1,6 +1,6 @@
 {
   "id": "seats_easy_access",
-  "version": "0.6.16",
+  "version": "0.7.0",
   "mguAppStartType": "autostart",
   "startType": "autostart",
   "settings": [
@@ -116,7 +116,7 @@
     }
   ],
   "requires": {
-    "iteriodev-comfort": "0.5.1",
+    "iteriodev-comfort": "0.6.1",
     "mgu-deploy": "0.7.11"
   },
   "storeDefaultLanguage": "en",

@@ -4,6 +4,8 @@
 const ENGLISH = {
     '시트 Easy Access': 'Seats Easy Access',
     '운전석': 'Driver', '조수석': 'Passenger',
+    'BMW 운전자 인식됨': 'BMW driver recognized',
+    'BMW 운전자 미인식': 'No BMW driver recognized',
     '상태를 확인하세요.': 'Refresh status first.',
     'Comfort 연결이 끊겼습니다.': 'Comfort disconnected.',
     '지원하지 않는 시트입니다.': 'Unsupported seat.',
@@ -33,7 +35,7 @@ const ENGLISH = {
     '이 시트가 지원하지 않는 조절 축입니다.': 'This seat does not support that adjustment.',
     '시트 이동 중…': 'Moving seat…',
     '이동 실패: ': 'Movement failed: ',
-    '짧은 이동을 완료했습니다.': 'Short movement completed.',
+    '시트 이동을 마쳤습니다.': 'Seat movement finished.',
     '저장할 M1~M3 버튼을 누르세요.': 'Press M1, M2 or M3 to save.',
     '메모리 저장을 취소했습니다.': 'Memory save cancelled.',
     '에 저장했습니다.': ' saved.',
