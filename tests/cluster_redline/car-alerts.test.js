@@ -3,7 +3,7 @@
 // overlay, the demand set (GuidanceEventList subscribed only while alerts are on) and the settings screen.
 // Optional argument: a built stage (dist/cluster_redline) to also draw the icons and the NAV tab.
 const assert=require('assert'),path=require('path');
-const {VehicleAlerts,decode,TYPES,SAMPLE}=require('../../apps/cluster_redline/vehicle-alerts');
+const {VehicleAlerts,decode,TYPES,SAMPLE,shownDistance}=require('../../apps/cluster_redline/vehicle-alerts');
 const {AlertOverlay}=require('../../apps/cluster_redline/alert-overlay');
 const {demand}=require('../../apps/cluster_redline/data-demand');
 const {settings}=require('../../apps/cluster_redline/policy');
@@ -17,12 +17,13 @@ const ok=(events)=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInVie
  {const d=decode(ok([{speedCamera:{formattedDistance:dist(420),speedLimitAssistInfo:{value:{reason:{speedLimitInfo:{speedLimit:60,speedUnit:'KM_P_H',speedingInfo:'SPEED_OKAY'}}}}}},
    {schoolZone:{formattedDistance:dist(150),isInsideEvent:false,speedLimitAssistInfo:tooFast(30)}},{intersection:{formattedDistance:dist(80)}}]));
   assert(d.ok);assert.deepStrictEqual(d.kinds,{speedCamera:1,schoolZone:1,intersection:1});
-  assert.deepStrictEqual(d.camera,{m:420,text:'420 m',section:false,inside:false,limit:60});
+  assert.deepStrictEqual(d.camera,{m:420,text:'400 m',section:false,inside:false,limit:60},'distance shown in 50 m steps');
   assert.deepStrictEqual(d.school,{m:150,text:'150 m',inside:false,limit:30});assert.deepStrictEqual(d.speeding,{limit:30},'the car\'s own TOO_FAST');}
  {const d=decode(ok([{speedSectionCamera:{formattedDistance:dist(0),isInsideEvent:true,averageSpeed:80,speedUnit:'KM_P_H'}}]));
   assert.deepStrictEqual(d.camera,{m:0,text:null,section:true,inside:true,limit:80},'inside a section: its average speed limit');}
  {const d=decode(ok([{speedCamera:{formattedDistance:dist(1800)}},{schoolZone:{formattedDistance:dist(900)}},{speedCamera:{formattedDistance:dist(300),unreliable:true}}]));
   assert.strictEqual(d.camera,null,'far camera: not yet');assert.strictEqual(d.school,null,'far school zone: not yet');}
+ assert.deepStrictEqual([shownDistance(424,'424 m'),shownDistance(426,'426 m'),shownDistance(24,'24 m'),shownDistance(1260,'1.3 km'),shownDistance(null,'?')],['400 m','450 m','0 m','1.3 km','?'],'50 m steps keep re-uploads down');
  assert.strictEqual(decode({GuidanceEventListError:'UNKNOWN_VIEW_ID'}).ok,false);assert.strictEqual(decode(null).ok,false);
  {const d=decode(ok([{speedCamera:{formattedDistance:{distance:'0,5',unit:'KM',rawDistance:0.5}}}]));assert.strictEqual(d.camera.m,500,'km');}
  // query, includedTypes fallback, freshness, modes

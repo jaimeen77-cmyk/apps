@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.16
+
+- Settings per driver also keeps the **Position / size save slots** (HUD, cluster and NAV tabs, three each) per driver; drivers already kept start with the shared slots.
+- Performance check (`docs/REDLINE-PERFORMANCE-1.3.16.ko.md`): HUD and cluster rendering measured next to 1.2.58 on the same machine and kit, three runs of 1,500 frames per case: within run-to-run noise (±10 %), the same memory. New `tools/cluster-redline-features-benchmark.js` measures the 1.3.x additions per worker frame: turn signals in the HUD image and on their overlay, the vehicle alert overlay, sign recognition and route event decoding, driver switches.
+- The vehicle alert overlay re-sent its whole image (~100 KB) at every step of the car's distance text; the distance now shows in 50 m steps (0.1 km from 1 km): approaching a camera at 60 km/h, 30 uploads instead of 135, about 36 KB/s instead of 160.
+
 ## Cluster Redline 1.3.15
 
 - Settings per driver now keeps the **favourites** (Favorites tab, five slots) per driver too; before, all drivers shared them. On the update, every driver already kept starts with the favourites they all shared, then each keeps their own (`driver-profiles.js` `migrate()`, also used for any key added to the per-driver set later).

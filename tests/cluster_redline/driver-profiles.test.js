@@ -40,5 +40,7 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
   h('A');st.set('favorite1','A-fav');h('B');assert.strictEqual(v.favorite1,'shared','B keeps theirs');st.set('favorite1','B-fav');h('A');assert.strictEqual(v.favorite1,'A-fav','A gets theirs back');p.stop();}
  {const broken=new DriverProfiles({settings:{get:()=>'on',set(){},onChange(){}},signals:null,fs:{readFileSync:()=>JSON.stringify({profiles:{A:{}},order:['A']}),writeFileSync(){}},file:'/b',keys:()=>{throw new Error('no key list');}});
   assert.deepStrictEqual(broken.keys(),[],'a broken key list never stops the app');}
+ if(process.argv[2]){const root=require('path').join(require('path').resolve(process.argv[2]),'source/javascript'),{driverKeys}=require(root+'/settings-ui'),spec=require(root+'/kit/app-spec.json');
+  const k=driverKeys(spec.settings);['favorite1','favorite5','hudLayoutSlot1','clusterLayoutSlot3','navLayoutSlot2'].forEach(x=>assert(k.includes(x),x+' kept per driver'));}
  console.log('PASS: settings per driver: favourites per driver (shared ones handed to every kept driver), names from the user account (number when none), off reads nothing, the user account picks the settings, changes kept per driver, new driver keeps current, car settings shared, kept across restarts');
 })().catch(e=>{console.error(e);process.exitCode=1;});

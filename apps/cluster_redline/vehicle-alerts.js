@@ -32,6 +32,9 @@ function metres(d){
  const raw=Number(d.rawDistance);if(isFinite(raw)&&raw>=0)return raw*k;
  const t=parseFloat(String(d.distance||'').replace(',','.'));return isFinite(t)&&t>=0?t*k:null;
 }
+// The distance shown: metres to 50 m steps (km with one decimal from 1 km), so the HUD alert is redrawn and
+// re-uploaded (the whole alert image, ~100 KB) at most every 50 m, not at every step of the car's formatted text.
+function shownDistance(m,text){if(m===null)return text;if(m<1000)return Math.max(0,Math.round(m/50)*50)+' m';return (Math.round(m/100)/10).toFixed(1)+' km';}
 function speedInfo(item){
  const v=object(item)&&object(item.speedLimitAssistInfo)&&item.speedLimitAssistInfo.value,r=object(v)&&v.reason,s=object(r)&&r.speedLimitInfo;
  if(!object(s))return null;
@@ -53,9 +56,9 @@ function decode(reply){
   if(s&&s.tooFast&&!out.speeding)out.speeding={limit:s.limit};
   if((kind==='speedCamera'||kind==='speedSectionCamera')&&(inside||m!==null&&m<=CAMERA_NEAR_M)&&(!out.camera||m!==null&&out.camera.m!==null&&m<out.camera.m)){
    const avg=Number(item.averageSpeed);
-   out.camera={m,text:inside?null:text,section:kind==='speedSectionCamera',inside,limit:s&&s.limit||(kind==='speedSectionCamera'&&Number.isInteger(avg)&&avg>0&&avg<400?avg:null)};
+   out.camera={m,text:inside?null:shownDistance(m,text),section:kind==='speedSectionCamera',inside,limit:s&&s.limit||(kind==='speedSectionCamera'&&Number.isInteger(avg)&&avg>0&&avg<400?avg:null)};
   }
-  if(kind==='schoolZone'&&(inside||m!==null&&m<=SCHOOL_NEAR_M)&&!out.school)out.school={m,text:inside?null:text,inside,limit:s&&s.limit};
+  if(kind==='schoolZone'&&(inside||m!==null&&m<=SCHOOL_NEAR_M)&&!out.school)out.school={m,text:inside?null:shownDistance(m,text),inside,limit:s&&s.limit};
  });
  return out;
 }
@@ -103,4 +106,4 @@ class VehicleAlerts{
 }
 // A sample for the Position / size preview: every alert at once.
 const SAMPLE={speeding:{limit:30},school:{m:150,text:'150 m',inside:false,limit:30},camera:{m:420,text:'420 m',section:false,inside:false,limit:60}};
-module.exports={VehicleAlerts,decode,params,TYPES,KINDS,SAMPLE,FRESH_MS};
+module.exports={shownDistance,VehicleAlerts,decode,params,TYPES,KINDS,SAMPLE,FRESH_MS};
