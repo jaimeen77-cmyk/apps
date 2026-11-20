@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.13
+
+- **Settings per driver** (Basic tab, off by default): the head unit's current user account (`personalization.SessionManager.currentUserAccountReference`, read every 5 s, as Cluster Info in appscluster_fork does) picks whose settings are in use. Each driver keeps the favourite-style whole setup (without the vehicle preset and auto-start, which belong to the car) in `driver-profiles.json`: a change is kept for the driver at the time, a driver seen again gets theirs back in one write, a driver seen for the first time keeps the current settings. The row shows `On · Driver 2 / 2`, or that the driver cannot be read. Read directly from the settings host (not through the worker's demand set), only while on; the package already carries the SessionManager proxy from the kit template.
+- The Basic tab no longer shows the orange renderer / display-area notices (the user guide keeps them); every Basic row is the same height.
+
 ## Cluster Redline 1.3.12
 
 - **Navigation colours**: the NAV tab's Navigation colour screen now sets both the **arrow colour** (turn arrow and the recommended lanes) and the **text colour** (distance, road name, exit name), each orange / green / blue / white, with a live preview. The text was always white before. Defaults are unchanged (blue arrow, white text); a saved grey arrow, no longer offered, becomes white. The text colour (`navTextColor`) is kept outside app.json, like the turn signal colour, and is part of favourites.

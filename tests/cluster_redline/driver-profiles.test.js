@@ -1,0 +1,29 @@
+'use strict';
+// Settings per driver: off reads nothing; on, the head unit's user account picks whose settings are in use; a change
+// is kept for the driver at the time; a new driver keeps the current settings; car settings are shared.
+const assert=require('assert');
+const {DriverProfiles,IFACE,FIELD,idOf}=require('../../apps/cluster_redline/driver-profiles');
+const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
+(async()=>{
+ const values={driverProfiles:'off',hudDesign:'own',navColor:'blue',engineProfile:'petrol',autoStart:true},listeners=[];let writes=0;
+ const settings={get:k=>values[k],set:(k,v)=>{values[k]=v;listeners.forEach(f=>f(k,v));},setMany:c=>{writes++;Object.keys(c).forEach(k=>{values[k]=c[k];listeners.forEach(f=>f(k,c[k]));});},onChange:f=>listeners.push(f)};
+ const files={};const fs={readFileSync:f=>{if(!(f in files))throw new Error('ENOENT');return files[f];},writeFileSync:(f,d)=>{files[f]=d;}};
+ let feed=null,watched=0,shut=0;const signals={hasNative:()=>true,watch:(iface,inst,handlers,log,opts)=>{watched++;assert.strictEqual(iface,IFACE);assert.strictEqual(inst,IFACE);assert.strictEqual(opts.pollMs,5000);feed=handlers[FIELD];return Promise.resolve({available:true,shutdown(){shut++;}});}};
+ const d=new DriverProfiles({settings,signals,fs,file:'/data/driver-profiles.json',keys:()=>['hudDesign','navColor','engineProfile','autoStart','driverProfiles']});
+ await settle();assert.strictEqual(watched,0,'off: nothing read');assert.strictEqual(d.status().state,'off');
+ settings.set('driverProfiles','on');await settle();assert.strictEqual(watched,1);assert.strictEqual(d.status().state,'waiting');
+ feed({value:'acc-A'});assert.deepStrictEqual(d.status(),{state:'ready',driver:1,drivers:1,error:null});
+ settings.set('hudDesign','rl-ramp');settings.set('engineProfile','diesel');
+ feed('acc-B');assert.strictEqual(d.status().driver,2,'a new driver');assert.strictEqual(values.hudDesign,'rl-ramp','a new driver keeps what is set');
+ settings.set('hudDesign','own');settings.set('navColor','orange');
+ feed('acc-A');assert.strictEqual(values.hudDesign,'rl-ramp','driver A gets theirs back');assert.strictEqual(values.navColor,'blue');
+ assert.strictEqual(values.engineProfile,'diesel','the vehicle preset belongs to the car');
+ feed('acc-A');const w=writes;feed('acc-A');assert.strictEqual(writes,w,'the same driver: no write');
+ feed('acc-B');assert.strictEqual(values.hudDesign,'own');assert.strictEqual(values.navColor,'orange','driver B gets theirs back');
+ const saved=JSON.parse(files['/data/driver-profiles.json']);assert.deepStrictEqual(saved.order,['acc-A','acc-B']);assert(!('engineProfile' in saved.profiles['acc-A']));
+ const again=new DriverProfiles({settings,signals,fs,file:'/data/driver-profiles.json',keys:()=>['hudDesign','navColor']});await settle();assert.strictEqual(again.status().drivers,2,'kept across restarts');again.stop();
+ settings.set('driverProfiles','off');await settle();assert(shut>=1,'off: reading stops');assert.strictEqual(d.status().state,'off');
+ assert.strictEqual(idOf({currentUserAccountReference:7}),'7');assert.strictEqual(idOf(null),null);
+ const none=new DriverProfiles({settings:Object.assign({},settings,{get:k=>k==='driverProfiles'?'on':values[k]}),signals:null,fs,file:'/x',keys:()=>[]});assert.strictEqual(none.status().state,'unavailable');
+ console.log('PASS: settings per driver: off reads nothing, the user account picks the settings, changes kept per driver, new driver keeps current, car settings shared, kept across restarts');
+})().catch(e=>{console.error(e);process.exitCode=1;});
