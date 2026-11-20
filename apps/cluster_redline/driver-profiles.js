@@ -31,6 +31,7 @@ class DriverProfiles{
   this.settings=o.settings;this.signals=o.signals;this.log=o.log||{warn(){},info(){}};this.fs=o.fs;this.file=o.file;this.keysOf=o.keys;this.changed=o.changed||(()=>{});
   this.profiles={};this.order=[];this.names={};this.nameSub=null;this.nameState=null;this.current=null;this.sub=null;this.state='off';this.error=null;this.applying=false;this.reads=0;
   try{const d=JSON.parse(this.fs.readFileSync(this.file,'utf8'));if(d&&typeof d==='object'){this.profiles=d.profiles||{};this.order=Array.isArray(d.order)?d.order:Object.keys(this.profiles);this.names=d.names&&typeof d.names==='object'?d.names:{};}}catch(e){}
+  this.migrate();
   this.settings.onChange((k,v)=>{
    if(k==='driverProfiles'){this.sync();return;}
    if(this.applying||!this.on()||!this.current||this.keys().indexOf(k)<0)return;
@@ -39,6 +40,14 @@ class DriverProfiles{
   this.sync();
  }
  on(){return this.settings.get('driverProfiles')==='on';}
+ // Keys added to the per-driver set later (1.3.15: the favourites, shared until then): every driver kept before
+ // starts with the shared value they all had, then each keeps their own.
+ migrate(){
+  let changed=false;const keys=this.keys();
+  Object.keys(this.profiles).forEach(id=>{const p=this.profiles[id];if(!p||typeof p!=='object')return;
+   keys.forEach(k=>{if(!(k in p)){const v=this.settings.get(k);if(v!==undefined){p[k]=v;changed=true;}}});});
+  if(changed)this.save();
+ }
  keys(){return this.keysOf().filter(k=>CAR_KEYS.indexOf(k)<0);}
  snapshot(){const o={};this.keys().forEach(k=>{const v=this.settings.get(k);if(v!==undefined)o[k]=v;});return o;}
  save(){try{this.fs.writeFileSync(this.file,JSON.stringify({profiles:this.profiles,order:this.order,names:this.names}));}catch(e){this.log.warn('driver profiles: '+e);}}

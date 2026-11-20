@@ -31,5 +31,12 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
  settings.set('driverProfiles','off');await settle();assert(shut>=1,'off: reading stops');assert.strictEqual(d.status().state,'off');
  assert.strictEqual(idOf({currentUserAccountReference:7}),'7');assert.strictEqual(nameOf({value:' Kim '}),'Kim');assert.strictEqual(nameOf(''),null);assert.strictEqual(idOf(null),null);
  const none=new DriverProfiles({settings:Object.assign({},settings,{get:k=>k==='driverProfiles'?'on':values[k]}),signals:null,fs,file:'/x',keys:()=>[]});assert.strictEqual(none.status().state,'unavailable');
- console.log('PASS: settings per driver: names from the user account (number when none), off reads nothing, the user account picks the settings, changes kept per driver, new driver keeps current, car settings shared, kept across restarts');
+ // favourites per driver (1.3.15), and the shared ones handed to every driver kept before
+ {const v={driverProfiles:'on',hudDesign:'own',favorite1:'shared'},L=[];const st={get:k=>v[k],set:(k,x)=>{v[k]=x;L.forEach(f=>f(k,x));},setMany:c=>Object.keys(c).forEach(k=>{v[k]=c[k];L.forEach(f=>f(k,c[k]));}),onChange:f=>L.push(f)};
+  const fl={'/p':JSON.stringify({profiles:{A:{hudDesign:'own'},B:{hudDesign:'own'}},order:['A','B']})},f2={readFileSync:f=>{if(!(f in fl))throw new Error('x');return fl[f];},writeFileSync:(f,d)=>{fl[f]=d;}};
+  let h=null;const sg={hasNative:()=>true,watch:(i,inst,hs)=>{if(i===IFACE)h=hs[FIELD];return Promise.resolve({available:true,shutdown(){}});}};
+  const p=new DriverProfiles({settings:st,signals:sg,fs:f2,file:'/p',keys:()=>['hudDesign','favorite1']});await settle();
+  assert.deepStrictEqual(JSON.parse(fl['/p']).profiles.B,{hudDesign:'own',favorite1:'shared'},'kept drivers start with the shared favourites');
+  h('A');st.set('favorite1','A-fav');h('B');assert.strictEqual(v.favorite1,'shared','B keeps theirs');st.set('favorite1','B-fav');h('A');assert.strictEqual(v.favorite1,'A-fav','A gets theirs back');p.stop();}
+ console.log('PASS: settings per driver: favourites per driver (shared ones handed to every kept driver), names from the user account (number when none), off reads nothing, the user account picks the settings, changes kept per driver, new driver keeps current, car settings shared, kept across restarts');
 })().catch(e=>{console.error(e);process.exitCode=1;});
