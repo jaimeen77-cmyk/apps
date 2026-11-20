@@ -10,6 +10,7 @@ const { migrate } = require('./migrate');
 const { mapStatus } = require('./output-status');
 const { RenderQueue } = require('./render-queue');
 const presence = require('./preview-presence');
+const { DriverProfiles } = require('./driver-profiles');
 const REASONS = {
     disabled: 'Automatic display off', renderer_unavailable: 'Waiting for cluster renderer',
     profile_unknown: 'Check engine profile', hybrid_engine_stopped: 'Hybrid engine stopped · hidden',
@@ -55,10 +56,14 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     let background = null;
     const queue = new RenderQueue(render, report);
     const page = new SettingsPage(ctx.settings, () => queue.request(), ctx.spec.version);
+    // Settings per driver (driver-profiles.js): whose settings are in use follows the head unit's user account.
+    const drivers = new DriverProfiles({ settings: ctx.settings, signals: ctx.signals, log: ctx.log, fs, file: path.join(ctx.dataDir, 'driver-profiles.json'),
+        keys: () => require('./settings-ui').favKeys(ctx.settings.schema || []), changed: () => queue.request() });
+    page.driverStatus = () => drivers.status();
     // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');
     if (ctx.ui && typeof ctx.ui.onVisible === 'function') ctx.ui.onVisible((name, visible) => { if (name === 'MAIN' && !visible) page.leave(); });
-    if (ctx.app && ctx.app.once) ctx.app.once('shutdown', () => queue.stop());
+    if (ctx.app && ctx.app.once) ctx.app.once('shutdown', () => { queue.stop(); drivers.stop(); });
     function report() {}   // no logs
     function syncWorker() {
         if (ctx.settings.get('appEnabled') === true && !background) background = worker.start(ctx);
