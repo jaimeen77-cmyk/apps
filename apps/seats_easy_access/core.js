@@ -4,7 +4,7 @@
 const EventEmitter = require('events');
 const net = require('net');
 const SOCKET = '/run/iteriodev-comfort/ctl.sock';
-const VERSION = '0.7.2';
+const VERSION = '0.7.3';
 const JOG_REPEAT_MS = 250;
 const JOG_LIMIT_MS = 8000;
 
@@ -27,10 +27,10 @@ function counters(source, axes) {
 function stateOf(message) {
     const state = message && message.state;
     const seats = state && state.seats;
-    if (!state || !seats || !seats.axes || !seats.pos) return null;
+    if (!state || typeof state.carOn !== 'boolean' || !seats || !seats.axes || !seats.pos) return null;
     const clean = {
         parked: state.parked === true,
-        carOn: state.carOn === true,
+        carOn: state.carOn,
         settings: { easyExit: !!(state.settings && state.settings.easyExit) },
         seats: {
             axes: { driver: [], passenger: [] }, pos: { driver: {}, passenger: {}, wheel: counters(seats.pos.wheel, ['LEN', 'HGT']) },
@@ -202,11 +202,26 @@ class EasyAccess extends EventEmitter {
     }
     async save(who) {
         const blocked = this.actionReady(who, true); if (blocked) throw new Error(blocked);
+        if (who === 'driver' && this.driver) {
+            return this.request(async () => {
+                const state = await this.stationaryDriver();
+                await this.driver.savePowerOffExit(this.client, state);
+            }, '시동 종료 하차 위치를 저장했습니다.');
+        }
         return this.request({ op: 'exit', seat: who, save: true },
             (who === 'driver' ? '운전석' : '조수석') + ' 하차 위치를 저장했습니다.');
     }
     async move(who) {
         const blocked = this.actionReady(who, true); if (blocked) throw new Error(blocked);
+        if (who === 'driver' && this.driver && (this.driver.exit || this.driver.hasOptIns())) {
+            return this.request(async () => {
+                const state = await this.stationaryDriver();
+                const exit = this.driver.powerOffExit(state);
+                if (!exit) throw new Error('시동 종료 하차 위치를 먼저 저장하세요.');
+                await this.client.send({ op: 'memory', seat: 'driver', slot: exit.slot, save: false });
+                await this.client.refresh();
+            }, '운전석 하차 위치 이동을 요청했습니다.');
+        }
         return this.request({ op: 'exit', seat: who, save: false },
             (who === 'driver' ? '운전석' : '조수석') + ' Easy Access 이동을 요청했습니다.');
     }
@@ -288,18 +303,22 @@ class EasyAccess extends EventEmitter {
         if (!this.driver.known()) throw new Error('BMW 운전자 프로필을 먼저 선택하세요.');
         return this.request(async () => {
             await this.driver.refresh(true);
-            const state = await this.client.refresh();
+            const state = await this.stationaryDriver();
             if (this.driver.id !== selected || !this.driver.known()) throw new Error('BMW 운전자 프로필이 변경됐습니다.');
-            if (!this.foreground) throw new Error('앱 화면이 활성화되어 있어야 합니다.');
-            if (!state.parked) throw new Error('정차 상태에서만 사용할 수 있습니다.');
-            if (state.seats.moving || state.seats.job) throw new Error('시트가 움직이는 중입니다. 먼저 정지하세요.');
-            if (!Object.keys(state.seats.pos.driver).length) throw new Error('운전석 위치를 확인할 수 없습니다.');
             if (save) return this.driver.saveM1(this.client, state);
             const entry = this.driver.personalM1(state);
             if (!entry) throw new Error('현재 운전자의 개인 M1을 먼저 저장하세요.');
             await this.client.send({ op: 'memory', seat: 'driver', slot: entry.slot, save: false });
             await this.client.refresh();
         }, save ? '개인 M1에 저장했습니다.' : '개인 M1 호출을 요청했습니다.');
+    }
+    async stationaryDriver() {
+        const state = await this.client.refresh();
+        if (!this.foreground) throw new Error('앱 화면이 활성화되어 있어야 합니다.');
+        if (!state.parked) throw new Error('정차 상태에서만 사용할 수 있습니다.');
+        if (state.seats.moving || state.seats.job) throw new Error('시트가 움직이는 중입니다. 먼저 정지하세요.');
+        if (!Object.keys(state.seats.pos.driver).length) throw new Error('운전석 위치를 확인할 수 없습니다.');
+        return state;
     }
     async stop() {
         if (!this.foreground) throw new Error('앱 화면이 활성화되어 있어야 합니다.');

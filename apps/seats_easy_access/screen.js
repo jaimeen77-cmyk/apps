@@ -114,9 +114,11 @@ async function start(ctx, options) {
         const m1On = auto.enabled(state), m1Toggle = auto.canToggle(state), m1Armed = auto.armed();
         const driverText = driver && (driver.known() ? driver.name || tr('BMW 운전자 인식됨') : tr('BMW 운전자 미인식'));
         const personalM1 = driver && !!driver.personalM1(state);
+        const exitSaved = driver && !!driver.powerOffExit(state);
+        const commonExit = who === 'passenger' || !driver || (!driver.exit && !m1Armed);
         const reserved = driver ? [driver.reserved(1), driver.reserved(2)] : [false, false];
         const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground,
-            easy.saveMemory, axis, page, m1On, m1Toggle, m1Armed, driverText, personalM1, reserved]);
+            easy.saveMemory, axis, page, m1On, m1Toggle, m1Armed, driverText, personalM1, exitSaved, commonExit, reserved]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
@@ -165,6 +167,8 @@ async function start(ctx, options) {
             if (driverText) cv.text(driverText, 1540, 188, 20, '#c2ccd7', { align: 'right', literal: true });
             if (driver && driver.known()) {
                 cv.text(tr(personalM1 ? '개인 M1 저장됨' : '개인 M1을 저장하세요'), 1540, 218, 20, '#c2ccd7', { align: 'right', literal: true });
+                cv.text(tr(exitSaved ? '시동 종료 하차 위치 저장됨' : '시동 종료 하차 위치를 저장하세요'), 1540, 247, 20,
+                    '#c2ccd7', { align: 'right', literal: true });
             }
         }
         const controls = [ ['KHV', 470, 135], ['LNV', 994, 160], ['SNV', 255, 300], ['SHV', 440, 285], ['SLV', 995, 310] ];
@@ -190,7 +194,8 @@ async function start(ctx, options) {
             memory && (i === 0 || who === 'passenger' || !reserved[i - 1]), false));
         button('BTN_SAVE', 'Save memory', 540, 462, 200, 46, memory, easy.saveMemory);
         button('BTN_EXIT_SAVE', 'Save exit', 200, 387, 555, 50, memory, false);
-        button('BTN_EXIT', 'Easy Access', 765, 462, 270, 46, memory && state.seats.exit[who], false);
+        button('BTN_EXIT', 'Easy Access', 765, 462, 270, 46,
+            memory && (commonExit ? state.seats.exit[who] : exitSaved), false);
         button('BTN_ROOM', state && state.seats.roomOut ? 'Return passenger' : 'Make room', 785, 387, 555, 50,
             memory && who === 'passenger', false);
         button('BTN_REFRESH', 'Refresh', 1060, 462, 210, 46, !easy.pending, false);

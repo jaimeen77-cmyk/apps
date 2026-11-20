@@ -19,6 +19,8 @@ MGU Store offers **Seats Easy Access (English)** (`seats_easy_access`) and **시
 
 Version 0.7.2 recognizes the active BMW driver profile and displays its name when available. With their own BMW profile selected, each driver can adjust the seat, press **Save memory → M1**, and turn on **Ignition M1**. Manual M1 and Ignition M1 both recall the recognized driver's personal position. Each personal M1 uses one free slot of Comfort's three driver-seat memories. Allocated slots are locked in the shared driver M2/M3 controls. Existing shared memories keep their positions when a driver registers. A 0.7.1 M1 opt-in is carried over when exactly one profile matches the stored shared M1. Requires Comfort 0.6.1 or later.
 
+Version 0.7.3 adds a shared power-off exit position. With the driver's seat adjusted back, press **Save exit** on the driver page. The car must be stationary and the active driver must have **Ignition M1** on. An observed power-off moves the driver seat to the saved exit position even with the door closed. Power-on then recalls the recognized driver's personal M1. The shared exit takes one additional free Comfort driver-memory slot. The head unit and Comfort must still be running when power-off is reported.
+
 In GPU full-screen mode, touch and iDrive controller adjustments move while held and stop on release. The regular HMI buttons make short adjustments.
 
 Starting in 0.7.1, with Ignition M1 on for any driver, Seats turns off Comfort's automatic Easy Access switch for both front seats. Manual Easy Access remains available. A return Comfort already stored can still run after the switch is turned off. To use automatic Easy Access again, turn off all enabled Ignition M1 profiles and then turn the automatic Easy Access switch on.

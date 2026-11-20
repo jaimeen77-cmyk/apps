@@ -13,6 +13,7 @@ const FRESH_MS = 4500;
 const STABLE_MS = 2500;
 const MEMORY_SLOTS = [0, 1, 2];
 const HASH = /^[a-f0-9]{64}$/;
+const EXIT = 'powerOffExit';
 
 function valueOf(raw, keys) {
     if (typeof raw === 'string' || typeof raw === 'number') return String(raw).trim();
@@ -30,6 +31,11 @@ function digest(value) {
 }
 
 function targetOf(state, slot) { return state && state.seats.memories.driver[slot]; }
+
+function validEntry(entry) {
+    return entry && MEMORY_SLOTS.includes(entry.slot) &&
+        (entry.target === null || (typeof entry.target === 'string' && HASH.test(entry.target)));
+}
 
 function targetKey(target, supportedAxes) {
     if (!target) return null;
@@ -58,6 +64,7 @@ class Driver {
         this.file = dataDir && path.join(dataDir, 'driver-m1.json');
         this.profiles = Object.create(null);
         this.legacy = Object.create(null);
+        this.exit = null;
         if (this.file) {
             try {
                 const saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
@@ -65,11 +72,12 @@ class Driver {
                     const entry = saved[id];
                     if (!HASH.test(id)) continue;
                     if (typeof entry === 'string' && HASH.test(entry)) this.legacy[id] = entry;
-                    else if (entry && MEMORY_SLOTS.includes(entry.slot) && !this.reserved(entry.slot) &&
-                        (entry.target === null || (typeof entry.target === 'string' && HASH.test(entry.target)))) {
+                    else if (validEntry(entry) && !this.reserved(entry.slot)) {
                         this.profiles[id] = { slot: entry.slot, target: entry.target, enabled: entry.enabled === true };
                     }
                 }
+                const exit = saved[EXIT];
+                if (validEntry(exit) && !this.reserved(exit.slot)) this.exit = { slot: exit.slot, target: exit.target };
             } catch (_) { /* no usable opt-ins */ }
         }
         this.available = !!(signals && typeof signals.proxy === 'function' &&
@@ -88,15 +96,25 @@ class Driver {
 
     hasOptIns() { return Object.values(this.profiles).some((entry) => entry.enabled); }
 
-    reserved(slot) { return Object.values(this.profiles).some((entry) => entry.slot === slot); }
+    reserved(slot) { return (this.exit && this.exit.slot === slot) || Object.values(this.profiles).some((entry) => entry.slot === slot); }
+
+    verified(entry, state) { return entry && entry.target && entry.target === targetKey(targetOf(state, entry.slot)) ? entry : null; }
+
+    powerOffExit(state) {
+        const entry = this.verified(this.exit, state);
+        return entry && Number.isFinite(targetOf(state, entry.slot).SLV) ? entry : null;
+    }
 
     personalM1(state) {
-        const entry = this.known() && this.profiles[this.id];
-        return entry && entry.target && entry.target === targetKey(targetOf(state, entry.slot)) ? entry : null;
+        return this.verified(this.known() && this.profiles[this.id], state);
     }
 
     authorization(state) {
-        const entry = this.personalM1(state);
+        return this.known() ? this.authorizedProfile(this.id, state) : null;
+    }
+
+    authorizedProfile(id, state) {
+        const entry = this.verified(this.profiles[id], state);
         return entry && entry.enabled ? entry : null;
     }
 
@@ -117,13 +135,20 @@ class Driver {
         const profiles = Object.assign(Object.create(null), this.profiles, { [id]: entry });
         const legacy = Object.assign(Object.create(null), this.legacy);
         delete legacy[id];
+        this.persist(profiles, legacy, this.exit);
+    }
+
+    persist(profiles, legacy, exit) {
         if (this.file) {
             const temp = this.file + '.tmp';
-            fs.writeFileSync(temp, JSON.stringify(Object.assign({}, legacy, profiles)), { mode: 0o600 });
+            const saved = Object.assign({}, legacy, profiles);
+            if (exit) saved[EXIT] = exit;
+            fs.writeFileSync(temp, JSON.stringify(saved), { mode: 0o600 });
             fs.renameSync(temp, this.file);
         }
         this.profiles = profiles;
         this.legacy = legacy;
+        this.exit = exit;
     }
 
     adoptLegacy(state) {
@@ -134,15 +159,24 @@ class Driver {
         if (owners.length === 1) this.write(owners[0], { slot: 0, target: targetKey(memory), enabled: true });
     }
 
-    async saveM1(client, state) {
+    saveM1(client, state) {
         const id = this.id;
-        let entry = this.profiles[id];
+        return this.saveMemory(client, state, this.profiles[id], (entry) => this.write(id,
+            Object.assign({ enabled: !!(this.profiles[id] && this.profiles[id].enabled) }, entry)));
+    }
+
+    savePowerOffExit(client, state) {
+        if (!Number.isFinite(state.seats.pos.driver.SLV)) throw new Error('운전석 전후 위치를 확인할 수 없습니다.');
+        return this.saveMemory(client, state, this.exit, (entry) => this.persist(this.profiles, this.legacy, entry));
+    }
+
+    async saveMemory(client, state, entry, write) {
         if (!entry) {
             const slot = MEMORY_SLOTS.find((index) => !this.reserved(index) && targetOf(state, index) === null);
-            if (slot === undefined) throw new Error('개인 M1을 저장할 빈 Comfort 메모리가 없습니다.');
-            entry = { slot, target: null, enabled: false };
+            if (slot === undefined) throw new Error('저장할 빈 Comfort 메모리가 없습니다.');
+            entry = { slot, target: null };
             // Reserve first so a failed or interrupted save keeps the same slot on retry.
-            this.write(id, entry);
+            write(entry);
         }
         const slot = entry.slot;
         const previous = targetKey(targetOf(state, slot));
@@ -161,7 +195,7 @@ class Driver {
             received(client.state);
         });
         let target;
-        const timeoutMessage = 'Comfort에서 개인 M1 저장을 확인하지 못했습니다.';
+        const timeoutMessage = 'Comfort에서 메모리 저장을 확인하지 못했습니다.';
         try { target = await bounded(written, 12000, timeoutMessage); }
         catch (error) {
             const current = targetOf(client.state, slot);
@@ -170,7 +204,7 @@ class Driver {
             target = previous;
         }
         finally { client.removeListener('state', received); client.removeListener('lost', lost); }
-        this.write(id, { slot, target, enabled: entry.enabled });
+        write({ slot, target });
     }
 
     refresh(force) {

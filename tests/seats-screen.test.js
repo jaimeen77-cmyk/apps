@@ -99,6 +99,11 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
     assert.ok(frames[frames.length - 1].capturedText.includes('MIN'), 'the recognized driver’s name is drawn');
     await handlers.BTN_SAVE();
     await handlers.BTN_M1();
+    car.state.seats.pos.driver.SLV = 150;
+    await handlers.BTN_EXIT_SAVE();
+    assert.deepStrictEqual(car.sent[car.sent.length - 1], { op: 'memory', seat: 'driver', slot: 1, save: true });
+    await handlers.BTN_EXIT();
+    assert.deepStrictEqual(car.sent[car.sent.length - 1], { op: 'memory', seat: 'driver', slot: 1, save: false });
     await handlers.BTN_IGNITION_M1();
     assert.equal(real.auto.enabled(), true);
     assert.equal(real.auto.pending, null, 'enabling for the recognized profile is not a recall');
@@ -126,7 +131,7 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
     assert.equal(stops(), 2, 'releasing the controller sends stop');
     await new Promise((resolve) => setImmediate(resolve));
     car.state.seats.pos.driver = { SLV: 100 };
-    await handlers.BTN_M2();
+    await handlers.BTN_M3();
     car.state.seats.job = 'memory'; car.emit('state', car.state);
     focus = false; focused('MAIN');
     assert.equal(stops(), 3, 'leaving the screen stops a move the app asked for');

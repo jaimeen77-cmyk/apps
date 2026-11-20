@@ -6,6 +6,8 @@ const TOL = 80;            // counts: twice Comfort's own arrival tolerance (40)
 const WAIT_MS = 8000;      // after power-on, before the first recall (car: 6 s too early, the seat module ignored it; 10 s and 15 s arrived)
 const RETRY_MS = 2000;     // after a short M1, wait this long (and Comfort idle as long) before the one retry
 const ATTEMPTS = 2;
+const EXIT_WINDOW_MS = 6000;
+const POWERED_DRIVER_MS = 4500;
 class IgnitionM1 {
     constructor(client, settings, log, options) {
         const o = options || {};
@@ -18,8 +20,14 @@ class IgnitionM1 {
         this.verify = null;   // a sent recall being watched: { at, seen, attempt, target }
         this.retry = null;    // the one retry waiting: { due, attempt }
         this.lastPower = null;
+        this.poweredDriver = null;
+        this.pendingExit = null;
+        this.exitMotion = null;
         client.on('state', (s) => this.observe(s));
-        client.on('lost', () => { this.cancel('M1 cancelled: Comfort disconnected'); this.lastPower = null; });
+        client.on('lost', () => {
+            this.cancel('Seat automation cancelled: Comfort disconnected');
+            this.lastPower = this.poweredDriver = this.exitMotion = null;
+        });
         if (settings.onChange) settings.onChange((key) => {
             if (key === 'ignitionM1' && !this.enabled()) this.cancel('M1 cancelled: option off');
         });
@@ -38,8 +46,8 @@ class IgnitionM1 {
         return true;
     }
     cancel(reason) {
-        if (!this.pending && !this.retry && !this.verify) return;
-        this.pending = null; this.retry = null; this.verify = null;
+        if (!this.pending && !this.retry && !this.verify && !this.pendingExit) return;
+        this.pending = this.retry = this.verify = this.pendingExit = null;
         this.log.add([reason]);
     }
     /** axes of the stored M1 more than TOL counts away from where the seat reports it: "SLV +250" */
@@ -69,10 +77,16 @@ class IgnitionM1 {
         this.log.add(['M1 short of target', '#' + v.attempt, took, off.join(', '), 'M1 retry in ' + RETRY_MS / 1000 + ' s']);
     }
     observe(s) {
+        this.checkExitMotion(s);
         if (!s.carOn) {
-            this.cancel('M1 cancelled: power off');
+            if (this.lastPower !== false) {
+                this.cancel('M1 cancelled: power off');
+                if (this.lastPower === true) this.scheduleExit(s);
+                this.poweredDriver = null;
+            }
             if (s.parked && this.armed() && this.settings.get('m1OffSeen') !== true) this.settings.set('m1OffSeen', true);
         } else if (this.lastPower !== true) {
+            this.pendingExit = null;
             const offSeen = this.settings.get('m1OffSeen') === true;
             if (offSeen) this.settings.set('m1OffSeen', false);
             if (this.armed() && offSeen) {
@@ -82,6 +96,10 @@ class IgnitionM1 {
             }
         }
         this.lastPower = s.carOn;
+        if (s.carOn && this.driver && this.driver.known()) {
+            const profile = this.driver.authorization(s);
+            this.poweredDriver = profile ? { id: this.driver.id, profile, at: this.driver.at } : null;
+        }
         this.check(s);
         if (this.retry) {
             if (!s.parked) return this.cancel('M1 retry cancelled: car not stationary');
@@ -94,6 +112,7 @@ class IgnitionM1 {
         else if (this.pending.idleAt === null) this.pending.idleAt = this.now();
     }
     async tick() {
+        if (this.pendingExit && !this.busy) return this.runExit();
         if (this.retry && !this.busy) return this.again();
         if (!this.pending || this.busy) return;
         if (!this.armed()) return this.cancel('M1 cancelled: option off');
@@ -126,6 +145,51 @@ class IgnitionM1 {
             this.cancel('M1 cancelled: status unavailable');
             this.log.add(['M1 request failed', e.message]);
         } finally { this.busy = false; }
+    }
+
+    scheduleExit(s) {
+        if (!this.driver) return;
+        const exit = this.driver.powerOffExit(s), now = this.now();
+        const recent = this.poweredDriver;
+        // BMW can stop reporting the profile while the engine is shutting down.
+        // Only use the last recognized driver briefly and within this same power cycle.
+        const known = this.driver.known();
+        const id = known ? this.driver.id : recent && now - recent.at <= POWERED_DRIVER_MS ? recent.id : null;
+        const profile = id && this.driver.authorizedProfile(id, s);
+        if (exit && profile && (known || profile === recent.profile)) this.pendingExit = { id, profile, exit, deadline: now + EXIT_WINDOW_MS };
+    }
+
+    async runExit() {
+        const p = this.pendingExit;
+        if (this.now() > p.deadline) { this.pendingExit = null; return; }
+        this.busy = true;
+        try {
+            const s = await this.client.refresh();
+            if (this.pendingExit !== p) return;
+            if (s.carOn || this.now() > p.deadline || this.driver.powerOffExit(s) !== p.exit ||
+                this.driver.authorizedProfile(p.id, s) !== p.profile || (this.driver.known() && this.driver.id !== p.id)) {
+                this.pendingExit = null;
+                return;
+            }
+            if (!s.parked || s.settings.easyExit || s.seats.job || s.seats.moving || !Number.isFinite(s.seats.pos.driver.SLV)) return;
+            this.pendingExit = null;
+            // A plain memory recall never queues Comfort's own "return to previous position".
+            this.exitMotion = { at: this.now(), seen: false };
+            await this.send({ op: 'memory', seat: 'driver', slot: p.exit.slot, save: false });
+        } catch (_) { this.pendingExit = this.exitMotion = null; }
+        finally { this.busy = false; }
+    }
+
+    checkExitMotion(s) {
+        const motion = this.exitMotion;
+        if (!motion) return;
+        if (s.seats.job === 'memory' && s.seats.jobSeat === 'driver') {
+            motion.seen = true;
+            if (!s.parked || s.carOn) {
+                this.exitMotion = null;
+                this.send({ op: 'stop' }).catch(() => {});
+            }
+        } else if (motion.seen || this.now() - motion.at > 3000) this.exitMotion = null;
     }
     async recall(attempt, authorization, slot) {
         this.verify = { at: this.now(), seen: false, attempt, authorization, slot };

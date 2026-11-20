@@ -263,6 +263,63 @@ function fixture(values, makeDriver) {
         assert.equal(f.driver.known(), false);
         f.driver.close();
 
+        active = 'driver A';
+        f = fixture({}, makeDriver);
+        f.client.state.seats.memories.driver[1] = { SLV: 700 };
+        await f.driver.refresh(true);
+        const exitScreen = new EasyAccess(f.client, f.driver);
+        exitScreen.setForeground(true);
+        f.client.state.seats.pos.driver.SLV = 950;
+        await exitScreen.save('driver');
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 2, save: true });
+        assert.equal(f.driver.powerOffExit(f.client.state).slot, 2);
+        f.driver.close();
+
+        // The full power cycle needs no door event and reloads all three positions after restarting the app.
+        f = fixture({}, makeDriver);
+        f.client.state.seats.memories.driver = [{ SLV: 456 }, { SLV: 700 }, { SLV: 950 }];
+        await f.driver.refresh(true);
+        f.emit({ carOn: false }); await f.advance(1000);
+        assert.equal(f.client.sent.length, 0, 'starting with the car already off does not move the seat');
+        f.emit({ carOn: true }); f.emit({ carOn: false });
+        await f.advance(0);
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 2, save: false },
+            'power-off recalls the shared exit position without queuing Comfort’s door return');
+        await f.advance(1000);
+        assert.equal(f.client.sent.length, 0, 'repeated off reports cannot repeat the exit move');
+
+        // Comfort can publish the driver's memory job slightly after the app sends the command.
+        job(f, true);
+        active = 'driver B';
+        await f.driver.refresh(true);
+        f.emit({ carOn: true });
+        assert.equal(f.client.sent.pop().op, 'stop', 'power-on stops a still-running exit movement');
+        job(f, false);
+        await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: false },
+            'driver B returns to their own M1 on power-on');
+
+        f.emit({ carOn: false, parked: false }); await f.advance(1000);
+        assert.equal(f.client.sent.length, 0, 'power-off cannot move the seat without positive stationary status');
+        f.emit({ parked: true, carOn: true }); await f.advance(1000);
+        assert.equal(f.client.sent.length, 0, 'turning the car back on cancels a waiting exit move');
+        await f.driver.refresh(true);
+        f.emit({ carOn: false }); await f.advance(0);
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 2, save: false });
+        active = 'driver A';
+        await f.driver.refresh(true);
+        f.emit({ carOn: true });
+        await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 0, save: false },
+            'driver A also returns to their own M1 from the same shared exit position');
+
+        // The BMW profile provider may disappear just before Comfort reports ignition off.
+        active = null;
+        await f.driver.refresh(true);
+        f.emit({ carOn: false }); await f.advance(0);
+        assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 2, save: false });
+        f.driver.close();
+
         const digest = (input) => crypto.createHash('sha256').update(input).digest('hex');
         const oldTarget = digest(JSON.stringify([[['SLV', 456]], []]));
         const old = { [digest('driver A')]: oldTarget, [digest('driver B')]: oldTarget };
@@ -285,5 +342,5 @@ function fixture(values, makeDriver) {
         if (fs.existsSync(file)) fs.unlinkSync(file);
         fs.rmdirSync(dataDir);
     }
-    console.log('PASS ignition M1 guards, retry, BMW profile recognition and per-driver authorization');
+    console.log('PASS power-off exit, driver-specific ignition M1, retry, and parked/profile guards');
 })().catch((e) => { console.error(e); process.exitCode = 1; });

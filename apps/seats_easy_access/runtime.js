@@ -38,9 +38,12 @@ function start(ctx, options) {
     // Independent of the visible-page loop: keep receiving power events while the screen is hidden.
     const timer = setInterval(poll, 1000);
     if (timer.unref) timer.unref();
+    const onState = () => { if (auto.pendingExit) poll(); };
+    client.on('state', onState);
     function close() {
         if (closed) return closing;
         closed = true; clearInterval(timer); auto.cancel('M1 cancelled: app shutdown');
+        client.removeListener('state', onState);
         if (driver) driver.close();
         closing = Promise.resolve().then(() => cleanup && cleanup()).then(
             () => client.close(), () => client.close());
