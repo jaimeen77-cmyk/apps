@@ -21,8 +21,8 @@ function partKey(s,d,name,sub){
 function navKey(s,part){
  const c=s.config,n=s.navigation,on=D.navAllowed(c,s.mode)&&n&&n.visible,p=D.NAV_PARTS.find(p=>p.key===part);
  if(!on||c[p.prefix+'Hidden']||part!=='Lanes'&&n.maneuverVisible===false)return null;
- if(part==='Direction')return [n.kind,n.branchType,n.maneuver,n.exitNumber,n.distanceText,c.navColor];
- if(part==='Text')return n.description?[n.description]:null;
+ if(part==='Direction')return [n.kind,n.branchType,n.maneuver,n.exitNumber,n.distanceText,c.navColor,c.navTextColor];
+ if(part==='Text')return n.description?[n.description,c.navTextColor]:null;
  const lanes=n.lanes;return lanes&&lanes.visible?[c.navColor,lanes.lanes]:null;
 }
 function key(s,d){

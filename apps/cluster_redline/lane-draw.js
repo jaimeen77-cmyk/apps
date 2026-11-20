@@ -53,7 +53,7 @@ function drawSized(state,w,h){
  const s=(w||W)/W,cv=new Canvas(Math.max(1,Math.round(w||W)),Math.max(1,Math.round(h||H*s)));cv.clear([0,0,0,0]);
  if(!state||!state.visible||!Array.isArray(state.lanes)||!state.lanes.length)return cv;
  const lanes=state.lanes.slice(0,Math.floor(W/CELL)),n=lanes.length,left=(W-CELL*n)/2;
- const selected=state.color==='gray'?'#a3abb4':state.color==='white'?'#f2f4f8':'#29c5ff';
+ const selected=require('./display-config').NAV_COLORS[state.color]||(state.color==='gray'?'#f2f4f8':'#29c5ff');
  const vline=(x,y0,y1,width)=>cv.line(x*s,y0*s,x*s,y1*s,width*s,LINE);
  // Solid outer edges, dashed lane dividers.
  vline(left,TOP,BOTTOM,1.8);vline(left+CELL*n,TOP,BOTTOM,1.8);

@@ -26,7 +26,7 @@ assert.deepStrictEqual(D.metricSlots(['boost','torque','oil']).map(s=>[s.side,s.
 assert.deepStrictEqual(D.metricSlots(['boost','torque']).map(s=>s.side),[0,1]);assert.deepStrictEqual(D.metricSlots(['oil']).map(s=>s.side),[0]);
 {
  const s=store(),page=new SettingsPage(s);page.selectTab(3);page.activate(0);page.choose(1);assert.strictEqual(s.get('navDisplayMode'),'excludeSport');assert(!D.navAllowed(page.config(),'SPORT_PLUS'));assert(D.navAllowed(page.config(),'COMFORT_PLUS'));
- page.activate(1);draw(page);page.choose(0);assert.strictEqual(s.get('navColor'),'gray');
+ page.activate(1);draw(page);page.choose(0);assert.strictEqual(s.get('navColor'),'orange','first colour button: orange arrow');
  page.activate(2);draw(page);page.selectLayoutPart(0,true);page.adjust(0,1);page.adjust(2,1);const arrowX=s.get('hudNavOffsetX'),scale=s.get('navUniformScale');
  page.selectLayoutPart(1,true);page.adjust(0,-1);page.adjust(2,1);assert.strictEqual(s.get('hudNavOffsetX'),arrowX);assert.strictEqual(s.get('navUniformScale'),scale);assert.strictEqual(page.config().hudNavWidthScale,page.config().hudNavHeightScale);
 }

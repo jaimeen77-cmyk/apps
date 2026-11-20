@@ -1,6 +1,9 @@
 'use strict';
 const {Canvas}=require('./kit/canvas');
 const W=240,H=112,WHITE='#f4f7fb',ARROW='#37c6ff';
+const {NAV_COLORS}=require('./display-config');
+// state.color: the arrow (orange / green / blue / white); state.textColor: the distance and exit name.
+const arrowColor=state=>NAV_COLORS[state.color]||(state.color==='gray'?WHITE:ARROW),textColor=state=>NAV_COLORS[state.textColor]||WHITE;
 function highwayInfo(state) {
     if(!state||state.kind!=='branch'||typeof state.branchType!=='string')return null;
     const match=/^HIGHWAY_(IN|OUT)_(LEFT|RIGHT|STRAIGHT)$/.exec(state.branchType);
@@ -65,16 +68,16 @@ function roadDiagram(cv,state,color){
 function draw(state,target) {
     const cv=target||new Canvas(W,H);if(!target)cv.clear([0,0,0,0]);
     if(!state||!state.visible)return cv;
-    const kind=diagramKind(state),color0=state.color==='gray'?'#929aa3':state.color==='white'?WHITE:ARROW;
+    const kind=diagramKind(state),color0=arrowColor(state),ink=textColor(state);
     if(kind){
         roadDiagram(cv,state,color0);const info=highwayInfo(state),text=state.distanceText||'';let size=40;
         while(size>20&&cv.textWidth(text,size,{font:'num',literal:true})>130)size--;
-        if(info){let ls=22;while(ls>14&&cv.textWidth(info.label,ls,{font:'bold'})>130)ls--;cv.text(info.label,108,32,ls,WHITE,{font:'bold'});cv.text(text,108,84,size,WHITE,{font:'num',literal:true});}
-        else cv.text(text,108,67,size,WHITE,{font:'num',literal:true});
+        if(info){let ls=22;while(ls>14&&cv.textWidth(info.label,ls,{font:'bold'})>130)ls--;cv.text(info.label,108,32,ls,ink,{font:'bold'});cv.text(text,108,84,size,ink,{font:'num',literal:true});}
+        else cv.text(text,108,67,size,ink,{font:'num',literal:true});
         return cv;
     }
     const dir=state.maneuver;
-    const color=state.color==='gray'?'#929aa3':state.color==='white'?WHITE:ARROW,FLAG='#e5322d';
+    const color=arrowColor(state),FLAG='#e5322d';
     const line=(points)=>cv.polyline(points,10,color);
     const mirror=(points)=>points.map((p)=>[104-p[0],p[1]]);
     if(/^ARRIVAL_/.test(dir)) {
@@ -106,7 +109,7 @@ function draw(state,target) {
     } else return cv;
     const text=state.distanceText||'';let size=40;
     while(size>20&&cv.textWidth(text,size,{font:'num',literal:true})>130)size--;
-    cv.text(text,108,67,size,WHITE,{font:'num',literal:true});
+    cv.text(text,108,67,size,ink,{font:'num',literal:true});
     return cv;
 }
 // Paint at the final HUD size: the same 240x112 drawing through a scaled view,
