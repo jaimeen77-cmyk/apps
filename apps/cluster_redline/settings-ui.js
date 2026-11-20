@@ -30,7 +30,8 @@ const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clus
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
 // Settings per driver (driver-profiles.js): the whole setup a favourite keeps, plus the favourites themselves, so each
 // driver has their own five favourites.
-function driverKeys(schema){const fav=[];for(let n=1;n<=FAV_COUNT;n++)fav.push('favorite'+n);return favKeys(schema).concat(fav);}
+// (1.3.16: the Position / size save slots of the HUD, cluster and NAV tabs too.)
+function driverKeys(schema){const own=[];for(let n=1;n<=FAV_COUNT;n++)own.push('favorite'+n);['hud','cluster','nav'].forEach(d=>{for(let i=1;i<=3;i++)own.push(d+'LayoutSlot'+i);});return favKeys(schema).concat(own);}
 const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlCar|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudNavHidden','hudTextHidden','hudLanesHidden'];
 function layoutKeys(tab,schema){
