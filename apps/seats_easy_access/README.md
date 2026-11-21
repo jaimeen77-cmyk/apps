@@ -17,6 +17,18 @@ python kit/tools/make_kit.py seats_easy_access --language ko
 
 MGU Store offers **Seats Easy Access (English)** (`seats_easy_access`) and **시트 Easy Access (한국어)** (`seats_easy_access_ko`). Both provide driver/passenger controls, memories, Easy Access and Make room. Install the original Comfort tool separately from IterioDev/car-apps.
 
+Version 0.7.2 recognizes the active BMW driver profile and displays its name when available. With their own BMW profile selected, each driver can adjust the seat, press **Save memory → M1**, and turn on **Ignition M1**. Manual M1 and Ignition M1 both recall the recognized driver's personal position. Each personal M1 uses one free slot of Comfort's three driver-seat memories. Allocated slots are locked in the shared driver M2/M3 controls. Existing shared memories keep their positions when a driver registers. A 0.7.1 M1 opt-in is carried over when exactly one profile matches the stored shared M1. Requires Comfort 0.6.1 or later.
+
+Version 0.7.5 retries missing profile names. If only occupied shared slots remain, repeat Save memory → M1 within 30 seconds to confirm replacing the indicated common slot.
+
+Version 0.7.4 starts checking for ignition M1 at 3 seconds. If the seat stays idle off target for 2 seconds, the app retries, up to five total calls within the original 45-second window. A running seat job delays the next attempt.
+
+Version 0.7.3 adds a shared power-off exit position. With the driver's seat adjusted back, press **Save exit** on the driver page. The car must be stationary and the active driver must have **Ignition M1** on. An observed power-off moves the driver seat to the saved exit position even with the door closed. Power-on then recalls the recognized driver's personal M1. The shared exit takes one additional free Comfort driver-memory slot. The head unit and Comfort must still be running when power-off is reported.
+
+In GPU full-screen mode, touch and iDrive controller adjustments move while held and stop on release. The regular HMI buttons make short adjustments.
+
+Starting in 0.7.1, with Ignition M1 on for any driver, Seats turns off Comfort's automatic Easy Access switch for both front seats. Manual Easy Access remains available. A return Comfort already stored can still run after the switch is turned off. To use automatic Easy Access again, turn off all enabled Ignition M1 profiles and then turn the automatic Easy Access switch on.
+
 Version 0.6.6 adds an opt-in **Ignition M1** button on the driver page (off by default). Save the desired driver M1 first. After an observed off→on cycle, the app waits 8 seconds (on the car 6 s was too early, 10 s and 15 s arrived), refreshes status and calls driver M1 once, only while stationary with saved M1/position data and after Comfort has been idle for at least 3 seconds. A busy service can defer the call up to 45 seconds from power-on. Driving, power-off, connection loss, manual controls, STOP or disabling the option cancels a waiting call. The target is the fixed driver M1, not the position before exit. Passenger memories are unaffected.
 
 The app autostarts and monitors Comfort with the screen hidden. A stopped app process cannot observe events. Observed power-off is retained across process restarts; launching on an already-on car without an observed off, or enabling the option, never initiates a recall. Comfort's original automation remains in place. M1 does not clear Comfort's pending-return flag. Vehicle execution still needs validation.

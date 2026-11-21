@@ -67,6 +67,7 @@ class FakeClient extends EventEmitter {
         } finally { await ui.close(); }
     }
     assert.equal(stateOf({}), null);
+    assert.equal(stateOf({ state: Object.assign(raw().state, { carOn: undefined }) }), null);
     const state = stateOf(raw());
     assert.equal(state.settings.easyExit, false);
     assert.deepStrictEqual(state.seats.axes.driver, ['SLV', 'LNV']);

@@ -21,7 +21,16 @@ class DemoClient extends EventEmitter {
         if (command.op === 'set') this.state.settings.easyExit = command.settings.easyExit;
         if (command.op === 'gentleman') this.state.seats.roomOut = !this.state.seats.roomOut;
         if (command.op === 'exit' && command.save) this.state.seats.exit[command.seat] = true;
-        if (command.op === 'jog') this.state.seats.pos[command.seat][command.axis] += command.dir;
+        if (command.op === 'memory') {
+            const slots = this.state.seats.memories[command.seat];
+            const position = this.state.seats.pos[command.seat];
+            if (command.save) slots[command.slot] = Object.assign({}, position);
+            else if (slots[command.slot]) Object.assign(position, slots[command.slot]);
+        }
+        if (command.op === 'jog') {
+            const position = this.state.seats.pos[command.seat];
+            if (typeof position[command.axis] === 'number') position[command.axis] += command.dir;
+        }
         this.emit('state', this.state);
     }
     close() {}

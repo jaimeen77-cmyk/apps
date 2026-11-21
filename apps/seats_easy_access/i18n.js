@@ -4,6 +4,28 @@
 const ENGLISH = {
     '시트 Easy Access': 'Seats Easy Access',
     '운전석': 'Driver', '조수석': 'Passenger',
+    '현재 운전자의 개인 위치를 저장하려면 M1을 누르세요.': 'Press M1 to save the active driver’s personal position.',
+    'BMW 운전자 인식됨': 'BMW driver recognized',
+    'BMW 운전자 미인식': 'No BMW driver recognized',
+    'M1 우선': 'M1 priority',
+    '개인 M1 저장됨': 'Personal M1 saved',
+    '시동 종료 하차 위치 저장됨': 'Power-off exit position saved',
+    '시동 종료 하차 위치를 저장하세요': 'Save the power-off exit position',
+    '시동 종료 하차 위치를 저장했습니다.': 'Power-off exit position saved.',
+    '시동 종료 하차 위치를 먼저 저장하세요.': 'Save the power-off exit position first.',
+    '운전석 하차 위치 이동을 요청했습니다.': 'Driver’s exit position requested.',
+    '운전석 전후 위치를 확인할 수 없습니다.': 'The driver’s fore/aft position is unavailable.',
+    '개인 M1을 저장하세요': 'Save a personal M1',
+    '개인 M1에 저장했습니다.': 'Personal M1 saved.',
+    '개인 M1 호출을 요청했습니다.': 'Personal M1 recall requested.',
+    '현재 운전자의 개인 M1을 먼저 저장하세요.': 'Save a personal M1 for the active driver first.',
+    '저장할 빈 Comfort 메모리가 없습니다.': 'There is no free Comfort memory.',
+    'Comfort에서 메모리 저장을 확인하지 못했습니다.': 'Comfort did not confirm saving the position.',
+    '이 메모리는 운전자 개인 M1에 사용 중입니다.': 'This slot is reserved for a driver’s personal M1.',
+    '운전석 위치를 확인할 수 없습니다.': 'The driver’s seat position is unavailable.',
+    'BMW 운전자 프로필을 먼저 선택하세요.': 'Select a BMW driver profile first.',
+    'BMW 운전자 프로필이 변경됐습니다.': 'The active BMW driver profile changed.',
+    '자동 Easy Access를 켜려면 시동 시 M1 복귀를 끄세요.': 'Turn Ignition M1 off to enable automatic Easy Access.',
     '상태를 확인하세요.': 'Refresh status first.',
     'Comfort 연결이 끊겼습니다.': 'Comfort disconnected.',
     '지원하지 않는 시트입니다.': 'Unsupported seat.',
@@ -33,7 +55,7 @@ const ENGLISH = {
     '이 시트가 지원하지 않는 조절 축입니다.': 'This seat does not support that adjustment.',
     '시트 이동 중…': 'Moving seat…',
     '이동 실패: ': 'Movement failed: ',
-    '짧은 이동을 완료했습니다.': 'Short movement completed.',
+    '시트 이동을 마쳤습니다.': 'Seat movement finished.',
     '저장할 M1~M3 버튼을 누르세요.': 'Press M1, M2 or M3 to save.',
     '메모리 저장을 취소했습니다.': 'Memory save cancelled.',
     '에 저장했습니다.': ' saved.',
@@ -71,7 +93,7 @@ const ENGLISH = {
 const KOREAN = {
     'M1 power-on detected: waiting 6 seconds': 'M1 차량 켜짐 감지: 6초 대기',
     'M1 power-on detected: waiting 10 seconds': 'M1 차량 켜짐 감지: 10초 대기',
-    'M1 power-on detected: waiting 8 seconds': 'M1 차량 켜짐 감지: 8초 대기',
+    'M1 power-on detected: waiting 3 seconds': 'M1 차량 켜짐 감지: 3초 대기',
     'M1 command sent: checking arrival': 'M1 명령 보냄: 도착 확인 중',
     'M1 arrived': 'M1 도착',
     'M1 short of target': 'M1 미도착',
@@ -90,6 +112,10 @@ const KOREAN = {
     'M1 left to target': 'M1 목표까지 남은 거리',
     'App events + Comfort journal (C) by time': '앱 기록 + Comfort 로그(C) 시간순',
 };
+for (let slot = 1; slot <= 3; slot++) {
+    ENGLISH['공용 M' + slot + ' 덮어쓰기: 30초 안에 메모리 저장 → M1을 다시 누르세요.'] =
+        'Replace shared M' + slot + '? Repeat Save memory → M1 within 30s.';
+}
 const koreanKeys = Object.keys(KOREAN).sort((a, b) => b.length - a.length);
 const keys = Object.keys(ENGLISH).sort((a, b) => b.length - a.length);
 function language() {
