@@ -244,7 +244,7 @@ function fixture(values, makeDriver) {
 
         active = 'driver C';
         await f.driver.refresh(true);
-        await assert.rejects(() => savePersonalM1(f, 500), /빈 Comfort 메모리/);
+        await assert.rejects(() => savePersonalM1(f, 500), /공용 M3/);
         assert.deepStrictEqual(f.client.state.seats.memories.driver, [{ SLV: 456 }, { SLV: 700 }, { SLV: 900 }],
             'a full store cannot overwrite another profile or the existing M3');
 
@@ -320,6 +320,19 @@ function fixture(values, makeDriver) {
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 2, save: false });
         f.driver.close();
 
+        // A previous common memory can be repurposed only by an explicit repeated save.
+        const common = fixture({}, (now) => new Driver(null, null, now));
+        common.driver.id = 'test'; common.driver.at = 10000;
+        common.driver.exit = { slot: 1, target: null };
+        common.driver.profiles.other = { slot: 0, target: null, enabled: true };
+        common.client.state.seats.memories.driver = [{ SLV: 100 }, { SLV: 200 }, { SLV: 300 }];
+        assert.throws(() => common.driver.saveM1(common.client, common.client.state), /공용 M3/);
+        assert.equal(common.client.sent.length, 0);
+        await common.driver.saveM1(common.client, common.client.state);
+        assert.deepStrictEqual(common.client.state.seats.memories.driver, [{ SLV: 100 }, { SLV: 200 }, { SLV: 123 }]);
+        common.driver.id = 'another';
+        assert.throws(() => common.driver.saveM1(common.client, common.client.state), /세 칸 모두/);
+        assert.equal(common.client.sent.length, 1);
         const digest = (input) => crypto.createHash('sha256').update(input).digest('hex');
         const oldTarget = digest(JSON.stringify([[['SLV', 456]], []]));
         const old = { [digest('driver A')]: oldTarget, [digest('driver B')]: oldTarget };

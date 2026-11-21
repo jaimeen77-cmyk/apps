@@ -161,7 +161,23 @@ class Driver {
 
     saveM1(client, state) {
         const id = this.id;
-        return this.saveMemory(client, state, this.profiles[id], (entry) => this.write(id,
+        let entry = this.profiles[id];
+        if (!entry && MEMORY_SLOTS.every((slot) => this.reserved(slot)))
+            throw new Error('세 칸 모두 개인 M1 또는 하차 위치에 할당돼 있습니다.');
+        const free = MEMORY_SLOTS.filter((slot) => !this.reserved(slot));
+        if (!entry && free.length && free.every((slot) => targetOf(state, slot))) {
+            const slot = free.find((index) => index !== 0 || !Object.keys(this.legacy).length);
+            if (slot === undefined) throw new Error('저장할 빈 Comfort 메모리가 없습니다.');
+            const key = targetKey(targetOf(state, slot)), prior = this.replaceSlot;
+            if (!prior || prior.id !== id || prior.slot !== slot || prior.key !== key || this.now() > prior.until) {
+                this.replaceSlot = { id, slot, key, until: this.now() + 30000 };
+                throw new Error('공용 M' + (slot + 1) + ' 덮어쓰기: 30초 안에 메모리 저장 → M1을 다시 누르세요.');
+            }
+            entry = { slot, target: null };
+            this.write(id, Object.assign({ enabled: false }, entry));
+        }
+        this.replaceSlot = null;
+        return this.saveMemory(client, state, entry, (entry) => this.write(id,
             Object.assign({ enabled: !!(this.profiles[id] && this.profiles[id].enabled) }, entry)));
     }
 
@@ -235,6 +251,7 @@ class Driver {
         const changed = id !== this.id || !this.known();
         this.at = this.now();
         if (!changed) return;
+        this.replaceSlot = null;
         this.id = id;
         this.name = null;
         this.since = this.at;

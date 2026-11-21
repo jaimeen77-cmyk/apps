@@ -18,6 +18,7 @@ const ENGLISH = {
     '개인 M1에 저장했습니다.': 'Personal M1 saved.',
     '개인 M1 호출을 요청했습니다.': 'Personal M1 recall requested.',
     '현재 운전자의 개인 M1을 먼저 저장하세요.': 'Save a personal M1 for the active driver first.',
+    '세 칸 모두 개인 M1 또는 하차 위치에 할당돼 있습니다.': 'All three slots belong to personal M1 or exit positions.',
     '저장할 빈 Comfort 메모리가 없습니다.': 'There is no free Comfort memory.',
     'Comfort에서 메모리 저장을 확인하지 못했습니다.': 'Comfort did not confirm saving the position.',
     '이 메모리는 운전자 개인 M1에 사용 중입니다.': 'This slot is reserved for a driver’s personal M1.',
@@ -111,6 +112,10 @@ const KOREAN = {
     'M1 left to target': 'M1 목표까지 남은 거리',
     'App events + Comfort journal (C) by time': '앱 기록 + Comfort 로그(C) 시간순',
 };
+for (let slot = 1; slot <= 3; slot++) {
+    ENGLISH['공용 M' + slot + ' 덮어쓰기: 30초 안에 메모리 저장 → M1을 다시 누르세요.'] =
+        'Replace shared M' + slot + '? Repeat Save memory → M1 within 30s.';
+}
 const koreanKeys = Object.keys(KOREAN).sort((a, b) => b.length - a.length);
 const keys = Object.keys(ENGLISH).sort((a, b) => b.length - a.length);
 function language() {
