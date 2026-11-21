@@ -97,6 +97,12 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
     await new Promise((resolve) => setImmediate(resolve));
     await real.render(true);
     assert.ok(frames[frames.length - 1].capturedText.includes('MIN'), 'the recognized driver’s name is drawn');
+    const selectControl = (id) => frames[frames.length - 1].targets.find(target => target.key === id).run();
+    await selectControl('BTN_IGNITION_M1');
+    assert.match(real.easy.message, /메모리 저장/);
+    await selectControl('BTN_POWER_OFF_EXIT');
+    assert.match(real.easy.message, /하차 위치를 먼저/);
+    assert.equal(real.auto.automationArmed(), false);
     await handlers.BTN_SAVE();
     await handlers.BTN_M1();
     car.state.seats.pos.driver.SLV = 150;

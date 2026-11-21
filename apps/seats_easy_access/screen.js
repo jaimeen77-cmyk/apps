@@ -72,16 +72,25 @@ async function start(ctx, options) {
         controllerJog = null;
         return easy.endJog();
     }
+    let checkingAutomation = false;
     async function toggleAutomation(exit) {
         if (!easy.foreground || easy.pending || easy.selectedSeat !== 'driver') return;
-        if (driver) {
-            const shown = driver.id;
-            await driver.refresh(true);
-            if (shown !== driver.id) return;
-        }
-        if (easy.foreground && !easy.pending && easy.selectedSeat === 'driver') {
-            if (exit ? driver && driver.toggleExit(client.state) : auto.toggle(client.state)) await runtime.poll();
-        }
+        if (checkingAutomation) return;
+        checkingAutomation = true;
+        try {
+            const shown = driver && driver.id;
+            const state = await client.refresh().catch(() => { throw new Error('Comfort 상태를 먼저 확인하세요.'); });
+            if (driver) {
+                await driver.refresh(true);
+                if (!driver.known()) throw new Error('BMW 운전자 프로필을 먼저 선택하세요.');
+                if (shown && shown !== driver.id) throw new Error('BMW 운전자 프로필이 변경됐습니다.');
+            }
+            if (!easy.foreground || easy.pending || easy.selectedSeat !== 'driver') return;
+            if (exit && !driver) throw new Error('BMW 운전자 프로필을 먼저 선택하세요.');
+            const changed = exit ? driver.toggleExit(state) : auto.toggle(state);
+            if (!changed) throw new Error(exit ? '시동 종료 하차 위치를 먼저 저장하세요.' : '메모리 저장 → M1으로 개인 위치를 먼저 저장하세요.');
+            await runtime.poll();
+        } finally { checkingAutomation = false; }
     }
     const actions = {
         BTN_IGNITION_M1: () => toggleAutomation(false),
@@ -114,7 +123,7 @@ async function start(ctx, options) {
         if (closed) return Promise.resolve();
         if (rendering) return force ? rendering.then(() => render(true)) : rendering;
         const state = client.state, who = easy.selectedSeat;
-        const m1On = auto.enabled(state), m1Toggle = auto.canToggle(state), m1Armed = auto.automationArmed();
+        const m1On = driver ? driver.known() && !!(driver.profiles[driver.id] && driver.profiles[driver.id].enabled) : auto.enabled(state), m1Armed = auto.automationArmed();
         const driverText = driver && (driver.known() ? driver.name || tr('BMW 운전자 인식됨') : tr('BMW 운전자 미인식'));
         const personalM1 = driver && !!driver.personalM1(state);
         const exitSaved = driver && !!driver.powerOffExit(state);
@@ -122,7 +131,7 @@ async function start(ctx, options) {
         const commonExit = who === 'passenger' || !driver || (!driver.exit && !m1Armed);
         const reserved = driver ? [driver.reserved(1), driver.reserved(2)] : [false, false];
         const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground,
-            easy.saveMemory, axis, page, m1On, m1Toggle, m1Armed, driverText, personalM1, exitSaved, exitOn, commonExit, reserved]);
+            easy.saveMemory, axis, page, m1On, m1Armed, driverText, personalM1, exitSaved, exitOn, commonExit, reserved]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
@@ -167,9 +176,9 @@ async function start(ctx, options) {
         if (ready) cv.target(1160, 45, 400, 48, () => act(actions.BTN_AUTO), 'BTN_AUTO', 20);
         if (who === 'driver') {
             button('BTN_IGNITION_M1', tr('Ignition M1') + ': ' + tr(m1On ? 'On' : 'Off'), 1200, 115, 350, 46,
-                ready && m1Toggle, m1On);
+                easy.foreground && !easy.pending, m1On);
             button('BTN_POWER_OFF_EXIT', tr('시동 종료 시 하차 이동') + ': ' + tr(exitOn ? 'On' : 'Off'), 1200, 165, 350, 46,
-                ready && driver && driver.known() && (exitSaved || exitOn), exitOn, () => toggleAutomation(true));
+                easy.foreground && !easy.pending, exitOn, () => toggleAutomation(true));
             if (driverText) cv.text(driverText, 1540, 240, 20, '#c2ccd7', { align: 'right', literal: true });
             if (driver && driver.known()) {
                 cv.text(tr(personalM1 ? '개인 M1 저장됨' : '개인 M1을 저장하세요'), 1540, 269, 20, '#c2ccd7', { align: 'right', literal: true });

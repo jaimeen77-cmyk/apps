@@ -5,6 +5,7 @@ const ENGLISH = {
     '시트 Easy Access': 'Seats Easy Access',
     '운전석': 'Driver', '조수석': 'Passenger',
     '현재 운전자의 개인 위치를 저장하려면 M1을 누르세요.': 'Press M1 to save the active driver’s personal position.',
+    '메모리 저장 → M1으로 개인 위치를 먼저 저장하세요.': 'Use Save memory → M1 to save your position first.',
     'BMW 운전자 인식됨': 'BMW driver recognized',
     'BMW 운전자 미인식': 'No BMW driver recognized',
     '시동 연동 중': 'Ignition automation',

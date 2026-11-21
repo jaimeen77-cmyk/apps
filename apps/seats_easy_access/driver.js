@@ -267,7 +267,10 @@ class Driver {
             }
             const raw = await bounded(this.proxy.getValue(REFERENCE, 1600), 2000, 'Driver profile read timed out');
             reference = valueOf(raw, [REFERENCE, 'value', 'id', 'reference']);
-        } catch (_) { /* a missing or temporarily unavailable BMW user is unknown */ }
+        } catch (_) {
+            close(this.proxy);
+            this.proxy = null;
+        }
         if (this.closed) return;
         const id = reference && !/^(guest|anonymous|unknown|none|null|undefined)$/i.test(reference) ? digest(reference) : null;
         const changed = id !== this.id || !this.known();
