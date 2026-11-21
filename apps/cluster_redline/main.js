@@ -36,6 +36,7 @@ const REASONS = {
     navigation_provider_mismatch: 'Waiting for phone guidance state · stock HUD preserved',
     renderer_recovering: 'Recovering renderer layer',
     cluster_yield: 'Route guidance active · cluster released',
+    door_yield: 'Door open · cluster released for the car warning',
 };
 // No logs: nothing goes to the system log or a log file. The kit's rotating log file (<id>.log) is removed
 // and a folder put in its place so nothing can be appended to it; an earlier status file is removed too.
@@ -86,7 +87,7 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
             const out=state.outputs[name];
             let message=REASONS[out.reason] || 'Waiting for status';
             if(out.requested) message=name==='cluster' ? mapStatus(out) : out.targetState==='shown' ? 'HUD area acquired' : 'Waiting for HUD area';
-            return t(name==='cluster'?'Cluster':'HUD')+': '+t(message);
+            return t(name==='cluster'?'Cluster':'HUD')+': '+require('./strings').tr(message);
         });
         const cv = page.draw(ctx.canvas(W, H), status, state);
         page.targets = cv.targets;

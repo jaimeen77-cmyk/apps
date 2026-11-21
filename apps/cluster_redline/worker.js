@@ -86,7 +86,7 @@ function start(ctx) {
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const lanes=new LaneGuidance(mono);
     const traffic=new TrafficSigns(),trafficSubs=[];
-    const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client);let doorSub=null,doorState='not_installed';
+    const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client);let doorSub=null,doorState='not_installed',lastDoorOpenAt=null;
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
@@ -389,6 +389,10 @@ function start(ctx) {
             // The native renderer still yields to real stock content/popups.
             controller.hudBlocked=rendererInfo.hudGuidanceSafe===false;
             controller.hudBlockReason=rendererInfo.hudGuidanceSafe===false?'hud_safety':(navigationState.active||Object.prototype.hasOwnProperty.call(PROJECTED,maneuverState.provider))&&config.hudNavigationEnabled?maneuverState.reason:navigationState.reason;
+            // An open door (door-open warning on): the cluster display gives way to the car's own warning, held 2 s after
+            // the last door closes so a door opened and shut at once does not flicker it.
+            if (config.hudDoorAlert !== 'off' && doors.open.length) lastDoorOpenAt = at;
+            controller.doorYield = config.hudDoorAlert !== 'off' && lastDoorOpenAt !== null && at - lastDoorOpenAt < 2000;
             const state = controller.tick(at, config);
             // HUD turn signals: in the Redline HUD image while it is on screen, else on their own overlay layers
             // (turn-overlay.js) above the stock HUD. Only one of the two carries them at a time.

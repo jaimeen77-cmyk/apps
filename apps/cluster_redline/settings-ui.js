@@ -18,7 +18,7 @@ const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaul
 const TURN_KEYS=Object.keys(D.defaults).filter(k=>/^hudTurn/.test(k));
 const TURN_ITEM={key:'turn',label:'Turn signals on HUD',type:'action'};
 // Settings per driver (driver-profiles.js): kept outside app.json; main.js sets page.driverStatus.
-const DOOR_ITEM={key:'hudDoorAlert',label:'Door-open warning on HUD',type:'choice',options:[['on',tr('On')],['off',tr('Off')]]};
+const DOOR_ITEM={key:'hudDoorAlert',label:'Door-open warning',type:'choice',options:[['on',tr('On')],['off',tr('Off')]]};
 const DRIVER_ITEM={key:'driverProfiles',label:'Settings per driver',type:'choice',options:[['off',tr('Off')],['on',tr('On')]]};
 // Vehicle alerts (vehicle-alerts.js): kept outside app.json, like the turn signals.
 const ALERT_KEYS=Object.keys(D.defaults).filter(k=>/^hudCarAlert/.test(k));

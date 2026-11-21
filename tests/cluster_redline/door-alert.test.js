@@ -21,6 +21,15 @@ assert(has({}),'on by default');assert(!has({hudDoorAlert:'off'}),'off: not read
 // install time: added when the car's catalog has it
 const m=filterTraffic({proxies:{}},{interfaces:{'de.bmw.body.DoorsWindowsRoofMirrors':{fields:{CentralLockingSystemAndPanelStatus:{notifier:{id:32800}}}}},instanceIDs:{'de.bmw.body.DoorsWindowsRoofMirrors':{'1':1}}}).proxies;
 assert.deepStrictEqual(m['de.bmw.body.DoorsWindowsRoofMirrors'],{instances:'1',attributes:{CentralLockingSystemAndPanelStatus:'s'}});
+// an open door: the cluster gives way to the car's own warning; the HUD is not affected
+{const {Outputs}=require('../../apps/cluster_redline/outputs'),{EventEmitter}=require('events');
+ class C extends EventEmitter{constructor(){super();this.ready=true;this.targets='map:1088x480,hud:800x480';this.n=0;}image(){return ++this.n;}pixels(){}showWhenSent(){}set(){}drop(){}close(){}}
+ const p=(w,h)=>({W:w,H:h,draw:()=>({d:Buffer.alloc(64)}),difference:()=>({rects:[],pixels:Buffer.alloc(0)})});
+ const out=new Outputs(new C(),p(1088,480),Object.assign(p(800,480),{fullTarget:true})),cfg={allClusterOutput:'redline',allHudOutput:'redline'};
+ const t=at=>{out.policy.modeSample(4,at-1);out.policy.rpmSample(2000,at);return out.tick(at,cfg).outputs;};
+ assert(t(1000).cluster.requested,'doors closed: the cluster shows');
+ out.doorYield=true;let o=t(1200);assert(!o.cluster.requested,'a door open: the cluster gives way');assert.strictEqual(o.cluster.reason,'door_yield');assert(o.hud.requested,'the HUD stays');
+ out.doorYield=false;assert(t(1400).cluster.requested,'closed again: back');out.close();}
 if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),R=require(path.join(dir,'door-alert'));const red=cv=>{let k=0;for(let i=0;i<cv.d.length;i+=4)if(cv.d[i]>200&&cv.d[i+1]<80&&cv.d[i+3]>200)k++;return k;};
  assert.strictEqual(red(R.draw([])),0,'all closed: no red');assert(red(R.draw(['driverFront']))>20,'an open door in red');assert(red(R.draw(['driverFront','passengerFront','driverRear','passengerRear']))>red(R.draw(['driverFront']))*3);}
-console.log('PASS: door-open warning: door switches decoded, overlay while open (re-drawn on change), on by default, demand and install-time input'+(process.argv[2]?', drawn':''));
+console.log('PASS: door-open warning: the cluster gives way while a door is open, door switches decoded, overlay while open (re-drawn on change), on by default, demand and install-time input'+(process.argv[2]?', drawn':''));

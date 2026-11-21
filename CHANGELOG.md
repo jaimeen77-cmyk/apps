@@ -5,6 +5,7 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 ## Cluster Redline 1.3.19
 
 - **Door-open HUD warning** (Basic tab, on by default): while any of the four doors is open, also standing still, the HUD shows the car from above left of the RPM face, open doors drawn open in red (`door-alert.js`, its own overlay; re-drawn only when the open doors change). From `DoorsWindowsRoofMirrors.CentralLockingSystemAndPanelStatus` (each door's switch, open = 1 or `..._OFFEN`, as appsKOR's Ambient Config reads it), added read-only at install when the car's catalog has it (`traffic-config.js`; desktop installer patch v17 the same). The row shows how many doors are open, or that the input is not installed.
+- While a door is open the **cluster display gives way** (as for route guidance), so the car's own door-open warning is not covered; it comes back 2 s after the last door closes. The HUD is not affected. The row is now "Door-open warning".
 - Basic tab rows are a little shorter so the ninth row fits.
 
 ## Cluster Redline 1.3.18
