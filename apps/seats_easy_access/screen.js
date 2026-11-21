@@ -72,22 +72,25 @@ async function start(ctx, options) {
         controllerJog = null;
         return easy.endJog();
     }
+    async function toggleAutomation(exit) {
+        if (!easy.foreground || easy.pending || easy.selectedSeat !== 'driver') return;
+        if (driver) {
+            const shown = driver.id;
+            await driver.refresh(true);
+            if (shown !== driver.id) return;
+        }
+        if (easy.foreground && !easy.pending && easy.selectedSeat === 'driver') {
+            if (exit ? driver && driver.toggleExit(client.state) : auto.toggle(client.state)) await runtime.poll();
+        }
+    }
     const actions = {
-        BTN_IGNITION_M1: async () => {
-            if (!easy.foreground || easy.pending || easy.selectedSeat !== 'driver') return;
-            if (driver) {
-                const shown = driver.id;
-                await driver.refresh(true);
-                if (shown !== driver.id) return;
-            }
-            if (easy.foreground && !easy.pending && easy.selectedSeat === 'driver' && auto.toggle(client.state)) await runtime.poll();
-        },
+        BTN_IGNITION_M1: () => toggleAutomation(false),
         BTN_DRIVER: () => { easy.selectSeat('driver'); page = 0; },
         BTN_PASSENGER: () => { easy.selectSeat('passenger'); page = 1; },
         BTN_REFRESH: () => easy.refresh(),
         BTN_AUTO: () => {
-            if (auto.armed() && client.state && !client.state.settings.easyExit) {
-                throw new Error('자동 Easy Access를 켜려면 시동 시 M1 복귀를 끄세요.');
+            if (auto.automationArmed() && client.state && !client.state.settings.easyExit) {
+                throw new Error('자동 Easy Access를 켜려면 모든 운전자의 시동 연동 옵션을 끄세요.');
             }
             return easy.toggle();
         },
@@ -111,14 +114,15 @@ async function start(ctx, options) {
         if (closed) return Promise.resolve();
         if (rendering) return force ? rendering.then(() => render(true)) : rendering;
         const state = client.state, who = easy.selectedSeat;
-        const m1On = auto.enabled(state), m1Toggle = auto.canToggle(state), m1Armed = auto.armed();
+        const m1On = auto.enabled(state), m1Toggle = auto.canToggle(state), m1Armed = auto.automationArmed();
         const driverText = driver && (driver.known() ? driver.name || tr('BMW 운전자 인식됨') : tr('BMW 운전자 미인식'));
         const personalM1 = driver && !!driver.personalM1(state);
         const exitSaved = driver && !!driver.powerOffExit(state);
+        const exitOn = driver && driver.known() && driver.exitDrivers.has(driver.id);
         const commonExit = who === 'passenger' || !driver || (!driver.exit && !m1Armed);
         const reserved = driver ? [driver.reserved(1), driver.reserved(2)] : [false, false];
         const signature = JSON.stringify([state, client.at, who, easy.message, easy.pending, easy.foreground,
-            easy.saveMemory, axis, page, m1On, m1Toggle, m1Armed, driverText, personalM1, exitSaved, commonExit, reserved]);
+            easy.saveMemory, axis, page, m1On, m1Toggle, m1Armed, driverText, personalM1, exitSaved, exitOn, commonExit, reserved]);
         if (!force && signature === last) return Promise.resolve();
         last = signature;
         const cv = ctx.canvas(1600, 520).clear('#11161c');
@@ -132,7 +136,7 @@ async function start(ctx, options) {
         // Lighter veil than before so the BMW Coding photo shows, as on Cluster Redline's settings screen.
         cv.fillRect(left, TAB_BAR, 1600 - left, 520 - TAB_BAR, [7, 11, 17, 105]);
         // BMW Coding mark in the free space between the seat and the automatic Easy Access switch.
-        const autoLabel = tr('자동 Easy Access') + (m1Armed ? ' · ' + tr('M1 우선') : '');
+        const autoLabel = tr('자동 Easy Access') + (m1Armed ? ' · ' + tr('시동 연동 중') : '');
         const autoWidth = cv.textWidth ? cv.textWidth(autoLabel, 23, { literal: true }) : 230;
         BG.mark(cv, Math.min(1238, 1440 - autoWidth - 28), 100);
         cv.blit(seatLayer, 650, 48);
@@ -164,10 +168,12 @@ async function start(ctx, options) {
         if (who === 'driver') {
             button('BTN_IGNITION_M1', tr('Ignition M1') + ': ' + tr(m1On ? 'On' : 'Off'), 1200, 115, 350, 46,
                 ready && m1Toggle, m1On);
-            if (driverText) cv.text(driverText, 1540, 188, 20, '#c2ccd7', { align: 'right', literal: true });
+            button('BTN_POWER_OFF_EXIT', tr('시동 종료 시 하차 이동') + ': ' + tr(exitOn ? 'On' : 'Off'), 1200, 165, 350, 46,
+                ready && driver && driver.known() && (exitSaved || exitOn), exitOn, () => toggleAutomation(true));
+            if (driverText) cv.text(driverText, 1540, 240, 20, '#c2ccd7', { align: 'right', literal: true });
             if (driver && driver.known()) {
-                cv.text(tr(personalM1 ? '개인 M1 저장됨' : '개인 M1을 저장하세요'), 1540, 218, 20, '#c2ccd7', { align: 'right', literal: true });
-                cv.text(tr(exitSaved ? '시동 종료 하차 위치 저장됨' : '시동 종료 하차 위치를 저장하세요'), 1540, 247, 20,
+                cv.text(tr(personalM1 ? '개인 M1 저장됨' : '개인 M1을 저장하세요'), 1540, 269, 20, '#c2ccd7', { align: 'right', literal: true });
+                cv.text(tr(exitSaved ? '시동 종료 하차 위치 저장됨' : '시동 종료 하차 위치를 저장하세요'), 1540, 298, 20,
                     '#c2ccd7', { align: 'right', literal: true });
             }
         }

@@ -65,6 +65,7 @@ class Driver {
         this.profiles = Object.create(null);
         this.legacy = Object.create(null);
         this.exit = null;
+        this.exitDrivers = new Set();
         if (this.file) {
             try {
                 const saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
@@ -76,6 +77,9 @@ class Driver {
                         this.profiles[id] = { slot: entry.slot, target: entry.target, enabled: entry.enabled === true };
                     }
                 }
+                const ids = Array.isArray(saved.exitDrivers) ? saved.exitDrivers :
+                    Object.keys(this.profiles).filter((id) => this.profiles[id].enabled);
+                this.exitDrivers = new Set(ids.filter((id) => typeof id === 'string' && HASH.test(id)));
                 const exit = saved[EXIT];
                 if (validEntry(exit) && !this.reserved(exit.slot)) this.exit = { slot: exit.slot, target: exit.target };
             } catch (_) { /* no usable opt-ins */ }
@@ -102,6 +106,16 @@ class Driver {
     reserved(slot) { return (this.exit && this.exit.slot === slot) || Object.values(this.profiles).some((entry) => entry.slot === slot); }
 
     verified(entry, state) { return entry && entry.target && entry.target === targetKey(targetOf(state, entry.slot)) ? entry : null; }
+
+    toggleExit(state) {
+        if (!this.known()) return false;
+        const ids = new Set(this.exitDrivers);
+        if (ids.has(this.id)) ids.delete(this.id);
+        else if (this.powerOffExit(state)) ids.add(this.id);
+        else return false;
+        this.persist(this.profiles, this.legacy, this.exit, ids);
+        return true;
+    }
 
     powerOffExit(state) {
         const entry = this.verified(this.exit, state);
@@ -141,10 +155,11 @@ class Driver {
         this.persist(profiles, legacy, this.exit);
     }
 
-    persist(profiles, legacy, exit) {
+    persist(profiles, legacy, exit, exitDrivers = this.exitDrivers) {
         if (this.file) {
             const temp = this.file + '.tmp';
             const saved = Object.assign({}, legacy, profiles);
+            saved.exitDrivers = Array.from(exitDrivers);
             if (exit) saved[EXIT] = exit;
             fs.writeFileSync(temp, JSON.stringify(saved), { mode: 0o600 });
             fs.renameSync(temp, this.file);
@@ -152,6 +167,7 @@ class Driver {
         this.profiles = profiles;
         this.legacy = legacy;
         this.exit = exit;
+        this.exitDrivers = exitDrivers;
     }
 
     adoptLegacy(state) {
@@ -159,7 +175,12 @@ class Driver {
         const memory = targetOf(state, 0);
         const key = targetKey(memory, state.seats.axes.driver);
         const owners = Object.keys(this.legacy).filter((id) => this.legacy[id] === key);
-        if (owners.length === 1) this.write(owners[0], { slot: 0, target: targetKey(memory), enabled: true });
+        if (owners.length === 1) {
+            const id = owners[0], legacy = Object.assign({}, this.legacy);
+            delete legacy[id];
+            this.persist(Object.assign({}, this.profiles, { [id]: { slot: 0, target: targetKey(memory), enabled: true } }),
+                legacy, this.exit, new Set([...this.exitDrivers, id]));
+        }
     }
 
     saveM1(client, state) {

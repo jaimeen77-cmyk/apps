@@ -293,6 +293,10 @@ function fixture(values, makeDriver) {
         assert.equal(f.driver.powerOffExit(f.client.state).slot, 2);
         f.driver.close();
 
+        const oldSettings = JSON.parse(fs.readFileSync(file, 'utf8'));
+        delete oldSettings.exitDrivers;
+        fs.writeFileSync(file, JSON.stringify(oldSettings));
+        // Both settings migrate from the old combined option.
         // The full power cycle needs no door event and reloads all three positions after restarting the app.
         f = fixture({}, makeDriver);
         f.client.state.seats.memories.driver = [{ SLV: 456 }, { SLV: 700 }, { SLV: 950 }];
@@ -336,6 +340,32 @@ function fixture(values, makeDriver) {
         await f.driver.refresh(true);
         f.emit({ carOn: false }); await f.advance(0);
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 2, save: false });
+        f.driver.close();
+
+        active = 'driver A';
+        for (const m1 of [false, true]) {
+            for (const exit of [false, true]) {
+                f = fixture({}, makeDriver);
+                const state = f.client.state;
+                state.seats.memories.driver = [{ SLV: 456 }, { SLV: 700 }, { SLV: 950 }];
+                await f.driver.refresh(true);
+                if (f.auto.enabled() !== m1) assert.ok(f.auto.toggle(state));
+                if (f.driver.exitDrivers.has(f.driver.id) !== exit) assert.ok(f.driver.toggleExit(state));
+                f.emit({ carOn: true }); f.emit({ carOn: false }); await f.advance(0);
+                f.emit({ carOn: true }); await f.advance(3000);
+                assert.deepStrictEqual(f.client.sent.map(cmd => cmd.slot), (exit ? [2] : []).concat(m1 ? [0] : []));
+                f.driver.close();
+            }
+        }
+        active = 'driver C';
+        f = fixture({}, makeDriver);
+        f.client.state.seats.memories.driver[2] = { SLV: 950 };
+        await f.driver.refresh(true);
+        assert.ok(!f.driver.personalM1(f.client.state));
+        assert.ok(f.driver.toggleExit(f.client.state), 'exit alone needs no personal M1');
+        f.emit({ carOn: true }); f.emit({ carOn: false }); await f.advance(0);
+        f.emit({ carOn: true }); await f.advance(3000);
+        assert.deepStrictEqual(f.client.sent.map(cmd => cmd.slot), [2]);
         f.driver.close();
 
         // A previous common memory can be repurposed only by an explicit repeated save.

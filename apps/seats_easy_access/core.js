@@ -4,7 +4,7 @@
 const EventEmitter = require('events');
 const net = require('net');
 const SOCKET = '/run/iteriodev-comfort/ctl.sock';
-const VERSION = '0.7.5';
+const VERSION = '0.7.6';
 const JOG_REPEAT_MS = 250;
 const JOG_LIMIT_MS = 8000;
 

@@ -34,13 +34,14 @@ class IgnitionM1 {
         return this.driver ? !!this.driver.authorization(state || this.client.state) : this.settings.get('ignitionM1') === true;
     }
     armed() { return this.driver ? this.driver.hasOptIns() : this.enabled(); }
+    automationArmed() { return this.armed() || !!(this.driver && this.driver.exitDrivers.size); }
     canToggle(state) { return !this.driver || this.driver.canSet(state); }
     toggle(state) {
         if (this.driver) {
             if (!this.driver.toggle(state)) return false;
         } else this.settings.set('ignitionM1', !this.enabled());
         this.settings.set('m1OffSeen', false);
-        this.cancel('M1 cancelled: option changed');
+        this.pending = this.verify = this.retry = null;
         return true;
     }
     cancel(reason) {
@@ -98,7 +99,7 @@ class IgnitionM1 {
         }
         this.lastPower = s.carOn;
         if (s.carOn && this.driver && this.driver.known()) {
-            const profile = this.driver.authorization(s);
+            const profile = this.driver.exitDrivers.has(this.driver.id);
             this.poweredDriver = profile ? { id: this.driver.id, profile, at: this.driver.at } : null;
         }
         this.check(s);
@@ -156,7 +157,7 @@ class IgnitionM1 {
         // Only use the last recognized driver briefly and within this same power cycle.
         const known = this.driver.known();
         const id = known ? this.driver.id : recent && now - recent.at <= POWERED_DRIVER_MS ? recent.id : null;
-        const profile = id && this.driver.authorizedProfile(id, s);
+        const profile = id && this.driver.exitDrivers.has(id);
         if (exit && profile && (known || profile === recent.profile)) this.pendingExit = { id, profile, exit, deadline: now + EXIT_WINDOW_MS };
     }
 
@@ -168,7 +169,7 @@ class IgnitionM1 {
             const s = await this.client.refresh();
             if (this.pendingExit !== p) return;
             if (s.carOn || this.now() > p.deadline || this.driver.powerOffExit(s) !== p.exit ||
-                this.driver.authorizedProfile(p.id, s) !== p.profile || (this.driver.known() && this.driver.id !== p.id)) {
+                !this.driver.exitDrivers.has(p.id) || (this.driver.known() && this.driver.id !== p.id)) {
                 this.pendingExit = null;
                 return;
             }

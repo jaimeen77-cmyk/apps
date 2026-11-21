@@ -102,6 +102,14 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
     car.state.seats.pos.driver.SLV = 150;
     await handlers.BTN_EXIT_SAVE();
     assert.deepStrictEqual(car.sent[car.sent.length - 1], { op: 'memory', seat: 'driver', slot: 1, save: true });
+    await real.render(true);
+    const exitToggle = () => frames[frames.length - 1].targets.find((target) => target.key === 'BTN_POWER_OFF_EXIT');
+    assert.ok(exitToggle());
+    await exitToggle().run();
+    assert.equal(real.auto.automationArmed(), true);
+    assert.equal(real.auto.enabled(), false, 'the exit button leaves ignition M1 off');
+    await exitToggle().run();
+    assert.equal(real.auto.automationArmed(), false);
     await handlers.BTN_EXIT();
     assert.deepStrictEqual(car.sent[car.sent.length - 1], { op: 'memory', seat: 'driver', slot: 1, save: false });
     await handlers.BTN_IGNITION_M1();
