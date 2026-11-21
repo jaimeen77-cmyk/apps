@@ -28,7 +28,7 @@ function idOf(v){
 class DriverProfiles{
  // o: { settings, signals, log, fs, file, keys: () => [setting keys], changed: () => void }
  constructor(o){
-  this.settings=o.settings;this.signals=o.signals;this.log=o.log||{warn(){},info(){}};this.fs=o.fs;this.file=o.file;this.keysOf=o.keys;this.changed=o.changed||(()=>{});this.greet=o.greet||null;this.greetFor=null;
+  this.settings=o.settings;this.signals=o.signals;this.log=o.log||{warn(){},info(){}};this.fs=o.fs;this.file=o.file;this.keysOf=o.keys;this.changed=o.changed||(()=>{});this.greet=o.greet||null;this.active=o.active||null;this.greetFor=null;this.greetChange=false;
   this.profiles={};this.order=[];this.names={};this.nameSub=null;this.nameState=null;this.current=null;this.sub=null;this.state='off';this.error=null;this.applying=false;this.reads=0;
   try{const d=JSON.parse(this.fs.readFileSync(this.file,'utf8'));if(d&&typeof d==='object'){this.profiles=d.profiles||{};this.order=Array.isArray(d.order)?d.order:Object.keys(this.profiles);this.names=d.names&&typeof d.names==='object'?d.names:{};}}catch(e){}
   this.migrate();
@@ -55,6 +55,7 @@ class DriverProfiles{
  save(){try{this.fs.writeFileSync(this.file,JSON.stringify({profiles:this.profiles,order:this.order,names:this.names}));}catch(e){this.log.warn('driver profiles: '+e);}}
  // Start or stop reading the current driver as the setting says.
  sync(){
+  if(this.active)try{this.active(this.on());}catch(e){}
   if(!this.on()){if(this.sub){try{this.sub.shutdown();}catch(e){}this.sub=null;}this.dropName();this.current=null;this.state='off';this.changed();return;}
   if(this.sub||this.state==='subscribing')return;
   if(!this.signals||typeof this.signals.watch!=='function'||(typeof this.signals.hasNative==='function'&&!this.signals.hasNative())){this.state='unavailable';this.changed();return;}
@@ -67,7 +68,7 @@ class DriverProfiles{
  sample(v){
   this.reads++;const id=idOf(v);if(!id||!this.on())return;
   this.state='ready';if(id===this.current)return;
-  this.current=id;if(this.order.indexOf(id)<0)this.order.push(id);
+  this.greetChange=this.current!==null;this.current=id;if(this.order.indexOf(id)<0)this.order.push(id);
   // a driver recognised (at the start or a change): hello on the HUD, with their name once it is known
   this.greetFor=id;this.askName(id);if(this.names[id])this.hello(id);
   const saved=this.profiles[id];
@@ -77,8 +78,8 @@ class DriverProfiles{
    try{if(typeof this.settings.setMany==='function')this.settings.setMany(changes);else Object.keys(changes).forEach(k=>this.settings.set(k,changes[k]));}finally{this.applying=false;}}
   this.log.info('driver profile: their settings');this.changed();
  }
- // Hello once per recognised driver, with the name if known by now.
- hello(id){if(this.greetFor!==id)return;this.greetFor=null;if(this.greet)try{this.greet(this.names[id]||null);}catch(e){}}
+ // Hello once per recognised driver, with the name if known by now; change: another driver was in use before.
+ hello(id){if(this.greetFor!==id)return;this.greetFor=null;if(this.greet)try{this.greet(this.names[id]||null,this.greetChange);}catch(e){}}
  // Ask the driver's name on their account instance; kept in driver-profiles.json, refreshed each time they come back.
  askName(id){
   this.dropName();this.nameState='reading';const token={};this.nameToken=token;

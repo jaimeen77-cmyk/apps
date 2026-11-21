@@ -59,7 +59,7 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     // Settings per driver (driver-profiles.js): whose settings are in use follows the head unit's user account.
     const drivers = new DriverProfiles({ settings: ctx.settings, signals: ctx.signals, log: ctx.log, fs, file: path.join(ctx.dataDir, 'driver-profiles.json'),
         keys: () => require('./settings-ui').driverKeys(ctx.settings.schema || []), changed: () => queue.request(),
-        greet: (name) => require('./driver-greeting').greet(name) });
+        greet: (name, change) => require('./driver-greeting').driver(name, change), active: (on) => require('./driver-greeting').setEnabled(on) });
     page.driverStatus = () => drivers.status();
     // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');

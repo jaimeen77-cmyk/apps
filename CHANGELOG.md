@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.18
+
+- The driver greeting now comes **when the engine starts** (RPM from stopped to running), not when the app starts: the first start since the app started, or after the engine was off for 3 minutes or more, so auto start-stop restarts are not greeted. A driver change while the app runs is greeted at once. An eDrive car (may start without its engine) is greeted when the driver is recognised, as before. When the engine starts before the driver is recognised, the greeting waits up to 15 s for the name, then says a plain hello. The worker reads the engine speed for it while settings per driver are on, whatever the faces show.
+
 ## Cluster Redline 1.3.17
 
 - **Driver greeting**: with settings per driver on, a recognised driver (when the app starts, or on a change) is greeted on the HUD for 3 s: `홍길동님 안녕하세요` (English: `Hello, name`), a plain hello without a name. A cached name shows at once; a new driver's name once read (or a plain hello when it cannot be). Its own overlay layer in the middle below the RPM face; it waits for the HUD renderer, at most a minute (`driver-greeting.js`, `greeting-overlay.js`).

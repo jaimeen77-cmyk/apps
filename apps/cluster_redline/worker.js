@@ -284,6 +284,8 @@ function start(ctx) {
             if(before.mode&&!collection.mode)controller.policy.modeSample(null,at);
             const laneContext=maneuvers.read(at,!!(guidanceSub&&guidanceSub.available&&!guidanceSub.error));
             if(collection.lanes&&laneContext.active&&laneContext.known&&laneContext.provider==='CAR_PLAY')collection.fields.add(LANE_INTERFACE+'.'+LANE_FIELD);
+            // the greeting at engine start needs the engine speed whatever the faces show
+            if(driverGreeting.wantsEngine())collection.fields.add(CDS+'.statusEngineSpeed2');
             collectors.reconcile(collection.fields,at);
             // Auxiliary values are not used by the maneuver decoder. Do not
             // compete with its reads for metrics that neither RPM face shows.
@@ -401,6 +403,8 @@ function start(ctx) {
             const carAlerts = signAlerts || routeAlerts ? { speeding: (signAlerts && signAlerts.speeding) || (routeAlerts && routeAlerts.speeding) || null,
                 school: (signAlerts && signAlerts.school) || (routeAlerts && routeAlerts.school) || null, camera: routeAlerts && routeAlerts.camera || null } : null;
             // The driver greeting (settings per driver), once the renderer can take it.
+            driverGreeting.setHybrid(config.engineProfile === 'hybrid');
+            driverGreeting.engine(controller.policy.rpm, controller.policy.rpmAt !== null && at - controller.policy.rpmAt <= 2500);
             greetingOverlay.tick(driverGreeting.read(live && config.appEnabled && !!client.ready && String(client.targets || '').indexOf('hud:') >= 0));
             alertOverlay.tick(config, pv && pv.part === 'CarAlert' ? Object.assign({ preview: true }, ALERT_SAMPLE) : carAlerts);
             if (at - lastStatus >= 500) {
