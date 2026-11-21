@@ -419,7 +419,7 @@ function start(ctx) {
             // The driver greeting (settings per driver), once the renderer can take it.
             // a door switch lost with its provider or an error: no stale open door on the HUD
             if (doorSub && doorSub.error || config.hudDoorAlert === 'off') doors.clear();
-            doorOverlay.tick(live && config.appEnabled && config.hudDoorAlert !== 'off' ? doors.open : null);
+            doorOverlay.tick(pv && pv.part === 'Door' ? DOOR.SAMPLE : live && config.appEnabled && config.hudDoorAlert !== 'off' ? doors.open : null, config);
             driverGreeting.setHybrid(config.engineProfile === 'hybrid');
             driverGreeting.engine(controller.policy.rpm, controller.policy.rpmAt !== null && at - controller.policy.rpmAt <= 2500);
             greetingOverlay.tick(driverGreeting.read(live && config.appEnabled && !!client.ready && String(client.targets || '').indexOf('hud:') >= 0));

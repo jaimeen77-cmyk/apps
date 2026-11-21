@@ -2,10 +2,11 @@
 // The door-open HUD warning: the car seen from above, an open door drawn open in red, while any door is open (also
 // standing still). From DoorsWindowsRoofMirrors.CentralLockingSystemAndPanelStatus (added at install by
 // traffic-config.js), each door's switch: open = 1 or a ..._OFFEN name, as appsKOR's Ambient Config reads it.
-// Its own overlay layer, left of the RPM face. Pixels are sent only when the set of open doors changes.
+// Its own overlay layer, placed by display-config doorRect (middle of the HUD below the RPM face by default, moved and
+// sized in Basic → Door-open warning → Position / size). Pixels are sent only when the open doors or the size change.
 const IFACE='de.bmw.body.DoorsWindowsRoofMirrors',FIELD='CentralLockingSystemAndPanelStatus';
 const DOORS={statusDoorSwitchDRD:'driverFront',statusDoorSwitchPSD:'passengerFront',statusDoorSwitchDRDR:'driverRear',statusDoorSwitchPSDR:'passengerRear'};
-const W=96,H=150,X=34,Y=96;
+const W=96,H=150;
 const RED='#ff2b3a',BODY='#c9d1dc',GLASS='#5d6b7c';
 /** The open doors in a status value (a field however it is wrapped), or null when it names none of them. */
 function openDoors(v){
@@ -32,17 +33,27 @@ function paint(cv,open){
  return cv;
 }
 function draw(open){const {Canvas}=require('./kit/canvas');const cv=new Canvas(W,H);cv.clear([0,0,0,0]);return paint(cv,open||[]);}
+// At w x h (the Position / size scale), anti-aliased at that size rather than resampled.
+function drawSized(open,w,h){const {ScaledCanvas}=require('./kit/canvas');const cv=new ScaledCanvas(W,H,Math.min(w/W,h/H));cv.clear([0,0,0,0]);paint(cv,open||[]);return cv.canvas;}
 class DoorOverlay{
- constructor(client){this.client=client;this.ref=0;this.key=null;this.visible=false;}
- tick(open){
-  if(!open||!open.length){this.hide();return false;}
-  if(!this.ref){this.ref=this.client.image({target:'hud',klass:'overlay',z:12,x:X,y:Y,w:W,h:H,iw:W,ih:H,visible:false});if(!this.ref)return false;}
+ constructor(client){this.client=client;this.layer=null;}
+ // open: the open doors (none: hidden); cfg: settings for the place and size.
+ tick(open,cfg){
+  if(!open||!open.length||cfg.hudDoorHidden&&!open.preview){this.hide();return false;}
+  const r=require('./display-config').doorRect(cfg);let l=this.layer;
+  if(l&&(l.w!==r.w||l.h!==r.h)){this.client.drop(l.ref);l=this.layer=null;}
+  if(!l){const ref=this.client.image({target:'hud',klass:'overlay',z:12,x:r.x,y:r.y,w:r.w,h:r.h,iw:r.w,ih:r.h,visible:false});if(!ref)return false;l=this.layer={ref,x:r.x,y:r.y,w:r.w,h:r.h,key:null,visible:false};}
   const key=open.slice().sort().join(',');
-  if(this.key!==key){const cv=draw(open);this.client.pixels(this.ref,null,Buffer.from(cv.d.buffer,cv.d.byteOffset,cv.d.byteLength));this.key=key;}
-  if(!this.visible){this.client.set(this.ref,{visible:true});this.visible=true;}
+  if(l.key!==key){const im=drawSized(open,r.w,r.h),px=Buffer.alloc(r.w*r.h*4);
+   for(let y=0;y<Math.min(r.h,im.h);y++)Buffer.from(im.d.buffer,im.d.byteOffset+y*im.w*4,Math.min(r.w,im.w)*4).copy(px,y*r.w*4);
+   this.client.pixels(l.ref,null,px);l.key=key;}
+  if(l.x!==r.x||l.y!==r.y){this.client.set(l.ref,{x:r.x,y:r.y});l.x=r.x;l.y=r.y;}
+  if(!l.visible){this.client.set(l.ref,{visible:true});l.visible=true;}
   return true;
  }
- hide(){if(this.ref&&this.visible){this.client.set(this.ref,{visible:false});this.visible=false;}}
- close(){if(this.ref)this.client.drop(this.ref);this.ref=0;this.key=null;this.visible=false;}
+ hide(){const l=this.layer;if(l&&l.visible){this.client.set(l.ref,{visible:false});l.visible=false;}}
+ close(){if(this.layer)this.client.drop(this.layer.ref);this.layer=null;}
 }
-module.exports={IFACE,FIELD,DOORS,openDoors,DoorState,DoorOverlay,draw,paint,W,H,X,Y};
+// the Position / size preview: every door open
+const SAMPLE=Object.assign(['driverFront','passengerFront','driverRear','passengerRear'],{preview:true});
+module.exports={IFACE,FIELD,DOORS,openDoors,DoorState,DoorOverlay,draw,drawSized,paint,SAMPLE,W,H};
