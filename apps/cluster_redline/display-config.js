@@ -26,6 +26,11 @@ const NAV_COLOR_NAMES=['orange','green','blue','white'];
 const ALERT_MODES=['off','speed','school','camera','all'];
 const ALERT_PART={key:'CarAlert',label:'Vehicle alerts',prefix:'hudCarAlert',scale:'hudCarAlertScale',w:330,h:150};
 const NAV_LAYOUT_PARTS=NAV_PARTS.concat([ALERT_PART]);
+// The door-open warning's picture (door-alert.js): placed by its own rectangle like the turn signals, in the middle
+// of the HUD below the RPM face by default; moved and sized in Basic → Door-open warning → Position / size.
+const DOOR_PARTS=[{key:'Door',label:'Door-open warning',prefix:'hudDoor',scale:'hudDoorScale',w:96,h:150}];
+function doorRect(cfg){const s=(cfg.hudDoorScale||75)/100,w=Math.round(96*s),h=Math.round(150*s);return {x:Math.round((800-w)/2+(cfg.hudDoorOffsetX||0)),y:Math.round(286+(cfg.hudDoorOffsetY||0)),w,h};}
+Object.assign(defaults,{hudDoorOffsetX:0,hudDoorOffsetY:0,hudDoorScale:75,hudDoorHidden:false});
 Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'off',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
 ['hud','cluster'].forEach(d=>{
  defaults[d+'AuxConfig']=JSON.stringify({mode:'gauges',items:['boost','torque']});
@@ -73,7 +78,9 @@ function normalize(raw,out){
  out.hudTurnSignals=raw.hudTurnSignals==='on'?'on':'off';out.hudTurnStyle=TURN_STYLES.includes(raw.hudTurnStyle)?raw.hudTurnStyle:'arrow';out.hudTurnColor=Object.prototype.hasOwnProperty.call(TURN_COLORS,raw.hudTurnColor)?raw.hudTurnColor:'green';
  TURN_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
- out.hudDoorAlert=raw.hudDoorAlert==='off'?'off':'on';
+ out.hudDoorAlert=raw.hudDoorAlert==='off'?'off':'on';out.hudDoorHidden=raw.hudDoorHidden===true;
+ ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudDoor'+s];if(typeof v==='number'&&isFinite(v))out['hudDoor'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
+ if(typeof raw.hudDoorScale==='number'&&isFinite(raw.hudDoorScale))out.hudDoorScale=Math.max(20,Math.min(200,Math.round(raw.hudDoorScale/5)*5));
  out.hudCarAlerts=ALERT_MODES.includes(raw.hudCarAlerts)?raw.hudCarAlerts:'off';out.hudCarAlertHidden=raw.hudCarAlertHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudCarAlert'+s];if(typeof v==='number'&&isFinite(v))out['hudCarAlert'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  if(typeof raw.hudCarAlertScale==='number'&&isFinite(raw.hudCarAlertScale))out.hudCarAlertScale=Math.max(20,Math.min(200,Math.round(raw.hudCarAlertScale/5)*5));
@@ -120,4 +127,4 @@ function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig'])
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !cfg[d+'RpmGaugeHidden']&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

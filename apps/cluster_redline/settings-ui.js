@@ -18,16 +18,17 @@ const RL_KEYS=Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k)),defaul
 const TURN_KEYS=Object.keys(D.defaults).filter(k=>/^hudTurn/.test(k));
 const TURN_ITEM={key:'turn',label:'Turn signals on HUD',type:'action'};
 // Settings per driver (driver-profiles.js): kept outside app.json; main.js sets page.driverStatus.
-const DOOR_ITEM={key:'hudDoorAlert',label:'Door-open warning',type:'choice',options:[['on',tr('On')],['off',tr('Off')]]};
+const DOOR_ITEM={key:'hudDoorAlert',label:'Door-open warning',type:'action'};
+const DOOR_KEYS=Object.keys(D.defaults).filter(k=>/^hudDoor/.test(k));
 const DRIVER_ITEM={key:'driverProfiles',label:'Settings per driver',type:'choice',options:[['off',tr('Off')],['on',tr('On')]]};
 // Vehicle alerts (vehicle-alerts.js): kept outside app.json, like the turn signals.
 const ALERT_KEYS=Object.keys(D.defaults).filter(k=>/^hudCarAlert/.test(k));
 const ALERT_ITEM={key:'hudCarAlerts',label:'Vehicle alerts',type:'choice',options:[['off',tr('Off')],['speed',tr('Speeding')],['school',tr('School zone')],['camera',tr('Speed camera')],['all',tr('Show all')]]};
 // Screens whose buttons are the cursor's stops (layoutActions).
-const ACTION_SCREENS=['layout','layoutPresets','turn','navColor'];
+const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door'];
 const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White'};
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
-const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor','hudDoorAlert'].concat(TURN_KEYS,ALERT_KEYS);
+const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor'].concat(DOOR_KEYS).concat(TURN_KEYS,ALERT_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
 // Settings per driver (driver-profiles.js): the whole setup a favourite keeps, plus the favourites themselves, so each
 // driver has their own five favourites.
@@ -71,7 +72,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','hudDoorAlert'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:GROUPS[this.tab];}
  item(){const key=this.keys()[this.focus];if(key==='turn')return TURN_ITEM;if(key==='hudCarAlerts')return ALERT_ITEM;if(key==='driverProfiles')return DRIVER_ITEM;if(key==='hudDoorAlert')return DOOR_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
@@ -86,7 +87,7 @@ class SettingsPage{
   else if(this.open==='rlDesign'){this.open='design';this.choice=2;}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
   else if(this.open==='layoutPresets'){this.open='layout';this.choice=0;this.presetMessage='';}
-  else if(this.open==='layout'&&this.layoutKind==='turn'){this.setPreview(false);this.layoutKind=null;this.open='turn';this.choice=0;}
+  else if(this.open==='layout'&&(this.layoutKind==='turn'||this.layoutKind==='door')){this.setPreview(false);this.open=this.layoutKind;this.layoutKind=null;this.choice=0;}
   else{if(this.open==='layout')this.setPreview(false);this.open=null;this.draft=null;this.layoutKind=null;}
   this.changed();
  }
@@ -110,13 +111,14 @@ class SettingsPage{
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'||item.key==='hudCarAlerts'?cfg[item.key]:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
- change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
   if(index!==undefined)this.focus=index;
   if(this.tab===FAV_TAB&&!this.open){this.favAction(Math.floor(this.focus/3)+1,this.focus%3);return;}
   const item=this.item();if(!item)return;
   this.choice=0;
   if(item.key==='turn')this.open='turn';
+  else if(item.key==='hudDoorAlert')this.open='door';
   else if(item.key==='aux')this.open='auxMode';
   else if(item.key==='design'){this.open='design';this.choice=RL.active(this.config(),this.display())?2:this.config()[this.display()+'AlertStyle']==='circle'?1:0;}
   else if(item.key==='layout'){this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set([this.layoutParts()[0].key]);this.setPreview(true);}
@@ -159,6 +161,7 @@ class SettingsPage{
   if(this.open==='layout')this.drawLayout(cv,cfg,targets);
   else if(this.open==='layoutPresets')this.drawPresets(cv,cfg,targets);
   else if(this.open==='turn')this.drawTurn(cv,cfg,targets);
+  else if(this.open==='door')this.drawDoor(cv,cfg,targets);
   else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
   else if(this.open==='auxSelect')this.drawAuxSelect(cv,cfg,targets);
   else if(this.open==='design')this.drawDesign(cv,cfg,targets);
@@ -304,6 +307,16 @@ class SettingsPage{
   const dir={off:'Off',left:'Left',right:'Right',both:'Both (hazards)'}[s.indicator]||String(s.indicator);
   return [head+': '+tr('received')+' '+s.received,tr(dir)+(s.drawnIn?' · '+tr(s.drawnIn==='redline-hud'?'in the Redline HUD':'overlay'):'')];
  }
+ // The door-open warning: on / off, what it does, and Position / size of its HUD picture.
+ drawDoor(cv,cfg,targets){
+  const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
+  cv.text(tr('Door-open warning'),100,126,32,'#ef4050',{literal:true});
+  [['on','On'],['off','Off']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*740,146,712,64,()=>set('hudDoorAlert',o[0]),cfg.hudDoorAlert===o[0],'door-'+o[0]));
+  cv.text(tr('While a door is open: the car on the HUD with the open doors in red; the cluster gives way to the car warning.'),100,262,24,'#c1cddd',{literal:true});
+  cv.text(this.doorValue(cfg),100,300,22,'#91a1b6',{literal:true});
+  this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='door';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Door']);this.setPreview(true);this.changed();},false,'door-layout');
+  this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
+ }
  // HUD turn signals: on / off, shape, colour, and Position / size (both, left, right).
  drawTurn(cv,cfg,targets){
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
@@ -336,8 +349,8 @@ class SettingsPage{
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // Parts placed by their own rectangle (navigation, turn signals) rather than measured on the face.
- rectKind(){return this.tab===3||this.layoutKind==='turn';}
- layoutParts(){return this.layoutKind==='turn'?D.TURN_PARTS:this.tab===3?D.NAV_LAYOUT_PARTS:D.partsFor(this.display(),this.config());}
+ rectKind(){return this.tab===3||this.layoutKind==='turn'||this.layoutKind==='door';}
+ layoutParts(){return this.layoutKind==='door'?D.DOOR_PARTS:this.layoutKind==='turn'?D.TURN_PARTS:this.tab===3?D.NAV_LAYOUT_PARTS:D.partsFor(this.display(),this.config());}
  // Tell the renderer which part is being adjusted so hidden or unused parts are drawn while moving them.
  previewValue(){const p=this.layoutParts()[this.layoutPart];return p?(this.tab===3?'nav':this.display())+':'+p.key+'@'+Date.now():'';}
  // Refresh the marker only when the part changed or it is a minute old (it expires after two).
@@ -527,7 +540,7 @@ class SettingsPage{
   const refresh=this.previewRefresh();if(refresh.layoutPreview!==undefined)this.settings.set('layoutPreview',refresh.layoutPreview);this.changed();}
  rlRect(cfg,p){const display=this.display(),face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display);if(p.key==='RpmGauge')return layout;const shown=RL.placed({config:cfg,rpm:0,gear:'--',aux:{}},layout,display,face).find(v=>v.key===p.key);if(shown)return shown.r;const e=RL.elements(cfg,display).find(v=>v.key===p.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display);return b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;}
  drawLayout(cv,cfg,targets){
-  const local=[],nav=this.rectKind(),turn=this.layoutKind==='turn',display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
+  const local=[],nav=this.rectKind(),turn=this.layoutKind==='turn'||this.layoutKind==='door',display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
   // Five columns, or six when a layout has many elements (two rows with Save / load in the last cell).
   const columns=parts.length>=10?6:5,cell=columns===6?243:292;
   parts.forEach((p,i)=>this.button(cv,local,tr(p.label),84+(i%columns)*cell,96+Math.floor(i/columns)*62,cell-14,56,()=>this.selectLayoutPart(i),this.layoutSelected.has(p.key),'part'+i));
@@ -544,7 +557,8 @@ class SettingsPage{
    cv.text(label,790,y+20,28,'#b8c5d4');btn('−',1010,y+26,()=>this.adjust(i+2,-1),'size-minus'+i);btn('+',1140,y+26,()=>this.adjust(i+2,1),'size-plus'+i);cv.text(!nav&&group.length>1&&!uniform?cfg[prefix+'WidthScale']+' × '+cfg[prefix+'HeightScale']+' %':String(cfg[key])+' %',1500,y+67,30,'#f3f5f7',{align:'right',font:'num'});
   });
   let width,height;
-  if(turn){const rect=D.turnRect(cfg,selected.key==='TurnRight'?'right':'left');width=rect.w;height=rect.h;}
+  if(this.layoutKind==='door'){const rect=D.doorRect(cfg);width=rect.w;height=rect.h;}
+  else if(turn){const rect=D.turnRect(cfg,selected.key==='TurnRight'?'right':'left');width=rect.w;height=rect.h;}
   else if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
   else if(RL.active(cfg,display)){const face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;width=r.w;height=r.h;}
   else{const painter=display==='hud'?HUD:CLUSTER,b=measurePart(painter,{config:cfg,rpm:0,gear:this.liveState&&this.liveState.gear||'--'},display,selected.key,cv)||{w:0,h:0},r=placement(cfg,display==='hud'?'hud':cfg.displayTarget==='panel'?'panel':'map',painter);width=Math.round(b.w*cfg[prefix+'WidthScale']/100*r.w/painter.W);height=Math.round(b.h*cfg[prefix+'HeightScale']/100*r.h/painter.H);}
