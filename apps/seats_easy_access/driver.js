@@ -65,7 +65,6 @@ class Driver {
         this.profiles = Object.create(null);
         this.legacy = Object.create(null);
         this.exit = null;
-        this.exitDrivers = new Set();
         if (this.file) {
             try {
                 const saved = JSON.parse(fs.readFileSync(this.file, 'utf8'));
@@ -77,9 +76,6 @@ class Driver {
                         this.profiles[id] = { slot: entry.slot, target: entry.target, enabled: entry.enabled === true };
                     }
                 }
-                const ids = Array.isArray(saved.exitDrivers) ? saved.exitDrivers :
-                    Object.keys(this.profiles).filter((id) => this.profiles[id].enabled);
-                this.exitDrivers = new Set(ids.filter((id) => typeof id === 'string' && HASH.test(id)));
                 const exit = saved[EXIT];
                 if (validEntry(exit) && !this.reserved(exit.slot)) this.exit = { slot: exit.slot, target: exit.target };
             } catch (_) { /* no usable opt-ins */ }
@@ -91,9 +87,6 @@ class Driver {
         this.at = -Infinity;
         this.since = -Infinity;
         this.lastRead = -Infinity;
-        this.nextNameRead = 0;
-        this.nameRequest = null;
-        this.replaceSlot = null;
         this.proxy = null;
         this.reading = null;
         this.closed = false;
@@ -106,16 +99,6 @@ class Driver {
     reserved(slot) { return (this.exit && this.exit.slot === slot) || Object.values(this.profiles).some((entry) => entry.slot === slot); }
 
     verified(entry, state) { return entry && entry.target && entry.target === targetKey(targetOf(state, entry.slot)) ? entry : null; }
-
-    toggleExit(state) {
-        if (!this.known()) return false;
-        const ids = new Set(this.exitDrivers);
-        if (ids.has(this.id)) ids.delete(this.id);
-        else if (this.powerOffExit(state)) ids.add(this.id);
-        else return false;
-        this.persist(this.profiles, this.legacy, this.exit, ids);
-        return true;
-    }
 
     powerOffExit(state) {
         const entry = this.verified(this.exit, state);
@@ -155,11 +138,10 @@ class Driver {
         this.persist(profiles, legacy, this.exit);
     }
 
-    persist(profiles, legacy, exit, exitDrivers = this.exitDrivers) {
+    persist(profiles, legacy, exit) {
         if (this.file) {
             const temp = this.file + '.tmp';
             const saved = Object.assign({}, legacy, profiles);
-            saved.exitDrivers = Array.from(exitDrivers);
             if (exit) saved[EXIT] = exit;
             fs.writeFileSync(temp, JSON.stringify(saved), { mode: 0o600 });
             fs.renameSync(temp, this.file);
@@ -167,7 +149,6 @@ class Driver {
         this.profiles = profiles;
         this.legacy = legacy;
         this.exit = exit;
-        this.exitDrivers = exitDrivers;
     }
 
     adoptLegacy(state) {
@@ -175,31 +156,12 @@ class Driver {
         const memory = targetOf(state, 0);
         const key = targetKey(memory, state.seats.axes.driver);
         const owners = Object.keys(this.legacy).filter((id) => this.legacy[id] === key);
-        if (owners.length === 1) {
-            const id = owners[0], legacy = Object.assign({}, this.legacy);
-            delete legacy[id];
-            this.persist(Object.assign({}, this.profiles, { [id]: { slot: 0, target: targetKey(memory), enabled: true } }),
-                legacy, this.exit, new Set([...this.exitDrivers, id]));
-        }
+        if (owners.length === 1) this.write(owners[0], { slot: 0, target: targetKey(memory), enabled: true });
     }
 
     saveM1(client, state) {
         const id = this.id;
-        let entry = this.profiles[id];
-        const free = MEMORY_SLOTS.filter((slot) => !this.reserved(slot));
-        if (!entry && free.length && free.every((slot) => targetOf(state, slot))) {
-            const slot = free.find((index) => index !== 0 || !Object.keys(this.legacy).length);
-            if (slot === undefined) throw new Error('저장할 빈 Comfort 메모리가 없습니다.');
-            const key = targetKey(targetOf(state, slot)), prior = this.replaceSlot;
-            if (!prior || prior.id !== id || prior.slot !== slot || prior.key !== key || this.now() > prior.until) {
-                this.replaceSlot = { id, slot, key, until: this.now() + 30000 };
-                throw new Error('공용 M' + (slot + 1) + ' 덮어쓰기: 30초 안에 메모리 저장 → M1을 다시 누르세요.');
-            }
-            entry = { slot, target: null };
-            this.write(id, Object.assign({ enabled: false }, entry));
-        }
-        this.replaceSlot = null;
-        return this.saveMemory(client, state, entry, (entry) => this.write(id,
+        return this.saveMemory(client, state, this.profiles[id], (entry) => this.write(id,
             Object.assign({ enabled: !!(this.profiles[id] && this.profiles[id].enabled) }, entry)));
     }
 
@@ -267,28 +229,16 @@ class Driver {
             }
             const raw = await bounded(this.proxy.getValue(REFERENCE, 1600), 2000, 'Driver profile read timed out');
             reference = valueOf(raw, [REFERENCE, 'value', 'id', 'reference']);
-        } catch (_) {
-            close(this.proxy);
-            this.proxy = null;
-        }
+        } catch (_) { /* a missing or temporarily unavailable BMW user is unknown */ }
         if (this.closed) return;
         const id = reference && !/^(guest|anonymous|unknown|none|null|undefined)$/i.test(reference) ? digest(reference) : null;
         const changed = id !== this.id || !this.known();
         this.at = this.now();
-        if (changed) {
-            this.id = id;
-            this.name = null;
-            this.since = this.at;
-            this.replaceSlot = null;
-            this.nextNameRead = 0;
-            this.nameRequest = null;
-        }
-        if (id && !this.name && !this.nameRequest && this.at >= this.nextNameRead) {
-            const request = this.readName(reference, id, this.since);
-            this.nameRequest = request;
-            this.nextNameRead = this.at + 5000;
-            request.then(() => { if (this.nameRequest === request) this.nameRequest = null; });
-        }
+        if (!changed) return;
+        this.id = id;
+        this.name = null;
+        this.since = this.at;
+        if (id) this.readName(reference, id, this.since);
     }
 
     async readName(reference, id, since) {

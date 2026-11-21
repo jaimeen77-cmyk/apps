@@ -1,9 +1,11 @@
 'use strict';
-// Early ignition recalls may be ignored while the seat module starts up.
-const TOL = 80;
-const WAIT_MS = 3000;
-const RETRY_MS = 2000;
-const ATTEMPTS = 5;
+// One driver M1 recall per observed power cycle, checked on arrival and tried once more when it fell short (the seat
+// module can hold its motors right after the engine starts: Comfort then sees no progress and takes it for the end
+// stop, so only a relay click is heard). No timers survive a lost connection.
+const TOL = 80;            // counts: twice Comfort's own arrival tolerance (40)
+const WAIT_MS = 8000;      // after power-on, before the first recall (car: 6 s too early, the seat module ignored it; 10 s and 15 s arrived)
+const RETRY_MS = 2000;     // after a short M1, wait this long (and Comfort idle as long) before the one retry
+const ATTEMPTS = 2;
 const EXIT_WINDOW_MS = 6000;
 const POWERED_DRIVER_MS = 4500;
 class IgnitionM1 {
@@ -16,7 +18,7 @@ class IgnitionM1 {
         this.send = client.send.bind(client);
         this.pending = null; this.busy = false;
         this.verify = null;   // a sent recall being watched: { at, seen, attempt, target }
-        this.retry = null;    // next retry waiting: { due, attempt }
+        this.retry = null;    // the one retry waiting: { due, attempt }
         this.lastPower = null;
         this.poweredDriver = null;
         this.pendingExit = null;
@@ -34,14 +36,13 @@ class IgnitionM1 {
         return this.driver ? !!this.driver.authorization(state || this.client.state) : this.settings.get('ignitionM1') === true;
     }
     armed() { return this.driver ? this.driver.hasOptIns() : this.enabled(); }
-    automationArmed() { return this.armed() || !!(this.driver && this.driver.exitDrivers.size); }
     canToggle(state) { return !this.driver || this.driver.canSet(state); }
     toggle(state) {
         if (this.driver) {
             if (!this.driver.toggle(state)) return false;
         } else this.settings.set('ignitionM1', !this.enabled());
         this.settings.set('m1OffSeen', false);
-        this.pending = this.verify = this.retry = null;
+        this.cancel('M1 cancelled: option changed');
         return true;
     }
     cancel(reason) {
@@ -55,27 +56,24 @@ class IgnitionM1 {
         return Object.keys(target).filter((a) => typeof pos[a] === 'number' && Math.abs(target[a] - pos[a]) > TOL)
             .map((a) => a + ' ' + (target[a] - pos[a] > 0 ? '+' : '') + (target[a] - pos[a]));
     }
-    /** watch the recall just sent until Comfort's memory job ends: arrived, or schedule another attempt */
+    /** watch the recall just sent until Comfort's memory job ends: arrived, or one retry */
     check(s) {
         const v = this.verify; if (!v) return;
         if (this.driver && this.driver.authorization(s) !== v.authorization) {
             this.cancel('M1 cancelled: driver or target changed');
             return;
         }
-        if (!s.carOn || !s.parked || this.now() > v.deadline) return this.cancel('M1 verification cancelled');
-        if (s.seats.job || s.seats.moving) {
-            v.idleAt = null;
-            if (s.seats.job === 'memory' && s.seats.jobSeat === 'driver') v.seen = true;
+        const running = s.seats.job === 'memory' && s.seats.jobSeat === 'driver';
+        if (running) { v.seen = true; return; }
+        if (!v.seen) {
+            if (this.now() - v.at > 10000) { this.verify = null; this.log.add(['M1 check: no memory job observed']); }
             return;
         }
-        if (v.idleAt === null) v.idleAt = this.now();
-        if (!v.seen && this.now() - v.idleAt < RETRY_MS) return;
         this.verify = null;
         const off = this.short(s, v.slot), took = ((this.now() - v.at) / 1000).toFixed(1) + ' s';
         if (!off.length) return this.log.add(['M1 arrived', '#' + v.attempt, took]);
         if (v.attempt >= ATTEMPTS) return this.log.add(['M1 still short after retry', off.join(', ')]);
-        this.retry = { due: v.idleAt + RETRY_MS, attempt: v.attempt + 1, idleAt: v.idleAt,
-            authorization: v.authorization, slot: v.slot, deadline: v.deadline };
+        this.retry = { due: this.now() + RETRY_MS, attempt: v.attempt + 1, idleAt: null, authorization: v.authorization, slot: v.slot };
         this.log.add(['M1 short of target', '#' + v.attempt, took, off.join(', '), 'M1 retry in ' + RETRY_MS / 1000 + ' s']);
     }
     observe(s) {
@@ -99,7 +97,7 @@ class IgnitionM1 {
         }
         this.lastPower = s.carOn;
         if (s.carOn && this.driver && this.driver.known()) {
-            const profile = this.driver.exitDrivers.has(this.driver.id);
+            const profile = this.driver.authorization(s);
             this.poweredDriver = profile ? { id: this.driver.id, profile, at: this.driver.at } : null;
         }
         this.check(s);
@@ -142,7 +140,7 @@ class IgnitionM1 {
                 return this.cancel('M1 cancelled: driver position unavailable');
             this.pending = null; // consume before sending: errors must not cause repeated movement commands
             this.log.add(['M1 calling driver memory']);
-            await this.recall(1, authorization, slot, p.deadline);
+            await this.recall(1, authorization, slot);
         } catch (e) {
             this.cancel('M1 cancelled: status unavailable');
             this.log.add(['M1 request failed', e.message]);
@@ -157,7 +155,7 @@ class IgnitionM1 {
         // Only use the last recognized driver briefly and within this same power cycle.
         const known = this.driver.known();
         const id = known ? this.driver.id : recent && now - recent.at <= POWERED_DRIVER_MS ? recent.id : null;
-        const profile = id && this.driver.exitDrivers.has(id);
+        const profile = id && this.driver.authorizedProfile(id, s);
         if (exit && profile && (known || profile === recent.profile)) this.pendingExit = { id, profile, exit, deadline: now + EXIT_WINDOW_MS };
     }
 
@@ -169,7 +167,7 @@ class IgnitionM1 {
             const s = await this.client.refresh();
             if (this.pendingExit !== p) return;
             if (s.carOn || this.now() > p.deadline || this.driver.powerOffExit(s) !== p.exit ||
-                !this.driver.exitDrivers.has(p.id) || (this.driver.known() && this.driver.id !== p.id)) {
+                this.driver.authorizedProfile(p.id, s) !== p.profile || (this.driver.known() && this.driver.id !== p.id)) {
                 this.pendingExit = null;
                 return;
             }
@@ -193,35 +191,33 @@ class IgnitionM1 {
             }
         } else if (motion.seen || this.now() - motion.at > 3000) this.exitMotion = null;
     }
-    async recall(attempt, authorization, slot, deadline) {
-        const at = this.now();
-        this.verify = { at, idleAt: at, seen: false, attempt, authorization, slot, deadline };
+    async recall(attempt, authorization, slot) {
+        this.verify = { at: this.now(), seen: false, attempt, authorization, slot };
         try { await this.send({ op: 'memory', seat: 'driver', slot, save: false }); }
         catch (e) { this.verify = null; throw e; }
         this.log.add(['M1 command sent: checking arrival', '#' + attempt]);
     }
-    /** Each retry uses the same guards as the first recall, and Comfort idle for 2 s */
+    /** the one retry: the same guards as the first recall, and Comfort idle for 2 s */
     async again() {
         const r = this.retry;
         if (!this.armed()) return this.cancel('M1 retry cancelled: option off');
         if (this.now() < r.due) return;
-        if (this.now() > r.deadline) return this.cancel('M1 retry cancelled: Comfort stayed busy');
+        if (this.now() - r.due > 30000) return this.cancel('M1 retry cancelled: Comfort stayed busy');
         this.busy = true;
         try {
             if (this.driver) await this.driver.refresh(true);
             if (this.retry !== r) return;
             const s = await this.client.refresh();
             if (this.retry !== r) return;
-            if (this.now() > r.deadline) return this.cancel('M1 retry timed out');
             if (!s.carOn || !s.parked) return this.cancel('M1 retry cancelled: power or stationary condition changed');
             if (this.driver && this.driver.ready(s) !== r.authorization) {
                 return this.cancel('M1 retry cancelled: driver or target changed');
             }
             if (s.settings.easyExit || s.seats.job || s.seats.moving || r.idleAt === null || this.now() - r.idleAt < 2000) return;
             if (!this.short(s, r.slot).length) { this.retry = null; return this.log.add(['M1 retry not needed: seat now at M1']); }
-            this.retry = null;
+            this.retry = null;   // consumed before sending: never a third recall
             this.log.add(['M1 retry: calling driver memory again']);
-            await this.recall(r.attempt, r.authorization, r.slot, r.deadline);
+            await this.recall(r.attempt, r.authorization, r.slot);
         } catch (e) {
             this.retry = null;
             this.log.add(['M1 retry failed', e.message]);

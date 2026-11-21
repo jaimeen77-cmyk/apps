@@ -26,7 +26,7 @@ function start(ctx, options) {
             if (closed) return;
             if (driver) driver.adoptLegacy(state);
             // Comfort uses one Easy Access switch for both front seats.
-            if (auto.automationArmed() && state.settings.easyExit) {
+            if (auto.armed() && state.settings.easyExit) {
                 await client.send({ op: 'set', settings: { easyExit: false } });
                 return;
             }

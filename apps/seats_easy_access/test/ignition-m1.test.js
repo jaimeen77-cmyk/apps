@@ -35,17 +35,12 @@ function fixture(values, makeDriver) {
     let f = fixture();
     f.emit({}); await f.advance(6000);
     assert.equal(f.client.sent.length, 0, 'starting an already-on car is not a trigger');
-    f.cycle(); await f.advance(2999); assert.equal(f.client.sent.length, 0, 'waits three seconds after power-on');
-    assert.ok(f.logs.some((s) => s.includes('waiting 3 seconds')));
+    f.cycle(); await f.advance(7999); assert.equal(f.client.sent.length, 0, 'waits eight seconds after power-on');
+    assert.ok(f.logs.some((s) => s.includes('waiting 8 seconds')));
     await f.advance(1);
     assert.deepStrictEqual(f.client.sent, [{ op: 'memory', seat: 'driver', slot: 0, save: false }]);
-    for (let attempt = 2; attempt <= 5; attempt++) {
-        await f.advance(1999); f.emit({}); assert.equal(f.client.sent.length, attempt - 1);
-        await f.advance(1); f.emit({}); await f.advance(0);
-        assert.equal(f.client.sent.length, attempt, 'ignored recall retries every two idle seconds');
-    }
-    await f.advance(2000); f.emit({}); await f.advance(0);
-    assert.equal(f.client.sent.length, 5, 'bounded even if no job ever appears');
+    await f.advance(10000); f.emit({}); await f.advance(1000);
+    assert.equal(f.client.sent.length, 1, 'no duplicate recalls from repeated power/status events');
     assert.ok(f.logs.some((s) => s.includes('checking arrival')));
 
     f = fixture({ ignitionM1: false }); f.cycle(); await f.advance(6000);
@@ -128,7 +123,7 @@ function fixture(values, makeDriver) {
         clock += 15000; await runtime.poll();
         assert.equal(f.client.sent.length, 1, 'background recall needs no open screen');
     } finally { runtime.close(); }
-    // arrival check: a recall that ends short (the seat module held its motors) is retried while still off target
+    // arrival check: a recall that ends short (the seat module held its motors) is tried once more, never a third time
     const job = (f, run, slv) => { f.client.state.seats.job = run ? 'memory' : null; f.client.state.seats.jobSeat = run ? 'driver' : null;
         if (slv !== undefined) f.client.state.seats.pos.driver.SLV = slv; f.client.emit('state', f.client.state); };
     f = fixture(); f.cycle(); await f.advance(15000);
@@ -141,11 +136,9 @@ function fixture(values, makeDriver) {
     assert.equal(f.client.sent.length, 2, 'one retry after the wait and 2 s of idle Comfort');
     assert.ok(f.logs.some((s) => s.includes('retry: calling driver memory again')));
     job(f, true); job(f, false, 140);                          // still short
-    await f.advance(2000); assert.equal(f.client.sent.length, 3);
-    job(f, true); await f.advance(5000); f.emit({});
-    assert.equal(f.client.sent.length, 3); job(f, false, 456);
+    assert.ok(f.logs.some((s) => s.includes('still short after retry')));
     await f.advance(60000); await f.advance(5000);
-    assert.equal(f.client.sent.length, 3, 'arrival ends retries');
+    assert.equal(f.client.sent.length, 2, 'never a third recall');
 
     f = fixture(); f.cycle(); await f.advance(8000);
     job(f, true); job(f, false, 130);
@@ -187,17 +180,6 @@ function fixture(values, makeDriver) {
             };
         },
     }, dataDir, now);
-    {
-        let time = 0, nameReady = false;
-        const profile = new Driver({ proxy: async (iface) => ({ getValue: async () =>
-            iface.endsWith('SessionManager') ? 'profile-2' : nameReady ? 'Driver Two' : '' }) }, null, () => time);
-        await profile.refresh(true); await profile.nameRequest;
-        assert.ok(profile.known()); assert.equal(profile.name, null);
-        nameReady = true; time = 3000; await profile.refresh(true);
-        time = 5000; await profile.refresh(true); await profile.nameRequest;
-        assert.equal(profile.name, 'Driver Two');
-        profile.close();
-    }
     const file = path.join(dataDir, 'driver-m1.json');
     async function savePersonalM1(f, position) {
         f.client.state.seats.pos.driver.SLV = position;
@@ -229,7 +211,7 @@ function fixture(values, makeDriver) {
         f = fixture({}, makeDriver);
         f.client.state.seats.memories.driver[2] = { SLV: 900 };
         await f.driver.refresh(true);
-        f.cycle(); await f.advance(3000);
+        f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
         assert.equal(f.client.sent.length, 1, 'the recognized driver keeps the opt-in across a restart');
         job(f, true); job(f, false, 130);
         active = 'driver B';
@@ -248,7 +230,7 @@ function fixture(values, makeDriver) {
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: true });
         assert.deepStrictEqual(f.client.state.seats.memories.driver, [{ SLV: 456 }, { SLV: 700 }, { SLV: 900 }]);
         assert.equal(f.auto.toggle(f.client.state), true);
-        f.cycle(); await f.advance(3000);
+        f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: false },
             'driver B starts in their own M1 slot');
         job(f, true); job(f, false, 500);
@@ -262,13 +244,13 @@ function fixture(values, makeDriver) {
 
         active = 'driver C';
         await f.driver.refresh(true);
-        await assert.rejects(() => savePersonalM1(f, 500), /공용 M3/);
+        await assert.rejects(() => savePersonalM1(f, 500), /빈 Comfort 메모리/);
         assert.deepStrictEqual(f.client.state.seats.memories.driver, [{ SLV: 456 }, { SLV: 700 }, { SLV: 900 }],
             'a full store cannot overwrite another profile or the existing M3');
 
         active = 'driver A';
         await f.driver.refresh(true);
-        f.cycle(); await f.advance(3000);
+        f.cycle(); await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 0, save: false },
             'switching back restores driver A’s M1');
         f.client.state.seats.memories.driver[0].SLV = 600;
@@ -293,10 +275,6 @@ function fixture(values, makeDriver) {
         assert.equal(f.driver.powerOffExit(f.client.state).slot, 2);
         f.driver.close();
 
-        const oldSettings = JSON.parse(fs.readFileSync(file, 'utf8'));
-        delete oldSettings.exitDrivers;
-        fs.writeFileSync(file, JSON.stringify(oldSettings));
-        // Both settings migrate from the old combined option.
         // The full power cycle needs no door event and reloads all three positions after restarting the app.
         f = fixture({}, makeDriver);
         f.client.state.seats.memories.driver = [{ SLV: 456 }, { SLV: 700 }, { SLV: 950 }];
@@ -317,7 +295,7 @@ function fixture(values, makeDriver) {
         f.emit({ carOn: true });
         assert.equal(f.client.sent.pop().op, 'stop', 'power-on stops a still-running exit movement');
         job(f, false);
-        await f.advance(3000);
+        await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 1, save: false },
             'driver B returns to their own M1 on power-on');
 
@@ -331,7 +309,7 @@ function fixture(values, makeDriver) {
         active = 'driver A';
         await f.driver.refresh(true);
         f.emit({ carOn: true });
-        await f.advance(3000);
+        await f.advance(4000); await f.driver.refresh(true); await f.advance(4000);
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 0, save: false },
             'driver A also returns to their own M1 from the same shared exit position');
 
@@ -342,42 +320,6 @@ function fixture(values, makeDriver) {
         assert.deepStrictEqual(f.client.sent.pop(), { op: 'memory', seat: 'driver', slot: 2, save: false });
         f.driver.close();
 
-        active = 'driver A';
-        for (const m1 of [false, true]) {
-            for (const exit of [false, true]) {
-                f = fixture({}, makeDriver);
-                const state = f.client.state;
-                state.seats.memories.driver = [{ SLV: 456 }, { SLV: 700 }, { SLV: 950 }];
-                await f.driver.refresh(true);
-                if (f.auto.enabled() !== m1) assert.ok(f.auto.toggle(state));
-                if (f.driver.exitDrivers.has(f.driver.id) !== exit) assert.ok(f.driver.toggleExit(state));
-                f.emit({ carOn: true }); f.emit({ carOn: false }); await f.advance(0);
-                f.emit({ carOn: true }); await f.advance(3000);
-                assert.deepStrictEqual(f.client.sent.map(cmd => cmd.slot), (exit ? [2] : []).concat(m1 ? [0] : []));
-                f.driver.close();
-            }
-        }
-        active = 'driver C';
-        f = fixture({}, makeDriver);
-        f.client.state.seats.memories.driver[2] = { SLV: 950 };
-        await f.driver.refresh(true);
-        assert.ok(!f.driver.personalM1(f.client.state));
-        assert.ok(f.driver.toggleExit(f.client.state), 'exit alone needs no personal M1');
-        f.emit({ carOn: true }); f.emit({ carOn: false }); await f.advance(0);
-        f.emit({ carOn: true }); await f.advance(3000);
-        assert.deepStrictEqual(f.client.sent.map(cmd => cmd.slot), [2]);
-        f.driver.close();
-
-        // A previous common memory can be repurposed only by an explicit repeated save.
-        const common = fixture({}, (now) => new Driver(null, null, now));
-        common.driver.id = 'test'; common.driver.at = 10000;
-        common.driver.exit = { slot: 1, target: null };
-        common.driver.profiles.other = { slot: 0, target: null, enabled: true };
-        common.client.state.seats.memories.driver = [{ SLV: 100 }, { SLV: 200 }, { SLV: 300 }];
-        assert.throws(() => common.driver.saveM1(common.client, common.client.state), /공용 M3/);
-        assert.equal(common.client.sent.length, 0);
-        await common.driver.saveM1(common.client, common.client.state);
-        assert.deepStrictEqual(common.client.state.seats.memories.driver, [{ SLV: 100 }, { SLV: 200 }, { SLV: 123 }]);
         const digest = (input) => crypto.createHash('sha256').update(input).digest('hex');
         const oldTarget = digest(JSON.stringify([[['SLV', 456]], []]));
         const old = { [digest('driver A')]: oldTarget, [digest('driver B')]: oldTarget };
