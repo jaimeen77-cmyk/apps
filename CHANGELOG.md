@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.19
+
+- **Door-open HUD warning** (Basic tab, on by default): while any of the four doors is open, also standing still, the HUD shows the car from above left of the RPM face, open doors drawn open in red (`door-alert.js`, its own overlay; re-drawn only when the open doors change). From `DoorsWindowsRoofMirrors.CentralLockingSystemAndPanelStatus` (each door's switch, open = 1 or `..._OFFEN`, as appsKOR's Ambient Config reads it), added read-only at install when the car's catalog has it (`traffic-config.js`; desktop installer patch v17 the same). The row shows how many doors are open, or that the input is not installed.
+- While a door is open the **cluster display gives way** (as for route guidance), so the car's own door-open warning is not covered; it comes back 2 s after the last door closes. The HUD is not affected. The row is now "Door-open warning".
+- Basic tab rows are a little shorter so the ninth row fits.
+
 ## Cluster Redline 1.3.18
 
 - The driver greeting now comes **when the engine starts** (RPM from stopped to running), not when the app starts: the first start since the app started, or after the engine was off for 3 minutes or more, so auto start-stop restarts are not greeted. A driver change while the app runs is greeted at once. An eDrive car (may start without its engine) is greeted when the driver is recognised, as before. When the engine starts before the driver is recognised, the greeting waits up to 15 s for the name, then says a plain hello. The worker reads the engine speed for it while settings per driver are on, whatever the faces show.

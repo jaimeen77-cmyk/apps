@@ -7,7 +7,7 @@ const ui=load('settings-ui.js',{'./kit/i18n':{t:x=>x},'./kit/gauges':{},'./setti
 function canvas(){const c={labels:[],textWidth:(s,z)=>String(s).length*z/2,text(s){this.labels.push(s);}};for(const n of ['clear','line','polyline','fillRect','roundRect','gradientRect'])c[n]=()=>{};return c;}
 const saved=store({autoStart:false,appEnabled:false}),page=new ui.SettingsPage(saved,null,'draft');
 let cv=page.draw(canvas());
-assert.strictEqual(page.keys().length,8,'Basic: six settings, the Comfort / Eco shift alert RPM and Settings per driver');
+assert.strictEqual(page.keys().length,9,'Basic: six settings, the Comfort / Eco shift alert RPM, Settings per driver and the door-open warning');
 for(const r of cv.targets)assert(r.x>=0&&r.y>=0&&r.x+r.w<=1600&&r.y+r.h<=520);
 cv.targets.find(r=>r.x===990).act();assert.strictEqual(saved.get('appEnabled'),true);assert.strictEqual(saved.get('autoStart'),false);
 cv.targets.find(r=>r.x===1268).act();assert.strictEqual(saved.get('appEnabled'),false);

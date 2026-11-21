@@ -33,7 +33,9 @@ function demand(cfg,mode){
  // speed cameras: the navigation's route events by query.
  if(carAlerts&&cfg.hudCarAlerts!=='camera')require('./traffic-signs').FIELDS.forEach(([i,f])=>add(i,f));
  if(carAlerts&&(cfg.hudCarAlerts==='camera'||cfg.hudCarAlerts==='all'))add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');
+ // the door-open HUD warning: the door switches, whenever it is on (also standing still)
+ const doorAlert=enabled&&cfg.hudDoorAlert!=='off';if(doorAlert)add('de.bmw.body.DoorsWindowsRoofMirrors','CentralLockingSystemAndPanelStatus');
  if(turns){add(G,'conclusiveDart');add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');add('de.bmw.infotainment.navigation.guiding.GuidanceRenderedContent');}
- return {fields,aux,rpm,torque,gear,mode:modeNeeded,nav:navAny,turns,turnSignals,carAlerts,lanes:enabled&&nav.lanes,parts:nav};
+ return {fields,aux,rpm,torque,gear,mode:modeNeeded,nav:navAny,turns,turnSignals,carAlerts,doorAlert,lanes:enabled&&nav.lanes,parts:nav};
 }
 module.exports={demand};
