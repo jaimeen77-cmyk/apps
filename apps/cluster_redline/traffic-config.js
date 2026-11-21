@@ -1,6 +1,6 @@
 'use strict';
 // Install time (Store build on the head unit, with the car's own SOME/IP catalog): add the read-only inputs the
-// vehicle alerts use for speeding and children signs, the ones the 2026-11-14 drive logs showed arriving:
+// vehicle alerts use for speeding and children signs (and, from 1.3.19, the door status for the door-open warning), the ones the 2026-11-14 drive logs showed arriving:
 //   Vehicle2.statusCarSpeed2                                   field  (the vehicle speed)
 //   dass.TrafficSignRecognition.TrafficSignRecognition         event  (the combined speed limit class)
 //   environmentalmodel.SignRecognitionFrontCamera
@@ -11,6 +11,8 @@ const INPUTS=[
  ['de.bmw.infotainment.vehicle.Vehicle2','statusCarSpeed2','field'],
  ['de.bmw.dass.TrafficSignRecognition','TrafficSignRecognition','event'],
  ['de.bmw.environmentalmodel.SignRecognitionFrontCamera','TrafficSignRecognitionFrontCamera','event'],
+ // the door-open HUD warning (door-alert.js): each door's switch, as appsKOR's Ambient Config reads it
+ ['de.bmw.body.DoorsWindowsRoofMirrors','CentralLockingSystemAndPanelStatus','field'],
 ];
 const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
 function instanceOf(catalog,iface){

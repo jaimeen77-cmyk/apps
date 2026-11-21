@@ -26,7 +26,7 @@ const NAV_COLOR_NAMES=['orange','green','blue','white'];
 const ALERT_MODES=['off','speed','school','camera','all'];
 const ALERT_PART={key:'CarAlert',label:'Vehicle alerts',prefix:'hudCarAlert',scale:'hudCarAlertScale',w:330,h:150};
 const NAV_LAYOUT_PARTS=NAV_PARTS.concat([ALERT_PART]);
-Object.assign(defaults,{navTextColor:'white',hudCarAlerts:'off',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
+Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'off',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
 ['hud','cluster'].forEach(d=>{
  defaults[d+'AuxConfig']=JSON.stringify({mode:'gauges',items:['boost','torque']});
  PARTS.concat(LEGACY_PARTS).forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=d==='cluster'&&/^Aux(Left|Right)$/.test(p)?50:0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=false;});
@@ -73,6 +73,7 @@ function normalize(raw,out){
  out.hudTurnSignals=raw.hudTurnSignals==='on'?'on':'off';out.hudTurnStyle=TURN_STYLES.includes(raw.hudTurnStyle)?raw.hudTurnStyle:'arrow';out.hudTurnColor=Object.prototype.hasOwnProperty.call(TURN_COLORS,raw.hudTurnColor)?raw.hudTurnColor:'green';
  TURN_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
+ out.hudDoorAlert=raw.hudDoorAlert==='off'?'off':'on';
  out.hudCarAlerts=ALERT_MODES.includes(raw.hudCarAlerts)?raw.hudCarAlerts:'off';out.hudCarAlertHidden=raw.hudCarAlertHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudCarAlert'+s];if(typeof v==='number'&&isFinite(v))out['hudCarAlert'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  if(typeof raw.hudCarAlertScale==='number'&&isFinite(raw.hudCarAlertScale))out.hudCarAlertScale=Math.max(20,Math.min(200,Math.round(raw.hudCarAlertScale/5)*5));
