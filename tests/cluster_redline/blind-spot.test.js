@@ -31,6 +31,13 @@ const settle=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  ov.tick(cfg,{left:2,right:0},'off',false);assert.strictEqual(ov.layers.left.color,'red','lamp flashing: red');
  ov.tick(cfg,{left:0,right:0},'off',false);assert.strictEqual(L.visible,false);
  ov.tick(cfg,null,'off',true);assert.strictEqual(layers.size,2,'preview: both');const R=rect(cfg,'right'),rb=D.turnRect(cfg,'right');assert(R.y>=rb.y+rb.h,'under the right arrow');assert(Math.abs(R.x+R.w/2-(rb.x+rb.w/2))<=1);ov.close();Module._load=orig;
+ // its own Position / size: the turn arrows moved leave it where it is; its own offsets, size and hiding apply
+ const base=rect(cfg,'left');assert.deepStrictEqual(rect(settings({hudTurnOffsetX:80,hudTurnOffsetY:-40,hudTurnScale:150}),'left'),base,'apart from the turn arrows');
+ const moved=settings({hudTurnBlindOffsetX:-30,hudTurnBlindRightOffsetY:20,hudTurnBlindScale:150});assert.strictEqual(rect(moved,'left').x,Math.max(0,Math.round(base.x+base.w/2-Math.round(51*1.5)/2-30)));assert.strictEqual(rect(moved,'left').w,77);
+ assert.strictEqual(rect(moved,'right').y-rect(settings({hudTurnBlindScale:150}),'right').y,20,'one side alone');
+ const ov2=new BlindSpotOverlay(client),hid=settings({hudTurnBlindLeftHidden:true});Module._load=function(r){if(r==='./kit/canvas')return {Canvas:class{constructor(w,h){this.d=new Uint8Array(w*h*4);}clear(){}roundRect(){}arc(){}fill(){}}};return orig.apply(this,arguments);};
+ ov2.tick(hid,{left:1,right:1},'off',false);assert(!ov2.layers.left&&ov2.layers.right,'a hidden side stays off');ov2.tick(hid,null,'off',true);assert(ov2.layers.left&&ov2.layers.left.visible,'the preview shows it');ov2.close();Module._load=orig;
+ assert.deepStrictEqual(D.BLIND_PARTS.map(p=>p.key),['Blind','BlindLeft','BlindRight']);
  // the engine speed is demanded for it
  const {demand}=require('../../apps/cluster_redline/data-demand');const f=c=>Array.from(demand(settings(Object.assign({appEnabled:true,navDisplayMode:'stock',hudDoorAlert:'off'},c)),null).fields);
  assert(f({hudTurnBlindSpot:'on'}).includes('de.bmw.infotainment.vehicle.CDS.statusEngineSpeed2'));assert.strictEqual(settings({}).hudTurnBlindSpot,'off','off by default');
