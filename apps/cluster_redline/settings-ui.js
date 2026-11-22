@@ -6,7 +6,7 @@ const {settings:effective,PROFILES,DEFAULTS}=require('./policy');
 const D=require('./display-config'),RL=require('./redline-hud'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
 const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
 const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting','Favorites'],FAV_TAB=4,FAV_COUNT=5,FAV_GAP=1500,FAV_ARM=4000;
-const GROUPS=[['autoStart','appEnabled','driverProfiles','hudDoorAlert','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout','turn','hudHeadway'],['sportClusterOutput','allClusterOutput','aux','design','layout','bcCheck'],['navDisplayMode','navColor','clusterYieldGuidance','hudCarAlerts','layout']];
+const GROUPS=[['autoStart','appEnabled','driverProfiles','hudDoorAlert','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout','turn','hudHeadway'],['sportClusterOutput','allClusterOutput','aux','design','layout','bcFollow'],['navDisplayMode','navColor','clusterYieldGuidance','hudCarAlerts','layout']];
 const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
@@ -26,15 +26,18 @@ const DRIVER_ITEM={key:'driverProfiles',label:'Settings per driver',type:'action
 const ALERT_KEYS=Object.keys(D.defaults).filter(k=>/^hudCarAlert/.test(k));
 const ALERT_ITEM={key:'hudCarAlerts',label:'Vehicle alerts',type:'choice',options:[['off',tr('Off')],['speed',tr('Speeding')],['school',tr('School zone')],['camera',tr('Speed camera')],['all',tr('Show all')]]};
 // Screens whose buttons are the cursor's stops (layoutActions).
-const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','headway','bcCheck'];
+const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','headway','bcCheck','bc'];
 // The BC button check (bc-diag.js, 1.3.39): what the car sends when BC is pressed; main.js sets page.bcDiag
 const BCCHECK_ITEM={key:'bcCheck',label:'BC button check',type:'action'};
+// Following the BC button (bc-follow.js, 1.3.40): its own screen; main.js sets page.bcFollow
+const BCFOLLOW_ITEM={key:'bcFollow',label:'Follow the BC button',type:'action'};
+const BC=require('./bc-follow');
 // The HUD headway badge (1.3.37): a screen of its own; its settings kept outside app.json
 const HEADWAY_ITEM={key:'hudHeadway',label:'Lead-car headway',type:'action'};
 const HEADWAY_KEYS=Object.keys(D.defaults).filter(k=>/^hudHeadway/.test(k));
 const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White'};
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
-const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen'].concat(DOOR_KEYS,HEADWAY_KEYS).concat(TURN_KEYS,ALERT_KEYS);
+const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen','bcFollow','bcHmi','bcPages','bcStart'].concat(DOOR_KEYS,HEADWAY_KEYS).concat(TURN_KEYS,ALERT_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
 // Settings per driver (driver-profiles.js): the whole setup a favourite keeps, plus the favourites themselves, so each
 // driver has their own five favourites.
@@ -78,10 +81,10 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','bcFollow','bcHmi','bcPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:GROUPS[this.tab];}
- item(){const key=this.keys()[this.focus];if(key==='turn')return TURN_ITEM;if(key==='hudHeadway')return HEADWAY_ITEM;if(key==='bcCheck')return BCCHECK_ITEM;if(key==='hudCarAlerts')return ALERT_ITEM;if(key==='driverProfiles')return DRIVER_ITEM;if(key==='hudDoorAlert')return DOOR_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
+ item(){const key=this.keys()[this.focus];if(key==='turn')return TURN_ITEM;if(key==='hudHeadway')return HEADWAY_ITEM;if(key==='bcCheck')return BCCHECK_ITEM;if(key==='bcFollow')return BCFOLLOW_ITEM;if(key==='hudCarAlerts')return ALERT_ITEM;if(key==='driverProfiles')return DRIVER_ITEM;if(key==='hudDoorAlert')return DOOR_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
  // Keep Basic a normal tab, including repeated taps from older hosts.
  tapBasic(){this.selectTab(0);}
  selectTab(i){if(this.open==='layout'||this.open==='layoutPresets'||this.settings.get('layoutPreview'))this.setPreview(false);this.layoutKind=null;this.tab=Math.max(0,Math.min(FAV_TAB,i|0));this.favArmed=null;this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
@@ -89,6 +92,8 @@ class SettingsPage{
  // preview never stays on the HUD or cluster.
  leave(){if(this.open==='layout'||this.open==='layoutPresets'){this.setPreview(false);this.open=null;this.layoutKind=null;this.draft=null;this.resetArmed=false;this.presetMessage='';this.choice=0;this.changed();}else if(this.settings.get('layoutPreview'))this.setPreview(false);}
  back(){
+  // following the BC button: its check and a page's setup (auxiliary values, then design) come back to its screen
+  if(this.open==='bcCheck'&&this.bcFromFollow||this.bcEdit&&(this.open==='auxMode'||this.open==='design')){this.open='bc';this.bcEdit=null;this.bcFromFollow=false;this.draft=null;this.choice=0;this.changed();return;}
   if(this.open==='favView'){this.open=null;}
   else if(this.open==='rlDesign'){this.open='design';this.choice=2;}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
@@ -116,13 +121,14 @@ class SettingsPage{
   // Navigation display (1.3.36): its own screen, with the next turn on the HUD; both named here
   if(item.key==='navDisplayMode'){const m=options(item,cfg).find(o=>o[0]===cfg.navDisplayMode);return (m?t(m[1]):t('Check required'))+' · '+tr('Next turn')+' '+tr(cfg.hudNavThen==='off'?'Off':'On');}
   if(item.key==='hudHeadway')return this.headwayValue(cfg);
+  if(item.key==='bcFollow'){if(cfg.bcFollow!=='on')return tr('Off');const p=this.bcFollow&&this.bcFollow.current(),l=p&&(BC.PAGES[cfg.bcHmi]||[]).find(x=>x[0]===p);return tr('On')+' · iDrive '+(cfg.bcHmi==='ID8'?'8':'7')+(l?' · '+tr(l[1]):'');}
   if(item.key==='bcCheck'){const s=this.bcDiag&&this.bcDiag.started?this.bcDiag.status():null;return s?tr('BC changes')+' '+s.kombi.changes+(s.kombi.now!==null?' · '+s.kombi.now:''):tr('Check what the car sends');}
   if(item.key==='appEnabled')return t(cfg.appEnabled?'Running':'Stopped');
   if(item.key==='shiftRpm'&&!this.settings.get(item.key))return cfg.shiftRpm+' rpm';
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'||item.key==='hudCarAlerts'?cfg[item.key]:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
- change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver'||this.open==='navMode'||this.open==='headway'||this.open==='bcCheck')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver'||this.open==='navMode'||this.open==='headway'||this.open==='bcCheck'||this.open==='bc')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
   if(index!==undefined)this.focus=index;
   if(this.tab===FAV_TAB&&!this.open){this.favAction(Math.floor(this.focus/3)+1,this.focus%3);return;}
@@ -134,6 +140,7 @@ class SettingsPage{
   else if(item.key==='navDisplayMode')this.open='navMode';
   else if(item.key==='hudHeadway')this.open='headway';
   else if(item.key==='bcCheck'){this.open='bcCheck';if(this.bcDiag)this.bcDiag.start();}
+  else if(item.key==='bcFollow'){this.open='bc';this.bcEdit=null;}
   else if(item.key==='aux')this.open='auxMode';
   else if(item.key==='design'){this.open='design';this.choice=RL.active(this.config(),this.display())?2:this.config()[this.display()+'AlertStyle']==='circle'?1:0;}
   else if(item.key==='layout'){this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set([this.layoutParts()[0].key]);this.setPreview(true);}
@@ -150,8 +157,8 @@ class SettingsPage{
   if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else if(index===D.METRICS.length+1)this.toggleClockZone();else this.toggleMetric(D.METRICS[index]);return;}
   if(this.open==='design'){
    if(index===2){this.open='rlDesign';this.choice=Math.max(0,RL.stylesFor(this.display()).indexOf(RL.style(this.config(),this.display())));this.changed();return;}
-   const values=this.designSwitch('own');values[this.display()+'AlertStyle']=index===1?'circle':'bar';this.setValues(values);this.open=null;this.changed();return;}
-  if(this.open==='rlDesign'){const st=RL.stylesFor(this.display())[index];if(st){this.setValues(this.designSwitch('rl-'+st));this.open=null;this.changed();}return;}
+   const values=this.designSwitch('own');values[this.display()+'AlertStyle']=index===1?'circle':'bar';this.setValues(values);if(this.bcSave())return;this.open=null;this.changed();return;}
+  if(this.open==='rlDesign'){const st=RL.stylesFor(this.display())[index];if(st){this.setValues(this.designSwitch('rl-'+st));if(this.bcSave())return;this.open=null;this.changed();}return;}
   const list=options(this.item(),this.config());if(!list[index])return;
   this.settings.set(this.item().key,list[index][0]);if(this.item().key==='navDisplayMode')this.settings.set('hudNavigationEnabled',true);this.open=null;this.changed();
  }
@@ -159,12 +166,17 @@ class SettingsPage{
  // the clock: horizontal gauges only (not in text mode, not on Hexagon / Classic dial, whose gauges stand upright)
  auxBlocked(id,cfg){if(!D.GAUGE_ONLY.includes(id))return false;if(!this.draft||this.draft.mode!=='gauges')return true;const st=RL.style(cfg||this.config(),this.display());return !!st&&RL.VERTICAL_GAUGES.includes(st);}
  toggleMetric(id){if(!this.draft||!D.METRICS.includes(id)||this.auxBlocked(id)&&!this.draft.items.includes(id))return;const a=this.draft.items,i=a.indexOf(id);if(i>=0)a.splice(i,1);else if(a.length<(this.draft.mode==='gauges'?2:4))a.push(id);this.changed();}
- commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.open=null;this.draft=null;this.changed();}
- button(cv,targets,label,x,y,w,h,act,on,id){
+ commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.draft=null;
+  // a BC page's setup: its auxiliary values, then its design
+  if(this.bcEdit){this.open='design';const c=this.config();this.choice=RL.active(c,'cluster')?2:c.clusterAlertStyle==='circle'?1:0;}else this.open=null;this.changed();}
+ // A BC page's setup done (its design chosen): what the cluster shows now is kept for that page
+ bcSave(){const e=this.bcEdit;if(!e)return false;const c=this.config(),all=BC.parse(this.settings.get('bcPages'),{});all[e.hmi]=all[e.hmi]||{};
+  all[e.hmi][e.page]={kind:'redline',design:c.clusterDesign||'own',aux:c.clusterAuxConfig,alert:c.clusterAlertStyle};this.settings.set('bcPages',JSON.stringify(all));this.bcEdit=null;this.open='bc';this.choice=0;this.changed();return true;}
+ button(cv,targets,label,x,y,w,h,act,on,id,max){
   const layoutFocus=ACTION_SCREENS.includes(this.open)&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice||this.tab===FAV_TAB&&!this.open&&id==='fav-'+this.focus||this.open==='favView'&&id==='favview-'+this.choice;
   // On the design pickers the fill marks the design in use and a white outline the cursor; elsewhere the cursor fills.
   const picker=(this.open==='design'||this.open==='rlDesign')&&focused;
-  cv.roundRect(x,y,w,h,6,on||focused&&!picker?'#57202d':'#252a31');if(picker)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],3,'#f3f5f7');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
+  cv.roundRect(x,y,w,h,6,on||focused&&!picker?'#57202d':'#252a31');if(picker)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],3,'#f3f5f7');if(layoutFocus&&/^part/.test(id||'')&&!on)cv.polyline([[x+2,y+2],[x+w-2,y+2],[x+w-2,y+h-2],[x+2,y+h-2],[x+2,y+2]],2,'#9bacc4');let size=max||30;while(size>18&&cv.textWidth(t(label),size)>w-24)size--;
   if(label==='−'||label==='+'){cv.line(x+w/2-17,y+h/2,x+w/2+17,y+h/2,3,'#f3f5f7');if(label==='+')cv.line(x+w/2,y+h/2-17,x+w/2,y+h/2+17,3,'#f3f5f7');}
   else cv.text(label,x+w/2,y+h/2+size*0.36,size,'#f3f5f7',{align:'center',font:'bold'});targets.push({x,y,w,h,act,label,id:id||label});
  }
@@ -183,6 +195,7 @@ class SettingsPage{
   else if(this.open==='navMode')this.drawNavMode(cv,cfg,targets);
   else if(this.open==='headway')this.drawHeadway(cv,cfg,targets);
   else if(this.open==='bcCheck')this.drawBcCheck(cv,cfg,targets);
+  else if(this.open==='bc')this.drawBc(cv,cfg,targets);
   else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
   else if(this.open==='auxSelect')this.drawAuxSelect(cv,cfg,targets);
   else if(this.open==='design')this.drawDesign(cv,cfg,targets);
@@ -197,7 +210,7 @@ class SettingsPage{
  drawRows(cv,cfg,targets,status){
   let y=100;
   this.keys().forEach((key,i)=>{
-   const item=key==='turn'?TURN_ITEM:key==='hudHeadway'?HEADWAY_ITEM:key==='bcCheck'?BCCHECK_ITEM:key==='hudCarAlerts'?ALERT_ITEM:key==='driverProfiles'?DRIVER_ITEM:key==='hudDoorAlert'?DOOR_ITEM:key==='comfortShiftRpm'?COMFORT_ITEM:key==='clusterYieldGuidance'?YIELD_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
+   const item=key==='turn'?TURN_ITEM:key==='hudHeadway'?HEADWAY_ITEM:key==='bcCheck'?BCCHECK_ITEM:key==='bcFollow'?BCFOLLOW_ITEM:key==='hudCarAlerts'?ALERT_ITEM:key==='driverProfiles'?DRIVER_ITEM:key==='hudDoorAlert'?DOOR_ITEM:key==='comfortShiftRpm'?COMFORT_ITEM:key==='clusterYieldGuidance'?YIELD_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
    // the HUD tab's seven rows (1.3.37: + Lead-car headway) as tight as the Basic tab's, above its notes
    const h=this.tab===0||this.tab===1&&this.keys().length>6?46:this.tab===1||this.tab===3||this.tab===2&&this.keys().length>5?56:68,ty=h===50?35:39;
    if(i===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+(h===50?6:8),4,h===50?37:42,'#f32b40');}
@@ -338,6 +351,40 @@ class SettingsPage{
   const b=this.liveState&&this.liveState.blindSpot,side=v=>v===2?tr('warning'):v===1?tr('car'):'-';
   const blind=!b||!b.on?'':' · '+tr('Blind spot')+' '+(b.refused?tr('not supported by this car'):b.good?side(b.left)+' / '+side(b.right):b.reading?tr('reading'):tr('engine off'));
   return [head+': '+tr('received')+' '+s.received,tr(dir)+(s.drawnIn?' · '+tr(s.drawnIn==='redline-hud'?'in the Redline HUD':'overlay'):'')+blind];
+ }
+ // Following the BC button (1.3.40): on / off, the head unit's list, where the next drive starts, the check; then the
+ // stock BC pages in the order a press goes through them, each with what the Redline cluster shows there (Set screen:
+ // its auxiliary values, then its design), Waze / the stock map, no change, or left out; the page in step marked, and
+ // "This page now" to put it back in step.
+ bcSummary(s){
+  if(s.kind==='yield')return tr('Waze / stock map');if(s.kind==='keep')return tr('No change');if(s.kind==='skip')return tr('Left out');
+  let a=null;try{a=JSON.parse(s.aux||'null');}catch(e){}
+  const design=s.design&&/^rl-/.test(s.design)?tr(RL.NAMES[s.design.slice(3)]||s.design):s.design==='own'?tr('Default design'):'';
+  const items=a&&Array.isArray(a.items)?a.items.map(id=>t(D.LABELS[id]||id)).join(' · '):'';
+  return [design,items].filter(Boolean).join(' / ')||tr('Redline cluster');
+ }
+ drawBc(cv,cfg,targets){
+  const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();},hmi=cfg.bcHmi==='ID8'?'ID8':'ID7',f=this.bcFollow;
+  const pages=BC.pagesOf(cfg.bcPages,hmi),now=f?f.current():null,setKind=(page,kind)=>{const all=BC.parse(this.settings.get('bcPages'),{});all[hmi]=all[hmi]||{};all[hmi][page]=Object.assign({},pages[page],{kind});set('bcPages',JSON.stringify(all));};
+  [['on','On'],['off','Off']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*140,96,130,50,()=>set('bcFollow',o[0]),cfg.bcFollow===o[0],'bc-'+o[0],22));
+  [['ID7','iDrive 7'],['ID8','iDrive 8']].forEach((o,i)=>this.button(cv,local,o[1],380+i*170,96,160,50,()=>set('bcHmi',o[0]),hmi===o[0],'bc-'+o[0],22));
+  this.button(cv,local,tr(cfg.bcStart==='first'?'Start: the first page':'Start: the page reached last'),730,96,400,50,()=>set('bcStart',cfg.bcStart==='first'?'last':'first'),false,'bc-start',20);
+  this.button(cv,local,tr('BC button check'),1146,96,390,50,()=>{this.open='bcCheck';this.bcFromFollow=true;if(this.bcDiag)this.bcDiag.start();this.changed();},false,'bc-check',20);
+  const list=BC.PAGES[hmi],rowH=Math.min(44,Math.floor(286/list.length)),bh=rowH-6;
+  list.forEach(([key,label],i)=>{
+   const y=158+i*rowH,s=pages[key],here=cfg.bcFollow==='on'&&now===key;
+   if(here)cv.gradientRect(78,y,1460,rowH-2,[[0,'#30131a'],[1,'#090b0e']]);
+   cv.text(tr(label),100,y+rowH*0.68,20,s.kind==='skip'?'#7f8b9a':'#f3f5f7',{literal:true});
+   let sum=this.bcSummary(s);while(sum.length>4&&cv.textWidth(sum,17,{literal:true})>330)sum=sum.slice(0,-2);
+   cv.text(sum,390,y+rowH*0.68,17,'#91a1b6',{literal:true});
+   [['Set screen',()=>{this.bcEdit={hmi,page:key};this.draft=null;this.open='auxMode';this.choice=0;this.changed();},s.kind==='redline',150,'edit'],
+    ['Waze',()=>setKind(key,'yield'),s.kind==='yield',110,'yield'],['No change',()=>setKind(key,'keep'),s.kind==='keep',130,'keep'],
+    ['Leave out',()=>setKind(key,'skip'),s.kind==='skip',120,'skip'],['This page now',()=>{if(f)f.here(key);},here,180,'here']]
+    .reduce((x,[l,act,on,w,id])=>{this.button(cv,local,tr(l),x,y+2,w,bh,act,on,'bc-'+key+'-'+id,17);return x+w+8;},740);
+  });
+  const st=f?f.status():null,msg=!st?'':st.state==='not_installed'?tr('not installed (reinstall from the Store)'):st.state==='error'?tr('subscription error'):cfg.bcFollow==='on'?tr('BC presses')+' '+st.presses:'';
+  if(msg)cv.text(msg,100,494,20,'#ffad45',{literal:true});
+  this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // The BC button check (1.3.39): press BC through the stock BC pages; if each page brings back its own value, each
  // page can get its own Redline cluster screen; if the value only grows, only the presses can be counted.
@@ -577,8 +624,8 @@ class SettingsPage{
  // Each design keeps its own Whole layout / element positions and sizes: switching saves the current
  // design's values under it (in <display>RlLayouts, outside app.json) and brings back the new design's,
  // or its defaults the first time. Returns the values to set.
- designSwitch(next){
-  const d=this.display(),cur=this.config()[d+'Design']||'own',values={[d+'Design']:next};if(cur===next)return values;
+ designSwitch(next,display){
+  const d=display||this.display(),cur=this.config()[d+'Design']||'own',values={[d+'Design']:next};if(cur===next)return values;
   const keys=['RpmGauge'].concat(D.RL_PARTS).reduce((a,p)=>a.concat(['OffsetX','OffsetY','WidthScale','HeightScale','Hidden'].map(x=>d+p+x)),[]);
   let saved={};try{saved=JSON.parse(this.settings.get(d+'RlLayouts')||'{}')||{};}catch(e){saved={};}
   const now={};keys.forEach(k=>{const v=this.settings.get(k);if(v!==undefined&&v!==defaultOf(this.settings.schema,k))now[k]=v;});if(Object.keys(now).length)saved[cur]=now;else delete saved[cur];

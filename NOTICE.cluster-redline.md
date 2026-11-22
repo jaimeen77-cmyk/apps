@@ -35,7 +35,7 @@ See [`apps/cluster_redline/NOTICE`](apps/cluster_redline/NOTICE) for the full li
 - `lead-vehicle.js`, `headway-overlay.js` (the HUD headway badge, 1.3.37): written for this app. The signal's field names,
   values and the 0.0625 m scale are the facts chyiz's `idrive7-cluster-metrics` (GPL-3.0) found on a G30; no code is
   taken from it. The time gap / colour steps follow the user's specification.
-- `bc-diag.js` (the BC button check, 1.3.39): written for this app; the signals it reads for the BC button are those
+- `bc-diag.js` (the BC button check, 1.3.39) and `bc-follow.js` (following the BC button, 1.3.40): written for this app; the signals it reads for the BC button are those
   chyiz's `idrive7-cluster-metrics` (GPL-3.0) reads; no code is taken from it.
 - Korean font: Noto Sans CJK KR, OFL-1.1, supplied by the Korean-enabled kit.
 - `patches/`: the optional native parked-recovery patch, a modification of the GPL-3.0-or-later

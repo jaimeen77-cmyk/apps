@@ -2,7 +2,7 @@
 const assert=require('assert'),path=require('path'),root=path.join(path.resolve(process.argv[2]),'source/javascript');
 const {Canvas}=require(root+'/kit/canvas'),{t,getLanguage}=require(root+'/kit/i18n'),{SettingsPage}=require(root+'/settings-ui'),spec=require(root+'/kit/app-spec.json');
 assert.strictEqual(getLanguage(),'ko');const values={};spec.settings.forEach(s=>values[s.key]=s.default);const missing=new Set(),page=new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>values[k]=v},null,'1.2.2');let screens=0;
-function check(value){const rest=value.replace(/cluster-render/g,'').replace(/Http:\/\/blog\.naver\.com\/codingbmw|BMW Coding|II/g,'').replace(/\b(?:MGU|HUD|RPM|rpm|PS|kW|Nm|kgf|m|km|L|bar|g|V|eDrive|X|Y|px|BC)\b/g,'').replace(/\bM\d*\b/g,'').replace(/v\d+(?:\.\d+)*/g,'').replace(/12V|G포스/g,'');if(/[A-Za-z]/.test(rest))missing.add(value);}
+function check(value){const rest=value.replace(/cluster-render/g,'').replace(/Http:\/\/blog\.naver\.com\/codingbmw|BMW Coding|II/g,'').replace(/\b(?:MGU|HUD|RPM|rpm|PS|kW|Nm|kgf|m|km|L|bar|g|V|eDrive|iDrive|Waze|G|X|Y|px|BC)\b/g,'').replace(/\bM\d*\b/g,'').replace(/v\d+(?:\.\d+)*/g,'').replace(/12V|G포스/g,'');if(/[A-Za-z]/.test(rest))missing.add(value);}
 function draw(){const cv=new Canvas(1600,520),text=cv.text;cv.text=function(v,x,y,size,c,o){check(o&&o.literal?String(v):t(v));return text.apply(this,arguments);};page.draw(cv);screens++;}
 for(let tab=0;tab<4;tab++){
  page.selectTab(tab);draw();

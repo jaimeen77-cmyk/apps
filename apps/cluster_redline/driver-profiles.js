@@ -19,7 +19,8 @@ function nameOf(v){
  const t=Array.from(v.replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim()).slice(0,20).join('');
  return t||null;
 }
-const CAR_KEYS=['engineProfile','autoStart','driverProfiles'];
+// bcIndex / bcCluster: the BC page in step now and what it asks of the cluster (the car's state, not a driver's)
+const CAR_KEYS=['engineProfile','autoStart','driverProfiles','bcIndex','bcCluster'];
 function idOf(v){
  if(typeof v==='string'||typeof v==='number')return String(v)||null;
  if(v&&typeof v==='object'){for(const k of ['value',FIELD,'id','reference']){const r=idOf(v[k]);if(r)return r;}}

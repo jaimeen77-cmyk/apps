@@ -6,6 +6,16 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
 
+## Cluster Redline 1.3.40
+
+- **Follow the BC button** (Cluster tab → Follow the BC button, off by default): each stock BC page of the cluster gets its own Redline cluster screen — its auxiliary values and its design (Set screen: the auxiliary picker, then the design picker) — or Waze / the stock map (the Redline cluster steps aside), or no change, or is left out of the round. iDrive 7 and iDrive 8 lists.
+  - The car does not say which BC page shows: the BC button check on the user's car (1.3.39) showed the cluster's selection sending only "no value" (65535:4294967295) and the left stalk sending 64 while BC is held. So the pages are followed by counting the presses, in the cluster's own order as photographed (iDrive 7: no display → efficiency · consumption → trip data → torque · power → G-meter → current media).
+  - The page reached is kept for the next drive (or the first page, a setting); "This page now" puts them back in step after the stock page was changed another way.
+  - A Redline page shows the Redline cluster in every drive mode; Waze steps it aside; no change leaves the drive mode rules. A change made by hand on the Cluster tab stays until BC is pressed again. Positions and sizes stay the driver's own.
+  - Defaults as the user asked: no display → no change; efficiency → Waze; trip data → tyre design + outside temperature, battery voltage, average economy, average speed; torque · power → G-force; G-meter → torque and power; current media → clock.
+  - Saved in favourites (on / off, list, pages, where to start); the page in step is the car's.
+- The BC button check moved into that screen (its button).
+
 ## Cluster Redline 1.3.39
 
 - **BC button check** (Cluster tab → BC button check): what the car sends when BC is pressed — the cluster's own BC selection (`KombiIF.statusKombiSelection`) and the left stalk's switches (`Light.IndicatorSteeringColumn`), read only, added at install where the catalog has them (**reinstall / update from the Store**), read once the screen is opened. It shows each value now, how often it changed and the last ten, newest first: whether each stock BC page comes back with its own value decides how following the BC button can be built. The signals are those chyiz's idrive7-cluster-metrics reads (GPL; facts only, no code taken).

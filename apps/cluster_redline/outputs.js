@@ -80,7 +80,9 @@ class Outputs {
         order.forEach((name) => {
             // Turn signal and blind spot parts are previewed on their own overlay layers, not by the Redline face.
             const out=this[name],pv=preview&&preview.display===name&&!/^(Turn|Blind|CarAlert|Door)/.test(preview.part||'')?preview:null,local=pv?previewConfig(cfg,name,pv):cfg;
-            const rpm=pv&&pv.tab!=='nav'?true:rpmOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)&&D.faceVisible(local,name);
+            // following the BC button (bc-follow.js): its page shows the Redline cluster in every drive mode...
+            const bcShow=name==='cluster'&&!pv&&cfg.bcCluster==='redline';
+            const rpm=pv&&pv.tab!=='nav'?true:(bcShow||rpmOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode))&&D.faceVisible(local,name);
             const navigation=pv&&pv.tab==='nav'?sampleNavigation():this.navigation;
             const nav=name==='hud'&&(pv&&pv.tab==='nav'||navAllowed(local,this.policy.mode)&&navigation&&navigation.visible);
             const selected=rpm||nav?'redline':'stock';
@@ -94,10 +96,13 @@ class Outputs {
             const doorYield=name==='cluster'&&!pv&&!!this.doorYield;
             // the driver greeting (3 s at engine start) has the HUD and the cluster to itself
             const greeting=!pv&&!!this.greetingHold;
-            const blocked=name==='hud' && this.hudBlocked || yielded || doorYield || greeting;
-            states[name] = out.tick(now, Object.assign({}, local, { displayMode: pv||D.allOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
+            // ...or steps it aside for Waze / the stock map
+            const bcYield=name==='cluster'&&!pv&&cfg.bcCluster==='yield';
+            const blocked=name==='hud' && this.hudBlocked || yielded || doorYield || greeting || bcYield;
+            states[name] = out.tick(now, Object.assign({}, local, { displayMode: pv||bcShow||D.allOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';
             else if(greeting && cfg.appEnabled)states[name].reason='greeting';
+            else if(bcYield && cfg.appEnabled)states[name].reason='bc_yield';
             else if(doorYield && cfg.appEnabled)states[name].reason='door_yield';
             else if(yielded && cfg.appEnabled)states[name].reason='cluster_yield';
             else if(blocked && cfg.appEnabled)states[name].reason=this.hudBlockReason || 'hud_safety';
