@@ -14,7 +14,7 @@ const LEGACY_PARTS=['Aux'];
 // outside app.json, so the Store's settings templates stay valid.
 const RL_PARTS=['RlCar','RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlTemp','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];
 const NAV_PARTS=[{key:'Direction',label:'Direction',prefix:'hudNav',scale:'navUniformScale',w:240,h:112},{key:'Text',label:'Text',prefix:'hudText',scale:'hudTextScale',w:240,h:48},{key:'Lanes',label:'Lane guidance',prefix:'hudLanes',scale:'hudLanesScale',w:240,h:72}];
-const defaults={hudTurnSignals:'off',hudTurnStyle:'arrow',hudTurnColor:'green',hudTurnOffsetX:0,hudTurnOffsetY:0,hudTurnScale:100,hudTurnLeftOffsetX:0,hudTurnLeftOffsetY:0,hudTurnRightOffsetX:0,hudTurnRightOffsetY:0,hudTurnHidden:false,hudTurnLeftHidden:false,hudTurnRightHidden:false,displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own',clusterDesign:'own'};
+const defaults={hudTurnBlindSpot:'off',hudTurnSignals:'off',hudTurnStyle:'arrow',hudTurnColor:'green',hudTurnOffsetX:0,hudTurnOffsetY:0,hudTurnScale:100,hudTurnLeftOffsetX:0,hudTurnLeftOffsetY:0,hudTurnRightOffsetX:0,hudTurnRightOffsetY:0,hudTurnHidden:false,hudTurnLeftHidden:false,hudTurnRightHidden:false,displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own',clusterDesign:'own'};
 NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
 // Navigation colours: the arrow (navColor, also the recommended lanes) and the text (navTextColor: distance, road and
 // exit names). navTextColor is kept outside app.json, like the turn signal colour.
@@ -75,7 +75,7 @@ function normalize(raw,out){
  out.clockZone=['auto','utc9'].includes(raw.clockZone)?raw.clockZone:require('./strings').language()==='ko'?'utc9':'auto';
  out.hudDesign=HUD_ONLY_DESIGNS.includes(raw.hudDesign)?raw.hudDesign:'own';
  out.clusterDesign=HUD_DESIGNS.includes(raw.clusterDesign)&&raw.clusterDesign!=='rl-sporthud'?raw.clusterDesign:'own';
- out.hudTurnSignals=raw.hudTurnSignals==='on'?'on':'off';out.hudTurnStyle=TURN_STYLES.includes(raw.hudTurnStyle)?raw.hudTurnStyle:'arrow';out.hudTurnColor=Object.prototype.hasOwnProperty.call(TURN_COLORS,raw.hudTurnColor)?raw.hudTurnColor:'green';
+ out.hudTurnBlindSpot=raw.hudTurnBlindSpot==='on'?'on':'off';out.hudTurnSignals=raw.hudTurnSignals==='on'?'on':'off';out.hudTurnStyle=TURN_STYLES.includes(raw.hudTurnStyle)?raw.hudTurnStyle:'arrow';out.hudTurnColor=Object.prototype.hasOwnProperty.call(TURN_COLORS,raw.hudTurnColor)?raw.hudTurnColor:'green';
  TURN_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
  out.hudDoorAlert=raw.hudDoorAlert==='off'?'off':'on';out.hudDoorHidden=raw.hudDoorHidden===true;
