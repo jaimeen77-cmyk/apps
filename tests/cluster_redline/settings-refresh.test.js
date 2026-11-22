@@ -7,7 +7,7 @@ const mocks={fs:{statSync(){throw Error('ENOENT');},mkdirSync(){},readFileSync()
  './settings-ui':{SettingsPage:class{constructor(s,changed){this.changed=changed;}selectTab(){this.changed();}},W:1600,H:520},
  './settings-chrome':{configure(){}},'./worker':{start(){throw Error('disabled app must not start');}},
  './migrate':{migrate(){}},'./output-status':{mapStatus:()=>''},
- './render-queue':{RenderQueue:class{request(){requests++;}async flush(){}stop(){}}},'./preview-presence':{touch(){}},'./driver-profiles':{DriverProfiles:class{status(){return {};}stop(){}}}};
+ './render-queue':{RenderQueue:class{request(){requests++;}async flush(){}stop(){}}},'./preview-presence':{touch(){}},'./driver-profiles':{DriverProfiles:class{status(){return {};}stop(){}}},'./bc-diag':{BcDiag:class{status(){return {};}start(){}stop(){}}}};
 vm.runInNewContext(fs.readFileSync(root+'/main.js','utf8'),{require:n=>{assert(n in mocks,'unexpected runtime dependency '+n);return mocks[n];},Date:{now:()=>now,parse:Date.parse}});
 (async()=>{
  await entry.start({dataDir:'/d',spec:{id:'cluster_redline',version:'test'},settings:{get:()=>false,set(){},onChange(){}},

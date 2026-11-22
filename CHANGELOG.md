@@ -6,6 +6,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
 
+## Cluster Redline 1.3.39
+
+- **BC button check** (Cluster tab → BC button check): what the car sends when BC is pressed — the cluster's own BC selection (`KombiIF.statusKombiSelection`) and the left stalk's switches (`Light.IndicatorSteeringColumn`), read only, added at install where the catalog has them (**reinstall / update from the Store**), read once the screen is opened. It shows each value now, how often it changed and the last ten, newest first: whether each stock BC page comes back with its own value decides how following the BC button can be built. The signals are those chyiz's idrive7-cluster-metrics reads (GPL; facts only, no code taken).
+- Cluster tab: six rows, a little tighter.
+
 ## Cluster Redline 1.3.38
 
 - Lead-car headway badge drawn as the user's reference: the car ahead seen from the front (the cabin an outline, the body filled) over two gap bars, the time gap beside it in thin figures (`1.8s`) in its colour step, and under them the distance (blue-grey) and the closing speed (amber when closing in). 112 x 60 at 100 %, a little higher (y 238).

@@ -13,6 +13,11 @@ const INPUTS=[
  ['de.bmw.environmentalmodel.SignRecognitionFrontCamera','TrafficSignRecognitionFrontCamera','event'],
  // the door-open HUD warning (door-alert.js): each door's switch, as appsKOR's Ambient Config reads it
  ['de.bmw.body.DoorsWindowsRoofMirrors','CentralLockingSystemAndPanelStatus','field'],
+ // the BC button check (bc-diag.js, 1.3.39): the cluster's own BC selection, which a BC press changes, and the left
+ // stalk's switches (the BC button is on it)
+ ['de.bmw.infotainment.KombiIF','statusKombiSelection','field'],
+ ['de.bmw.body.Light','IndicatorSteeringColumn','field'],
+ ['de.bmw.body.Light','IndicatorSteeringColumnComplete','field'],
  // the HUD headway badge (lead-vehicle.js, 1.3.37): the car ahead as the ACC / front radar measures it
  ['de.bmw.dass.GapVehicleAhead','GapVehicleDrivingAhead','field'],
  ['de.bmw.dass.GapVehicleAhead','DataFrontVehicle','field'],
