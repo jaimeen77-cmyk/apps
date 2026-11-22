@@ -367,9 +367,11 @@ function start(ctx) {
             const laneKey=collection.lanes&&commonManeuver.provider==='CAR_PLAY'?hudKey:null;
             lanes.tick(at,laneKey);
             const turnKey=collection.turns?hudKey:null,routeKey=Object.prototype.hasOwnProperty.call(PROJECTED,commonManeuver.provider)?turnKey:null;
-            routeEvents.tick(at,routeKey);
+            // the route's event list: the phone's turn (routeKey), and with BMW's own guidance too the turn after the
+            // next one for the HUD ("then", 1.3.35)
+            routeEvents.tick(at,routeKey||(config.hudNavThen!=='off'?turnKey:null));
             hudGuidance.tick(at,turnKey);
-            const hudEvent=routeEvents.read(at,routeKey)||hudGuidance.read(at,turnKey);
+            const hudEvent=routeKey?routeEvents.read(at,routeKey)||hudGuidance.read(at,turnKey):hudGuidance.read(at,turnKey);
             const maneuverState=!commonManeuver.visible&&hudEvent?Object.assign({},hudEvent,{provider:commonManeuver.provider}):commonManeuver;
             const laneData=lanes.read(at,laneKey);
             const visible=collection.parts.direction&&maneuverState.visible||collection.parts.text&&maneuverState.visible&&!!maneuverState.description||collection.parts.lanes&&!!laneData;
@@ -387,7 +389,9 @@ function start(ctx) {
             if(config.clusterYieldGuidance==='nosport'&&sportMode(controller.policy.mode))lastYieldAt=-Infinity;
             controller.guidanceYield=config.clusterYieldGuidance!=='off'&&(yieldNow||at-lastYieldAt<8000);
             controller.guidanceYieldDetail={hud:hudGuiding,phone:phoneNow,provider:maneuvers.provider||'',projected};
-            controller.navigation=Object.assign({},maneuverState,{visible:!!visible,maneuverVisible:!!maneuverState.visible,lanes:laneData});
+            // the turn after the next one, when it follows close behind (route-events.js next): under the HUD's arrow
+            const thenTurn=config.hudNavThen!=='off'&&maneuverState.visible?routeEvents.next(at,routeKey||turnKey,maneuverState):null;
+            controller.navigation=Object.assign({},maneuverState,{visible:!!visible,maneuverVisible:!!maneuverState.visible,lanes:laneData,then:thenTurn});
             // No decoded arrow means non-contending RPM, not disabled HUD.
             // The native renderer still yields to real stock content/popups.
             controller.hudBlocked=rendererInfo.hudGuidanceSafe===false;

@@ -73,11 +73,35 @@ function draw(state,target) {
         roadDiagram(cv,state,color0);const info=highwayInfo(state),text=state.distanceText||'';let size=40;
         while(size>20&&cv.textWidth(text,size,{font:'num',literal:true})>130)size--;
         if(info){let ls=22;while(ls>14&&cv.textWidth(info.label,ls,{font:'bold'})>130)ls--;cv.text(info.label,108,32,ls,ink,{font:'bold'});cv.text(text,108,84,size,ink,{font:'num',literal:true});}
+        else if(state.then&&state.then.maneuver){cv.text(text,108,58,Math.min(size,34),ink,{font:'num',literal:true});thenLine(cv,state.then,color0,ink);}
         else cv.text(text,108,67,size,ink,{font:'num',literal:true});
         return cv;
     }
-    const dir=state.maneuver;
-    const color=arrowColor(state),FLAG='#e5322d';
+    if(!arrow(cv,state,arrowColor(state)))return cv;
+    const text=state.distanceText||'';let size=40;
+    while(size>20&&cv.textWidth(text,size,{font:'num',literal:true})>130)size--;
+    // the turn after this one, when it follows close behind (1.3.35): a smaller distance, "Then", its arrow and the gap
+    const then=state.then;
+    if(then&&then.maneuver){size=Math.min(size,34);cv.text(text,108,58,size,ink,{font:'num',literal:true});thenLine(cv,then,arrowColor(state),ink);}
+    else cv.text(text,108,67,size,ink,{font:'num',literal:true});
+    return cv;
+}
+// "Then [arrow] 120 m" under the distance: the arrow is the turn's own, a third of the size (a plain arrow for a
+// junction diagram, which would not read that small)
+function thenLine(cv,then,color,ink){
+    const label=require('./strings').tr('Then');let x=108;
+    cv.text(label,x,99,17,withAlpha(ink,0.8),{font:'bold',literal:true});x+=cv.textWidth(label,17,{font:'bold',literal:true})+6;
+    arrow(at(cv,0.3,x,72),{maneuver:then.maneuver,exitNumber:then.exitNumber},color,true);x+=34;
+    if(typeof then.gap==='number')cv.text(then.gap+' m',x,99,17,withAlpha(ink,0.8),{font:'num',literal:true});
+}
+const withAlpha=(c,a)=>{const m=/^#([0-9a-f]{6})$/i.exec(c);if(!m)return c;const n=parseInt(m[1],16);return [n>>16&255,n>>8&255,n&255,Math.round(a*255)];};
+// a view of cv drawn at scale s from (ox, oy)
+function at(cv,s,ox,oy){const P=v=>[ox+v[0]*s,oy+v[1]*s];return {line:(a,b,c,d,w,col)=>cv.line(ox+a*s,oy+b*s,ox+c*s,oy+d*s,w*s,col),polyline:(p,w,c)=>cv.polyline(p.map(P),Math.max(2.5,w*s),c),
+ quad:(p,c)=>cv.quad(p.map(P),c),arc:(x,y,r0,r1,a0,a1,c,o)=>cv.arc(ox+x*s,oy+y*s,r0*s,r1*s,a0,a1,c,o),
+ text:(t,x,y,size,c,o)=>cv.text(t,ox+x*s,oy+y*s,size*s,c,o),textWidth:(t,size,o)=>cv.textWidth(t,size*s,o)/s};}
+/** The turn's arrow in the 104 x 112 box; false for a turn it has no arrow for. small: the "then" arrow (no number). */
+function arrow(cv,state,color,small){
+    const dir=state.maneuver,FLAG='#e5322d';
     const line=(points)=>cv.polyline(points,10,color);
     const mirror=(points)=>points.map((p)=>[104-p[0],p[1]]);
     if(/^ARRIVAL_/.test(dir)) {
@@ -95,7 +119,7 @@ function draw(state,target) {
         if(dir==='LANE_RIGHT'){pts=mirror(pts);head=mirror(head);}line(pts);line(head);
     } else if(dir==='ROUNDABOUT') {
         const pts=[];for(let i=0;i<=24;i++){const a=(i/24*1.7+0.15)*Math.PI;pts.push([52+27*Math.cos(a),48+27*Math.sin(a)]);}line(pts);
-        cv.text(String(state.exitNumber),52,60,28,WHITE,{align:'center',font:'num'});
+        if(!small)cv.text(String(state.exitNumber),52,60,28,WHITE,{align:'center',font:'num'});
     } else if(dir==='STRAIGHT_ON') {line([[52,90],[52,20]]);line([[30,42],[52,20],[74,42]]);}
     else if(/UTURN/.test(dir)) {
         let pts=[[79,90],[79,42]],head=[[9,55],[25,73],[41,55]];
@@ -106,11 +130,8 @@ function draw(state,target) {
         const slight=/SLIGHT|KEEP/.test(dir);let pts=slight?[[76,90],[76,65],[28,20]]:[[78,90],[78,43],[23,43]];
         let head=slight?[[28,48],[28,20],[56,20]]:[[44,22],[23,43],[44,64]];
         if(/RIGHT/.test(dir)){pts=mirror(pts);head=mirror(head);}line(pts);line(head);
-    } else return cv;
-    const text=state.distanceText||'';let size=40;
-    while(size>20&&cv.textWidth(text,size,{font:'num',literal:true})>130)size--;
-    cv.text(text,108,67,size,ink,{font:'num',literal:true});
-    return cv;
+    } else return false;
+    return true;
 }
 // Paint at the final HUD size: the same 240x112 drawing through a scaled view,
 // so no resampled image loses thin strokes.
