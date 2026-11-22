@@ -92,9 +92,12 @@ class Outputs {
             const yielded=name==='cluster'&&!pv&&cfg.clusterYieldGuidance!=='off'&&!!this.guidanceYield;
             // An open door: the cluster gives way so the car's own door-open warning is not covered (door-alert.js).
             const doorYield=name==='cluster'&&!pv&&!!this.doorYield;
-            const blocked=name==='hud' && this.hudBlocked || yielded || doorYield;
+            // the driver greeting (3 s at engine start) has the HUD to itself
+            const greeting=name==='hud'&&!pv&&!!this.greetingHold;
+            const blocked=name==='hud' && this.hudBlocked || yielded || doorYield || greeting;
             states[name] = out.tick(now, Object.assign({}, local, { displayMode: pv||D.allOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';
+            else if(greeting && cfg.appEnabled)states[name].reason='greeting';
             else if(doorYield && cfg.appEnabled)states[name].reason='door_yield';
             else if(yielded && cfg.appEnabled)states[name].reason='cluster_yield';
             else if(blocked && cfg.appEnabled)states[name].reason=this.hudBlockReason || 'hud_safety';
