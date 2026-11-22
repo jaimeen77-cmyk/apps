@@ -6,8 +6,8 @@
 // stalk's switches (Light.IndicatorSteeringColumn) have bit 64 while BC is held, and each press moves to the next page
 // in the cluster's own order (as the user photographed it). The page reached is kept, so the next drive starts there;
 // "This page now" on the settings screen puts them back in step if the stock page was changed another way.
-// A change made by hand on the Cluster tab stays until BC is pressed again. Positions and sizes stay the driver's own:
-// only the design, its auxiliary values and the alert style change. The BC button's signal is the one chyiz's
+// A change made by hand on the Cluster tab stays until BC is pressed again. A page set up on the settings screen keeps
+// its positions and sizes too (1.3.41); the defaults change only the design, its auxiliary values and the alert style. The BC button's signal is the one chyiz's
 // idrive7-cluster-metrics reads (GPL; facts only, no code taken).
 const LIGHT='de.bmw.body.Light',STALK=['IndicatorSteeringColumn','IndicatorSteeringColumnComplete'],BC_BIT=64,DEBOUNCE_MS=220;
 // The stock BC pages in the order a BC press goes through them (key, label)
@@ -76,6 +76,8 @@ class BcFollow {
   if((this.get('bcCluster')||'')!==cluster)this.settings.set('bcCluster',cluster);
   if(!this.on()||setup.kind!=='redline')return;
   const v={};if(setup.design)v.clusterDesign=setup.design;if(setup.aux)v.clusterAuxConfig=setup.aux;if(setup.alert)v.clusterAlertStyle=setup.alert;
+  // a page set up with its own positions and sizes (1.3.41): those too, after the design's own layout
+  if(setup.layout&&typeof setup.layout==='object')Object.keys(setup.layout).forEach(k=>{if(/^cluster/.test(k)&&/(OffsetX|OffsetY|WidthScale|HeightScale|Hidden)$/.test(k))v[k]=setup.layout[k];});
   if(Object.keys(v).length)try{this.apply(v);}catch(e){this.log.warn('bc follow: '+e);}
  }
  status(){return {state:this.state,error:this.error,presses:this.presses,page:this.current()};}

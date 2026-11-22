@@ -46,10 +46,14 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
   const scr=()=>{const cv=new Canvas(1600,520);page.draw(cv,'',{});return cv.targets;};
   scr().find(x=>x.id==='bc-torque-edit').run();assert.strictEqual(page.open,'auxMode');page.choose(0);assert.strictEqual(page.open,'auxSelect');
   page.choose(require(root+'/display-config').METRICS.indexOf('oil'));page.choose(require(root+'/display-config').METRICS.length);assert.strictEqual(page.open,'design','then its design');
-  page.choose(1);assert.strictEqual(page.open,'bc','back to the list');
+  page.choose(1);assert.strictEqual(page.open,'layout','then its Position / size (1.3.41)');
+  page.adjust(0,1);const moved=v.clusterOffsetX;page.back();assert.strictEqual(page.open,'bc','back to the list');
   const saved=JSON.parse(v.bcPages).ID7.torque;assert.strictEqual(saved.kind,'redline');assert.deepStrictEqual(JSON.parse(saved.aux).items,['oil']);assert.strictEqual(saved.design,'own');assert.strictEqual(saved.alert,'circle');
+  assert(saved.layout&&Object.keys(saved.layout).length>4,'positions and sizes kept');assert(Object.keys(saved.layout).every(k=>/^cluster/.test(k)),'the cluster\'s only');
+  // applied again when BC comes to that page
+  const got=[];const ff=new BcFollow({settings:st,signals,apply:(x)=>got.push(x),clock:()=>t});await flush();ff.here('torque');assert.strictEqual(got.pop().clusterAuxConfig,saved.aux);
   scr().find(x=>x.id==='bc-media-yield').run();assert.strictEqual(JSON.parse(v.bcPages).ID7.media.kind,'yield');
   scr().find(x=>x.id==='bc-trip-here').run();assert.strictEqual(page.bcFollow.current(),'trip');
   scr().find(x=>x.id==='bc-check').run();assert.strictEqual(page.open,'bcCheck');page.back();assert.strictEqual(page.open,'bc');page.back();assert.strictEqual(page.open,null);}
- console.log('PASS: following the BC button: a press (bit 64) steps through the stock pages in order, each page\'s screen, Waze, no change, left out; kept or first; This page now; off: nothing; the cluster per page'+(process.argv[2]?'; Set screen keeps the setup':''));
+ console.log('PASS: following the BC button: a press (bit 64) steps through the stock pages in order, each page\'s screen, Waze, no change, left out; kept or first; This page now; off: nothing; the cluster per page'+(process.argv[2]?'; Set screen (aux, design, Position / size) keeps the setup':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});
