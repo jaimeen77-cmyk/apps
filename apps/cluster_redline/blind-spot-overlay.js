@@ -1,19 +1,17 @@
 'use strict';
-// The blind spot warning on the HUD (blind-spot.js): under each turn arrow, our car (blue) and the car in that side's
-// blind spot seen from above, the other car amber while a car is in that side's blind spot, red when the turn signal is on towards it (the
-// mirror lamp flashing). One overlay layer a side, above whatever the HUD shows; it moves and sizes with the turn
-// arrows (Position / size of the turn signals). Drawn once a colour; a change of state only switches what is shown.
+// The blind spot warning on the HUD (blind-spot.js): our car (blue) and the car in that side's blind spot seen from
+// above, the other car amber while a car is in that side's blind spot, red when the turn signal is on towards it (the
+// mirror lamp flashing). One overlay layer a side, above whatever the HUD shows; under each turn arrow by default,
+// with its own Position / size (HUD turn signals → Blind spot position / size), apart from the arrows'. Drawn once a
+// colour; a change of state only switches what is shown.
 const D=require('./display-config');
-const AMBER='#ff9a1f',RED='#ff2b3a',W=60,H=64,GAP=6;
+const AMBER='#ff9a1f',RED='#ff2b3a',W=60,H=64;
 // our car and the lane line keep the reference picture's blue; only the other car and the waves take the warning colour
 const OURS='#4cc6f2',LANE='#3f8fc4';
 // (black is see-through on the HUD: the windows are drawn black so they read as glass)
 const GLASS='#05070b';
-/** Where a side's sign goes: under that side's turn arrow, centred on it, sized with it (51 x 54 at 100 %). */
-function rect(cfg,side){
- const a=D.turnRect(cfg,side),k=a.h/36*0.85,w=Math.round(W*k),h=Math.round(H*k);
- return {x:Math.round(a.x+a.w/2-w/2),y:a.y+a.h+GAP,w,h};
-}
+/** Where a side's sign goes: its own place and size (display-config blindRect), apart from the turn arrows. */
+function rect(cfg,side){return D.blindRect(cfg,side);}
 // Seen from above, pointing up, as the reference picture draws it: our car large in its lane, the lane line dashed,
 // the other car smaller behind in the next lane (left or right: the warning's side), detection waves between them.
 // w x h, transparent ground. The kit's arc angles: 0 up, clockwise (90 right).
@@ -49,7 +47,8 @@ class BlindSpotOverlay{
  tick(cfg,state,dir,preview){
   ['left','right'].forEach(side=>{
    const s=preview?1:state?state[side]:0,warn=s===2||s===1&&(dir===side||dir==='both');
-   if(!s){this.hide(side);return;}
+   const hidden=!preview&&(cfg.hudTurnBlindHidden||cfg[(side==='left'?'hudTurnBlindLeft':'hudTurnBlindRight')+'Hidden']);
+   if(!s||hidden){this.hide(side);return;}
    const r=rect(cfg,side),color=warn?'red':'amber';let l=this.layers[side];
    if(l&&(l.w!==r.w||l.h!==r.h)){this.client.drop(l.ref);l=this.layers[side]=null;}
    if(!l){const ref=this.client.image({target:'hud',klass:'overlay',z:12,x:r.x,y:r.y,w:r.w,h:r.h,iw:r.w,ih:r.h,visible:false});if(!ref)return;l=this.layers[side]={ref,x:r.x,y:r.y,w:r.w,h:r.h,color:null,visible:false};}

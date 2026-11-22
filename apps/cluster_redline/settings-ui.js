@@ -87,7 +87,7 @@ class SettingsPage{
   else if(this.open==='rlDesign'){this.open='design';this.choice=2;}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
   else if(this.open==='layoutPresets'){this.open='layout';this.choice=0;this.presetMessage='';}
-  else if(this.open==='layout'&&(this.layoutKind==='turn'||this.layoutKind==='door')){this.setPreview(false);this.open=this.layoutKind;this.layoutKind=null;this.choice=0;}
+  else if(this.open==='layout'&&(this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='blind')){this.setPreview(false);this.open=this.layoutKind==='blind'?'turn':this.layoutKind;this.layoutKind=null;this.choice=0;}
   else{if(this.open==='layout')this.setPreview(false);this.open=null;this.draft=null;this.layoutKind=null;}
   this.changed();
  }
@@ -330,8 +330,10 @@ class SettingsPage{
    ['left','right'].forEach((side,n)=>cached(cv,'turn|'+st+'|'+cfg.hudTurnColor+'|'+side,x+16+n*386,250,36,30,(c,px,py)=>{const im=new Canvas(36,30);im.clear([0,0,0,0]);draw.paint(im,36,30,side,st,cfg.hudTurnColor);vector(c,px,py,1).blit(im,0,0);}));});
   Object.keys(D.TURN_COLORS).forEach((k,i)=>{const x=84+i*490;this.button(cv,local,tr(TURN_COLOR_LABELS[k]),x,320,464,64,()=>set('hudTurnColor',k),cfg.hudTurnColor===k,'turn-color-'+k);cv.fillRect(x+20,320+52,424,5,D.TURN_COLORS[k]);});
   cv.text(tr('Shown on the HUD whenever a turn signal or the hazards flash, even with the stock HUD.'),100,418,22,'#91a1b6',{literal:true});
-  // the blind spot warning beside the arrows (the door mirror lamps, read from the car while the engine runs)
-  [['on','Blind spot warning on'],['off','Blind spot warning off']].forEach((o,i)=>this.button(cv,local,tr(o[1]),820+i*366,392,352,48,()=>set('hudTurnBlindSpot',o[0]),cfg.hudTurnBlindSpot===o[0],'blind-'+o[0]));
+  // the blind spot warning (the door mirror lamps, read from the car while the engine runs): on / off, and its own
+  // Position / size, apart from the arrows'
+  [['on','Blind spot warning on'],['off','Blind spot warning off']].forEach((o,i)=>this.button(cv,local,tr(o[1]),820+i*244,392,232,48,()=>set('hudTurnBlindSpot',o[0]),cfg.hudTurnBlindSpot===o[0],'blind-'+o[0]));
+  this.button(cv,local,tr('Blind spot position / size'),1308,392,232,48,()=>{this.layoutKind='blind';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Blind']);this.setPreview(true);this.changed();},false,'blind-layout');
   this.turnStatus().forEach((line,i)=>cv.text(line,804,474+i*28,20,'#8d97a4',{literal:true}));
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='turn';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Turn']);this.setPreview(true);this.changed();},false,'turn-layout');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
@@ -353,8 +355,8 @@ class SettingsPage{
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // Parts placed by their own rectangle (navigation, turn signals) rather than measured on the face.
- rectKind(){return this.tab===3||this.layoutKind==='turn'||this.layoutKind==='door';}
- layoutParts(){return this.layoutKind==='door'?D.DOOR_PARTS:this.layoutKind==='turn'?D.TURN_PARTS:this.tab===3?D.NAV_LAYOUT_PARTS:D.partsFor(this.display(),this.config());}
+ rectKind(){return this.tab===3||this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='blind';}
+ layoutParts(){return this.layoutKind==='blind'?D.BLIND_PARTS:this.layoutKind==='door'?D.DOOR_PARTS:this.layoutKind==='turn'?D.TURN_PARTS:this.tab===3?D.NAV_LAYOUT_PARTS:D.partsFor(this.display(),this.config());}
  // Tell the renderer which part is being adjusted so hidden or unused parts are drawn while moving them.
  previewValue(){const p=this.layoutParts()[this.layoutPart];return p?(this.tab===3?'nav':this.display())+':'+p.key+'@'+Date.now():'';}
  // Refresh the marker only when the part changed or it is a minute old (it expires after two).
@@ -544,7 +546,7 @@ class SettingsPage{
   const refresh=this.previewRefresh();if(refresh.layoutPreview!==undefined)this.settings.set('layoutPreview',refresh.layoutPreview);this.changed();}
  rlRect(cfg,p){const display=this.display(),face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display);if(p.key==='RpmGauge')return layout;const shown=RL.placed({config:cfg,rpm:0,gear:'--',aux:{}},layout,display,face).find(v=>v.key===p.key);if(shown)return shown.r;const e=RL.elements(cfg,display).find(v=>v.key===p.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display);return b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;}
  drawLayout(cv,cfg,targets){
-  const local=[],nav=this.rectKind(),turn=this.layoutKind==='turn'||this.layoutKind==='door',display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
+  const local=[],nav=this.rectKind(),turn=this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='blind',display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
   // Five columns, or six when a layout has many elements (two rows with Save / load in the last cell).
   const columns=parts.length>=10?6:5,cell=columns===6?243:292;
   parts.forEach((p,i)=>this.button(cv,local,tr(p.label),84+(i%columns)*cell,96+Math.floor(i/columns)*62,cell-14,56,()=>this.selectLayoutPart(i),this.layoutSelected.has(p.key),'part'+i));
@@ -562,6 +564,7 @@ class SettingsPage{
   });
   let width,height;
   if(this.layoutKind==='door'){const rect=D.doorRect(cfg);width=rect.w;height=rect.h;}
+  else if(this.layoutKind==='blind'){const rect=D.blindRect(cfg,selected.key==='BlindRight'?'right':'left');width=rect.w;height=rect.h;}
   else if(turn){const rect=D.turnRect(cfg,selected.key==='TurnRight'?'right':'left');width=rect.w;height=rect.h;}
   else if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}
   else if(RL.active(cfg,display)){const face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display),e=RL.elements(cfg,display).find(v=>v.key===selected.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display),r=b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;width=r.w;height=r.h;}

@@ -429,7 +429,7 @@ function start(ctx) {
             const engineRuns = controller.policy.rpm > 0 && controller.policy.rpmAt !== null && at - controller.policy.rpmAt <= 2500;
             const blindOn = live && config.appEnabled && config.hudTurnBlindSpot === 'on';
             blindSpot.tick(at, blindOn && engineRuns);
-            blindSpotOverlay.tick(config, blindOn ? blindSpot.read(at) : null, controller.turn && controller.turn.indicator, blindOn && !!(pv && /^Turn/.test(pv.part || '')));
+            blindSpotOverlay.tick(config, blindOn ? blindSpot.read(at) : null, controller.turn && controller.turn.indicator, !!(pv && (/^Blind/.test(pv.part || '') || blindOn && /^Turn/.test(pv.part || ''))));
             driverGreeting.setHybrid(config.engineProfile === 'hybrid');
             driverGreeting.engine(controller.policy.rpm, controller.policy.rpmAt !== null && at - controller.policy.rpmAt <= 2500);
             greetingNow = driverGreeting.read(live && config.appEnabled && !!client.ready && String(client.targets || '').indexOf('hud:') >= 0);

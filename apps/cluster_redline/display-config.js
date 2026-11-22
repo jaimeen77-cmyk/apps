@@ -30,6 +30,11 @@ const NAV_LAYOUT_PARTS=NAV_PARTS.concat([ALERT_PART]);
 // of the HUD below the RPM face by default; moved and sized in Basic → Door-open warning → Position / size.
 const DOOR_PARTS=[{key:'Door',label:'Door-open warning',prefix:'hudDoor',scale:'hudDoorScale',w:96,h:150}];
 function doorRect(cfg){const s=(cfg.hudDoorScale||75)/100,w=Math.round(96*s),h=Math.round(150*s);return {x:Math.round((800-w)/2+(cfg.hudDoorOffsetX||0)),y:Math.round(286+(cfg.hudDoorOffsetY||0)),w,h};}
+// The blind spot signs (blind-spot-overlay.js): their own place and size, not the turn arrows' (1.3.24). By default each
+// sits under the default place of its side's turn arrow; moved and sized in HUD turn signals → Blind spot position / size.
+const BLIND_PARTS=[{key:'Blind',label:'Both blind spot signs',prefix:'hudTurnBlind',scale:'hudTurnBlindScale'},{key:'BlindLeft',label:'Left blind spot sign',prefix:'hudTurnBlindLeft',scale:'hudTurnBlindScale'},{key:'BlindRight',label:'Right blind spot sign',prefix:'hudTurnBlindRight',scale:'hudTurnBlindScale'}];
+const BLIND_BASE={w:51,h:54,gap:6};
+Object.assign(defaults,{hudTurnBlindOffsetX:0,hudTurnBlindOffsetY:0,hudTurnBlindLeftOffsetX:0,hudTurnBlindLeftOffsetY:0,hudTurnBlindRightOffsetX:0,hudTurnBlindRightOffsetY:0,hudTurnBlindScale:100,hudTurnBlindHidden:false,hudTurnBlindLeftHidden:false,hudTurnBlindRightHidden:false});
 Object.assign(defaults,{hudDoorOffsetX:0,hudDoorOffsetY:0,hudDoorScale:75,hudDoorHidden:false});
 Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'off',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
 ['hud','cluster'].forEach(d=>{
@@ -80,6 +85,8 @@ function normalize(raw,out){
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
  out.hudDoorAlert=raw.hudDoorAlert==='off'?'off':'on';out.hudDoorHidden=raw.hudDoorHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudDoor'+s];if(typeof v==='number'&&isFinite(v))out['hudDoor'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
+ BLIND_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
+ if(typeof raw.hudTurnBlindScale==='number'&&isFinite(raw.hudTurnBlindScale))out.hudTurnBlindScale=Math.max(20,Math.min(200,Math.round(raw.hudTurnBlindScale/5)*5));
  if(typeof raw.hudDoorScale==='number'&&isFinite(raw.hudDoorScale))out.hudDoorScale=Math.max(20,Math.min(200,Math.round(raw.hudDoorScale/5)*5));
  out.hudCarAlerts=ALERT_MODES.includes(raw.hudCarAlerts)?raw.hudCarAlerts:'off';out.hudCarAlertHidden=raw.hudCarAlertHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudCarAlert'+s];if(typeof v==='number'&&isFinite(v))out['hudCarAlert'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
@@ -105,6 +112,12 @@ function turnRect(cfg,side){
  const cx=TURN_BASE.x+(side==='left'?-1:1)*(TURN_BASE.gap*s+w/2)+(cfg.hudTurnOffsetX||0)+(cfg[own+'OffsetX']||0),cy=TURN_BASE.y+(cfg.hudTurnOffsetY||0)+(cfg[own+'OffsetY']||0);
  return {x:Math.max(0,Math.min(800-w,Math.round(cx-w/2))),y:Math.max(0,Math.min(480-h,Math.round(cy-h/2))),w,h};
 }
+/** A side's blind spot sign: under the default place of that side's turn arrow, then its own offsets and size. */
+function blindRect(cfg,side){
+ const a=turnRect({},side),s=(cfg.hudTurnBlindScale||100)/100,w=Math.round(BLIND_BASE.w*s),h=Math.round(BLIND_BASE.h*s),own=side==='left'?'hudTurnBlindLeft':'hudTurnBlindRight';
+ const x=a.x+a.w/2-w/2+(cfg.hudTurnBlindOffsetX||0)+(cfg[own+'OffsetX']||0),y=a.y+a.h+BLIND_BASE.gap+(cfg.hudTurnBlindOffsetY||0)+(cfg[own+'OffsetY']||0);
+ return {x:Math.max(0,Math.min(800-w,Math.round(x))),y:Math.max(0,Math.min(480-h,Math.round(y))),w,h};
+}
 // The sides drawn now: lit ones, or both while a turn signal part is being moved in Position / size.
 // <<< >>> does not go dark: it fills one, two, three chevrons in turn (turnStep) while the signal is on.
 const TURN_SIDES={left:['left'],right:['right'],both:['left','right']};
@@ -127,4 +140,4 @@ function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig'])
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !cfg[d+'RpmGaugeHidden']&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

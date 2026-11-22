@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.24
+
+- **Blind spot warning: its own Position / size** (HUD turn signals screen → Blind spot position / size): both signs together, or the left or right one alone, moved, sized (20..200 %) and hidden apart from the turn arrows. Moving or sizing the turn arrows no longer moves the signs; by default they sit under the default place of the arrows, as before. While it is open both signs show as a preview, even with the warning off. Kept with favourites and settings per driver like the other turn signal settings.
+
 ## Cluster Redline 1.3.23
 
 - **Blind spot warning picture redrawn**: seen from above like the car's own display, our car (blue, large) in its lane, the dashed lane line, and the car in the blind spot (smaller, its nose just below our car's middle) with detection waves between them; no time figure. Only the other car and the waves take the warning colour: amber while a car is there, red with the turn signal towards it. By default it now sits **under** each turn arrow, centred on it (51 x 54 at 100 %), instead of beside it; it still moves and sizes with the turn arrows.
