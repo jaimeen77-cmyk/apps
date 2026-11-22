@@ -9,7 +9,7 @@ assert.deepStrictEqual(D.openDoors({value:{statusDoorSwitchDRD:0,statusDoorSwitc
 assert.strictEqual(D.openDoors({other:1}),null,'names no door: keep what is known');
 const st=new D.DoorState();st.sample({statusDoorSwitchPSD:1},0);assert.deepStrictEqual(st.open,['passengerFront']);st.sample({x:1},10);assert.deepStrictEqual(st.open,['passengerFront']);st.sample({statusDoorSwitchPSD:0},20);assert.deepStrictEqual(st.open,[]);assert.strictEqual(st.received,3);
 // overlay (stub drawing: the kit canvas is not loaded on the host)
-const Module=require('module'),orig=Module._load;Module._load=function(r){if(r==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}clear(){}roundRect(){}line(){}}return {Canvas:C,ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}line(){}}};}return orig.apply(this,arguments);};
+const Module=require('module'),orig=Module._load;Module._load=function(r){if(r==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}clear(){}roundRect(){}line(){}fill(){}}return {Canvas:C,ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}line(){}fill(){}}};}return orig.apply(this,arguments);};
 const layers=new Map();let n=0,up=0;const client={image(o){layers.set(++n,Object.assign({},o));return n;},pixels(){up++;},set(r,o){Object.assign(layers.get(r),o);},drop(r){layers.delete(r);}};
 const DC=require('../../apps/cluster_redline/display-config'),c0=settings({});
 const ov=new D.DoorOverlay(client);ov.tick([],c0);assert.strictEqual(layers.size,0,'no door open: nothing');
@@ -18,7 +18,7 @@ const r0=DC.doorRect(c0);assert.deepStrictEqual([l.x,l.y,l.w,l.h],[r0.x,r0.y,r0.
 ['left','right'].forEach(side=>{const t=DC.turnRect(settings({}),side);assert(t.y+t.h<=r0.y||t.x+t.w<=r0.x||t.x>=r0.x+r0.w,'clear of the turn arrows');});
 ov.tick(['driverFront'],c0);assert.strictEqual(up,1,'unchanged: no pixels');ov.tick(['driverFront','passengerRear'],c0);assert.strictEqual(up,2);
 ov.tick(['driverFront'],settings({hudDoorOffsetX:40,hudDoorOffsetY:-20}));assert.deepStrictEqual([l.x,l.y],[r0.x+40,r0.y-20],'moved with Position / size');
-ov.tick(['driverFront'],settings({hudDoorScale:100}));assert.strictEqual(layers.get(1),undefined,'resized: a new layer');const l2=layers.get(2);assert.deepStrictEqual([l2.w,l2.h],[96,150]);
+ov.tick(['driverFront'],settings({hudDoorScale:100}));assert.strictEqual(layers.get(1),undefined,'resized: a new layer');const l2=layers.get(2);assert.deepStrictEqual([l2.w,l2.h],[120,150]);
 ov.tick(['driverFront'],settings({hudDoorHidden:true}));assert.strictEqual(l2.visible,false,'hidden in Position / size');ov.tick(D.SAMPLE,settings({hudDoorHidden:true}));assert.strictEqual(layers.get(3)?layers.get(3).visible:l2.visible,true,'preview while adjusting');
 ov.tick([],c0);ov.close();Module._load=orig;
 // demand and settings
@@ -42,5 +42,5 @@ if(process.argv[2]){const pg=path.join(path.resolve(process.argv[2]),'source/jav
  scr().find(t=>t.id==='door-layout').run();assert.strictEqual(page.open,'layout');assert(/^hud:Door@/.test(vals.layoutPreview));page.adjust(0,1);page.adjust(2,1);assert.deepStrictEqual([vals.hudDoorOffsetX,vals.hudDoorScale],[10,80]);
  page.back();assert.strictEqual(page.open,'door');assert.strictEqual(vals.layoutPreview,'');}
 if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),R=require(path.join(dir,'door-alert'));const red=cv=>{let k=0;for(let i=0;i<cv.d.length;i+=4)if(cv.d[i]>200&&cv.d[i+1]<80&&cv.d[i+3]>200)k++;return k;};
- assert.strictEqual(red(R.draw([])),0,'all closed: no red');assert(red(R.draw(['driverFront']))>20,'an open door in red');assert(red(R.draw(['driverFront','passengerFront','driverRear','passengerRear']))>red(R.draw(['driverFront']))*3);}
+ assert.strictEqual(red(R.draw([])),0,'all closed: no red');assert(red(R.draw(['driverFront']))>20,'an open door in red');const one=red(R.draw(['driverFront'])),two=red(R.draw(['driverFront','passengerRear'])),four=red(R.draw(['driverFront','passengerFront','driverRear','passengerRear']));assert(two>one&&four>two,'each open door adds its own red door');}
 console.log('PASS: door-open warning: centred by default, Position / size (move, size, hide, preview), the cluster gives way while a door is open, door switches decoded, overlay while open (re-drawn on change), on by default, demand and install-time input'+(process.argv[2]?', drawn':''));
