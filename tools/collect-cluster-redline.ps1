@@ -89,6 +89,15 @@ for file in "$task_root"/var/opt/public/oap/oap_*/data/speed-probe-[0-9]*.log "$
     tail -n 600 "$file"
 done
 [ "$probe_found" -eq 1 ] || printf '%s\n' 'SPEED_PROBE_LOG_NOT_FOUND'
+printf '\n%s\n' '=== RECEIVED TURNS (Navigation display -> Received turns -> Record to a file; only when it was turned on) ==='
+nav_found=0
+for file in "$task_root"/var/opt/public/oap/oap_*/data/nav-probe.log.1 "$task_root"/var/opt/public/oap/oap_*/data/nav-probe.log; do
+    [ -r "$file" ] || continue
+    nav_found=1
+    printf '%s\n' "PATH: $file"
+    tail -n 2000 "$file"
+done
+[ "$nav_found" -eq 1 ] || printf '%s\n' 'NAV_PROBE_LOG_NOT_FOUND'
 printf '\n%s\n' '=== CAPTURE END (UTC) ==='
 date -u '+%Y-%m-%dT%H:%M:%SZ'
 exit 0
