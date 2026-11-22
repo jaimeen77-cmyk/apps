@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.23
+
+- **Blind spot warning picture redrawn**: seen from above like the car's own display, our car (blue, large) in its lane, the dashed lane line, and the car in the blind spot (smaller, its nose just below our car's middle) with detection waves between them; no time figure. Only the other car and the waves take the warning colour: amber while a car is there, red with the turn signal towards it. By default it now sits **under** each turn arrow, centred on it (51 x 54 at 100 %), instead of beside it; it still moves and sizes with the turn arrows.
+
 ## Cluster Redline 1.3.22
 
 - **Blind spot warning** (HUD tab → HUD turn signals screen → Blind spot warning on / off, off by default): when a door mirror's lane change lamp is lit, an amber car sign shows beside that side's turn arrow on the HUD (outside it), red when the turn signal is on towards it or the lamp flashes. Its own overlay layers; they move and size with the turn arrows. Read from the body controller (BDC 0x40, identifier D347) every 300 ms while it is on and the engine runs, read only through the kit's ReadOnlyDiag (only 22 D3 47 is sent; writes cannot leave the head unit); stale after 3 s; a refusal stops the reading. Facts as akakingj's myapp-id7 Redline and mlurker's HUD signals found them; code written anew (`blind-spot.js`, `blind-spot-overlay.js`, credited in NOTICE).

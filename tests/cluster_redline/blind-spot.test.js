@@ -36,6 +36,6 @@ const settle=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  assert(f({hudTurnBlindSpot:'on'}).includes('de.bmw.infotainment.vehicle.CDS.statusEngineSpeed2'));assert.strictEqual(settings({}).hudTurnBlindSpot,'off','off by default');
  if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),{ReadOnlyDiag}=require(dir+'/kit/readonly-diag');
   const r=new ReadOnlyDiag({},{warn(){},info(){}});assert.throws(()=>r.physical(0x40,0x2E,[0xD3,0x47,1,1]),'a write never leaves the head unit');
-  const B=require(dir+'/blind-spot-overlay');let red=0;const cv=B.draw(40,36,'right',B.RED);for(let i=0;i<cv.d.length;i+=4)if(cv.d[i]>200&&cv.d[i+1]<80&&cv.d[i+3]>200)red++;assert(red>100,'drawn');}
+  const B=require(dir+'/blind-spot-overlay');let red=0,blue=0;const cv=B.draw(51,54,'right',B.RED);for(let i=0;i<cv.d.length;i+=4){if(cv.d[i]>200&&cv.d[i+1]<80&&cv.d[i+3]>200)red++;if(cv.d[i]<120&&cv.d[i+2]>200&&cv.d[i+3]>200)blue++;}assert(red>60,'the other car in the warning colour');assert(blue>red,'our car blue, larger');}
  console.log('PASS: blind spot warning: 22 D347 only (writes refused by the read-only link), 300 ms, stale 3 s, refusal stops, released when off; signs under the arrows (amber / red), engine speed demanded'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});
