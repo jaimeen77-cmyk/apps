@@ -31,9 +31,17 @@ const reply=(...events)=>({GuidanceEventListError:'NO_ERROR',viewContent:[{event
  assert.notDeepStrictEqual(navKey(s(null),'Direction'),navKey(s({maneuver:'LEFT',gap:120}),'Direction'));
  assert.strictEqual(settings({}).hudNavThen,'on','on by default');assert.strictEqual(settings({hudNavThen:'off'}).hudNavThen,'off');
  // drawn under the distance (with a built package)
+ if(process.argv[2]){const path=require('path');
+  // Navigation tab → Navigation display: its own screen with the drive modes and the next turn (1.3.36)
+  {const root=path.join(path.resolve(process.argv[2]),'source/javascript'),{SettingsPage}=require(root+'/settings-ui'),{Canvas}=require(root+'/kit/canvas'),spec=require(root+'/kit/app-spec.json'),v={};spec.settings.forEach(x=>{v[x.key]=x.default;});
+   const page=new SettingsPage({schema:spec.settings,get:k=>v[k],set:(k,x)=>{v[k]=x;},onChange(){}},()=>{},'t');page.selectTab(3);assert(page.keys().indexOf('hudNavThen')<0,'no row of its own');
+   page.focus=page.keys().indexOf('navDisplayMode');page.activate();assert.strictEqual(page.open,'navMode');
+   const scr=()=>{const cv=new Canvas(1600,520);page.draw(cv,'',{});return cv.targets;};scr().find(t=>t.id==='navthen-off').run();scr().find(t=>t.id==='navmode-excludeSport').run();
+   assert.deepStrictEqual([v.hudNavThen,v.navDisplayMode],['off','excludeSport']);page.back();assert.strictEqual(page.open,null);}
+ }
  if(process.argv[2]){const path=require('path'),N=require(path.join(path.resolve(process.argv[2]),'source/javascript/nav-draw'));
   const ink=(cv)=>{let n=0;for(let y=Math.round(cv.h*0.72);y<cv.h;y++)for(let x=Math.round(cv.w*0.45);x<cv.w;x++)if(cv.d[(y*cv.w+x)*4+3]>128)n++;return n;};
   const plain=N.drawSized({visible:true,maneuver:'RIGHT',distanceText:'150 m'},240,112),with_=N.drawSized({visible:true,maneuver:'RIGHT',distanceText:'150 m',then:{maneuver:'LEFT',gap:120}},240,112);
   assert(ink(with_)>ink(plain)+150,'"Then" line drawn under the distance');}
- console.log('PASS: next turn on the HUD: the list\'s second event within 250 m (distances to the destination), not a passed one, only for the turn shown, fresh; render key; on by default'+(process.argv[2]?', drawn':''));
+ console.log('PASS: next turn on the HUD: the list\'s second event within 250 m (distances to the destination), not a passed one, only for the turn shown, fresh; render key; on by default; set in Navigation display'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -14,7 +14,7 @@ assert.strictEqual(settings({}).clusterYieldGuidance,'off');assert.strictEqual(s
 assert.strictEqual(settings({clusterYieldGuidance:'any'}).clusterYieldGuidance,'phone','the retired third choice reads as on');
 assert.strictEqual(settings({clusterYieldGuidance:'nosport'}).clusterYieldGuidance,'nosport');
 const page=(values)=>new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;},setMany(c){Object.assign(values,c);}},null,'1.2.19');
-{const v={};spec.settings.forEach(s=>{v[s.key]=s.default;});const p=page(v);p.selectTab(3);const at=p.keys().indexOf('clusterYieldGuidance');assert(at>=0&&at<p.keys().indexOf('layout'));assert.strictEqual(require(root+'/settings-ui').SettingsPage&&p.keys().length,6,'NAV tab: + Vehicle alerts, + Next turn on HUD (1.3.35)');
+{const v={};spec.settings.forEach(s=>{v[s.key]=s.default;});const p=page(v);p.selectTab(3);const at=p.keys().indexOf('clusterYieldGuidance');assert(at>=0&&at<p.keys().indexOf('layout'));assert.strictEqual(require(root+'/settings-ui').SettingsPage&&p.keys().length,5,'NAV tab: + Vehicle alerts (the next turn is inside Navigation display since 1.3.36)');
  p.activate(at);assert.strictEqual(p.open,'clusterYieldGuidance');p.choose(2);assert.strictEqual(v.clusterYieldGuidance,'nosport','except Sport');p.activate(at);p.choose(1);assert.strictEqual(v.clusterYieldGuidance,'phone');assert.strictEqual(p.config().clusterYieldGuidance,'phone');}
 
 // Outputs: with guidance running the cluster output is released; the HUD is not affected.
