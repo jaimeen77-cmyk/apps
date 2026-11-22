@@ -71,7 +71,8 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
   ov.tick({name:'홍길동'});assert.strictEqual(up,1,'drawn once');ov.tick(null);assert.strictEqual(l.visible,false);ov.close();
   // the cluster: its own content layer in the middle of the centre display
   assert.strictEqual(O.text('홍길동',true),'홍길동님 안녕히 가세요');
-  const oc=new O.GreetingOverlay(client,'map');oc.tick({name:'홍길동'});const c=layers.get(k);assert(c.target==='map'&&c.klass==='content'&&c.visible);assert.strictEqual(c.x+c.w/2,544);oc.close();
+  const oc=new O.GreetingOverlay(client,'map');oc.tick({name:'홍길동'});const c=layers.get(k);assert(c.target==='map'&&c.klass==='content'&&c.visible);assert.strictEqual(c.x+c.w/2,544);
+  assert.strictEqual(c.contend,true,'the cluster centre taken from the stock map while shown');oc.tick(null);assert.strictEqual(c.contend,false,'and handed back');assert.strictEqual(l.contend,undefined,'the HUD layer asks nothing');oc.close();
   const cc=O.drawCluster('홍길동');n=0;for(let i=3;i<cc.d.length;i+=4)if(cc.d[i])n++;assert(n>10000,'cluster card drawn');
  }
  console.log('PASS: driver greeting in the upper half of the seen HUD and on the cluster, both faces stepping aside meanwhile; a driver change with the engine off waits for the start; a short stop with a door opened greeted, the last outcome kept; 5 s; a goodbye when the engine is switched off in P; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
