@@ -16,8 +16,9 @@ function draw(name,bye){
  return cv;
 }
 // The cluster (1.3.28): the same words, larger, on a dark card in the middle of the cluster's centre display (the map
-// area, 1088 x 480), which the Redline cluster face gives up meanwhile (outputs.js); a content layer, as the face's own,
-// so the stock map comes back when it hides.
+// area, 1088 x 480), which the Redline cluster face gives up meanwhile (outputs.js); a content layer, as the face's own.
+// The centre is the stock map's slot: a layer there is seen only while it asks for the slot (contend), as the face
+// does (1.3.33: without it the greeting stayed under the stock map). Asked only while shown, handed back on hiding.
 const CW=600,CH=120,CX=(1088-CW)/2,CY=(480-CH)/2;
 function drawCluster(name,bye){
  const {Canvas}=require('./kit/canvas');require('./crisp-text');
@@ -27,19 +28,19 @@ function drawCluster(name,bye){
  cv.fillRect(CW/2-80,CH-16,160,4,'#37c6ff');
  return cv;
 }
-const PLACES={hud:{target:'hud',klass:'overlay',z:13,x:X,y:Y,w:W,h:H,draw},map:{target:'map',klass:'content',z:120,x:CX,y:CY,w:CW,h:CH,draw:drawCluster}};
+const PLACES={hud:{target:'hud',klass:'overlay',z:13,x:X,y:Y,w:W,h:H,draw},map:{target:'map',klass:'content',z:120,x:CX,y:CY,w:CW,h:CH,draw:drawCluster,contend:true}};
 class GreetingOverlay{
  // place: 'hud' (the default) or 'map' (the cluster)
  constructor(client,place){this.client=client;this.place=PLACES[place]||PLACES.hud;this.ref=0;this.key=null;this.visible=false;}
  tick(value){
   if(!value){this.hide();return false;}const p=this.place;
-  if(!this.ref){this.ref=this.client.image({target:p.target,klass:p.klass,z:p.z,x:p.x,y:p.y,w:p.w,h:p.h,iw:p.w,ih:p.h,visible:false});if(!this.ref)return false;}
+  if(!this.ref){this.ref=this.client.image(Object.assign({target:p.target,klass:p.klass,z:p.z,x:p.x,y:p.y,w:p.w,h:p.h,iw:p.w,ih:p.h,visible:false},p.contend?{exclusive:true,contend:false}:{}));if(!this.ref)return false;}
   const key=(value.bye?'bye:':'')+(value.name||'');
   if(this.key!==key){const cv=p.draw(value.name,!!value.bye);this.client.pixels(this.ref,null,Buffer.from(cv.d.buffer,cv.d.byteOffset,cv.d.byteLength));this.key=key;}
-  if(!this.visible){this.client.set(this.ref,{visible:true});this.visible=true;}
+  if(!this.visible){this.client.set(this.ref,p.contend?{visible:true,contend:true}:{visible:true});this.visible=true;}
   return true;
  }
- hide(){if(this.ref&&this.visible){this.client.set(this.ref,{visible:false});this.visible=false;}}
+ hide(){if(this.ref&&this.visible){this.client.set(this.ref,this.place.contend?{visible:false,contend:false}:{visible:false});this.visible=false;}}
  close(){if(this.ref)this.client.drop(this.ref);this.ref=0;this.key=null;this.visible=false;}
 }
 module.exports={GreetingOverlay,text,draw,drawCluster,W,H,X,Y,CW,CH,CX,CY};
