@@ -13,7 +13,10 @@ const LEGACY_PARTS=['Aux'];
 // The Redline app layouts' elements (redline-hud.js), on the HUD and the cluster. Kept in the saved settings like hudDesign,
 // outside app.json, so the Store's settings templates stay valid.
 const RL_PARTS=['RlCar','RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlTemp','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];
-const NAV_PARTS=[{key:'Direction',label:'Direction',prefix:'hudNav',scale:'navUniformScale',w:240,h:112},{key:'Text',label:'Text',prefix:'hudText',scale:'hudTextScale',w:240,h:48},{key:'Lanes',label:'Lane guidance',prefix:'hudLanes',scale:'hudLanesScale',w:240,h:72}];
+const NAV_PARTS=[{key:'Direction',label:'Direction',prefix:'hudNav',scale:'navUniformScale',w:240,h:112},{key:'Text',label:'Text',prefix:'hudText',scale:'hudTextScale',w:240,h:48},{key:'Lanes',label:'Lane guidance',prefix:'hudLanes',scale:'hudLanesScale',w:240,h:72},
+ // the turn after the next one (1.3.43, its own part; until then drawn inside Direction): placed from Direction's own
+ // place, so it follows Direction, then moved and sized on its own
+ {key:'Then',label:'Next turn',prefix:'hudThen',scale:'hudThenScale',w:132,h:44}];
 const defaults={hudTurnBlindSpot:'off',hudTurnSignals:'off',hudTurnStyle:'arrow',hudTurnColor:'green',hudTurnOffsetX:0,hudTurnOffsetY:0,hudTurnScale:100,hudTurnLeftOffsetX:0,hudTurnLeftOffsetY:0,hudTurnRightOffsetX:0,hudTurnRightOffsetY:0,hudTurnHidden:false,hudTurnLeftHidden:false,hudTurnRightHidden:false,displaySettingsRevision:4,clusterAlertStyle:'circle',navDisplayMode:'all',navColor:'blue',navUniformScale:70,hudTextOffsetX:180,hudTextOffsetY:10,hudTextScale:65,hudLanesOffsetX:210,hudLanesOffsetY:115,hudLanesScale:70,hudAuxTextOffsetY:10,clockZone:'auto',layoutPreview:'',hudDesign:'own',clusterDesign:'own'};
 NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
 // Navigation colours: the arrow (navColor, also the recommended lanes) and the text (navTextColor: distance, road and
@@ -48,7 +51,7 @@ Object.assign(defaults,{hudHeadway:'off',hudHeadwayOffsetX:0,hudHeadwayOffsetY:0
 // the drive mode rules). bcIndex and bcCluster are the car's state, not a favourite's or a driver's.
 Object.assign(defaults,{bcFollow:'off',bcHmi:'ID7',bcPages:'',bcStart:'last',bcIndex:0,bcCluster:''});
 // HUD navigation: the turn after the next one under the arrow when it follows close behind (1.3.35)
-Object.assign(defaults,{hudNavThen:'on'});
+Object.assign(defaults,{hudNavThen:'on',hudThenOffsetX:0,hudThenOffsetY:0,hudThenScale:70,navProbeLog:'off'});
 Object.assign(defaults,{hudDoorOffsetX:0,hudDoorOffsetY:0,hudDoorScale:75,hudDoorHidden:false});
 Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'off',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
 ['hud','cluster'].forEach(d=>{
@@ -84,7 +87,7 @@ function normalize(raw,out){
  });
  // Redline layout elements size uniformly (text can't stretch): height follows width.
  ['hud','cluster'].forEach(d=>RL_PARTS.forEach(p=>{const k=d+p;out[k+'Hidden']=p==='RlMark'?raw[k+'Hidden']!==false:raw[k+'Hidden']===true;['OffsetX','OffsetY'].forEach(s=>{const v=raw[k+s];if(typeof v==='number'&&isFinite(v))out[k+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});const v=raw[k+'WidthScale'];if(typeof v==='number'&&isFinite(v))out[k+'WidthScale']=Math.max(20,Math.min(200,Math.round(v/5)*5));out[k+'HeightScale']=out[k+'WidthScale'];}));
- ['hudText','hudLanes'].forEach(prefix=>['OffsetX','OffsetY','Scale'].forEach(s=>{const k=prefix+s,v=raw[k];if(typeof v==='number'&&isFinite(v))out[k]=s==='Scale'?Math.max(20,Math.min(200,Math.round(v/5)*5)):Math.max(-1000,Math.min(1000,Math.round(v)));}));
+ ['hudText','hudLanes','hudThen'].forEach(prefix=>['OffsetX','OffsetY','Scale'].forEach(s=>{const k=prefix+s,v=raw[k];if(typeof v==='number'&&isFinite(v))out[k]=s==='Scale'?Math.max(20,Math.min(200,Math.round(v/5)*5)):Math.max(-1000,Math.min(1000,Math.round(v)));}));
  NAV_PARTS.forEach(p=>{out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudAuxTextOffsetY==='number'&&isFinite(raw.hudAuxTextOffsetY))out.hudAuxTextOffsetY=Math.max(-1000,Math.min(1000,raw.hudAuxTextOffsetY));
  if(raw.navUniformScale!==undefined||raw.displaySettingsRevision>=2){const n=typeof raw.navUniformScale==='number'&&isFinite(raw.navUniformScale)?raw.navUniformScale:out.hudNavWidthScale;out.hudNavWidthScale=out.hudNavHeightScale=Math.max(20,Math.min(200,n));}
@@ -99,7 +102,7 @@ function normalize(raw,out){
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
  out.bcFollow=raw.bcFollow==='on'?'on':'off';out.bcHmi=raw.bcHmi==='ID8'?'ID8':'ID7';out.bcPages=typeof raw.bcPages==='string'?raw.bcPages:'';out.bcStart=raw.bcStart==='first'?'first':'last';
  out.bcIndex=Number.isInteger(raw.bcIndex)&&raw.bcIndex>=0&&raw.bcIndex<20?raw.bcIndex:0;out.bcCluster=raw.bcCluster==='redline'||raw.bcCluster==='yield'?raw.bcCluster:'';
- out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
+ out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.navProbeLog=raw.navProbeLog==='on'?'on':'off';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudHeadway'+s];if(typeof v==='number'&&isFinite(v))out['hudHeadway'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  if(typeof raw.hudHeadwayScale==='number'&&isFinite(raw.hudHeadwayScale))out.hudHeadwayScale=Math.max(20,Math.min(200,Math.round(raw.hudHeadwayScale/5)*5));out.greetHello=raw.greetHello==='off'?'off':'on';out.greetBye=raw.greetBye==='off'?'off':'on';
  out.hudDoorAlert=raw.hudDoorAlert==='off'?'off':'on';out.hudDoorHidden=raw.hudDoorHidden===true;
@@ -156,7 +159,9 @@ function navVisible(cfg,mode){const on=navAllowed(cfg,mode);return {direction:on
 function layoutPreview(cfg,now){const m=/^(hud|cluster|nav):([A-Za-z]+)@([0-9]+)$/.exec(cfg.layoutPreview||'');if(!m)return null;const at=Number(m[3]),t=typeof now==='number'?now:Date.now();return t>=at-5000&&t-at<=120000?{display:m[1]==='nav'?'hud':m[1],tab:m[1],part:m[2]}:null;}
 // HH:MM in the head unit's local time, or fixed UTC+9 when the system clock has no Korean time zone.
 function clockText(cfg,date){const d=date||new Date(),t=cfg.clockZone==='utc9'?new Date(d.getTime()+9*3600000):d,h=cfg.clockZone==='utc9'?t.getUTCHours():t.getHours(),m=cfg.clockZone==='utc9'?t.getUTCMinutes():t.getMinutes();return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
-function navRect(cfg,key){const p=NAV_LAYOUT_PARTS.find(p=>p.key===key),s=cfg[p.scale]/100,w=Math.round(p.w*s),h=Math.round(p.h*s);return {x:Math.round((800-w)/2+cfg[p.prefix+'OffsetX']),y:Math.round(240+cfg[p.prefix+'OffsetY']),w,h};}
+function navRect(cfg,key){const p=NAV_LAYOUT_PARTS.find(p=>p.key===key),s=cfg[p.scale]/100,w=Math.round(p.w*s),h=Math.round(p.h*s);
+ if(key==='Then'){const d=navRect(cfg,'Direction'),k=d.w/240;return {x:Math.round(d.x+108*k+cfg.hudThenOffsetX),y:Math.round(d.y+66*k+cfg.hudThenOffsetY),w,h};}
+ return {x:Math.round((800-w)/2+cfg[p.prefix+'OffsetX']),y:Math.round(240+cfg[p.prefix+'OffsetY']),w,h};}
 function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig']);if(a.mode==='off')return [];
  // A Redline app layout shows its readouts whatever the default design's Aux left / right hide settings are.
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}

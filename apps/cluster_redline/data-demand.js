@@ -11,7 +11,7 @@ function demand(cfg,mode){
  // the blind spot warning reads the mirror lamps only while the engine runs: it needs the engine speed
  const rpm=faces.some(d=>D.faceRpmNeeded(cfg,d))||aux.has('batteryVoltage')||enabled&&cfg.hudTurnBlindSpot==='on',torque=aux.has('torque')||aux.has('power'),gear=faces.some(d=>!cfg[d+'GearHidden']);
  const navAny=enabled&&(nav.direction||nav.text||nav.lanes),turns=enabled&&(nav.direction||nav.text);
- const navPotential=enabled&&cfg.hudNavigationEnabled&&cfg.navDisplayMode!=='stock'&&D.NAV_PARTS.some(p=>!cfg[p.prefix+'Hidden']);
+ const navPotential=enabled&&cfg.hudNavigationEnabled&&cfg.navDisplayMode!=='stock'&&D.NAV_PARTS.some(p=>p.key!=='Then'&&!cfg[p.prefix+'Hidden']);
  const modeNeeded=navPotential||enabled&&['hud','cluster'].some(d=>D.faceVisible(cfg,d)&&D.rpmOutputPossible(cfg,d==='hud'?'Hud':'Cluster'));
  const add=(i,f)=>fields.add(i+(f?'.'+f:''));
  if(modeNeeded)add(F,'statusFESVehicleDynamicSwitchHMI');if(rpm)add(C,'statusEngineSpeed2');if(torque)add(F,'statusActualValueTorque2');

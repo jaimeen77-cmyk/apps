@@ -44,7 +44,7 @@ function previewConfig(cfg,name,pv){
 function redlineHudShown(s){return !!(s&&s.requested&&s.layerState==='shown'&&s.targetState==='shown'&&s.targetHolder!=='stock'&&s.targetHolder!=='foreign');}
 function sampleNavigation(){
     const lane=(d,hl)=>({directions:[d],other:[],highlighted:hl,blocked:false});
-    return {visible:true,maneuverVisible:true,reason:'layout_preview',kind:'intersection',maneuver:'RIGHT',distanceText:'300 m',description:tr('Navigation preview'),provider:'PREVIEW',
+    return {visible:true,maneuverVisible:true,reason:'layout_preview',kind:'intersection',maneuver:'RIGHT',distanceText:'300 m',description:tr('Navigation preview'),provider:'PREVIEW',then:{maneuver:'LEFT',gap:120},
         lanes:{visible:true,lanes:[lane('LEFT',false),lane('STRAIGHT_ON',false),lane('STRAIGHT_ON',false),lane('RIGHT',true)]}};
 }
 class Outputs {

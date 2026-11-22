@@ -73,26 +73,29 @@ function draw(state,target) {
         roadDiagram(cv,state,color0);const info=highwayInfo(state),text=state.distanceText||'';let size=40;
         while(size>20&&cv.textWidth(text,size,{font:'num',literal:true})>130)size--;
         if(info){let ls=22;while(ls>14&&cv.textWidth(info.label,ls,{font:'bold'})>130)ls--;cv.text(info.label,108,32,ls,ink,{font:'bold'});cv.text(text,108,84,size,ink,{font:'num',literal:true});}
-        else if(state.then&&state.then.maneuver){cv.text(text,108,58,Math.min(size,34),ink,{font:'num',literal:true});thenLine(cv,state.then,color0,ink);}
         else cv.text(text,108,67,size,ink,{font:'num',literal:true});
         return cv;
     }
     if(!arrow(cv,state,arrowColor(state)))return cv;
     const text=state.distanceText||'';let size=40;
     while(size>20&&cv.textWidth(text,size,{font:'num',literal:true})>130)size--;
-    // the turn after this one, when it follows close behind (1.3.35): a smaller distance, "Then", its arrow and the gap
-    const then=state.then;
-    if(then&&then.maneuver){size=Math.min(size,34);cv.text(text,108,58,size,ink,{font:'num',literal:true});thenLine(cv,then,arrowColor(state),ink);}
-    else cv.text(text,108,67,size,ink,{font:'num',literal:true});
+    cv.text(text,108,67,size,ink,{font:'num',literal:true});
     return cv;
 }
-// "Then [arrow] 120 m" under the distance: the arrow is the turn's own, a third of the size (a plain arrow for a
-// junction diagram, which would not read that small)
+// The turn after this one, when it follows close behind (1.3.35): "Then [arrow] 120 m", its own HUD part (1.3.43,
+// Position / size: Next turn; until then drawn under Direction's distance). The arrow is the turn's own, a third of
+// the size (a plain arrow for a junction diagram, which would not read that small).
+const THEN_W=132,THEN_H=44;
 function thenLine(cv,then,color,ink){
-    const label=require('./strings').tr('Then');let x=108;
-    cv.text(label,x,99,17,withAlpha(ink,0.8),{font:'bold',literal:true});x+=cv.textWidth(label,17,{font:'bold',literal:true})+6;
-    arrow(at(cv,0.3,x,72),{maneuver:then.maneuver,exitNumber:then.exitNumber},color,true);x+=34;
-    if(typeof then.gap==='number')cv.text(then.gap+' m',x,99,17,withAlpha(ink,0.8),{font:'num',literal:true});
+    const label=require('./strings').tr('Then');let x=0;
+    cv.text(label,x,33,17,withAlpha(ink,0.8),{font:'bold',literal:true});x+=cv.textWidth(label,17,{font:'bold',literal:true})+6;
+    arrow(at(cv,0.3,x,6),{maneuver:then.maneuver,exitNumber:then.exitNumber},color,true);x+=34;
+    if(typeof then.gap==='number')cv.text(then.gap+' m',x,33,17,withAlpha(ink,0.8),{font:'num',literal:true});
+}
+function drawThen(state,target){
+    const cv=target||new Canvas(THEN_W,THEN_H);if(!target)cv.clear([0,0,0,0]);
+    const then=state&&state.visible&&state.then;if(!then||!then.maneuver)return cv;
+    thenLine(cv,then,arrowColor(state),textColor(state));return cv;
 }
 const withAlpha=(c,a)=>{const m=/^#([0-9a-f]{6})$/i.exec(c);if(!m)return c;const n=parseInt(m[1],16);return [n>>16&255,n>>8&255,n&255,Math.round(a*255)];};
 // a view of cv drawn at scale s from (ox, oy)
@@ -139,4 +142,5 @@ function scaled(cv,s){return {line:(a,b,c,d,w,col)=>cv.line(a*s,b*s,c*s,d*s,w*s,
  quad:(p,c)=>cv.quad(p.map(v=>[v[0]*s,v[1]*s]),c),arc:(x,y,r0,r1,a0,a1,c,o)=>cv.arc(x*s,y*s,r0*s,r1*s,a0,a1,c,o),
  text:(t,x,y,size,c,o)=>cv.text(t,x*s,y*s,size*s,c,o),textWidth:(t,size,o)=>cv.textWidth(t,size*s,o)/s};}
 function drawSized(state,w,h){const s=(w||W)/W,cv=new Canvas(Math.max(1,Math.round(w||W)),Math.max(1,Math.round(h||H*s)));cv.clear([0,0,0,0]);draw(state,scaled(cv,s));return cv;}
-module.exports={draw,drawSized,W,H,highwayInfo,diagramKind};
+const then={W:THEN_W,H:THEN_H,draw:drawThen,drawSized(state,w,h){const s=(w||THEN_W)/THEN_W,cv=new Canvas(Math.max(1,Math.round(w||THEN_W)),Math.max(1,Math.round(h||THEN_H*s)));cv.clear([0,0,0,0]);drawThen(state,scaled(cv,s));return cv;}};
+module.exports={draw,drawSized,then,W,H,highwayInfo,diagramKind};

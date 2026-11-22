@@ -15,6 +15,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
 
+## Cluster Redline 1.3.43
+
+- **Next turn is its own HUD part** (Navigation tab → Position / size → Next turn): the `Then [arrow] 120 m` line, until now drawn inside Direction under its distance, is moved, sized and hidden on its own. Its default place is where it was drawn (under Direction's distance), placed from Direction's own place so it follows Direction. Direction keeps its full-size distance.
+- **Received turns** (Navigation tab → Navigation display → Received turns): to see what a phone navigation (T map, Kakao Navi through CarPlay / Android Auto) or BMW's own guidance sends, e.g. for a highway exit.
+  - The screen shows the last 10 turns, newest first. Each line has the time, the source (guidance / route list / stock HUD, CarPlay / AA / BMW), the kind, every plain raw field as it came (`branchType=7`, `direction=6` ...), the distance, the description text and what the HUD drew (highway picture, arrow ...). The same turn again only updates its distance.
+  - **Record to a file** (off by default) writes `nav-probe.log` in the app's data folder: one JSON line per new turn with the whole turn as received, and the route's event list when its first turn changes. At most 1 MB, then one older file `.1`. Read only; nothing is sent to the car.
+- Tests: `nav-probe`, `next-turn` updated.
+
 ## Cluster Redline 1.3.42
 
 - **BC mode** is now a choice of the Cluster tab's RPM rows (Sport mode / All modes RPM display: Redline app / Stock display / BC mode), instead of an on / off of its own: the drive modes set to it follow the BC button; in Sport its own row decides (Redline there over an All modes BC mode). The presses are counted in every drive mode while any row has BC mode, so the pages stay in step; a page's screen is applied only while the drive mode is in BC mode (and again on coming back to it). A "no change" page shows the Redline cluster as it is. 1.3.40–1.3.41's on becomes All modes: BC mode.
