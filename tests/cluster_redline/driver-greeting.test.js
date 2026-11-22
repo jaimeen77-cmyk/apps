@@ -26,6 +26,14 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
  G.engine(0,true,30000);G.door(true);G.door(false);G.engine(900,true,60000);assert.deepStrictEqual(G.read(true,60100),{name:'홍길동'},'door opened while off: greeted after a short stop');
  G.engine(0,true,90000);G.engine(900,true,100000);assert.strictEqual(G.read(true,100100),null);assert.strictEqual(G.status().last.what,'restart','auto start-stop: noted, not greeted');
  G.door(true);G.engine(900,true,100200);assert.strictEqual(G.read(true,100300),null,'a door opened while running does not count');
+ assert.strictEqual(G.SHOW_MS,10000,'10 s');
+ // the goodbye: the engine switched off in P (or P within 5 s): 10 s; an auto start-stop stop in D: none
+ G.reset();G.setEnabled(true);G.driver('홍길동',false,0);G.engine(900,true,1000,'D');G.read(true,1100);G.read(true,1100+G.SHOW_MS);
+ G.engine(0,true,200000,'D');assert.strictEqual(G.read(true,200100),null,'stopped in D (auto start-stop): no goodbye');
+ G.engine(0,true,203000,'P');assert.deepStrictEqual(G.read(true,203100),{name:'홍길동',bye:true},'put in P within 5 s: goodbye');assert.strictEqual(G.read(true,203100+G.SHOW_MS),null);assert.strictEqual(G.status().last.what,'bye');
+ G.engine(900,true,500000,'P');G.read(true,500100);G.read(true,500100+G.SHOW_MS);
+ G.engine(0,true,600000,'D');G.engine(0,true,600000+G.PARK_MS+1,'P');assert.strictEqual(G.read(true,606000),null,'P long after the stop: no goodbye');
+ G.engine(900,true,700000,'P');G.read(true,700100);G.read(true,700100+G.SHOW_MS);G.engine(0,true,800000,'P');assert.strictEqual(G.read(false,800000+G.BYE_WAIT_MS+1),null);assert.strictEqual(G.status().last.what,'bye_not_ready','display gone: dropped');
  G.reset();G.engine(900,true,0);G.driver('홍길동',false,10);assert.strictEqual(G.read(true,20000),null,'settings per driver off: no greeting');assert.strictEqual(G.wantsEngine(),false);
  // eDrive: the driver's recognition at the start is the start
  G.reset();G.setEnabled(true);G.setHybrid(true);G.driver('홍길동',false,0);assert.deepStrictEqual(G.read(true,10),{name:'홍길동'},'eDrive: greeted when recognised');assert.strictEqual(G.wantsEngine(),false);
@@ -58,8 +66,9 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
   const ov=new O.GreetingOverlay(client);ov.tick({name:'홍길동'});const l=layers.get(1);assert(l.klass==='overlay'&&l.target==='hud'&&l.visible);
   ov.tick({name:'홍길동'});assert.strictEqual(up,1,'drawn once');ov.tick(null);assert.strictEqual(l.visible,false);ov.close();
   // the cluster: its own content layer in the middle of the centre display
+  assert.strictEqual(O.text('홍길동',true),'홍길동님 안녕히 가세요');
   const oc=new O.GreetingOverlay(client,'map');oc.tick({name:'홍길동'});const c=layers.get(k);assert(c.target==='map'&&c.klass==='content'&&c.visible);assert.strictEqual(c.x+c.w/2,544);oc.close();
   const cc=O.drawCluster('홍길동');n=0;for(let i=3;i<cc.d.length;i+=4)if(cc.d[i])n++;assert(n>10000,'cluster card drawn');
  }
- console.log('PASS: driver greeting in the upper half of the seen HUD and on the cluster, both faces stepping aside meanwhile; a short stop with a door opened greeted, the last outcome kept; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
+ console.log('PASS: driver greeting in the upper half of the seen HUD and on the cluster, both faces stepping aside meanwhile; a short stop with a door opened greeted, the last outcome kept; 10 s; a goodbye when the engine is switched off in P; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

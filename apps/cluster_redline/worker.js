@@ -88,7 +88,7 @@ function start(ctx) {
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const lanes=new LaneGuidance(mono);
     const traffic=new TrafficSigns(),trafficSubs=[];
-    const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',lastDoorOpenAt=null,greetingNow=null;
+    const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',greetingNow=null;
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
@@ -297,7 +297,8 @@ function start(ctx) {
             const laneContext=maneuvers.read(at,!!(guidanceSub&&guidanceSub.available&&!guidanceSub.error));
             if(collection.lanes&&laneContext.active&&laneContext.known&&laneContext.provider==='CAR_PLAY')collection.fields.add(LANE_INTERFACE+'.'+LANE_FIELD);
             // the greeting at engine start needs the engine speed whatever the faces show
-            if(driverGreeting.wantsEngine())collection.fields.add(CDS+'.statusEngineSpeed2');
+            // and the gear (P: the engine switched off for the goodbye)
+            if(driverGreeting.wantsEngine()){collection.fields.add(CDS+'.statusEngineSpeed2');collection.fields.add(VEHICLE_INFO+'.statusGearboxDrive');collection.fields.add(VEHICLE_INFO+'.DataPowerTrain2');}
             collectors.reconcile(collection.fields,at);
             // Auxiliary values are not used by the maneuver decoder. Do not
             // compete with its reads for metrics that neither RPM face shows.
@@ -391,10 +392,8 @@ function start(ctx) {
             // The native renderer still yields to real stock content/popups.
             controller.hudBlocked=rendererInfo.hudGuidanceSafe===false;
             controller.hudBlockReason=rendererInfo.hudGuidanceSafe===false?'hud_safety':(navigationState.active||Object.prototype.hasOwnProperty.call(PROJECTED,maneuverState.provider))&&config.hudNavigationEnabled?maneuverState.reason:navigationState.reason;
-            // An open door (door-open warning on): the cluster display gives way to the car's own warning, held 2 s after
-            // the last door closes so a door opened and shut at once does not flicker it.
-            if (config.hudDoorAlert !== 'off' && doors.open.length) lastDoorOpenAt = at;
-            controller.doorYield = config.hudDoorAlert !== 'off' && lastDoorOpenAt !== null && at - lastDoorOpenAt < 2000;
+            // An open door no longer moves the cluster aside (1.3.29, user: the HUD picture is enough); doorYield stays off.
+            controller.doorYield = false;
             // while the driver greeting shows, the Redline HUD face steps aside (greeting-overlay.js)
             controller.greetingHold = !!greetingNow;
             const state = controller.tick(at, config);
@@ -432,7 +431,7 @@ function start(ctx) {
             blindSpot.tick(at, blindOn && engineRuns);
             blindSpotOverlay.tick(config, blindOn ? blindSpot.read(at) : null, controller.turn && controller.turn.indicator, !!(pv && (/^Blind/.test(pv.part || '') || blindOn && /^Turn/.test(pv.part || ''))));
             driverGreeting.setHybrid(config.engineProfile === 'hybrid');
-            driverGreeting.engine(controller.policy.rpm, controller.policy.rpmAt !== null && at - controller.policy.rpmAt <= 2500);
+            driverGreeting.engine(controller.policy.rpm, controller.policy.rpmAt !== null && at - controller.policy.rpmAt <= 2500, gearbox.gear);
             // The driver greeting (settings per driver), once the renderer can take it: on the HUD and on the cluster.
             const targets = String(client.targets || ''), hudReady = targets.indexOf('hud:') >= 0, mapReady = targets.indexOf('map:') >= 0;
             greetingNow = driverGreeting.read(live && config.appEnabled && !!client.ready && (hudReady || mapReady));

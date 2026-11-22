@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.29
+
+- The door-open warning no longer moves the Redline cluster face aside for the car's own warning (the HUD picture is enough, user); the HUD picture is unchanged.
+- The driver greeting shows for **10 s** (was 3), on the HUD and the cluster.
+- **Goodbye when the engine is switched off**: `홍길동님 안녕히 가세요` (Goodbye, name) for 10 s on the HUD and the cluster when the engine stops in P, or is put in P within 5 s of stopping. An auto start-stop stop (in D) has none. Shown at once; dropped when no display is left within 8 s (the HUD goes dark with the ignition, the cluster a little later). The gear is read for it while settings per driver are on. Not for eDrive (plug-in hybrid) cars. The settings per driver row shows it too (goodbye shown / missed).
+
 ## Cluster Redline 1.3.28
 
 - **Hood and trunk in the door-open warning**: an open hood or tailgate shows on the HUD picture in red (the hood lifted, the rear window and tailgate red) and the cluster gives way as for a door. Their switches come in the same door status, but their names have not been seen on a car yet: they are found by name (hood / bonnet / Motorhaube, tailgate / trunk / boot / Heckklappe; not their windows, locks or lights). Basic → Door-open warning shows the names found (or "not found") and the other items the car sends, to fix them if needed. The Position / size preview shows the hood and trunk open too.
