@@ -23,8 +23,7 @@ class DoorState{
 }
 // Left-hand drive (Korea): the driver's doors on the left. Car pointing up, drawn as the car's own door display draws
 // it: a silver body with soft shading, the windscreen and rear window dark, a large panoramic roof, the mirrors; an open
-// door swung out from its front hinge (its inner trim dark, the window frame red) and, while any door is open, the
-// hood, roof and tailgate washed red. Black is see-through on the HUD, so the dark parts are a dark grey.
+// door swung out from its front hinge, in red (its inner trim dark): red marks only what is open. Black is see-through on the HUD, so the dark parts are a dark grey.
 function bez(p0,p1,p2,p3,n){const o=[];for(let i=1;i<=n;i++){const t=i/n,u=1-t;o.push([u*u*u*p0[0]+3*u*u*t*p1[0]+3*u*t*t*p2[0]+t*t*t*p3[0],u*u*u*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t*t*t*p3[1]]);}return o;}
 // a shape given by its right half (x from the car's centre line, y from the nose), mirrored
 const mirror=half=>half.concat(half.slice().reverse().map(([x,y])=>[-x,y]));
@@ -41,7 +40,7 @@ const LAMP=mirror([[0,117.6],[25.8,116.6],[26.2,119.6],[0,120.6]]);
 const MIRROR=[[26.6,30],[33.4,32.4],[34,35.4],[26.6,37]];
 // The doors along each side: from the front hinge, its length along the car.
 const DOOR_AT={driverFront:{side:-1,y:40,len:30},passengerFront:{side:1,y:40,len:30},driverRear:{side:-1,y:71,len:25},passengerRear:{side:1,y:71,len:25}};
-const SILVER=[201,206,214,255],LIGHT=[236,239,243,255],EDGE=[128,134,143,255],GLASS=[52,57,64,255],PANO_GLASS=[222,226,231,255],TRIM=[62,67,75,255],WASH=[255,43,58,150];
+const SILVER=[201,206,214,255],LIGHT=[236,239,243,255],EDGE=[128,134,143,255],GLASS=[52,57,64,255],PANO_GLASS=[222,226,231,255],TRIM=[62,67,75,255];
 function paint(cv,open){
  const has=d=>open.includes(d),at=pts=>pts.map(([x,y])=>[CX+x,TOP+y]),flip=pts=>pts.map(([x,y])=>[-x,y]);
  const inset=(pts,k,dy)=>pts.map(([x,y])=>[x*k,y+(dy||0)]);
@@ -51,7 +50,6 @@ function paint(cv,open){
  cv.fill(at(SCREEN),GLASS);cv.fill(at(SIDE_GLASS),GLASS);cv.fill(at(flip(SIDE_GLASS)),GLASS);
  cv.fill(at(ROOF),SILVER);cv.fill(at(PANO),PANO_GLASS);cv.fill(at(REAR_GLASS),GLASS);cv.fill(at(LAMP),[96,30,36,255]);
  cv.line(CX,TOP+76,CX,TOP+79,1.6,EDGE);                                       // the aerial fin
- if(open.length){[HOOD,PANO,GATE].forEach(r=>cv.fill(at(r),WASH));cv.fill(at(LAMP),RED);}
  // each open door: the opening in the side dark, the door swung out about 80 degrees from its front hinge
  Object.keys(DOOR_AT).forEach(d=>{
   if(!has(d))return;const {side,y,len}=DOOR_AT[d],s=side,x0=HALF+0.2,L=len*0.9,T=len*0.52;
