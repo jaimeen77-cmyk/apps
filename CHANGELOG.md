@@ -6,6 +6,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
 
+## Cluster Redline 1.3.36
+
+- **Next turn on HUD moved into Navigation display**: Navigation tab → Navigation display opens its own screen, the drive modes (All drive modes / Except Sport / Stock display) and the next turn on the HUD on / off; the row reads e.g. `All drive modes · Next turn On`. The Navigation tab is back to five rows.
+
 ## Cluster Redline 1.3.35
 
 - **Next turn on the HUD** (Navigation tab → Next turn on HUD, on by default): when the turn after the next one follows within 250 m, the HUD's direction part shows it under the distance: "Then", its small arrow and how far behind it is (e.g. `Then ↰ 120 m`). From the route's event list the app already reads every second (GuidanceEventList, up to six events): its second event, the gap from the two events' distances to the destination, never a turn already passed; shown only while the list's first turn is the one on the HUD. Now read with BMW's own guidance too (before: phone guidance only). HUD only; the cluster is unchanged. A phone may send its second turn only close by, so with CarPlay / Android Auto it shows only then. Written for this app; the way to tell the gap is the one the App Kit's Redline uses (MIT).
