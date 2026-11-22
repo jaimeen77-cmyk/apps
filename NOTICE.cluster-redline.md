@@ -32,6 +32,9 @@ See [`apps/cluster_redline/NOTICE`](apps/cluster_redline/NOTICE) for the full li
   one byte a door mirror: 0 off, 1 lit, 2-4 flashing; read every 300 ms, stale after 3 s; read only) are those
   akakingj's `myapp-id7` Redline (`apps/redline/blindspot.js`, MIT) and mlurker's HUD signals
   (`mlurker/bmw-idrive7-apps` `tools/mlurker-hud-signals`, GPL-3.0-or-later) found on a G05; no code is taken from them.
+- `lead-vehicle.js`, `headway-overlay.js` (the HUD headway badge, 1.3.37): written for this app. The signal's field names,
+  values and the 0.0625 m scale are the facts chyiz's `idrive7-cluster-metrics` (GPL-3.0) found on a G30; no code is
+  taken from it. The time gap / colour steps follow the user's specification.
 - Korean font: Noto Sans CJK KR, OFL-1.1, supplied by the Korean-enabled kit.
 - `patches/`: the optional native parked-recovery patch, a modification of the GPL-3.0-or-later
   cluster-render SlotManager from `robertnisipeanu/idrive-apps`, provided as corresponding source

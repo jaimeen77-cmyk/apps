@@ -13,6 +13,10 @@ const INPUTS=[
  ['de.bmw.environmentalmodel.SignRecognitionFrontCamera','TrafficSignRecognitionFrontCamera','event'],
  // the door-open HUD warning (door-alert.js): each door's switch, as appsKOR's Ambient Config reads it
  ['de.bmw.body.DoorsWindowsRoofMirrors','CentralLockingSystemAndPanelStatus','field'],
+ // the HUD headway badge (lead-vehicle.js, 1.3.37): the car ahead as the ACC / front radar measures it
+ ['de.bmw.dass.GapVehicleAhead','GapVehicleDrivingAhead','field'],
+ ['de.bmw.dass.GapVehicleAhead','DataFrontVehicle','field'],
+ ['de.bmw.dass.GapVehicleAhead','DataFrontVehicleExtended','field'],
 ];
 const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
 function instanceOf(catalog,iface){
