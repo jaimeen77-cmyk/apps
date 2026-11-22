@@ -2,7 +2,8 @@
 // The HUD greeting (settings per driver), when the engine starts: the worker reports the engine (RPM) each frame,
 // the settings host (driver-profiles.js, in main.js, same process) reports the driver it recognises. A start counts
 // when the engine had been off at least RESTART_MS (so auto start-stop restarts are not greeted) or is the first
-// since the app started. A driver change while the app runs is greeted at once. An eDrive (plug-in hybrid) car may
+// since the app started. A driver change is greeted at once only while the engine runs (1.3.30: the head unit wakes
+// when a door opens and the key's driver replaces the account it woke with; that is not a start, the engine start is). An eDrive (plug-in hybrid) car may
 // start without its engine: there the driver's recognition at the app's start is the start.
 // A shorter stop counts too when a door was opened while the engine was off (1.3.28: someone got out or in, as at a
 // petrol station; auto start-stop restarts keep the doors shut).
@@ -22,7 +23,7 @@ function setHybrid(on){s.hybrid=!!on;}
 function driver(name,change,now){
  const t=now0(now);s.known=true;s.name=typeof name==='string'&&name?name:null;
  if(!s.enabled)return;
- if(change||s.hybrid)queue(t);
+ if(change&&s.running||s.hybrid)queue(t);
 }
 // The goodbye (1.3.29): the engine switched off in P (or put in P within PARK_MS of stopping) is the end of the drive;
 // an auto start-stop stop (in D, held on the brake) is not. Shown at once, for SHOW_MS; dropped after BYE_WAIT_MS
