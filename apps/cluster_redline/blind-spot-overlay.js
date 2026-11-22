@@ -4,14 +4,14 @@
 // mirror lamp flashing). One overlay layer a side, above whatever the HUD shows; it moves and sizes with the turn
 // arrows (Position / size of the turn signals). Drawn once a colour; a change of state only switches what is shown.
 const D=require('./display-config');
-const AMBER='#ff9a1f',RED='#ff2b3a',W=60,H=80,GAP=6;
+const AMBER='#ff9a1f',RED='#ff2b3a',W=60,H=64,GAP=6;
 // our car and the lane line keep the reference picture's blue; only the other car and the waves take the warning colour
 const OURS='#4cc6f2',LANE='#3f8fc4';
 // (black is see-through on the HUD: the windows are drawn black so they read as glass)
 const GLASS='#05070b';
-/** Where a side's sign goes: under that side's turn arrow, centred on it, sized with it (54 x 72 at 100 %). */
+/** Where a side's sign goes: under that side's turn arrow, centred on it, sized with it (51 x 54 at 100 %). */
 function rect(cfg,side){
- const a=D.turnRect(cfg,side),k=a.h/36*0.9,w=Math.round(W*k),h=Math.round(H*k);
+ const a=D.turnRect(cfg,side),k=a.h/36*0.85,w=Math.round(W*k),h=Math.round(H*k);
  return {x:Math.round(a.x+a.w/2-w/2),y:a.y+a.h+GAP,w,h};
 }
 // Seen from above, pointing up, as the reference picture draws it: our car large in its lane, the lane line dashed,
@@ -38,9 +38,9 @@ function paint(cv,w,h,side,color){
  const k=Math.min(w/W,h/H),right=side==='right',X=x=>(right?x:W-x)*k;
  car(cv,X(17),2*k,0.56*k,OURS);                                          // ours, large (25 x 54)
  for(let y=2;y<H;y+=12)cv.roundRect(X(right?35:37),y*k,2*k,7*k,1*k,LANE);  // the lane line, dashed
- car(cv,X(48.5),48*k,0.31*k,color);                                       // the other car, smaller, behind
- const cx=X(30),cy=37*k;
- [5,9,13].forEach(r=>cv.arc(cx,cy,(r-1.2)*k,(r+1.2)*k,right?100:215,right?145:260,color));
+ car(cv,X(48.5),32*k,0.31*k,color);                                       // the other car, smaller, its nose just below our middle
+ const cx=X(30.5),cy=24*k;
+ [4,7.5,11].forEach(r=>cv.arc(cx,cy,(r-1.1)*k,(r+1.1)*k,right?100:215,right?145:260,color));
 }
 function draw(w,h,side,color){const {Canvas}=require('./kit/canvas');const cv=new Canvas(w,h);cv.clear([0,0,0,0]);paint(cv,w,h,side,color);return cv;}
 class BlindSpotOverlay{
