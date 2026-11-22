@@ -75,7 +75,7 @@ class Outputs {
         const preview = presence.fresh()?D.layoutPreview(cfg):null;
         // HUD turn signals go into the Redline HUD image while it is on screen (shown, its slot not held by the
         // stock HUD or another app); otherwise turn-overlay.js shows them above whatever the HUD shows.
-        const turnPreview=!!(preview&&preview.display==='hud'&&/^Turn/.test(preview.part||'')),turnInLayer=!!this.hudShown;
+        const turnPreview=!!(preview&&preview.display==='hud'&&/^(Turn|Blind)/.test(preview.part||'')),turnInLayer=!!this.hudShown;
         this.turnInLayer=turnInLayer;
         order.forEach((name) => {
             // Turn signal parts are previewed on their own overlay layers (turn-overlay.js), not by the Redline face.

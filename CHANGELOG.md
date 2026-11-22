@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.25
+
+- The blind spot signs are placed in the turn signals' own **Position / size** screen, as three more parts after the arrows (both blind spot signs, left, right), instead of a separate Blind spot position / size button. They still move and size apart from the arrows. While any of these parts is selected the arrows and the signs show together as a preview.
+- **Door-open picture redrawn** like the car's own door display: a silver car seen from above with soft shading, dark windscreen and rear window, a large panoramic roof and the mirrors; an open door is drawn swung out from its front hinge (dark trim, red frame) and, while any door is open, the hood, roof and tailgate are washed red. The picture is wider for the open doors (90 x 112 at the default 75 %, was 72 x 112), still centred.
+- HUD display settings: the HUD turn signals row adds “Blind spot on” to its value while the blind spot warning is on.
+
 ## Cluster Redline 1.3.24
 
 - **Blind spot warning: its own Position / size** (HUD turn signals screen → Blind spot position / size): both signs together, or the left or right one alone, moved, sized (20..200 %) and hidden apart from the turn arrows. Moving or sizing the turn arrows no longer moves the signs; by default they sit under the default place of the arrows, as before. While it is open both signs show as a preview, even with the warning off. Kept with favourites and settings per driver like the other turn signal settings.

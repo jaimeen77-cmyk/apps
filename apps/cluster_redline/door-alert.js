@@ -6,8 +6,9 @@
 // sized in Basic → Door-open warning → Position / size). Pixels are sent only when the open doors or the size change.
 const IFACE='de.bmw.body.DoorsWindowsRoofMirrors',FIELD='CentralLockingSystemAndPanelStatus';
 const DOORS={statusDoorSwitchDRD:'driverFront',statusDoorSwitchPSD:'passengerFront',statusDoorSwitchDRDR:'driverRear',statusDoorSwitchPSDR:'passengerRear'};
-const W=96,H=150;
-const RED='#ff2b3a',BODY='#c9d1dc',GLASS='#5d6b7c';
+// The picture: 120 x 150, the car seen from above (56 wide, 128 long), room on each side for a door swung open.
+const W=120,H=150;
+const RED='#ff2b3a';
 /** The open doors in a status value (a field however it is wrapped), or null when it names none of them. */
 function openDoors(v){
  const find=(o,k,d)=>{if(!o||typeof o!=='object'||d>3)return undefined;if(k in o)return o[k];for(const x of Object.keys(o)){const r=find(o[x],k,d+1);if(r!==undefined)return r;}return undefined;};
@@ -20,16 +21,48 @@ class DoorState{
  sample(v,now){this.received++;this.at=now;const o=openDoors(v);if(o)this.open=o;}
  clear(){this.open=[];}
 }
-// Left-hand drive (Korea): the driver's doors on the left. Car pointing up, 96 x 150.
+// Left-hand drive (Korea): the driver's doors on the left. Car pointing up, drawn as the car's own door display draws
+// it: a silver body with soft shading, the windscreen and rear window dark, a large panoramic roof, the mirrors; an open
+// door swung out from its front hinge (its inner trim dark, the window frame red) and, while any door is open, the
+// hood, roof and tailgate washed red. Black is see-through on the HUD, so the dark parts are a dark grey.
+function bez(p0,p1,p2,p3,n){const o=[];for(let i=1;i<=n;i++){const t=i/n,u=1-t;o.push([u*u*u*p0[0]+3*u*u*t*p1[0]+3*u*t*t*p2[0]+t*t*t*p3[0],u*u*u*p0[1]+3*u*u*t*p1[1]+3*u*t*t*p2[1]+t*t*t*p3[1]]);}return o;}
+// a shape given by its right half (x from the car's centre line, y from the nose), mirrored
+const mirror=half=>half.concat(half.slice().reverse().map(([x,y])=>[-x,y]));
+const CX=60,TOP=11,HALF=28;
+const BODY=mirror([[0,0],...bez([0,0],[17,0],[26,2.5],[27.4,13],8),[28,38],[27.6,70],[28,96],[28,112],...bez([28,112],[28,124],[19,128],[0,128],8)]);
+const HOOD=mirror([[0,2.4],...bez([0,2.4],[15,2.4],[23.5,5],[24.2,14],6),[24,28.5],...bez([24,28.5],[16,26],[7,25.4],[0,25.4],5)]);
+const SCREEN=mirror([[0,25.4],...bez([0,25.4],[9,25.4],[18,26.4],[24,29],5),[22.4,39],...bez([22.4,39],[15,37.4],[7,37],[0,37],5)]);
+const SIDE_GLASS=[[22.4,39],[24.6,31],[25.4,46],[25.2,86],[23.4,92],[21.6,88]];
+const ROOF=mirror([[0,37],...bez([0,37],[8,37],[16,37.6],[21.4,39.5],4),[21.2,82],...bez([21.2,82],[14,80.6],[7,80.4],[0,80.4],4)]);
+const PANO=mirror([[0,42],[13.5,42],...bez([13.5,42],[16,42],[16.8,43.2],[16.8,46],3),[16.8,74],...bez([16.8,74],[16.8,76.6],[16,77.6],[13.5,77.6],3),[0,77.6]]);
+const REAR_GLASS=mirror([[0,80.4],...bez([0,80.4],[9,80.4],[17,81.2],[21.4,83],5),[22.6,94],...bez([22.6,94],[22.6,104],[16,108.4],[0,108.6],6)]);
+const GATE=mirror([[0,108.6],...bez([0,108.6],[12,108.6],[21,106.5],[24.4,101],4),[25.4,116],[0,117]]);
+const LAMP=mirror([[0,117.6],[25.8,116.6],[26.2,119.6],[0,120.6]]);
+const MIRROR=[[26.6,30],[33.4,32.4],[34,35.4],[26.6,37]];
+// The doors along each side: from the front hinge, its length along the car.
+const DOOR_AT={driverFront:{side:-1,y:40,len:30},passengerFront:{side:1,y:40,len:30},driverRear:{side:-1,y:71,len:25},passengerRear:{side:1,y:71,len:25}};
+const SILVER=[201,206,214,255],LIGHT=[236,239,243,255],EDGE=[128,134,143,255],GLASS=[52,57,64,255],PANO_GLASS=[222,226,231,255],TRIM=[62,67,75,255],WASH=[255,43,58,150];
 function paint(cv,open){
- const has=d=>open.includes(d);
- cv.roundRect(26,10,44,130,16,BODY);cv.roundRect(31,40,34,22,5,GLASS);cv.roundRect(31,98,34,16,5,GLASS);
- cv.roundRect(31,64,34,32,3,[60,70,82,255]);
- const door=(d,x0,y0,y1,left)=>{
-  if(has(d)){const hinge=[x0,y0],end=[x0+(left?-22:22),y0+16];cv.line(hinge[0],hinge[1],end[0],end[1],6,RED);cv.line(x0,y0,x0,y1,2,RED);}
-  else cv.line(x0,y0,x0,y1,3,[150,160,172,255]);
- };
- door('driverFront',26,42,74,true);door('passengerFront',70,42,74,false);door('driverRear',26,78,108,true);door('passengerRear',70,78,108,false);
+ const has=d=>open.includes(d),at=pts=>pts.map(([x,y])=>[CX+x,TOP+y]),flip=pts=>pts.map(([x,y])=>[-x,y]);
+ const inset=(pts,k,dy)=>pts.map(([x,y])=>[x*k,y+(dy||0)]);
+ // the body: an edge, then the paint lighter towards the middle (a soft gradient)
+ cv.fill(at(BODY),EDGE);cv.fill(at(inset(BODY,0.95)),SILVER);cv.fill(at(inset(HOOD,0.86)),LIGHT);cv.fill(at(inset(GATE,0.86)),LIGHT);
+ cv.fill(at(MIRROR),SILVER);cv.fill(at(flip(MIRROR)),SILVER);
+ cv.fill(at(SCREEN),GLASS);cv.fill(at(SIDE_GLASS),GLASS);cv.fill(at(flip(SIDE_GLASS)),GLASS);
+ cv.fill(at(ROOF),SILVER);cv.fill(at(PANO),PANO_GLASS);cv.fill(at(REAR_GLASS),GLASS);cv.fill(at(LAMP),[96,30,36,255]);
+ cv.line(CX,TOP+76,CX,TOP+79,1.6,EDGE);                                       // the aerial fin
+ if(open.length){[HOOD,PANO,GATE].forEach(r=>cv.fill(at(r),WASH));cv.fill(at(LAMP),RED);}
+ // each open door: the opening in the side dark, the door swung out about 80 degrees from its front hinge
+ Object.keys(DOOR_AT).forEach(d=>{
+  if(!has(d))return;const {side,y,len}=DOOR_AT[d],s=side,x0=HALF+0.2,L=len*0.9,T=len*0.52;
+  const P=pts=>at(pts.map(([x,yy])=>[s*x,yy]));
+  cv.fill(P([[x0-2.6,y+1],[x0,y+1],[x0,y+len-1],[x0-2.6,y+len-1]]),TRIM);
+  const panel=[[x0,y],[x0+L,y+3],[x0+L+1.5,y+T+2],[x0+L-1,y+T+4],[x0,y+T]];
+  cv.fill(P(panel),RED);cv.fill(P([[x0+0.8,y+4.6],[x0+L-1,y+7],[x0+L,y+T+1.4],[x0+L-1.6,y+T+2.6],[x0+0.8,y+T-1.2]]),TRIM);
+  cv.fill(P([[x0+1,y+1.6],[x0+L-1.5,y+4.2],[x0+L-1.5,y+5.4],[x0+1,y+3.4]]),[255,120,128,255]);   // the window frame, lit
+  cv.line(CX+s*(x0+4),TOP+y+9.5,CX+s*(x0+L-5),TOP+y+11,1.3,[120,126,136,255]);                 // the armrest
+  cv.fill(P([[x0+L-5,y+T-2],[x0+L-1,y+T-1.4],[x0+L-1.5,y+T+1],[x0+L-5.5,y+T+0.4]]),[150,156,166,255]); // the handle
+ });
  return cv;
 }
 function draw(open){const {Canvas}=require('./kit/canvas');const cv=new Canvas(W,H);cv.clear([0,0,0,0]);return paint(cv,open||[]);}
