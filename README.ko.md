@@ -37,6 +37,7 @@ ID8에서도 Store 목록을 숨기지 않도록 카탈로그의 HMI 필터를 �
 | 레드라인 설치·사용 | [설치·사용 설명서](docs/CLUSTER-REDLINE.ko.md) | [User guide](docs/CLUSTER-REDLINE.md) |
 | MGU 모니터 사용 | [MGU 모니터](apps/storage/README.ko.md) | [MGU Monitor](apps/storage/README.md) |
 | Circuit 사용 | [회로 퍼즐](apps/idrive_circuit/README.ko.md) | [Circuit](apps/idrive_circuit/README.md) |
+| 주차 게임 | [주차 게임](apps/parked_games/README.ko.md) | — |
 
 MGU Store에서 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가하고 새로고침한 뒤 한국어 또는 English판을 설치하세요. 레드라인은 `cluster-render` **0.4.0 이상**이 필요합니다. 기존 설치는 Installed에서 업데이트하고 앱 상단 **v1.2.5**을 확인하세요. 한국어·영어판을 함께 설치했다면 사용하지 않는 판의 앱 실행과 자동 시작을 끕니다.
 
@@ -54,7 +55,7 @@ MGU Store에서 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가
 
 **라이선스**: Cluster Redline 1.3.10부터는 **허락 필요** 라이선스입니다([apps/cluster_redline/LICENSE](apps/cluster_redline/LICENSE)). 본인 차량에 설치해 쓰는 것은 자유이고, 복사·재배포·수정·상업적 이용은 허락을 받아야 합니다. 1.3.9까지는 MIT였습니다. 다른 사람이 만든 구성 요소는 원래 라이선스를 따릅니다([NOTICE.cluster-redline.md](NOTICE.cluster-redline.md)).
 
-한국어 원본 iDrive 앱 15개는 별도 저장소 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)에서 제공합니다. 이 저장소는 Circuit·계기판 레드라인·MGU 모니터·Seats Easy Access 네 앱의 한국어/영어판을 제공합니다.
+한국어 원본 iDrive 앱 15개는 별도 저장소 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)에서 제공합니다. 이 저장소는 Circuit·계기판 레드라인·MGU 모니터·Seats Easy Access 네 앱의 한국어/영어판과 주차 게임(Parked Games 한국어판, iDrive 7 전용)을 제공합니다.
 
 일반 한국어 앱 15개의 Store 등록과 설치 레이어는 최신 버전 그대로 [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)로 이동했습니다. MGU Store에서 두 소스의 main 채널을 새로고침하세요. 이 소스에는 Circuit·Cluster Redline·MGU Monitor·Seats Easy Access의 언어별 앱 항목 8개와 MGU 모니터의 앱 이름 조회 보조 도구를 제공합니다. MGU 모니터는 두 언어 모두 1.1.1입니다.
 
