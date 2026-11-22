@@ -98,7 +98,7 @@ function normalize(raw,out){
  TURN_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
  out.bcFollow=raw.bcFollow==='on'?'on':'off';out.bcHmi=raw.bcHmi==='ID8'?'ID8':'ID7';out.bcPages=typeof raw.bcPages==='string'?raw.bcPages:'';out.bcStart=raw.bcStart==='first'?'first':'last';
- out.bcIndex=Number.isInteger(raw.bcIndex)&&raw.bcIndex>=0&&raw.bcIndex<20?raw.bcIndex:0;out.bcCluster=out.bcFollow==='on'&&(raw.bcCluster==='redline'||raw.bcCluster==='yield')?raw.bcCluster:'';
+ out.bcIndex=Number.isInteger(raw.bcIndex)&&raw.bcIndex>=0&&raw.bcIndex<20?raw.bcIndex:0;out.bcCluster=raw.bcCluster==='redline'||raw.bcCluster==='yield'?raw.bcCluster:'';
  out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudHeadway'+s];if(typeof v==='number'&&isFinite(v))out['hudHeadway'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  if(typeof raw.hudHeadwayScale==='number'&&isFinite(raw.hudHeadwayScale))out.hudHeadwayScale=Math.max(20,Math.min(200,Math.round(raw.hudHeadwayScale/5)*5));out.greetHello=raw.greetHello==='off'?'off':'on';out.greetBye=raw.greetBye==='off'?'off':'on';
@@ -120,7 +120,10 @@ function navAllowed(cfg,mode){return cfg.hudNavigationEnabled&&cfg.navDisplayMod
 function allOutput(cfg,name,mode){const v=cfg['all'+name+'Output'];return v==='redline'||v==='nosport'&&!sportMode(mode);}
 function rpmOutput(cfg,name,mode){return allOutput(cfg,name,mode)||sportMode(mode)&&cfg['sport'+name+'Output']==='redline';}
 // Whether some drive mode shows the Redline display (the mode not known yet).
-function rpmOutputPossible(cfg,name){return ['redline','nosport'].includes(cfg['all'+name+'Output'])||cfg['sport'+name+'Output']==='redline';}
+function rpmOutputPossible(cfg,name){return ['redline','nosport','bc'].includes(cfg['all'+name+'Output'])||['redline','bc'].includes(cfg['sport'+name+'Output']);}
+// BC mode (1.3.42, the cluster only): in Sport its own row decides (BC mode, or Redline over an All modes BC mode);
+// in the other modes the All modes row.
+function bcModeNow(cfg,mode){const s=cfg.sportClusterOutput,a=cfg.allClusterOutput;return sportMode(mode)?s==='bc'||s!=='redline'&&a==='bc':a==='bc';}
 // HUD turn signals: the pair (Turn: position and size of both), then each side's own position.
 const TURN_STYLES=['arrow','chevron3','chevron'],TURN_COLORS={green:'#2fd65a',blue:'#3d8bff',orange:'#ff9a1f'};
 const TURN_PARTS=[{key:'Turn',label:'Both turn signals',prefix:'hudTurn',scale:'hudTurnScale'},{key:'TurnLeft',label:'Left turn signal',prefix:'hudTurnLeft',scale:'hudTurnScale'},{key:'TurnRight',label:'Right turn signal',prefix:'hudTurnRight',scale:'hudTurnScale'}];
@@ -159,4 +162,4 @@ function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig'])
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !cfg[d+'RpmGaugeHidden']&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={bcModeNow,HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

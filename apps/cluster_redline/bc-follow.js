@@ -24,6 +24,12 @@ const DEFAULT_PAGES={
 };
 const KINDS=['redline','yield','keep','skip'];
 const hmiOf=(get)=>get('bcHmi')==='ID8'?'ID8':'ID7';
+// BC mode (1.3.42): chosen in the Cluster tab's RPM rows (Sport mode / All modes: BC mode). The worker says each frame
+// whether the drive mode now is one in BC mode (setNow); the presses are counted whenever any row has it, so the pages
+// stay in step, and a page's screen is applied only while BC mode is on.
+const shared={now:false,listeners:[]};
+function setNow(on){on=!!on;if(on===shared.now)return;shared.now=on;shared.listeners.slice().forEach(f=>{try{f(on);}catch(e){}});}
+const anyBc=(get)=>get('sportClusterOutput')==='bc'||get('allClusterOutput')==='bc';
 function parse(text,fallback){try{const v=JSON.parse(text||'');return v&&typeof v==='object'?v:fallback;}catch(e){return fallback;}}
 /** Every page's setup for a head unit: the saved one, else the default. */
 function pagesOf(text,hmi){const saved=parse(text,{})[hmi]||{};const out={};PAGES[hmi].forEach(([k])=>{const s=saved[k];out[k]=s&&KINDS.includes(s.kind)?s:DEFAULT_PAGES[hmi][k]||{kind:'keep'};});return out;}
@@ -34,11 +40,12 @@ class BcFollow {
  constructor(o){
   this.settings=o.settings;this.signals=o.signals;this.log=o.log||{warn(){},info(){}};this.apply=o.apply;this.changed=o.changed||(()=>{});this.clock=o.clock||Date.now;
   this.sub=null;this.state='off';this.error=null;this.token=0;this.held=false;this.lastPress=-Infinity;this.presses=0;
-  this.settings.onChange((k)=>{if(k==='bcFollow'||k==='bcHmi')this.sync(true);});
+  this.settings.onChange((k)=>{if(k==='sportClusterOutput'||k==='allClusterOutput'||k==='bcHmi')this.sync(true);});
+  this.onNow=(on)=>{if(on)this.show();};shared.listeners.push(this.onNow);
   this.sync(true);
  }
  get(k){return this.settings.get(k);}
- on(){return this.get('bcFollow')==='on';}
+ on(){return anyBc((k)=>this.get(k));}
  // start or stop reading the stalk; first: apply the page in step now (the app's start, following switched on)
  sync(first){
   if(!this.on()){if(this.sub){this.token++;try{this.sub.shutdown();}catch(e){}this.sub=null;}this.state='off';if(this.get('bcCluster'))this.settings.set('bcCluster','');this.changed();return;}
@@ -74,13 +81,13 @@ class BcFollow {
   const hmi=hmiOf(k=>this.get(k)),page=this.current(),setup=page?pagesOf(this.get('bcPages'),hmi)[page]:{kind:'keep'};
   const cluster=!this.on()?'':setup.kind==='yield'?'yield':setup.kind==='redline'?'redline':'';
   if((this.get('bcCluster')||'')!==cluster)this.settings.set('bcCluster',cluster);
-  if(!this.on()||setup.kind!=='redline')return;
+  if(!this.on()||!shared.now||setup.kind!=='redline')return;
   const v={};if(setup.design)v.clusterDesign=setup.design;if(setup.aux)v.clusterAuxConfig=setup.aux;if(setup.alert)v.clusterAlertStyle=setup.alert;
   // a page set up with its own positions and sizes (1.3.41): those too, after the design's own layout
   if(setup.layout&&typeof setup.layout==='object')Object.keys(setup.layout).forEach(k=>{if(/^cluster/.test(k)&&/(OffsetX|OffsetY|WidthScale|HeightScale|Hidden)$/.test(k))v[k]=setup.layout[k];});
   if(Object.keys(v).length)try{this.apply(v);}catch(e){this.log.warn('bc follow: '+e);}
  }
  status(){return {state:this.state,error:this.error,presses:this.presses,page:this.current()};}
- stop(){this.token++;if(this.sub)try{this.sub.shutdown();}catch(e){}this.sub=null;}
+ stop(){this.token++;if(this.sub)try{this.sub.shutdown();}catch(e){}this.sub=null;const i=shared.listeners.indexOf(this.onNow);if(i>=0)shared.listeners.splice(i,1);}
 }
-module.exports={BcFollow,PAGES,DEFAULT_PAGES,KINDS,pagesOf,cycleOf,parse,LIGHT,BC_BIT};
+module.exports={setNow,anyBc,BcFollow,PAGES,DEFAULT_PAGES,KINDS,pagesOf,cycleOf,parse,LIGHT,BC_BIT};

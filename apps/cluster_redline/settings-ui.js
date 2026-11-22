@@ -30,14 +30,14 @@ const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver'
 // The BC button check (bc-diag.js, 1.3.39): what the car sends when BC is pressed; main.js sets page.bcDiag
 const BCCHECK_ITEM={key:'bcCheck',label:'BC button check',type:'action'};
 // Following the BC button (bc-follow.js, 1.3.40): its own screen; main.js sets page.bcFollow
-const BCFOLLOW_ITEM={key:'bcFollow',label:'Follow the BC button',type:'action'};
+const BCFOLLOW_ITEM={key:'bcFollow',label:'BC mode screens',type:'action'};
 const BC=require('./bc-follow');
 // The HUD headway badge (1.3.37): a screen of its own; its settings kept outside app.json
 const HEADWAY_ITEM={key:'hudHeadway',label:'Lead-car headway',type:'action'};
 const HEADWAY_KEYS=Object.keys(D.defaults).filter(k=>/^hudHeadway/.test(k));
 const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White'};
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
-const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen','bcFollow','bcHmi','bcPages','bcStart'].concat(DOOR_KEYS,HEADWAY_KEYS).concat(TURN_KEYS,ALERT_KEYS);
+const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen','bcHmi','bcPages','bcStart'].concat(DOOR_KEYS,HEADWAY_KEYS).concat(TURN_KEYS,ALERT_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
 // Settings per driver (driver-profiles.js): the whole setup a favourite keeps, plus the favourites themselves, so each
 // driver has their own five favourites.
@@ -59,7 +59,8 @@ const COMFORT_ITEM={key:'comfortShiftRpm',label:'Shift alert RPM · Comfort / Ec
 function options(item,cfg){
  if(!item)return [];
  if(item.type==='bool')return [[false,'Off'],[true,'On']];
- if(item.type==='choice')return item.options||[];
+ // BC mode (1.3.42): one more choice on the cluster's RPM rows (the value outside app.json's list, as the host keeps it)
+ if(item.type==='choice')return /ClusterOutput$/.test(item.key)?(item.options||[]).concat([['bc',tr('BC mode')]]):item.options||[];
  const range=PROFILES[cfg.engineProfile]&&PROFILES[cfg.engineProfile].ranges[item.key];
  return (item.steps||[]).filter(v=>!range||!v||v>=range[0]&&v<=range[1]).map(v=>[v,v===0?'Preset default':String(v)+' '+(item.unit||'')]);
 }
@@ -123,7 +124,7 @@ class SettingsPage{
   // Navigation display (1.3.36): its own screen, with the next turn on the HUD; both named here
   if(item.key==='navDisplayMode'){const m=options(item,cfg).find(o=>o[0]===cfg.navDisplayMode);return (m?t(m[1]):t('Check required'))+' · '+tr('Next turn')+' '+tr(cfg.hudNavThen==='off'?'Off':'On');}
   if(item.key==='hudHeadway')return this.headwayValue(cfg);
-  if(item.key==='bcFollow'){if(cfg.bcFollow!=='on')return tr('Off');const p=this.bcFollow&&this.bcFollow.current(),l=p&&(BC.PAGES[cfg.bcHmi]||[]).find(x=>x[0]===p);return tr('On')+' · iDrive '+(cfg.bcHmi==='ID8'?'8':'7')+(l?' · '+tr(l[1]):'');}
+  if(item.key==='bcFollow'){const on=cfg.sportClusterOutput==='bc'||cfg.allClusterOutput==='bc',p=on&&this.bcFollow&&this.bcFollow.current(),l=p&&(BC.PAGES[cfg.bcHmi]||[]).find(x=>x[0]===p);return 'iDrive '+(cfg.bcHmi==='ID8'?'8':'7')+(l?' · '+tr(l[1]):on?'':' · '+tr('BC mode not chosen'));}
   if(item.key==='bcCheck'){const s=this.bcDiag&&this.bcDiag.started?this.bcDiag.status():null;return s?tr('BC changes')+' '+s.kombi.changes+(s.kombi.now!==null?' · '+s.kombi.now:''):tr('Check what the car sends');}
   if(item.key==='appEnabled')return t(cfg.appEnabled?'Running':'Stopped');
   if(item.key==='shiftRpm'&&!this.settings.get(item.key))return cfg.shiftRpm+' rpm';
@@ -373,13 +374,15 @@ class SettingsPage{
  drawBc(cv,cfg,targets){
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();},hmi=cfg.bcHmi==='ID8'?'ID8':'ID7',f=this.bcFollow;
   const pages=BC.pagesOf(cfg.bcPages,hmi),now=f?f.current():null,setKind=(page,kind)=>{const all=BC.parse(this.settings.get('bcPages'),{});all[hmi]=all[hmi]||{};all[hmi][page]=Object.assign({},pages[page],{kind});set('bcPages',JSON.stringify(all));};
-  [['on','On'],['off','Off']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*140,96,130,50,()=>set('bcFollow',o[0]),cfg.bcFollow===o[0],'bc-'+o[0],22));
-  [['ID7','iDrive 7'],['ID8','iDrive 8']].forEach((o,i)=>this.button(cv,local,o[1],380+i*170,96,160,50,()=>set('bcHmi',o[0]),hmi===o[0],'bc-'+o[0],22));
-  this.button(cv,local,tr(cfg.bcStart==='first'?'Start: the first page':'Start: the page reached last'),730,96,400,50,()=>set('bcStart',cfg.bcStart==='first'?'last':'first'),false,'bc-start',20);
+  // on in the drive modes whose RPM row says BC mode (1.3.42); here the list and each page
+  [['ID7','iDrive 7'],['ID8','iDrive 8']].forEach((o,i)=>this.button(cv,local,o[1],84+i*170,96,160,50,()=>set('bcHmi',o[0]),hmi===o[0],'bc-'+o[0],22));
+  const bcOn=cfg.sportClusterOutput==='bc'||cfg.allClusterOutput==='bc';
+  if(!bcOn)cv.text(tr('Choose BC mode in Sport / All modes RPM display'),440,128,19,'#ffad45',{literal:true});
+  if(bcOn)this.button(cv,local,tr(cfg.bcStart==='first'?'Start: the first page':'Start: the page reached last'),730,96,400,50,()=>set('bcStart',cfg.bcStart==='first'?'last':'first'),false,'bc-start',20);
   this.button(cv,local,tr('BC button check'),1146,96,390,50,()=>{this.open='bcCheck';this.bcFromFollow=true;if(this.bcDiag)this.bcDiag.start();this.changed();},false,'bc-check',20);
   const list=BC.PAGES[hmi],rowH=Math.min(44,Math.floor(286/list.length)),bh=rowH-6;
   list.forEach(([key,label],i)=>{
-   const y=158+i*rowH,s=pages[key],here=cfg.bcFollow==='on'&&now===key;
+   const y=158+i*rowH,s=pages[key],here=bcOn&&now===key;
    if(here)cv.gradientRect(78,y,1460,rowH-2,[[0,'#30131a'],[1,'#090b0e']]);
    cv.text(tr(label),100,y+rowH*0.68,20,s.kind==='skip'?'#7f8b9a':'#f3f5f7',{literal:true});
    let sum=this.bcSummary(s);while(sum.length>4&&cv.textWidth(sum,17,{literal:true})>330)sum=sum.slice(0,-2);
@@ -389,7 +392,7 @@ class SettingsPage{
     ['Leave out',()=>setKind(key,'skip'),s.kind==='skip',120,'skip'],['This page now',()=>{if(f)f.here(key);},here,180,'here']]
     .reduce((x,[l,act,on,w,id])=>{this.button(cv,local,tr(l),x,y+2,w,bh,act,on,'bc-'+key+'-'+id,17);return x+w+8;},740);
   });
-  const st=f?f.status():null,msg=!st?'':st.state==='not_installed'?tr('not installed (reinstall from the Store)'):st.state==='error'?tr('subscription error'):cfg.bcFollow==='on'?tr('BC presses')+' '+st.presses:'';
+  const st=f?f.status():null,msg=!st?'':st.state==='not_installed'?tr('not installed (reinstall from the Store)'):st.state==='error'?tr('subscription error'):bcOn?tr('BC presses')+' '+st.presses:'';
   if(msg)cv.text(msg,100,494,20,'#ffad45',{literal:true});
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }

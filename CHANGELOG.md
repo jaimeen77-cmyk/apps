@@ -6,6 +6,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
 
+## Cluster Redline 1.3.42
+
+- **BC mode** is now a choice of the Cluster tab's RPM rows (Sport mode / All modes RPM display: Redline app / Stock display / BC mode), instead of an on / off of its own: the drive modes set to it follow the BC button; in Sport its own row decides (Redline there over an All modes BC mode). The presses are counted in every drive mode while any row has BC mode, so the pages stay in step; a page's screen is applied only while the drive mode is in BC mode (and again on coming back to it). A "no change" page shows the Redline cluster as it is. 1.3.40–1.3.41's on becomes All modes: BC mode.
+- The screen is now **BC mode screens** (iDrive 7 / 8, the pages, This page now, where to start, the BC button check).
+
 ## Cluster Redline 1.3.41
 
 - Follow the BC button → **Set screen** has a third step: after the auxiliary values and the design, the Cluster tab's **Position / size**; leaving it (Back) keeps the page's setup with every cluster position, size and shown / hidden setting, applied again when BC comes to that page (after the design's own layout). Leaving Position / size untouched keeps the positions as they are. Pages not set up this way (the defaults) still change only the design, the auxiliary values and the alert style. The list marks a page with its own positions ("own position").
