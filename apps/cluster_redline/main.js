@@ -63,10 +63,13 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
         keys: () => require('./settings-ui').driverKeys(ctx.settings.schema || []), changed: () => queue.request(),
         greet: (name, change) => require('./driver-greeting').driver(name, change), active: (on) => require('./driver-greeting').setEnabled(on) });
     page.driverStatus = () => drivers.status();
+    // The BC button check (bc-diag.js): read once its screen is opened, redrawn on every change
+    const bcDiag = new (require('./bc-diag').BcDiag)({ signals: ctx.signals, log: ctx.log, changed: () => queue.request() });
+    page.bcDiag = bcDiag;
     // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');
     if (ctx.ui && typeof ctx.ui.onVisible === 'function') ctx.ui.onVisible((name, visible) => { if (name === 'MAIN' && !visible) page.leave(); });
-    if (ctx.app && ctx.app.once) ctx.app.once('shutdown', () => { queue.stop(); drivers.stop(); });
+    if (ctx.app && ctx.app.once) ctx.app.once('shutdown', () => { queue.stop(); drivers.stop(); bcDiag.stop(); });
     function report() {}   // no logs
     function syncWorker() {
         if (ctx.settings.get('appEnabled') === true && !background) background = worker.start(ctx);
