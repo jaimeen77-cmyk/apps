@@ -35,6 +35,8 @@ function doorRect(cfg){const s=(cfg.hudDoorScale||75)/100,w=Math.round(120*s),h=
 const BLIND_PARTS=[{key:'Blind',label:'Both blind spot signs',prefix:'hudTurnBlind',scale:'hudTurnBlindScale'},{key:'BlindLeft',label:'Left blind spot sign',prefix:'hudTurnBlindLeft',scale:'hudTurnBlindScale'},{key:'BlindRight',label:'Right blind spot sign',prefix:'hudTurnBlindRight',scale:'hudTurnBlindScale'}];
 const BLIND_BASE={w:51,h:54,gap:6};
 Object.assign(defaults,{hudTurnBlindOffsetX:0,hudTurnBlindOffsetY:0,hudTurnBlindLeftOffsetX:0,hudTurnBlindLeftOffsetY:0,hudTurnBlindRightOffsetX:0,hudTurnBlindRightOffsetY:0,hudTurnBlindScale:100,hudTurnBlindHidden:false,hudTurnBlindLeftHidden:false,hudTurnBlindRightHidden:false});
+// The greeting at the engine start and the goodbye when it is switched off (settings per driver), each on / off (1.3.34).
+Object.assign(defaults,{greetHello:'on',greetBye:'on'});
 Object.assign(defaults,{hudDoorOffsetX:0,hudDoorOffsetY:0,hudDoorScale:75,hudDoorHidden:false});
 Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'off',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
 ['hud','cluster'].forEach(d=>{
@@ -83,6 +85,7 @@ function normalize(raw,out){
  out.hudTurnBlindSpot=raw.hudTurnBlindSpot==='on'?'on':'off';out.hudTurnSignals=raw.hudTurnSignals==='on'?'on':'off';out.hudTurnStyle=TURN_STYLES.includes(raw.hudTurnStyle)?raw.hudTurnStyle:'arrow';out.hudTurnColor=Object.prototype.hasOwnProperty.call(TURN_COLORS,raw.hudTurnColor)?raw.hudTurnColor:'green';
  TURN_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
+ out.greetHello=raw.greetHello==='off'?'off':'on';out.greetBye=raw.greetBye==='off'?'off':'on';
  out.hudDoorAlert=raw.hudDoorAlert==='off'?'off':'on';out.hudDoorHidden=raw.hudDoorHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudDoor'+s];if(typeof v==='number'&&isFinite(v))out['hudDoor'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  BLIND_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});

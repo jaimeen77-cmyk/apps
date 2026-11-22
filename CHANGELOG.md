@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.34
+
+- **Basic → Settings per driver** opens its own screen: settings per driver, the greeting at the engine start and the goodbye when the engine is switched off, each on / off (both on by default), with whose settings are in use and what the greeting did last.
+
 ## Cluster Redline 1.3.33
 
 - **The greeting on the cluster did not show** (1.3.28-1.3.32): the cluster's centre is the stock map's slot, and a layer there is seen only while it asks for the slot (contend), as the Redline cluster face does; the greeting's layer did not ask, so it stayed under the stock map. It now asks while shown and hands the slot back when it hides.

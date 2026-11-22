@@ -431,6 +431,7 @@ function start(ctx) {
             blindSpot.tick(at, blindOn && engineRuns);
             blindSpotOverlay.tick(config, blindOn ? blindSpot.read(at) : null, controller.turn && controller.turn.indicator, !!(pv && (/^Blind/.test(pv.part || '') || blindOn && /^Turn/.test(pv.part || ''))));
             driverGreeting.setHybrid(config.engineProfile === 'hybrid');
+            driverGreeting.setOptions(config.greetHello !== 'off', config.greetBye !== 'off');
             driverGreeting.engine(controller.policy.rpm, controller.policy.rpmAt !== null && at - controller.policy.rpmAt <= 2500, undefined, gearbox.gear);
             // The driver greeting (settings per driver), once the renderer can take it: on the HUD and on the cluster.
             const targets = String(client.targets || ''), hudReady = targets.indexOf('hud:') >= 0, mapReady = targets.indexOf('map:') >= 0;

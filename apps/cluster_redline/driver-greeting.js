@@ -13,18 +13,20 @@
 // status() keeps what happened last (shown, a restart after a stop of 1 to 3 minutes not greeted, no display ready),
 // for the settings screen; auto start-stop restarts at the lights (under a minute) are not noted, so they do not hide it.
 const SHOW_MS=5000,WAIT_MS=180000,BYE_WAIT_MS=8000,PARK_MS=5000,NOTE_STOP_MS=60000,NAME_WAIT_MS=15000,RESTART_MS=180000,RUNNING_RPM=400;
-const s={enabled:false,hybrid:false,known:false,name:null,running:false,lastRunAt:null,pending:null,showing:null,doorOff:false,last:null,stopAt:null,byeDone:true};
+const s={hello:true,bye:true,enabled:false,hybrid:false,known:false,name:null,running:false,lastRunAt:null,pending:null,showing:null,doorOff:false,last:null,stopAt:null,byeDone:true};
 function note(what){s.last={what,wall:Date.now()};}
 const now0=t=>typeof t==='number'?t:Date.now();
 function queue(t,bye){s.pending={at:t,bye:!!bye};s.showing=null;}
 /** Settings per driver on / off (no greeting while off). */
 function setEnabled(on){s.enabled=!!on;if(!on){s.pending=null;s.showing=null;s.known=false;s.name=null;}}
 function setHybrid(on){s.hybrid=!!on;}
+/** The greeting and the goodbye each on / off (Basic → Settings per driver; 1.3.34). */
+function setOptions(hello,bye){s.hello=hello!==false;s.bye=bye!==false;if(!s.hello&&s.pending&&!s.pending.bye)s.pending=null;if(!s.bye&&s.pending&&s.pending.bye)s.pending=null;}
 /** A driver recognised: name (or null); change: another driver was in use before (not the first since the app started). */
 function driver(name,change,now){
  const t=now0(now);s.known=true;s.name=typeof name==='string'&&name?name:null;
  if(!s.enabled)return;
- if(change&&s.running||s.hybrid)queue(t);
+ if(s.hello&&(change&&s.running||s.hybrid))queue(t);
 }
 // The goodbye (1.3.29): the engine switched off in P (or put in P within PARK_MS of stopping) is the end of the drive;
 // an auto start-stop stop (in D, held on the brake) is not. Shown at once, for SHOW_MS; dropped after BYE_WAIT_MS
@@ -32,10 +34,10 @@ function driver(name,change,now){
 /** The engine each frame: rpm (null when unknown), whether that reading is fresh, and the gear ('P', 'D', ...). */
 function engine(rpm,fresh,now,gear){
  const t=now0(now),running=!!fresh&&typeof rpm==='number'&&rpm>=RUNNING_RPM;
- if(running&&!s.running&&s.enabled&&!s.hybrid){if(s.lastRunAt===null||t-s.lastRunAt>=RESTART_MS||s.doorOff)queue(t);else if(t-s.lastRunAt>=NOTE_STOP_MS)note('restart');}
+ if(running&&!s.running&&s.enabled&&!s.hybrid){if(s.lastRunAt===null||t-s.lastRunAt>=RESTART_MS||s.doorOff){if(s.hello)queue(t);}else if(t-s.lastRunAt>=NOTE_STOP_MS)note('restart');}
  if(!running&&s.running){s.stopAt=t;s.byeDone=false;}
  if(!running&&!s.byeDone&&s.enabled&&!s.hybrid&&s.stopAt!==null){
-  if(t-s.stopAt>PARK_MS)s.byeDone=true;else if(gear==='P'){s.byeDone=true;queue(t,true);}
+  if(t-s.stopAt>PARK_MS)s.byeDone=true;else if(gear==='P'){s.byeDone=true;if(s.bye)queue(t,true);}
  }
  if(running){s.lastRunAt=t;s.doorOff=false;s.byeDone=true;}
  s.running=running;
@@ -54,5 +56,5 @@ function read(ready,now){
 function wantsEngine(){return s.enabled&&!s.hybrid;}
 /** For the settings screen: { last: { what: 'shown' | 'restart' | 'not_ready' | 'bye' | 'bye_not_ready', wall: Date.now() then } | null, waiting }. */
 function status(){return {last:s.last,waiting:!!s.pending};}
-function reset(){Object.assign(s,{enabled:false,hybrid:false,known:false,name:null,running:false,lastRunAt:null,pending:null,showing:null,doorOff:false,last:null,stopAt:null,byeDone:true});}
-module.exports={setEnabled,setHybrid,driver,engine,door,read,status,wantsEngine,reset,SHOW_MS,BYE_WAIT_MS,PARK_MS,WAIT_MS,NAME_WAIT_MS,RESTART_MS};
+function reset(){Object.assign(s,{hello:true,bye:true,enabled:false,hybrid:false,known:false,name:null,running:false,lastRunAt:null,pending:null,showing:null,doorOff:false,last:null,stopAt:null,byeDone:true});}
+module.exports={setEnabled,setHybrid,setOptions,driver,engine,door,read,status,wantsEngine,reset,SHOW_MS,BYE_WAIT_MS,PARK_MS,WAIT_MS,NAME_WAIT_MS,RESTART_MS};

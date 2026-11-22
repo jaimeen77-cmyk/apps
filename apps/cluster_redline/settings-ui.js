@@ -20,12 +20,13 @@ const TURN_ITEM={key:'turn',label:'Turn signals on HUD',type:'action'};
 // Settings per driver (driver-profiles.js): kept outside app.json; main.js sets page.driverStatus.
 const DOOR_ITEM={key:'hudDoorAlert',label:'Door-open warning',type:'action'};
 const DOOR_KEYS=Object.keys(D.defaults).filter(k=>/^hudDoor/.test(k));
-const DRIVER_ITEM={key:'driverProfiles',label:'Settings per driver',type:'choice',options:[['off',tr('Off')],['on',tr('On')]]};
+// a screen of its own (1.3.34): settings per driver, the greeting and the goodbye, each on / off
+const DRIVER_ITEM={key:'driverProfiles',label:'Settings per driver',type:'action'};
 // Vehicle alerts (vehicle-alerts.js): kept outside app.json, like the turn signals.
 const ALERT_KEYS=Object.keys(D.defaults).filter(k=>/^hudCarAlert/.test(k));
 const ALERT_ITEM={key:'hudCarAlerts',label:'Vehicle alerts',type:'choice',options:[['off',tr('Off')],['speed',tr('Speeding')],['school',tr('School zone')],['camera',tr('Speed camera')],['all',tr('Show all')]]};
 // Screens whose buttons are the cursor's stops (layoutActions).
-const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door'];
+const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver'];
 const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White'};
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
 const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor'].concat(DOOR_KEYS).concat(TURN_KEYS,ALERT_KEYS);
@@ -72,7 +73,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:GROUPS[this.tab];}
  item(){const key=this.keys()[this.focus];if(key==='turn')return TURN_ITEM;if(key==='hudCarAlerts')return ALERT_ITEM;if(key==='driverProfiles')return DRIVER_ITEM;if(key==='hudDoorAlert')return DOOR_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
@@ -112,7 +113,7 @@ class SettingsPage{
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'||item.key==='hudCarAlerts'?cfg[item.key]:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
- change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
   if(index!==undefined)this.focus=index;
   if(this.tab===FAV_TAB&&!this.open){this.favAction(Math.floor(this.focus/3)+1,this.focus%3);return;}
@@ -120,6 +121,7 @@ class SettingsPage{
   this.choice=0;
   if(item.key==='turn')this.open='turn';
   else if(item.key==='hudDoorAlert')this.open='door';
+  else if(item.key==='driverProfiles')this.open='driver';
   else if(item.key==='aux')this.open='auxMode';
   else if(item.key==='design'){this.open='design';this.choice=RL.active(this.config(),this.display())?2:this.config()[this.display()+'AlertStyle']==='circle'?1:0;}
   else if(item.key==='layout'){this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set([this.layoutParts()[0].key]);this.setPreview(true);}
@@ -163,6 +165,7 @@ class SettingsPage{
   else if(this.open==='layoutPresets')this.drawPresets(cv,cfg,targets);
   else if(this.open==='turn')this.drawTurn(cv,cfg,targets);
   else if(this.open==='door')this.drawDoor(cv,cfg,targets);
+  else if(this.open==='driver')this.drawDriver(cv,cfg,targets);
   else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
   else if(this.open==='auxSelect')this.drawAuxSelect(cv,cfg,targets);
   else if(this.open==='design')this.drawDesign(cv,cfg,targets);
@@ -317,6 +320,19 @@ class SettingsPage{
   const b=this.liveState&&this.liveState.blindSpot,side=v=>v===2?tr('warning'):v===1?tr('car'):'-';
   const blind=!b||!b.on?'':' · '+tr('Blind spot')+' '+(b.refused?tr('not supported by this car'):b.good?side(b.left)+' / '+side(b.right):b.reading?tr('reading'):tr('engine off'));
   return [head+': '+tr('received')+' '+s.received,tr(dir)+(s.drawnIn?' · '+tr(s.drawnIn==='redline-hud'?'in the Redline HUD':'overlay'):'')+blind];
+ }
+ // Settings per driver (1.3.34): the setting itself, the greeting at the engine start and the goodbye when it is
+ // switched off, each on / off; then whose settings are in use and what the greeting did last.
+ drawDriver(cv,cfg,targets){
+  const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();},on=this.settings.get('driverProfiles')==='on';
+  cv.text(tr('Settings per driver'),100,126,32,'#ef4050',{literal:true});
+  [['driverProfiles',on?'on':'off','Settings per driver'],['greetHello',cfg.greetHello,'Greeting at the engine start'],['greetBye',cfg.greetBye,'Goodbye when the engine is switched off']].forEach(([key,now,label],i)=>{
+   const y=146+i*84;cv.text(tr(label),100,y+43,28,on||!i?'#f3f5f7':'#7f8b9a',{literal:true});
+   [['on','On'],['off','Off']].forEach((o,j)=>this.button(cv,local,tr(o[1]),820+j*366,y,352,64,()=>set(key,o[0]),now===o[0],key+'-'+o[0]));
+  });
+  cv.text(tr('The greeting and the goodbye need settings per driver on. On the HUD and the cluster, 5 s.'),100,420,20,'#91a1b6',{literal:true});
+  cv.text(this.driverValue(),100,470,22,'#c1cddd',{literal:true});
+  this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // The door-open warning: on / off, what it does, and Position / size of its HUD picture.
  drawDoor(cv,cfg,targets){

@@ -31,6 +31,11 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
  G.engine(0,true,110000);G.engine(900,true,200000);assert.strictEqual(G.read(true,200100),null);assert.strictEqual(G.status().last.what,'restart','a 1.5 min stop without a door: noted, not greeted');
  G.door(true);G.engine(900,true,100200);assert.strictEqual(G.read(true,100300),null,'a door opened while running does not count');
  assert.strictEqual(G.SHOW_MS,5000,'5 s');
+ // each on / off (Basic → Settings per driver)
+ G.reset();G.setEnabled(true);G.setOptions(false,true);G.driver('홍길동',false,0);G.engine(900,true,1000,'D');assert.strictEqual(G.read(true,1100),null,'greeting off: none at the start');
+ G.engine(0,true,300000,'P');assert.deepStrictEqual(G.read(true,300100),{name:'홍길동',bye:true},'the goodbye still');
+ G.reset();G.setEnabled(true);G.setOptions(true,false);G.driver('홍길동',false,0);G.engine(900,true,1000,'D');assert.deepStrictEqual(G.read(true,1100),{name:'홍길동'});G.read(true,1100+G.SHOW_MS);
+ G.engine(0,true,300000,'P');assert.strictEqual(G.read(true,300100),null,'goodbye off: none at the engine off');G.reset();
  // the goodbye: the engine switched off in P (or P within 5 s): 10 s; an auto start-stop stop in D: none
  G.reset();G.setEnabled(true);G.driver('홍길동',false,0);G.engine(900,true,1000,'D');G.read(true,1100);G.read(true,1100+G.SHOW_MS);
  G.engine(0,true,200000,'D');assert.strictEqual(G.read(true,200100),null,'stopped in D (auto start-stop): no goodbye');
@@ -71,9 +76,15 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
   ov.tick({name:'홍길동'});assert.strictEqual(up,1,'drawn once');ov.tick(null);assert.strictEqual(l.visible,false);ov.close();
   // the cluster: its own content layer in the middle of the centre display
   assert.strictEqual(O.text('홍길동',true),'홍길동님 안녕히 가세요');
+  // Basic → Settings per driver: its own screen, the setting and the greeting and goodbye each on / off
+  {const {SettingsPage}=require(path.join(dir,'settings-ui')),{Canvas}=require(path.join(dir,'kit/canvas')),spec=require(path.join(dir,'kit/app-spec.json')),vals={};spec.settings.forEach(x=>{vals[x.key]=x.default;});
+   const page=new SettingsPage({schema:spec.settings,get:k=>vals[k],set:(k,v)=>{vals[k]=v;},onChange(){}},()=>{},'t');page.selectTab(0);page.focus=page.keys().indexOf('driverProfiles');page.activate();assert.strictEqual(page.open,'driver');
+   const scr=()=>{const cv=new Canvas(1600,520);page.draw(cv,'',{});return cv.targets;};
+   ['driverProfiles-on','greetHello-off','greetBye-off'].forEach(id=>scr().find(t=>t.id===id).run());assert.deepStrictEqual([vals.driverProfiles,vals.greetHello,vals.greetBye],['on','off','off']);
+   scr().find(t=>t.id==='greetHello-on').run();assert.strictEqual(vals.greetHello,'on');page.back();assert.strictEqual(page.open,null);}
   const oc=new O.GreetingOverlay(client,'map');oc.tick({name:'홍길동'});const c=layers.get(k);assert(c.target==='map'&&c.klass==='content'&&c.visible);assert.strictEqual(c.x+c.w/2,544);
   assert.strictEqual(c.contend,true,'the cluster centre taken from the stock map while shown');oc.tick(null);assert.strictEqual(c.contend,false,'and handed back');assert.strictEqual(l.contend,undefined,'the HUD layer asks nothing');oc.close();
   const cc=O.drawCluster('홍길동');n=0;for(let i=3;i<cc.d.length;i+=4)if(cc.d[i])n++;assert(n>10000,'cluster card drawn');
  }
- console.log('PASS: driver greeting in the upper half of the seen HUD and on the cluster, both faces stepping aside meanwhile; a driver change with the engine off waits for the start; a short stop with a door opened greeted, the last outcome kept; 5 s; a goodbye when the engine is switched off in P; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
+ console.log('PASS: driver greeting in the upper half of the seen HUD and on the cluster, both faces stepping aside meanwhile; a driver change with the engine off waits for the start; a short stop with a door opened greeted, the last outcome kept; each on / off on its own screen; 5 s; a goodbye when the engine is switched off in P; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});
