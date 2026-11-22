@@ -244,7 +244,7 @@ class SettingsPage{
   let g=null;try{g=require('./driver-greeting').status();}catch(e){}if(!g||!g.last&&!g.waiting)return '';
   if(g.waiting)return ' · '+tr('Greeting waiting');
   const m=Math.max(0,Math.round((Date.now()-g.last.wall)/60000)),ago=m<1?tr('just now'):m+tr(' min ago');
-  return ' · '+tr({shown:'Greeting shown',restart:'Greeting skipped (restart within 3 min)',not_ready:'Greeting missed (display not ready)'}[g.last.what]||g.last.what)+' '+ago;
+  return ' · '+tr({shown:'Greeting shown',restart:'Greeting skipped (restart within 3 min)',not_ready:'Greeting missed (display not ready)',bye:'Goodbye shown',bye_not_ready:'Goodbye missed (display off)'}[g.last.what]||g.last.what)+' '+ago;
  }
  yieldStatus(cfg){
   if(cfg.clusterYieldGuidance==='off')return '';const y=this.liveState&&this.liveState.clusterYield;if(!y)return tr('Yield')+': '+tr('waiting for the background app');
@@ -323,7 +323,7 @@ class SettingsPage{
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
   cv.text(tr('Door-open warning'),100,126,32,'#ef4050',{literal:true});
   [['on','On'],['off','Off']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*740,146,712,64,()=>set('hudDoorAlert',o[0]),cfg.hudDoorAlert===o[0],'door-'+o[0]));
-  cv.text(tr('While a door, the hood or the trunk is open: the car on the HUD with what is open in red; the cluster gives way to the car warning.'),100,262,24,'#c1cddd',{literal:true});
+  cv.text(tr('While a door, the hood or the trunk is open: the car on the HUD with what is open in red.'),100,262,24,'#c1cddd',{literal:true});
   cv.text(this.doorValue(cfg),100,300,22,'#91a1b6',{literal:true});
   // the hood and the trunk: the names found in the car's door status (or not), and what else it carries
   const d=this.liveState&&this.liveState.doors;
