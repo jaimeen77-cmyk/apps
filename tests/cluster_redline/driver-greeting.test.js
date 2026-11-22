@@ -15,6 +15,9 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
  G.engine(0,true,60000);G.engine(900,true,90000);assert.strictEqual(G.read(true,90100),null,'auto start-stop (30 s stop): not greeted');
  G.engine(0,true,100000);G.engine(900,true,100000+T);assert.deepStrictEqual(G.read(true,100000+T+10),{name:'홍길동'},'engine off 3 min or more: greeted again');
  G.driver('김철수',true,500000);assert.deepStrictEqual(G.read(true,500100),{name:'김철수'},'a driver change while running: greeted at once');
+ // a door opened: the head unit wakes, the key's driver replaces the account it woke with; greeted at the engine start
+ G.reset();G.setEnabled(true);G.engine(0,true,0);G.driver('게스트',false,0);G.driver('홍길동',true,2000);assert.strictEqual(G.read(true,2100),null,'driver change with the engine off: no greeting yet');
+ G.engine(900,true,30000);assert.deepStrictEqual(G.read(true,30100),{name:'홍길동'},'then at the engine start');
  // the engine before the driver: waits for the name (up to 15 s), then a plain hello if none
  G.reset();G.setEnabled(true);G.engine(900,true,0);assert.strictEqual(G.read(true,1000),null,'engine first: waits for the driver');
  G.driver('홍길동',false,3000);assert.deepStrictEqual(G.read(true,3100),{name:'홍길동'},'then greeted by name');
@@ -70,5 +73,5 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
   const oc=new O.GreetingOverlay(client,'map');oc.tick({name:'홍길동'});const c=layers.get(k);assert(c.target==='map'&&c.klass==='content'&&c.visible);assert.strictEqual(c.x+c.w/2,544);oc.close();
   const cc=O.drawCluster('홍길동');n=0;for(let i=3;i<cc.d.length;i+=4)if(cc.d[i])n++;assert(n>10000,'cluster card drawn');
  }
- console.log('PASS: driver greeting in the upper half of the seen HUD and on the cluster, both faces stepping aside meanwhile; a short stop with a door opened greeted, the last outcome kept; 10 s; a goodbye when the engine is switched off in P; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
+ console.log('PASS: driver greeting in the upper half of the seen HUD and on the cluster, both faces stepping aside meanwhile; a driver change with the engine off waits for the start; a short stop with a door opened greeted, the last outcome kept; 10 s; a goodbye when the engine is switched off in P; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

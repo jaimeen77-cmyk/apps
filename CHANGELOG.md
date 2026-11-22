@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.30
+
+- The driver greeting came when a door was opened, not at the engine start: the head unit wakes with the door and the key's driver then replaces the account it woke with, which was greeted as a driver change. A driver change is now greeted at once only while the engine runs; otherwise the greeting comes at the engine start, as meant.
+
 ## Cluster Redline 1.3.29
 
 - The door-open warning no longer moves the Redline cluster face aside for the car's own warning (the HUD picture is enough, user); the HUD picture is unchanged.
