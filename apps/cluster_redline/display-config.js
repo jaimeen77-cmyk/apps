@@ -31,7 +31,7 @@ const NAV_LAYOUT_PARTS=NAV_PARTS.concat([ALERT_PART]);
 const DOOR_PARTS=[{key:'Door',label:'Door-open warning',prefix:'hudDoor',scale:'hudDoorScale',w:96,h:150}];
 function doorRect(cfg){const s=(cfg.hudDoorScale||75)/100,w=Math.round(96*s),h=Math.round(150*s);return {x:Math.round((800-w)/2+(cfg.hudDoorOffsetX||0)),y:Math.round(286+(cfg.hudDoorOffsetY||0)),w,h};}
 // The blind spot signs (blind-spot-overlay.js): their own place and size, not the turn arrows' (1.3.24). By default each
-// sits under the default place of its side's turn arrow; moved and sized in HUD turn signals → Blind spot position / size.
+// sits under the default place of its side's turn arrow; moved and sized in HUD turn signals → Position / size, next to the arrows.
 const BLIND_PARTS=[{key:'Blind',label:'Both blind spot signs',prefix:'hudTurnBlind',scale:'hudTurnBlindScale'},{key:'BlindLeft',label:'Left blind spot sign',prefix:'hudTurnBlindLeft',scale:'hudTurnBlindScale'},{key:'BlindRight',label:'Right blind spot sign',prefix:'hudTurnBlindRight',scale:'hudTurnBlindScale'}];
 const BLIND_BASE={w:51,h:54,gap:6};
 Object.assign(defaults,{hudTurnBlindOffsetX:0,hudTurnBlindOffsetY:0,hudTurnBlindLeftOffsetX:0,hudTurnBlindLeftOffsetY:0,hudTurnBlindRightOffsetX:0,hudTurnBlindRightOffsetY:0,hudTurnBlindScale:100,hudTurnBlindHidden:false,hudTurnBlindLeftHidden:false,hudTurnBlindRightHidden:false});

@@ -402,7 +402,7 @@ function start(ctx) {
             // (turn-overlay.js) above the stock HUD. Only one of the two carries them at a time.
             const pv = previewPresence.fresh() ? D.layoutPreview(config) : null;
             if (controller.turnPainted && controller.hudShown) turnOverlay.hide();
-            else turnOverlay.tick(at, config, controller.turn, !!(pv && /^Turn/.test(pv.part || '')));
+            else turnOverlay.tick(at, config, controller.turn, !!(pv && /^(Turn|Blind)/.test(pv.part || '')));
             // Vehicle alerts (vehicle-alerts.js): the car's speeding, school zone and speed camera events, on their
             // own HUD overlay; the Position / size preview shows every alert at once.
             // Speeding and children signs from the camera's sign recognition (traffic-signs.js, as the drive logs

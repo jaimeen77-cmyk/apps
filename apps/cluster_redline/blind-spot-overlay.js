@@ -2,7 +2,7 @@
 // The blind spot warning on the HUD (blind-spot.js): our car (blue) and the car in that side's blind spot seen from
 // above, the other car amber while a car is in that side's blind spot, red when the turn signal is on towards it (the
 // mirror lamp flashing). One overlay layer a side, above whatever the HUD shows; under each turn arrow by default,
-// with its own Position / size (HUD turn signals → Blind spot position / size), apart from the arrows'. Drawn once a
+// with its own place and size (in the turn signals' Position / size), apart from the arrows'. Drawn once a
 // colour; a change of state only switches what is shown.
 const D=require('./display-config');
 const AMBER='#ff9a1f',RED='#ff2b3a',W=60,H=64;
