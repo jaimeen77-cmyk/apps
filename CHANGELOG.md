@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Parked Games 0.2.3 (Korean edition)
+
+- Renamed **6게임**, with the paddle-duel icon.
+- Korean text now shows on the car. The GPU renderer (`mgu-renderd`) keeps every app's glyph atlases on one shared texture (two 1024 x 4096 shelves, first come, first served). The full Korean atlas (2,557 glyphs, 2976 px tall) was refused ("glyph atlas texture full") once the games' Latin atlases had filled the shelves past 1120 px, so every Korean text was left out. `tools/prepare-games.py` now cuts it to the glyphs the Korean catalog uses: 717 glyphs, 752 px, with its own cache key.
+
 ## Parked Games 0.2.2 (Korean edition, new)
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).

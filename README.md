@@ -18,7 +18,7 @@ their ID7 restrictions. Listing visibility does not enable ID8 installation.
 | Use Redline | [User guide](docs/CLUSTER-REDLINE.md) | [사용 설명서](docs/CLUSTER-REDLINE.ko.md) |
 | Use MGU Monitor | [MGU Monitor](apps/storage/README.md) | [MGU 모니터](apps/storage/README.ko.md) |
 | Use Circuit | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
-| Parked Games (Korean edition) | — | [주차 게임](apps/parked_games/README.ko.md) |
+| Parked Games (Korean edition) | — | [6게임](apps/parked_games/README.ko.md) |
 
 Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.3.42** in the app. Stop and disable auto-start in an unused language edition if both are installed.
 
