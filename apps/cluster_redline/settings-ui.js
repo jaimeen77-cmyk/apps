@@ -6,7 +6,7 @@ const {settings:effective,PROFILES,DEFAULTS}=require('./policy');
 const D=require('./display-config'),RL=require('./redline-hud'),HUD=require('./hud-draw'),CLUSTER=require('./draw'),NAV=require('./nav-draw');
 const {measurePart}=require('./component-canvas'),{placement}=require('./layout'),NAV_TEXT=require('./nav-text');
 const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting','Favorites'],FAV_TAB=4,FAV_COUNT=5,FAV_GAP=1500,FAV_ARM=4000;
-const GROUPS=[['autoStart','appEnabled','driverProfiles','hudDoorAlert','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout','turn'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','clusterYieldGuidance','hudCarAlerts','layout']];
+const GROUPS=[['autoStart','appEnabled','driverProfiles','hudDoorAlert','engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm'],['sportHudOutput','allHudOutput','aux','design','layout','turn'],['sportClusterOutput','allClusterOutput','aux','design','layout'],['navDisplayMode','navColor','hudNavThen','clusterYieldGuidance','hudCarAlerts','layout']];
 const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
 const HUD_WARNING='HUD navigation shows received turn guidance; unavailable data preserves stock guidance.';
@@ -24,12 +24,14 @@ const DOOR_KEYS=Object.keys(D.defaults).filter(k=>/^hudDoor/.test(k));
 const DRIVER_ITEM={key:'driverProfiles',label:'Settings per driver',type:'action'};
 // Vehicle alerts (vehicle-alerts.js): kept outside app.json, like the turn signals.
 const ALERT_KEYS=Object.keys(D.defaults).filter(k=>/^hudCarAlert/.test(k));
+// the turn after the next one on the HUD (1.3.35): kept outside app.json
+const THEN_ITEM={key:'hudNavThen',label:'Next turn on HUD',type:'choice',options:[['off',tr('Off')],['on',tr('On')]]};
 const ALERT_ITEM={key:'hudCarAlerts',label:'Vehicle alerts',type:'choice',options:[['off',tr('Off')],['speed',tr('Speeding')],['school',tr('School zone')],['camera',tr('Speed camera')],['all',tr('Show all')]]};
 // Screens whose buttons are the cursor's stops (layoutActions).
 const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver'];
 const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White'};
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
-const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor'].concat(DOOR_KEYS).concat(TURN_KEYS,ALERT_KEYS);
+const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen'].concat(DOOR_KEYS).concat(TURN_KEYS,ALERT_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
 // Settings per driver (driver-profiles.js): the whole setup a favourite keeps, plus the favourites themselves, so each
 // driver has their own five favourites.
@@ -73,10 +75,10 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:GROUPS[this.tab];}
- item(){const key=this.keys()[this.focus];if(key==='turn')return TURN_ITEM;if(key==='hudCarAlerts')return ALERT_ITEM;if(key==='driverProfiles')return DRIVER_ITEM;if(key==='hudDoorAlert')return DOOR_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
+ item(){const key=this.keys()[this.focus];if(key==='turn')return TURN_ITEM;if(key==='hudNavThen')return THEN_ITEM;if(key==='hudCarAlerts')return ALERT_ITEM;if(key==='driverProfiles')return DRIVER_ITEM;if(key==='hudDoorAlert')return DOOR_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
  // Keep Basic a normal tab, including repeated taps from older hosts.
  tapBasic(){this.selectTab(0);}
  selectTab(i){if(this.open==='layout'||this.open==='layoutPresets'||this.settings.get('layoutPreview'))this.setPreview(false);this.layoutKind=null;this.tab=Math.max(0,Math.min(FAV_TAB,i|0));this.favArmed=null;this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
@@ -111,7 +113,7 @@ class SettingsPage{
   if(item.key==='appEnabled')return t(cfg.appEnabled?'Running':'Stopped');
   if(item.key==='shiftRpm'&&!this.settings.get(item.key))return cfg.shiftRpm+' rpm';
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
-  const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'||item.key==='hudCarAlerts'?cfg[item.key]:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
+  const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'||item.key==='hudCarAlerts'||item.key==='hudNavThen'?cfg[item.key]:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
  change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
@@ -180,7 +182,7 @@ class SettingsPage{
  drawRows(cv,cfg,targets,status){
   let y=100;
   this.keys().forEach((key,i)=>{
-   const item=key==='turn'?TURN_ITEM:key==='hudCarAlerts'?ALERT_ITEM:key==='driverProfiles'?DRIVER_ITEM:key==='hudDoorAlert'?DOOR_ITEM:key==='comfortShiftRpm'?COMFORT_ITEM:key==='clusterYieldGuidance'?YIELD_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
+   const item=key==='turn'?TURN_ITEM:key==='hudNavThen'?THEN_ITEM:key==='hudCarAlerts'?ALERT_ITEM:key==='driverProfiles'?DRIVER_ITEM:key==='hudDoorAlert'?DOOR_ITEM:key==='comfortShiftRpm'?COMFORT_ITEM:key==='clusterYieldGuidance'?YIELD_ITEM:['aux','design','layout'].includes(key)?{key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key]}:this.settings.schema.find(s=>s.key===key);
    const h=this.tab===0?46:this.tab===1||this.tab===3?56:68,ty=h===50?35:39;
    if(i===this.focus){cv.gradientRect(78,y,1460,h-1,[[0,'#30131a'],[1,'#090b0e']]);cv.fillRect(78,y+(h===50?6:8),4,h===50?37:42,'#f32b40');}
    const label=/^sport/.test(key)?'Sport mode RPM display':/^all/.test(key)?'All modes RPM display':ROW_LABELS[key]||item.label;
@@ -198,7 +200,7 @@ class SettingsPage{
   if(this.tab===3){const y=this.yieldStatus(cfg);if(y)cv.text(y,84,462,21,'#ffad45',{literal:true});const a=this.alertStatus(cfg);if(a)cv.text(a,84,490,21,'#ffad45',{literal:true});}
   // Cafe watermark in the free bottom-right corner of the HUD, cluster and navigation tabs (not on Basic: its rows fill the screen).
   if(this.tab>0)require('./settings-bg').mark(cv,W,H);
-  if(this.tab===3){cv.text(HUD_WARNING,84,404,22,'#91a1b6');cv.text(tr('Yield: while phone (Waze) or chosen route guidance runs, the cluster RPM display steps aside for the stock map.'),84,432,22,'#91a1b6');}
+  if(this.tab===3){cv.text(HUD_WARNING,84,466,19,'#91a1b6');cv.text(tr('Yield: while phone (Waze) or chosen route guidance runs, the cluster RPM display steps aside for the stock map.'),84,492,19,'#91a1b6');}
  }
  // Live check lines (from the background app's status) so a car without the value can be told apart.
  outsideStatus(cfg){
