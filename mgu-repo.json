@@ -274,7 +274,7 @@
       "id": "parked_games",
       "kind": "app",
       "path": "apps/parked_games",
-      "title": "6게임",
+      "title": "8게임즈",
       "description": "주차 중 iDrive 컨트롤러로 하는 게임 8개: 차선 러너·패들 대결·협곡 비행·회전 유지·벽돌 깨기·블록 드롭·스케치패드·체스 · iDrive 7 전용 · GPU 렌더러·컨트롤러 연결 필요",
       "mguHmi": ["ID7"],
       "requires": {"mgu-deploy": "0.7.17", "idrive7-renderd": "2.1.7", "mgu-inputgate": "1.0.0"},

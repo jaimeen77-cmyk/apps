@@ -25,7 +25,7 @@ try{
  ko.sizes.forEach(s=>assert(s.atlasH<=1100,'small Korean atlas: '+s.atlasH));assert.notStrictEqual(ko.cacheKey,'f9dc9f90bed5a3d5','its own cache key');
  const glyphs=ko.sizes[0].glyphs,used=new Set();Object.values(locale.strings).forEach(v=>{for(const c of v)used.add(c.codePointAt(0));});
  used.forEach(c=>{if(c>=0xac00&&c<=0xd7a3)assert(glyphs[c],'glyph for '+String.fromCodePoint(c));});
- assert.strictEqual(spec.translations.ko['Parked Games'],'6게임');
+ assert.strictEqual(spec.translations.ko['Parked Games'],'8게임즈');
  // no game text drawn past the translation any more (literal: true only on numbers)
  const walk=d=>fs.readdirSync(d).reduce((a,n)=>{const p=path.join(d,n);return fs.statSync(p).isDirectory()?a.concat(walk(p)):a.concat(p);},[]);
  walk(path.join(ROOT,'apps/parked_games')).filter(f=>f.endsWith('.js')).forEach(f=>fs.readFileSync(f,'utf8').split('\n').forEach((l,i)=>{
