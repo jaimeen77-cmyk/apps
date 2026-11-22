@@ -39,10 +39,10 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  // settings
  const {settings}=require('../../apps/cluster_redline/policy'),D=require('../../apps/cluster_redline/display-config');
  assert.strictEqual(settings({}).hudHeadway,'off','off by default');assert.strictEqual(settings({hudHeadway:'detail'}).hudHeadway,'detail');assert.strictEqual(settings({hudHeadway:'x'}).hudHeadway,'off');
- const r0=D.headwayRect(settings({}));assert.strictEqual(r0.x+r0.w/2,400,'centred');assert(r0.y>=234&&r0.y+r0.h<=300,'between the turn arrows under the RPM face');
- assert.strictEqual(D.headwayRect(settings({hudHeadwayOffsetX:40,hudHeadwayScale:150})).w,198);
+ const r0=D.headwayRect(settings({}));assert.strictEqual(r0.x+r0.w/2,400,'centred');assert(r0.y>=234&&r0.y+r0.h<=300&&r0.w===112&&r0.h===60,'between the turn arrows under the RPM face');
+ assert.strictEqual(D.headwayRect(settings({hudHeadwayOffsetX:40,hudHeadwayScale:150})).w,168);
  // the overlay (stub drawing): shown with a car ahead, hidden without, redrawn only on change, the preview
- const Module=require('module'),orig=Module._load;Module._load=function(n){if(n==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}}return {ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}fillRect(){}text(){}textWidth(s){return String(s).length*8;}}};}return orig.apply(this,arguments);};
+ const Module=require('module'),orig=Module._load;Module._load=function(n){if(n==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}}return {ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}fillRect(){}polyline(){}text(){}textWidth(s){return String(s).length*8;}}};}return orig.apply(this,arguments);};
  const {HeadwayOverlay,content}=require('../../apps/cluster_redline/headway-overlay');
  const layers=new Map();let k=0,up=0;const client={image(o){layers.set(++k,Object.assign({},o));return k;},pixels(){up++;},set(r,o){Object.assign(layers.get(r),o);},drop(r){layers.delete(r);}};
  const ov=new HeadwayOverlay(client),cfg=settings({hudHeadway:'detail'});
@@ -50,10 +50,10 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  ov.tick({gap:36,headway:1.8,closing:-6,level:'ok'},cfg,'detail',false);const l=layers.get(1);assert(l.target==='hud'&&l.klass==='overlay'&&l.visible);assert.strictEqual(up,1);
  ov.tick({gap:36.2,headway:1.81,closing:-6.2,level:'ok'},cfg,'detail',false);assert.strictEqual(up,1,'the same on the HUD: not redrawn');
  ov.tick(null,cfg,'detail',false);assert.strictEqual(l.visible,false);ov.tick(null,cfg,'detail',true);assert.strictEqual(l.visible,true,'preview');ov.close();Module._load=orig;
- assert.deepStrictEqual(content({gap:36,headway:1.8,closing:-6,level:'red'},'detail'),{big:'1.8',unit:'s',lines:['36 m','-6 km/h'],color:'#ff2b3a'});
- assert.deepStrictEqual(content({gap:36,headway:1.8,closing:-6,level:'ok'},'simple').lines,['36 m'],'simple: no closing speed');
- assert.deepStrictEqual(content({gap:6,headway:null,closing:null,level:'ok'},'detail'),{big:'6',unit:'m',lines:[],color:'#37d3e0'},'slow: the distance big');
+ assert.deepStrictEqual(content({gap:36,headway:1.8,closing:-6,level:'red'},'detail'),{big:'1.8s',dist:'36 m',closing:'-6 km/h',color:'#ff2b3a'});
+ assert.strictEqual(content({gap:36,headway:1.8,closing:-6,level:'ok'},'simple').closing,null,'simple: no closing speed');
+ assert.deepStrictEqual(content({gap:6,headway:null,closing:null,level:'ok'},'detail'),{big:'6 m',dist:null,closing:null,color:'#3ec8f5'},'slow: the distance big');
  if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),O=require(path.join(dir,'headway-overlay'));
-  const cv=O.draw({gap:36,headway:0.8,closing:-6,level:'red'},'detail',132,46);let red=0;for(let i=0;i<cv.d.length;i+=4)if(cv.d[i]>200&&cv.d[i+1]<80&&cv.d[i+3]>200)red++;assert(red>80,'drawn red');}
+  const cv=O.draw({gap:36,headway:0.8,closing:-6,level:'red'},'detail',112,60);let red=0;for(let i=0;i<cv.d.length;i+=4)if(cv.d[i]>200&&cv.d[i+1]<80&&cv.d[i+3]>200)red++;assert(red>80,'drawn red');}
  console.log('PASS: HUD headway badge: GapVehicleAhead read only while on, fine distance first, time gap from our speed (none below 12 km/h), closing speed, colour steps, install-time input, settings, overlay'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});
