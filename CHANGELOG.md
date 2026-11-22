@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.26
+
+- Door-open picture: only the open doors are red. The hood, roof and tailgate are no longer washed red while a door is open (red means open, and they are not).
+
 ## Cluster Redline 1.3.25
 
 - The blind spot signs are placed in the turn signals' own **Position / size** screen, as three more parts after the arrows (both blind spot signs, left, right), instead of a separate Blind spot position / size button. They still move and size apart from the arrows. While any of these parts is selected the arrows and the signs show together as a preview.
