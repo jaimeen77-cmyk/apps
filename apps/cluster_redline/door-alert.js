@@ -36,7 +36,8 @@ const ROOF=mirror([[0,37],...bez([0,37],[8,37],[16,37.6],[21.4,39.5],4),[21.2,82
 const PANO=mirror([[0,42],[13.5,42],...bez([13.5,42],[16,42],[16.8,43.2],[16.8,46],3),[16.8,74],...bez([16.8,74],[16.8,76.6],[16,77.6],[13.5,77.6],3),[0,77.6]]);
 const REAR_GLASS=mirror([[0,80.4],...bez([0,80.4],[9,80.4],[17,81.2],[21.4,83],5),[22.6,94],...bez([22.6,94],[22.6,104],[16,108.4],[0,108.6],6)]);
 const GATE=mirror([[0,108.6],...bez([0,108.6],[12,108.6],[21,106.5],[24.4,101],4),[25.4,116],[0,117]]);
-const LAMP=mirror([[0,117.6],[25.8,116.6],[26.2,119.6],[0,120.6]]);
+// the tail lights: one a side, apart in the middle of the tailgate as on a BMW, each an L round its corner
+const LAMP=[[9.5,116.4],[24.6,115.4],[25.6,108.6],[27.4,109.2],[26.8,119.8],[9.5,119.6]];
 const MIRROR=[[26.6,30],[33.4,32.4],[34,35.4],[26.6,37]];
 // The doors along each side: from the front hinge, its length along the car.
 const DOOR_AT={driverFront:{side:-1,y:40,len:30},passengerFront:{side:1,y:40,len:30},driverRear:{side:-1,y:71,len:25},passengerRear:{side:1,y:71,len:25}};
@@ -48,7 +49,7 @@ function paint(cv,open){
  cv.fill(at(BODY),EDGE);cv.fill(at(inset(BODY,0.95)),SILVER);cv.fill(at(inset(HOOD,0.86)),LIGHT);cv.fill(at(inset(GATE,0.86)),LIGHT);
  cv.fill(at(MIRROR),SILVER);cv.fill(at(flip(MIRROR)),SILVER);
  cv.fill(at(SCREEN),GLASS);cv.fill(at(SIDE_GLASS),GLASS);cv.fill(at(flip(SIDE_GLASS)),GLASS);
- cv.fill(at(ROOF),SILVER);cv.fill(at(PANO),PANO_GLASS);cv.fill(at(REAR_GLASS),GLASS);cv.fill(at(LAMP),[96,30,36,255]);
+ cv.fill(at(ROOF),SILVER);cv.fill(at(PANO),PANO_GLASS);cv.fill(at(REAR_GLASS),GLASS);cv.fill(at(LAMP),[150,34,44,255]);cv.fill(at(flip(LAMP)),[150,34,44,255]);
  cv.line(CX,TOP+76,CX,TOP+79,1.6,EDGE);                                       // the aerial fin
  // each open door: the opening in the side dark, the door swung out about 80 degrees from its front hinge
  Object.keys(DOOR_AT).forEach(d=>{
