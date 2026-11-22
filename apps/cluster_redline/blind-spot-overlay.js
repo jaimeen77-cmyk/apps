@@ -1,10 +1,12 @@
 'use strict';
-// The blind spot warning on the HUD (blind-spot.js): under each turn arrow, our car and the car in that side's
-// blind spot seen from above, amber while a car is in that side's blind spot, red when the turn signal is on towards it (the
+// The blind spot warning on the HUD (blind-spot.js): under each turn arrow, our car (blue) and the car in that side's
+// blind spot seen from above, the other car amber while a car is in that side's blind spot, red when the turn signal is on towards it (the
 // mirror lamp flashing). One overlay layer a side, above whatever the HUD shows; it moves and sizes with the turn
 // arrows (Position / size of the turn signals). Drawn once a colour; a change of state only switches what is shown.
 const D=require('./display-config');
 const AMBER='#ff9a1f',RED='#ff2b3a',W=60,H=80,GAP=6;
+// our car and the lane line keep the reference picture's blue; only the other car and the waves take the warning colour
+const OURS='#4cc6f2',LANE='#3f8fc4';
 // (black is see-through on the HUD: the windows are drawn black so they read as glass)
 const GLASS='#05070b';
 /** Where a side's sign goes: under that side's turn arrow, centred on it, sized with it (54 x 72 at 100 %). */
@@ -34,8 +36,8 @@ function car(cv,cx,top,s,color){
 }
 function paint(cv,w,h,side,color){
  const k=Math.min(w/W,h/H),right=side==='right',X=x=>(right?x:W-x)*k;
- car(cv,X(17),2*k,0.56*k,color);                                          // ours, large (25 x 54)
- for(let y=2;y<H;y+=12)cv.roundRect(X(right?35:37),y*k,2*k,7*k,1*k,color);  // the lane line, dashed
+ car(cv,X(17),2*k,0.56*k,OURS);                                          // ours, large (25 x 54)
+ for(let y=2;y<H;y+=12)cv.roundRect(X(right?35:37),y*k,2*k,7*k,1*k,LANE);  // the lane line, dashed
  car(cv,X(48.5),48*k,0.31*k,color);                                       // the other car, smaller, behind
  const cx=X(30),cy=37*k;
  [5,9,13].forEach(r=>cv.arc(cx,cy,(r-1.2)*k,(r+1.2)*k,right?100:215,right?145:260,color));
@@ -59,4 +61,4 @@ class BlindSpotOverlay{
  hide(side){(side?[side]:['left','right']).forEach(s=>{const l=this.layers[s];if(l&&l.visible){this.client.set(l.ref,{visible:false});l.visible=false;}});}
  close(){['left','right'].forEach(s=>{if(this.layers[s])this.client.drop(this.layers[s].ref);this.layers[s]=null;});}
 }
-module.exports={BlindSpotOverlay,rect,draw,paint,AMBER,RED};
+module.exports={BlindSpotOverlay,rect,draw,paint,AMBER,RED,OURS};
