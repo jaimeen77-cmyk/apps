@@ -28,6 +28,10 @@ See [`apps/cluster_redline/NOTICE`](apps/cluster_redline/NOTICE) for the full li
   (`cauliflowermossgrape/idrive7-apps` Redline, HUD output by @biscotit), MIT.
 - Drive mode field and mappings in `policy.js`: `cauliflowermossgrape/idrive7-apps`
   `apps/live_data/signals.js`, MIT.
+- `apps/cluster_redline/blind-spot.js`: written for this app. The facts it reads by (the body controller BDC 0x40, identifier D347 with
+  one byte a door mirror: 0 off, 1 lit, 2-4 flashing; read every 300 ms, stale after 3 s; read only) are those
+  akakingj's `myapp-id7` Redline (`apps/redline/blindspot.js`, MIT) and mlurker's HUD signals
+  (`mlurker/bmw-idrive7-apps` `tools/mlurker-hud-signals`, GPL-3.0-or-later) found on a G05; no code is taken from them.
 - Korean font: Noto Sans CJK KR, OFL-1.1, supplied by the Korean-enabled kit.
 - `patches/`: the optional native parked-recovery patch, a modification of the GPL-3.0-or-later
   cluster-render SlotManager from `robertnisipeanu/idrive-apps`, provided as corresponding source

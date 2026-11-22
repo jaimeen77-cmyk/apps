@@ -303,9 +303,11 @@ class SettingsPage{
   const head=tr('Turn signal input'),s=this.liveState&&this.liveState.turnSignal;if(!s)return [head,tr('waiting for the background app')];
   if(s.state==='not_installed')return [head,tr('not installed (reinstall from the Store)')];
   if(s.state==='error')return [head,tr('subscription error')];
-  if(!s.received)return [head,tr('no value from the car yet')];
+  if(!s.received){const b=this.liveState&&this.liveState.blindSpot;return [head,tr('no value from the car yet')+(b&&b.on?' · '+tr('Blind spot')+' '+(b.refused?tr('not supported by this car'):b.good?tr('received')+' '+b.good:b.reading?tr('reading'):tr('engine off')):'')];}
   const dir={off:'Off',left:'Left',right:'Right',both:'Both (hazards)'}[s.indicator]||String(s.indicator);
-  return [head+': '+tr('received')+' '+s.received,tr(dir)+(s.drawnIn?' · '+tr(s.drawnIn==='redline-hud'?'in the Redline HUD':'overlay'):'')];
+  const b=this.liveState&&this.liveState.blindSpot,side=v=>v===2?tr('warning'):v===1?tr('car'):'-';
+  const blind=!b||!b.on?'':' · '+tr('Blind spot')+' '+(b.refused?tr('not supported by this car'):b.good?side(b.left)+' / '+side(b.right):b.reading?tr('reading'):tr('engine off'));
+  return [head+': '+tr('received')+' '+s.received,tr(dir)+(s.drawnIn?' · '+tr(s.drawnIn==='redline-hud'?'in the Redline HUD':'overlay'):'')+blind];
  }
  // The door-open warning: on / off, what it does, and Position / size of its HUD picture.
  drawDoor(cv,cfg,targets){
@@ -328,6 +330,8 @@ class SettingsPage{
    ['left','right'].forEach((side,n)=>cached(cv,'turn|'+st+'|'+cfg.hudTurnColor+'|'+side,x+16+n*386,250,36,30,(c,px,py)=>{const im=new Canvas(36,30);im.clear([0,0,0,0]);draw.paint(im,36,30,side,st,cfg.hudTurnColor);vector(c,px,py,1).blit(im,0,0);}));});
   Object.keys(D.TURN_COLORS).forEach((k,i)=>{const x=84+i*490;this.button(cv,local,tr(TURN_COLOR_LABELS[k]),x,320,464,64,()=>set('hudTurnColor',k),cfg.hudTurnColor===k,'turn-color-'+k);cv.fillRect(x+20,320+52,424,5,D.TURN_COLORS[k]);});
   cv.text(tr('Shown on the HUD whenever a turn signal or the hazards flash, even with the stock HUD.'),100,418,22,'#91a1b6',{literal:true});
+  // the blind spot warning beside the arrows (the door mirror lamps, read from the car while the engine runs)
+  [['on','Blind spot warning on'],['off','Blind spot warning off']].forEach((o,i)=>this.button(cv,local,tr(o[1]),820+i*366,392,352,48,()=>set('hudTurnBlindSpot',o[0]),cfg.hudTurnBlindSpot===o[0],'blind-'+o[0]));
   this.turnStatus().forEach((line,i)=>cv.text(line,804,474+i*28,20,'#8d97a4',{literal:true}));
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='turn';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Turn']);this.setPreview(true);this.changed();},false,'turn-layout');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);

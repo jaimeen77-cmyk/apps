@@ -33,6 +33,8 @@ const {VehicleAlerts,SAMPLE:ALERT_SAMPLE} = require('./vehicle-alerts');
 const {AlertOverlay} = require('./alert-overlay');
 const {GreetingOverlay} = require('./greeting-overlay');
 const DOOR = require('./door-alert');
+const {BlindSpot} = require('./blind-spot');
+const {BlindSpotOverlay} = require('./blind-spot-overlay');
 const driverGreeting = require('./driver-greeting');
 const {TrafficSigns,FIELDS:TRAFFIC_FIELDS} = require('./traffic-signs');
 const {live:trafficLive} = require('./traffic-live');
@@ -86,7 +88,7 @@ function start(ctx) {
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const lanes=new LaneGuidance(mono);
     const traffic=new TrafficSigns(),trafficSubs=[];
-    const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client);let doorSub=null,doorState='not_installed',lastDoorOpenAt=null,greetingNow=null;
+    const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',lastDoorOpenAt=null,greetingNow=null;
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
     function keep(s) { if (stopped) s.shutdown(); else subs.push(s); }
@@ -251,7 +253,7 @@ function start(ctx) {
     }catch(e){ /* No lane capability: existing arrows/RPM continue normally. */ }
     function stop() {
         if (stopped) return;
-        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); vehicleAlerts.stop(); alertOverlay.close(); greetingOverlay.close(); doorOverlay.close(); turnOverlay.close(); controller.close();
+        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); vehicleAlerts.stop(); alertOverlay.close(); greetingOverlay.close(); doorOverlay.close(); blindSpot.release(); blindSpotOverlay.close(); turnOverlay.close(); controller.close();
         process.removeListener('exit', stop);
         if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
@@ -422,6 +424,12 @@ function start(ctx) {
             // a door switch lost with its provider or an error: no stale open door on the HUD
             if (doorSub && doorSub.error || config.hudDoorAlert === 'off') doors.clear();
             doorOverlay.tick(pv && pv.part === 'Door' ? DOOR.SAMPLE : live && config.appEnabled && config.hudDoorAlert !== 'off' ? doors.open : null, config);
+            // The blind spot warning (blind-spot.js): the door mirror lamps read from the BDC while it is on and the
+            // engine runs; signs beside the turn arrows (blind-spot-overlay.js).
+            const engineRuns = controller.policy.rpm > 0 && controller.policy.rpmAt !== null && at - controller.policy.rpmAt <= 2500;
+            const blindOn = live && config.appEnabled && config.hudTurnBlindSpot === 'on';
+            blindSpot.tick(at, blindOn && engineRuns);
+            blindSpotOverlay.tick(config, blindOn ? blindSpot.read(at) : null, controller.turn && controller.turn.indicator, blindOn && !!(pv && /^Turn/.test(pv.part || '')));
             driverGreeting.setHybrid(config.engineProfile === 'hybrid');
             driverGreeting.engine(controller.policy.rpm, controller.policy.rpmAt !== null && at - controller.policy.rpmAt <= 2500);
             greetingNow = driverGreeting.read(live && config.appEnabled && !!client.ready && String(client.targets || '').indexOf('hud:') >= 0);
@@ -435,7 +443,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice() }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, blindSpot: Object.assign({ on: config.hudTurnBlindSpot === 'on' }, blindSpot.status(at), blindSpot.read(at)), doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice() }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},

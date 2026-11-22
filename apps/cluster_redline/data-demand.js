@@ -8,7 +8,8 @@ function demand(cfg,mode){
  // The G-force + RPM rings layout's G meter reads the G-force whatever the readouts are.
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-classic'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlTempHidden'])aux.add('oil');});
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-rings'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlGMeterHidden'])aux.add('gforce');});
- const rpm=faces.some(d=>D.faceRpmNeeded(cfg,d))||aux.has('batteryVoltage'),torque=aux.has('torque')||aux.has('power'),gear=faces.some(d=>!cfg[d+'GearHidden']);
+ // the blind spot warning reads the mirror lamps only while the engine runs: it needs the engine speed
+ const rpm=faces.some(d=>D.faceRpmNeeded(cfg,d))||aux.has('batteryVoltage')||enabled&&cfg.hudTurnBlindSpot==='on',torque=aux.has('torque')||aux.has('power'),gear=faces.some(d=>!cfg[d+'GearHidden']);
  const navAny=enabled&&(nav.direction||nav.text||nav.lanes),turns=enabled&&(nav.direction||nav.text);
  const navPotential=enabled&&cfg.hudNavigationEnabled&&cfg.navDisplayMode!=='stock'&&D.NAV_PARTS.some(p=>!cfg[p.prefix+'Hidden']);
  const modeNeeded=navPotential||enabled&&['hud','cluster'].some(d=>D.faceVisible(cfg,d)&&D.rpmOutputPossible(cfg,d==='hud'?'Hud':'Cluster'));
