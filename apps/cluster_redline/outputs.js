@@ -80,8 +80,8 @@ class Outputs {
         order.forEach((name) => {
             // Turn signal and blind spot parts are previewed on their own overlay layers, not by the Redline face.
             const out=this[name],pv=preview&&preview.display===name&&!/^(Turn|Blind|CarAlert|Door)/.test(preview.part||'')?preview:null,local=pv?previewConfig(cfg,name,pv):cfg;
-            // following the BC button (bc-follow.js): its page shows the Redline cluster in every drive mode...
-            const bcShow=name==='cluster'&&!pv&&cfg.bcCluster==='redline';
+            // BC mode (bc-follow.js, a cluster RPM row set to it): the page shows the Redline cluster...
+            const bcNow=name==='cluster'&&!pv&&D.bcModeNow(cfg,this.policy.mode),bcShow=bcNow&&cfg.bcCluster!=='yield';
             const rpm=pv&&pv.tab!=='nav'?true:(bcShow||rpmOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode))&&D.faceVisible(local,name);
             const navigation=pv&&pv.tab==='nav'?sampleNavigation():this.navigation;
             const nav=name==='hud'&&(pv&&pv.tab==='nav'||navAllowed(local,this.policy.mode)&&navigation&&navigation.visible);
@@ -97,7 +97,7 @@ class Outputs {
             // the driver greeting (3 s at engine start) has the HUD and the cluster to itself
             const greeting=!pv&&!!this.greetingHold;
             // ...or steps it aside for Waze / the stock map
-            const bcYield=name==='cluster'&&!pv&&cfg.bcCluster==='yield';
+            const bcYield=bcNow&&cfg.bcCluster==='yield';
             const blocked=name==='hud' && this.hudBlocked || yielded || doorYield || greeting || bcYield;
             states[name] = out.tick(now, Object.assign({}, local, { displayMode: pv||bcShow||D.allOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';

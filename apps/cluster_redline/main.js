@@ -71,6 +71,8 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     const bcFollow = new (require('./bc-follow').BcFollow)({ settings: ctx.settings, signals: ctx.signals, log: ctx.log, changed: () => queue.request(),
         apply: (values) => { const v = Object.assign({}, values); delete v.clusterDesign; page.setValues(Object.assign(values.clusterDesign ? page.designSwitch(values.clusterDesign, 'cluster') : {}, v)); } });
     page.bcFollow = bcFollow;
+    // 1.3.40-1.3.41 had its own on / off: on becomes BC mode in all drive modes (1.3.42)
+    if (ctx.settings.get('bcFollow') === 'on') { if (ctx.settings.get('allClusterOutput') !== 'bc' && ctx.settings.get('sportClusterOutput') !== 'bc') ctx.settings.set('allClusterOutput', 'bc'); ctx.settings.set('bcFollow', 'off'); }
     // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');
     if (ctx.ui && typeof ctx.ui.onVisible === 'function') ctx.ui.onVisible((name, visible) => { if (name === 'MAIN' && !visible) page.leave(); });
