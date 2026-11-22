@@ -24,6 +24,8 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  assert.deepStrictEqual(filterTraffic({proxies:{}},cat).proxies[KOMBI],{instances:'1',attributes:{statusKombiSelection:'rs'}},'added at install');
  if(process.argv[2]){const root=path.join(path.resolve(process.argv[2]),'source/javascript'),{SettingsPage}=require(root+'/settings-ui'),{Canvas}=require(root+'/kit/canvas'),spec=require(root+'/kit/app-spec.json'),v={};spec.settings.forEach(x=>{v[x.key]=x.default;});
   const page=new SettingsPage({schema:spec.settings,get:k=>v[k],set:(k,x)=>{v[k]=x;},onChange(){}},()=>{},'t');page.bcDiag=d;page.selectTab(2);
-  page.focus=page.keys().indexOf('bcCheck');assert(page.focus>=0,'Cluster tab row');page.activate();assert.strictEqual(page.open,'bcCheck');const cv=new Canvas(1600,520);page.draw(cv,'',{});page.back();assert.strictEqual(page.open,null);}
+  // since 1.3.40 opened from Follow the BC button (its button), and back there
+  page.focus=page.keys().indexOf('bcFollow');assert(page.focus>=0,'Cluster tab row');page.activate();assert.strictEqual(page.open,'bc');
+  let cv=new Canvas(1600,520);page.draw(cv,'',{});cv.targets.find(x=>x.id==='bc-check').run();assert.strictEqual(page.open,'bcCheck');cv=new Canvas(1600,520);page.draw(cv,'',{});page.back();assert.strictEqual(page.open,'bc');}
  console.log('PASS: BC button check: selection and stalk read once the screen opens, changes counted newest first, install-time input'+(process.argv[2]?', screen':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

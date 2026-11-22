@@ -66,10 +66,15 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     // The BC button check (bc-diag.js): read once its screen is opened, redrawn on every change
     const bcDiag = new (require('./bc-diag').BcDiag)({ signals: ctx.signals, log: ctx.log, changed: () => queue.request() });
     page.bcDiag = bcDiag;
+    // Following the BC button (bc-follow.js): a BC press moves the Redline cluster to that stock page's screen; the
+    // design goes through the settings page's switch so each design keeps its own layout
+    const bcFollow = new (require('./bc-follow').BcFollow)({ settings: ctx.settings, signals: ctx.signals, log: ctx.log, changed: () => queue.request(),
+        apply: (values) => { const v = Object.assign({}, values); delete v.clusterDesign; page.setValues(Object.assign(values.clusterDesign ? page.designSwitch(values.clusterDesign, 'cluster') : {}, v)); } });
+    page.bcFollow = bcFollow;
     // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');
     if (ctx.ui && typeof ctx.ui.onVisible === 'function') ctx.ui.onVisible((name, visible) => { if (name === 'MAIN' && !visible) page.leave(); });
-    if (ctx.app && ctx.app.once) ctx.app.once('shutdown', () => { queue.stop(); drivers.stop(); bcDiag.stop(); });
+    if (ctx.app && ctx.app.once) ctx.app.once('shutdown', () => { queue.stop(); drivers.stop(); bcDiag.stop(); bcFollow.stop(); });
     function report() {}   // no logs
     function syncWorker() {
         if (ctx.settings.get('appEnabled') === true && !background) background = worker.start(ctx);
