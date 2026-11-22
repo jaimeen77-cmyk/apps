@@ -35,13 +35,22 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
  feed('A');assert.strictEqual(said.length,1,'the same driver: once');
  feed('B');await settle();await new Promise(r=>setTimeout(r,5));assert.deepStrictEqual(said,['홍길동','change:김철수'],'new driver: said once the name is read, as a change');
  feed('C');await settle();p.dropName(true);p.hello('C');assert.deepStrictEqual(said[2],'change:null','no name: a plain hello');p.stop();
+ // while the greeting shows, the Redline HUD face steps aside (the cluster does not)
+ {const {Outputs}=require('../../apps/cluster_redline/outputs'),{EventEmitter}=require('events');
+  class C extends EventEmitter{constructor(){super();this.ready=true;this.targets='map:1088x480,hud:800x480';this.n=0;}image(){return ++this.n;}pixels(){}showWhenSent(){}set(){}drop(){}close(){}}
+  const pt=(w,h)=>({W:w,H:h,draw:()=>({d:Buffer.alloc(64)}),difference:()=>({rects:[],pixels:Buffer.alloc(0)})});
+  const out=new Outputs(new C(),pt(1088,480),Object.assign(pt(800,480),{fullTarget:true})),cfg={allClusterOutput:'redline',allHudOutput:'redline'};
+  const t=at=>{out.policy.modeSample(4,at-1);out.policy.rpmSample(2000,at);return out.tick(at,cfg).outputs;};
+  assert(t(1000).hud.requested);out.greetingHold=true;let o=t(1200);assert(!o.hud.requested,'greeting: the HUD face steps aside');assert.strictEqual(o.hud.reason,'greeting');assert(o.cluster.requested,'the cluster stays');
+  out.greetingHold=false;assert(t(1400).hud.requested,'back after the greeting');out.close();}
  if(process.argv[2]){
   const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),O=require(path.join(dir,'greeting-overlay'));
-  assert.strictEqual(O.text('홍길동'),'홍길동님 안녕하세요');assert.strictEqual(O.text(null),'안녕하세요');
+  assert.strictEqual(O.text('홍길동'),'홍길동님 안녕하세요');
+  assert(O.Y>=100&&O.Y+O.H<=239,'in the upper half of what the driver sees (y 100..378)');assert(O.X+O.W/2===400);assert.strictEqual(O.text(null),'안녕하세요');
   const cv=O.draw('홍길동');let n=0;for(let i=3;i<cv.d.length;i+=4)if(cv.d[i])n++;assert(n>500,'drawn');
   const layers=new Map();let k=0,up=0;const client={image(o){layers.set(++k,Object.assign({},o));return k;},pixels(){up++;},set(r,o){Object.assign(layers.get(r),o);},drop(r){layers.delete(r);}};
   const ov=new O.GreetingOverlay(client);ov.tick({name:'홍길동'});const l=layers.get(1);assert(l.klass==='overlay'&&l.target==='hud'&&l.visible);
   ov.tick({name:'홍길동'});assert.strictEqual(up,1,'drawn once');ov.tick(null);assert.strictEqual(l.visible,false);ov.close();
  }
- console.log('PASS: driver greeting at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
+ console.log('PASS: driver greeting in the upper half of the seen HUD, the HUD face stepping aside meanwhile; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.21
+
+- The driver greeting moves up into the upper half of the part of the HUD the driver sees (iDrive 7: x 120..605, y 100..378, from car photos, as appsKOR's Redline measures it): y 140..204 instead of 286..350. While it shows (3 s), the Redline HUD face steps aside (reason `greeting`) so the words do not sit on the gauges; the other overlays (turn signals, door picture, alerts) stay.
+
 ## Cluster Redline 1.3.20
 
 - The door-open picture now sits **in the middle of the HUD** below the RPM face and the turn arrows (75 % size), and has its own **Position / size** (Basic → Door-open warning → Position / size: move, size, hide; the preview shows every door open). The Basic row opens a door-open warning screen (on / off, what it does, the input state). The place and size go with settings per driver and favourites.
