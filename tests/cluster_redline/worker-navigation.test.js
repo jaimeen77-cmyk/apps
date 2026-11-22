@@ -60,7 +60,7 @@ function harness(options) {
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if (name === './renderer') return { inspect: () => ({ compatible: true, version: '0.4.0', hudGuidanceSafe: true }) };
         if(name==='./battery-voltage')return require('../../apps/cluster_redline/battery-voltage');
-        if(['./demand-signals','./data-demand','./turn-signal','./turn-overlay','./preview-presence','./vehicle-alerts','./alert-overlay','./traffic-signs','./traffic-live','./greeting-overlay','./driver-greeting','./door-alert','./blind-spot','./blind-spot-overlay','./lead-vehicle','./headway-overlay','./bc-follow'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
+        if(['./demand-signals','./data-demand','./turn-signal','./turn-overlay','./preview-presence','./vehicle-alerts','./alert-overlay','./traffic-signs','./traffic-live','./greeting-overlay','./driver-greeting','./door-alert','./blind-spot','./blind-spot-overlay','./lead-vehicle','./headway-overlay','./bc-follow','./nav-probe'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
         throw new Error('Unexpected dependency ' + name);
     }, process: {
         hrtime: () => [Math.floor(time / 1000), Math.round((time % 1000) * 1000000)],

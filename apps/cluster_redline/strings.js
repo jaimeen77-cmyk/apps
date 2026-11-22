@@ -24,7 +24,12 @@ const KO={
  'Whole layout':'전체 레이아웃','Sport dial':'스포츠 다이얼','Classic dial':'클래식 다이얼','Luxury arc':'럭셔리 아크','Tyres & trip':'타이어 · 트립','Gauge support':'게이지 지원','Text only':'텍스트만','Car and tyres':'차 · 타이어','Sport HUD':'스포츠 HUD','Temperature gauge':'온도 게이지','M mark':'M 마크','Add M mark':'M 마크 추가','Remove M mark':'M 마크 빼기','G-force meter':'G-포스 미터','M shift lights':'M 시프트 라이트','Data logger':'데이터로거','Analog needle':'아날로그 바늘','G-force + RPM rings':'G-포스 + 회전수 링','Mode ribbon':'모드 리본','Hexagon':'헥사곤','Readouts':'부가정보','Readout 1':'부가정보 1','Readout 2':'부가정보 2','Readout 3':'부가정보 3','Readout 4':'부가정보 4',
  'Navigation preview':'길안내 미리보기','Redline app layouts':'Redline 앱 레이아웃','Redline HUD':'Redline HUD','Cluster Redline design':'계기판 레드라인 기본 디자인',
  'Standard':'스탠다드','Minimal':'미니멀','Split wings':'스플릿 윙','80s digital dash':'80년대 디지털','VFD glow':'VFD 글로우','Vector arcade':'벡터 아케이드','Arc (F80 M3/M4)':'아크 (F80 M3/M4)','Ramp (G80 M3/M4)':'램프 (G80 M3/M4)','Dial (E60 M5)':'다이얼 (E60 M5)',
- 'Redline app layouts (appsKOR, MIT) and Cluster Redline layouts. Navigation, lanes and auxiliary items stay as set.':'Redline 앱(appsKOR, MIT) 레이아웃과 계기판 레드라인 자체 레이아웃입니다. 길안내·차선·부가정보 선택은 그대로 적용됩니다.','Moving parts are shown while adjusting.':'조정 중인 항목은 데이터가 없어도 화면에 표시됩니다.'
+ 'Redline app layouts (appsKOR, MIT) and Cluster Redline layouts. Navigation, lanes and auxiliary items stay as set.':'Redline 앱(appsKOR, MIT) 레이아웃과 계기판 레드라인 자체 레이아웃입니다. 길안내·차선·부가정보 선택은 그대로 적용됩니다.','Moving parts are shown while adjusting.':'조정 중인 항목은 데이터가 없어도 화면에 표시됩니다.',
+ 'Received turns':'받은 회전 정보','Record to a file':'기록 파일 저장 (nav-probe.log)','No turns received yet · start route guidance':'아직 받은 회전 정보 없음 · 길안내를 시작하세요',
+ 'Newest first · the same turn again only updates its distance':'위가 최신 · 같은 회전이 다시 오면 거리만 바뀝니다','lines saved':'줄 저장됨',
+ 'Highway picture':'고속도로 그림','Junction picture':'갈림길 그림','Roundabout picture':'회전교차로 그림','Road picture':'도로 그림','Not shown':'표시 안 함',
+ 'Intersection':'교차로','Junction':'갈림길','Roundabout':'회전교차로','Along the main road':'본선 유지','Lane change':'차선 변경','Destination':'목적지',
+ 'Guidance':'안내','Route list':'경로 목록','Stock HUD':'순정 HUD',
 };
 function language(){return getLanguage();}
 function tr(value){return getLanguage()==='ko'&&Object.prototype.hasOwnProperty.call(KO,value)?KO[value]:t(value);}

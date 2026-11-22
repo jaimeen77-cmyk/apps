@@ -35,6 +35,7 @@ class HudGuidance {
                 entry.configSequenceId=config.configSequenceId;entry.contentSequenceId=content&&content.configSequenceId;
                 if(!ok(reply)||!Number.isInteger(config.configSequenceId)||!content||content.configSequenceId!==config.configSequenceId||(type!==1&&type!=='HIGH_GUIDING')||!Number.isInteger(content.ramsesSceneId)||content.ramsesSceneId<=0)continue;
                 const event=content.associatedEvent,decoded=decodeDart({maneuver:event});
+                if(this.onEvent)try{this.onEvent(event,decoded);}catch(e){}   // the navigation record (nav-probe.js)
                 entry.kind=event&&typeof event==='object'?Object.keys(event).filter(k=>event[k]!=null).slice(0,2):[];
                 if(entry.kind.length===1){
                     const item=event[entry.kind[0]],distance=item&&item.formattedDistance;

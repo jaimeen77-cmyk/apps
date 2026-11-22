@@ -41,6 +41,9 @@ const driverGreeting = require('./driver-greeting');
 const {TrafficSigns,FIELDS:TRAFFIC_FIELDS} = require('./traffic-signs');
 const {live:trafficLive} = require('./traffic-live');
 const previewPresence = require('./preview-presence');
+const {NavProbe,drawnOf} = require('./nav-probe');
+const {decodeDart} = require('./native-navigation');
+const {decodeReply} = require('./route-events');
 function mono() { const p = process.hrtime(); return p[0] * 1000 + p[1] / 1000000; }
 function supportedRenderer() { return renderer.inspect(undefined, fs).compatible; }
 function start(ctx) {
@@ -63,6 +66,7 @@ function start(ctx) {
         if(field!=='conclusiveDart' && lastNavigationValues[field]!==value){navigationRevision++;lastNavigationValues[field]=value;}
         if(field===guidance.FIELD)navigation.sample(value,mono());
         maneuvers.sample(field,value,mono());
+        if(field==='conclusiveDart'&&value&&typeof value==='object')navProbe.turn('dart',maneuvers.provider,value.maneuver,drawnOf(decodeDart(value)));
         protectGuidance();
     }
     function protectGuidance() {
@@ -88,6 +92,10 @@ function start(ctx) {
     let rendererInfo = renderer.inspect(undefined, fs), lastRendererCheck = -Infinity, connectionStarted = false, gearSub, fesSub, programSub;
     const hudGuidance=new HudGuidance(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
     const routeEvents=new RouteEvents(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout));
+    // what the navigation sends, turn by turn (1.3.43): Navigation display's list, and nav-probe.log while switched on
+    const navProbe=new NavProbe({fs,file:ctx.dataDir?path.join(ctx.dataDir,'nav-probe.log'):null});
+    routeEvents.onReply=(reply)=>navProbe.route(maneuvers.provider,reply,drawnOf(decodeReply(reply).value));
+    hudGuidance.onEvent=(event,decoded)=>navProbe.turn('hud',maneuvers.provider,event,drawnOf(decoded));
     const lanes=new LaneGuidance(mono);
     const traffic=new TrafficSigns(),trafficSubs=[];
     // the HUD headway badge (lead-vehicle.js): made once the manifest's instances can be read, below
@@ -294,7 +302,7 @@ function start(ctx) {
             if (fesSub && (fesSub.available === false || fesSub.error)) controller.telemetry.clear();
             const raw = {};
             Object.keys(DEFAULTS).forEach((k) => { if (k !== 'frameRate') raw[k] = ctx.settings.get(k); });
-            config = settings(raw);
+            config = settings(raw);navProbe.record(config.navProbeLog==='on');
             const before=collection;collection=demand(config,controller.policy.mode);
             if(before.rpm&&!collection.rpm){const running=controller.policy.runningSeen;controller.policy.rpmSample(null,at);controller.policy.runningSeen=running;}
             if(before.torque&&!collection.torque)controller.telemetry.clear();
@@ -465,6 +473,7 @@ function start(ctx) {
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
                     outputs: state.outputs, headway: lead ? Object.assign({ mode: config.hudHeadway, now: lead.read(at) }, lead.status(at)) : { mode: config.hudHeadway, state: 'not_started' }, blindSpot: Object.assign({ on: config.hudTurnBlindSpot === 'on' }, blindSpot.status(at), blindSpot.read(at)), doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice(), lids: Object.assign({}, doors.lidNames), names: doors.names.slice(0, 24) }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
+                    navProbe:navProbe.status(),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
                     navigationInputs: {fields:navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)),available:navigationAvailable,pending:guidancePending,reads:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationReadState[field];return out;},{}),
