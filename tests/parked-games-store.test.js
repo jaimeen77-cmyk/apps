@@ -19,6 +19,13 @@ try{
  const locale=JSON.parse(fs.readFileSync(path.join(js,'kit/locale.json'),'utf8'));assert.strictEqual(locale.language,'ko');
  Object.keys(spec.translations.ko).forEach(k=>assert.strictEqual(locale.strings[k],spec.translations.ko[k],'translated: '+k));
  assert(fs.existsSync(path.join(js,'kit/fonts/korean.json')),'the Korean glyphs');
+ // the car's GPU renderer keeps all apps' glyph atlases on two shared 4096 px shelves: the full Korean atlas (2976 px) is
+ // refused once Latin atlases fill them (Korean text missing on the car); this one has only the catalog's glyphs
+ const ko=JSON.parse(fs.readFileSync(path.join(js,'kit/fonts/korean.json'),'utf8'));
+ ko.sizes.forEach(s=>assert(s.atlasH<=1100,'small Korean atlas: '+s.atlasH));assert.notStrictEqual(ko.cacheKey,'f9dc9f90bed5a3d5','its own cache key');
+ const glyphs=ko.sizes[0].glyphs,used=new Set();Object.values(locale.strings).forEach(v=>{for(const c of v)used.add(c.codePointAt(0));});
+ used.forEach(c=>{if(c>=0xac00&&c<=0xd7a3)assert(glyphs[c],'glyph for '+String.fromCodePoint(c));});
+ assert.strictEqual(spec.translations.ko['Parked Games'],'6게임');
  // no game text drawn past the translation any more (literal: true only on numbers)
  const walk=d=>fs.readdirSync(d).reduce((a,n)=>{const p=path.join(d,n);return fs.statSync(p).isDirectory()?a.concat(walk(p)):a.concat(p);},[]);
  walk(path.join(ROOT,'apps/parked_games')).filter(f=>f.endsWith('.js')).forEach(f=>fs.readFileSync(f,'utf8').split('\n').forEach((l,i)=>{
