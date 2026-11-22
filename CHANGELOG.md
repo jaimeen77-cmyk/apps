@@ -2,6 +2,13 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.32
+
+Fixes from the 1.3.31 performance and bug check:
+- **The goodbye never showed** (1.3.29-1.3.31): the background loop handed the gear to the greeting in the place of the time, so the engine switched off in P was never seen as such. Now the gear arrives where it belongs; a test drives the real loop from the engine start to the engine off in P.
+- Turn signals → Position / size: selecting a blind spot part (both, left, right) forced the Redline HUD face on even in a mode set to the stock HUD; it now leaves the face as the mode has it, as the turn arrow parts do.
+- Settings per driver row: auto start-stop restarts at the lights wrote "greeting skipped (restart within 3 min)" over the last greeting each time; only a stop of 1 to 3 minutes is noted now.
+
 ## Cluster Redline 1.3.31
 
 - The driver greeting and the goodbye show for **5 s** (10 s in 1.3.29-1.3.30), on the HUD and the cluster.

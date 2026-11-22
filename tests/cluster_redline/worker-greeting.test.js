@@ -28,6 +28,14 @@ const source=fs.readFileSync(path.join(__dirname,'../../apps/cluster_redline/wor
  assert.strictEqual(shown.length,0,'engine off: no greeting');
  for(let at=1500;at<2500;at+=50){feeds[CDS].statusEngineSpeed2({actualValueRPMEngineCrankshaft:800*4});await tick(at);}
  assert(shown.length&&shown[0].name==='홍길동','engine start: greeted on the HUD');
+ // two overlays (HUD and cluster) took it
+ assert(shown.filter(v=>v.name==='홍길동'&&!v.bye).length>=2,'on the HUD and on the cluster');
+ // the goodbye: the engine switched off in P
+ const VI='de.bmw.infrastructure.VehicleInformation',n=shown.length;
+ assert(feeds[VI]&&feeds[VI].statusGearboxDrive,'the gear is read');
+ feeds[VI].statusGearboxDrive({statusActualStageDrive:'P',statusActualGearDrive:0});feeds[VI].DataPowerTrain2({statusGearSelectionDrive:'P'});
+ for(let at=2500;at<6500;at+=50){feeds[CDS].statusEngineSpeed2({actualValueRPMEngineCrankshaft:0});await tick(at);}
+ assert(shown.slice(n).some(v=>v.bye&&v.name==='홍길동'),'engine off in P: goodbye');
  worker.stop();G.reset();
- console.log('PASS: worker greeting: engine speed subscribed while settings per driver are on, an engine start greets the driver on the HUD');
+ console.log('PASS: worker greeting: engine speed subscribed while settings per driver are on, an engine start greets the driver on the HUD and the cluster, the engine off in P says goodbye');
 })().catch(e=>{console.error(e);process.exitCode=1;});

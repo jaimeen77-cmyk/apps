@@ -78,8 +78,8 @@ class Outputs {
         const turnPreview=!!(preview&&preview.display==='hud'&&/^(Turn|Blind)/.test(preview.part||'')),turnInLayer=!!this.hudShown;
         this.turnInLayer=turnInLayer;
         order.forEach((name) => {
-            // Turn signal parts are previewed on their own overlay layers (turn-overlay.js), not by the Redline face.
-            const out=this[name],pv=preview&&preview.display===name&&!/^(Turn|CarAlert|Door)/.test(preview.part||'')?preview:null,local=pv?previewConfig(cfg,name,pv):cfg;
+            // Turn signal and blind spot parts are previewed on their own overlay layers, not by the Redline face.
+            const out=this[name],pv=preview&&preview.display===name&&!/^(Turn|Blind|CarAlert|Door)/.test(preview.part||'')?preview:null,local=pv?previewConfig(cfg,name,pv):cfg;
             const rpm=pv&&pv.tab!=='nav'?true:rpmOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)&&D.faceVisible(local,name);
             const navigation=pv&&pv.tab==='nav'?sampleNavigation():this.navigation;
             const nav=name==='hud'&&(pv&&pv.tab==='nav'||navAllowed(local,this.policy.mode)&&navigation&&navigation.visible);

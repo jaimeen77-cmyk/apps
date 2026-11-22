@@ -27,7 +27,8 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
  // a short stop with a door opened (out and in again): greeted; without (auto start-stop): not, and said so
  G.reset();G.setEnabled(true);G.driver('홍길동',false,0);G.engine(900,true,1000);assert.deepStrictEqual(G.read(true,1100),{name:'홍길동'});assert.strictEqual(G.status().last.what,'shown');
  G.engine(0,true,30000);G.door(true);G.door(false);G.engine(900,true,60000);assert.deepStrictEqual(G.read(true,60100),{name:'홍길동'},'door opened while off: greeted after a short stop');
- G.engine(0,true,90000);G.engine(900,true,100000);assert.strictEqual(G.read(true,100100),null);assert.strictEqual(G.status().last.what,'restart','auto start-stop: noted, not greeted');
+ G.engine(0,true,90000);G.engine(900,true,100000);assert.strictEqual(G.read(true,100100),null);assert.strictEqual(G.status().last.what,'shown','auto start-stop at the lights: not greeted, not noted');
+ G.engine(0,true,110000);G.engine(900,true,200000);assert.strictEqual(G.read(true,200100),null);assert.strictEqual(G.status().last.what,'restart','a 1.5 min stop without a door: noted, not greeted');
  G.door(true);G.engine(900,true,100200);assert.strictEqual(G.read(true,100300),null,'a door opened while running does not count');
  assert.strictEqual(G.SHOW_MS,5000,'5 s');
  // the goodbye: the engine switched off in P (or P within 5 s): 10 s; an auto start-stop stop in D: none
