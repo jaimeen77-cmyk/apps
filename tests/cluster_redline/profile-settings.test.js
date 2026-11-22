@@ -27,7 +27,8 @@ function effective() {
         assert.strictEqual(effective().gearPrefix, undefined); assert.strictEqual(effective().torqueScale, 500);
         assert.strictEqual(effective().sportClusterOutput,'redline');assert.strictEqual(effective().sportHudOutput,'stock');
         const chooseNext=()=>{hu.handlers.BTN_VALUE_UP();hu.handlers.BTN_NEXT();hu.handlers.BTN_VALUE_UP();};
-        hu.handlers.BTN_NEXT();hu.handlers.BTN_NEXT();chooseNext();assert.strictEqual(effective().engineProfile,'diesel');assert.strictEqual(effective().shiftRpm,4200);
+        // Basic tab: auto start, app, settings per driver (1.3.13), door-open warning (1.3.19), then the vehicle preset
+        hu.handlers.BTN_NEXT();hu.handlers.BTN_NEXT();hu.handlers.BTN_NEXT();hu.handlers.BTN_NEXT();chooseNext();assert.strictEqual(effective().engineProfile,'diesel');assert.strictEqual(effective().shiftRpm,4200);
         hu.handlers.BTN_NEXT();chooseNext();assert.strictEqual(effective().powerUnit,'kW');
         hu.handlers.BTN_NEXT();chooseNext();assert.strictEqual(effective().torqueUnit,'kgfm');
         hu.handlers.BTN_NEXT();chooseNext();assert.strictEqual(effective().shiftRpm,2000);

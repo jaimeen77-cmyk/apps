@@ -38,6 +38,13 @@ const settle=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  const ov2=new BlindSpotOverlay(client),hid=settings({hudTurnBlindLeftHidden:true});Module._load=function(r){if(r==='./kit/canvas')return {Canvas:class{constructor(w,h){this.d=new Uint8Array(w*h*4);}clear(){}roundRect(){}arc(){}fill(){}}};return orig.apply(this,arguments);};
  ov2.tick(hid,{left:1,right:1},'off',false);assert(!ov2.layers.left&&ov2.layers.right,'a hidden side stays off');ov2.tick(hid,null,'off',true);assert(ov2.layers.left&&ov2.layers.left.visible,'the preview shows it');ov2.close();Module._load=orig;
  assert.deepStrictEqual(D.BLIND_PARTS.map(p=>p.key),['Blind','BlindLeft','BlindRight']);
+ // their Position / size preview leaves the Redline HUD face as the mode has it (stock here), as the turn arrows do
+ {const {Outputs}=require('../../apps/cluster_redline/outputs'),{EventEmitter}=require('events');
+  class C extends EventEmitter{constructor(){super();this.ready=true;this.targets='map:1088x480,hud:800x480';this.n=0;}image(){return ++this.n;}pixels(){}showWhenSent(){}set(){}drop(){}close(){}}
+  const pt=(w,h)=>({W:w,H:h,draw:()=>({d:Buffer.alloc(64)}),difference:()=>({rects:[],pixels:Buffer.alloc(0)})});
+  ['Turn','Blind','BlindRight'].forEach(part=>{const out=new Outputs(new C(),pt(1088,480),Object.assign(pt(800,480),{fullTarget:true}));
+   out.policy.modeSample(4,0);out.policy.rpmSample(2000,1);const o=out.tick(10,{allClusterOutput:'stock',allHudOutput:'stock',sportHudOutput:'stock',sportClusterOutput:'stock',layoutPreview:'hud:'+part+'@'+Date.now()}).outputs;
+   assert.strictEqual(o.hud.requested,false,part+' preview: no Redline HUD face forced');out.close();});}
  // the engine speed is demanded for it
  const {demand}=require('../../apps/cluster_redline/data-demand');const f=c=>Array.from(demand(settings(Object.assign({appEnabled:true,navDisplayMode:'stock',hudDoorAlert:'off'},c)),null).fields);
  assert(f({hudTurnBlindSpot:'on'}).includes('de.bmw.infotainment.vehicle.CDS.statusEngineSpeed2'));assert.strictEqual(settings({}).hudTurnBlindSpot,'off','off by default');
