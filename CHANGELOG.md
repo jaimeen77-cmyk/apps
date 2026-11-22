@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.27
+
+- Door-open picture: the tail lights are two, one a side, apart in the middle of the tailgate as on a BMW, each an L round its corner (was one band across).
+
 ## Cluster Redline 1.3.26
 
 - Door-open picture: only the open doors are red. The hood, roof and tailgate are no longer washed red while a door is open (red means open, and they are not).
