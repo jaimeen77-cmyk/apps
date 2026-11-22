@@ -1,7 +1,7 @@
 'use strict';
 // The driver greeting on the HUD and the cluster (driver-greeting.js): one overlay layer of its own, above whatever the HUD shows,
 // in the upper half of the part of the HUD the driver sees (iDrive 7: x 120..605, y 100..378, from car photos, as
-// appsKOR's Redline measures it), for ten seconds (1.3.29; three until then), and the goodbye when the engine is switched off; the Redline HUD face steps aside meanwhile (outputs.js), so the
+// appsKOR's Redline measures it), for five seconds (1.3.31; ten in 1.3.29-1.3.30, three before), and the goodbye when the engine is switched off; the Redline HUD face steps aside meanwhile (outputs.js), so the
 // words do not sit on the gauges. Drawn once per greeting; hidden, kept for the next one.
 const W=440,H=64,X=(800-W)/2,Y=140;
 // bye: the goodbye when the engine is switched off (1.3.29)

@@ -11,7 +11,7 @@
 // SHOW_MS as soon as the HUD or the cluster can take it; dropped if that does not happen within WAIT_MS (1.3.28: 3
 // minutes, was 1: the renderer can come up late after the head unit wakes).
 // status() keeps what happened last (shown, a restart not greeted, no display ready), for the settings screen.
-const SHOW_MS=10000,WAIT_MS=180000,BYE_WAIT_MS=8000,PARK_MS=5000,NAME_WAIT_MS=15000,RESTART_MS=180000,RUNNING_RPM=400;
+const SHOW_MS=5000,WAIT_MS=180000,BYE_WAIT_MS=8000,PARK_MS=5000,NAME_WAIT_MS=15000,RESTART_MS=180000,RUNNING_RPM=400;
 const s={enabled:false,hybrid:false,known:false,name:null,running:false,lastRunAt:null,pending:null,showing:null,doorOff:false,last:null,stopAt:null,byeDone:true};
 function note(what){s.last={what,wall:Date.now()};}
 const now0=t=>typeof t==='number'?t:Date.now();
