@@ -235,8 +235,16 @@ class SettingsPage{
  driverValue(){
   if(this.settings.get('driverProfiles')!=='on')return tr('Off');
   const s=typeof this.driverStatus==='function'?this.driverStatus():null;if(!s)return tr('On');
-  if(s.state==='ready'&&s.driver)return tr('On')+' · '+(s.name?s.name+(s.drivers>1?' ('+s.driver+' / '+s.drivers+')':''):tr('Driver')+' '+s.driver+(s.drivers>1?' / '+s.drivers:''));
+  if(s.state==='ready'&&s.driver)return tr('On')+' · '+(s.name?s.name+(s.drivers>1?' ('+s.driver+' / '+s.drivers+')':''):tr('Driver')+' '+s.driver+(s.drivers>1?' / '+s.drivers:''))+this.greetingValue();
   return tr('On')+' · '+tr(s.state==='error'||s.state==='unavailable'?'driver not readable':'reading the driver');
+ }
+ // What the greeting did last (driver-greeting.js status): shown, a restart within 3 minutes not greeted, or no
+ // display ready in time; with how long ago.
+ greetingValue(){
+  let g=null;try{g=require('./driver-greeting').status();}catch(e){}if(!g||!g.last&&!g.waiting)return '';
+  if(g.waiting)return ' · '+tr('Greeting waiting');
+  const m=Math.max(0,Math.round((Date.now()-g.last.wall)/60000)),ago=m<1?tr('just now'):m+tr(' min ago');
+  return ' · '+tr({shown:'Greeting shown',restart:'Greeting skipped (restart within 3 min)',not_ready:'Greeting missed (display not ready)'}[g.last.what]||g.last.what)+' '+ago;
  }
  yieldStatus(cfg){
   if(cfg.clusterYieldGuidance==='off')return '';const y=this.liveState&&this.liveState.clusterYield;if(!y)return tr('Yield')+': '+tr('waiting for the background app');
@@ -315,8 +323,13 @@ class SettingsPage{
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
   cv.text(tr('Door-open warning'),100,126,32,'#ef4050',{literal:true});
   [['on','On'],['off','Off']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*740,146,712,64,()=>set('hudDoorAlert',o[0]),cfg.hudDoorAlert===o[0],'door-'+o[0]));
-  cv.text(tr('While a door is open: the car on the HUD with the open doors in red; the cluster gives way to the car warning.'),100,262,24,'#c1cddd',{literal:true});
+  cv.text(tr('While a door, the hood or the trunk is open: the car on the HUD with what is open in red; the cluster gives way to the car warning.'),100,262,24,'#c1cddd',{literal:true});
   cv.text(this.doorValue(cfg),100,300,22,'#91a1b6',{literal:true});
+  // the hood and the trunk: the names found in the car's door status (or not), and what else it carries
+  const d=this.liveState&&this.liveState.doors;
+  if(d&&d.received){const l=d.lids||{},f=k=>l[k]?l[k]:tr('not found');
+   cv.text(tr('Hood')+': '+f('hood')+' · '+tr('Trunk')+': '+f('trunk'),100,338,20,'#91a1b6',{literal:true});
+   const names=(d.names||[]).join(', ');if(names)cv.text(tr('Also from the car')+': '+(names.length>150?names.slice(0,150)+'…':names),100,370,17,'#7f8b9a',{literal:true});}
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='door';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Door']);this.setPreview(true);this.changed();},false,'door-layout');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
