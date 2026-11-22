@@ -6,6 +6,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
 
+## Cluster Redline 1.3.37
+
+- **Lead-car headway on the HUD** (HUD tab → Lead-car headway: Off / Simple / Detailed, off by default; Position / size). The car ahead as the ACC / front radar measures it (`de.bmw.dass.GapVehicleAhead`: `GapVehicleDrivingAhead`, `DataFrontVehicle`, `DataFrontVehicleExtended`), added at install where the car's catalog has it (**reinstall / update from the Store**), subscribed only while the badge is on, read only. Shows the time gap at our speed (`distance ÷ speed`, from 12 km/h), the distance, and in Detailed how fast we close in (negative) or fall back, from the gap's change. Colour steps: under 1.0 s red, 1.0–1.5 s amber, 1.5 s and over cyan. Its own overlay layer between the turn arrows under the RPM face; nothing else gives way. The screen shows the raw values the car sends (status, gap, gapX, object, qualifier), since the signal has only been seen on a G30 (the field names, values and the 0.0625 m scale are those chyiz's idrive7-cluster-metrics found, GPL; facts only, no code taken). Cars without the signal: quietly nothing.
+- HUD tab: seven rows, as tight as the Basic tab's, above its notes.
+
 ## Cluster Redline 1.3.36
 
 - **Next turn on HUD moved into Navigation display**: Navigation tab → Navigation display opens its own screen, the drive modes (All drive modes / Except Sport / Stock display) and the next turn on the HUD on / off; the row reads e.g. `All drive modes · Next turn On`. The Navigation tab is back to five rows.
