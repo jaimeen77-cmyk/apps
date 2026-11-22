@@ -6,6 +6,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
 
+## Cluster Redline 1.3.41
+
+- Follow the BC button → **Set screen** has a third step: after the auxiliary values and the design, the Cluster tab's **Position / size**; leaving it (Back) keeps the page's setup with every cluster position, size and shown / hidden setting, applied again when BC comes to that page (after the design's own layout). Leaving Position / size untouched keeps the positions as they are. Pages not set up this way (the defaults) still change only the design, the auxiliary values and the alert style. The list marks a page with its own positions ("own position").
+
 ## Cluster Redline 1.3.40
 
 - **Follow the BC button** (Cluster tab → Follow the BC button, off by default): each stock BC page of the cluster gets its own Redline cluster screen — its auxiliary values and its design (Set screen: the auxiliary picker, then the design picker) — or Waze / the stock map (the Redline cluster steps aside), or no change, or is left out of the round. iDrive 7 and iDrive 8 lists.

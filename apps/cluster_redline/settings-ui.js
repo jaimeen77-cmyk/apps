@@ -93,6 +93,8 @@ class SettingsPage{
  leave(){if(this.open==='layout'||this.open==='layoutPresets'){this.setPreview(false);this.open=null;this.layoutKind=null;this.draft=null;this.resetArmed=false;this.presetMessage='';this.choice=0;this.changed();}else if(this.settings.get('layoutPreview'))this.setPreview(false);}
  back(){
   // following the BC button: its check and a page's setup (auxiliary values, then design) come back to its screen
+  // a BC page's last step, Position / size: leaving it keeps the page's setup, positions and sizes too (1.3.41)
+  if(this.bcEdit&&this.open==='layout'&&!this.layoutKind){this.setPreview(false);this.bcSave();return;}
   if(this.open==='bcCheck'&&this.bcFromFollow||this.bcEdit&&(this.open==='auxMode'||this.open==='design')){this.open='bc';this.bcEdit=null;this.bcFromFollow=false;this.draft=null;this.choice=0;this.changed();return;}
   if(this.open==='favView'){this.open=null;}
   else if(this.open==='rlDesign'){this.open='design';this.choice=2;}
@@ -157,8 +159,8 @@ class SettingsPage{
   if(this.open==='auxSelect'){if(index===D.METRICS.length)this.commitAux();else if(index===D.METRICS.length+1)this.toggleClockZone();else this.toggleMetric(D.METRICS[index]);return;}
   if(this.open==='design'){
    if(index===2){this.open='rlDesign';this.choice=Math.max(0,RL.stylesFor(this.display()).indexOf(RL.style(this.config(),this.display())));this.changed();return;}
-   const values=this.designSwitch('own');values[this.display()+'AlertStyle']=index===1?'circle':'bar';this.setValues(values);if(this.bcSave())return;this.open=null;this.changed();return;}
-  if(this.open==='rlDesign'){const st=RL.stylesFor(this.display())[index];if(st){this.setValues(this.designSwitch('rl-'+st));if(this.bcSave())return;this.open=null;this.changed();}return;}
+   const values=this.designSwitch('own');values[this.display()+'AlertStyle']=index===1?'circle':'bar';this.setValues(values);if(this.bcLayout())return;this.open=null;this.changed();return;}
+  if(this.open==='rlDesign'){const st=RL.stylesFor(this.display())[index];if(st){this.setValues(this.designSwitch('rl-'+st));if(this.bcLayout())return;this.open=null;this.changed();}return;}
   const list=options(this.item(),this.config());if(!list[index])return;
   this.settings.set(this.item().key,list[index][0]);if(this.item().key==='navDisplayMode')this.settings.set('hudNavigationEnabled',true);this.open=null;this.changed();
  }
@@ -169,9 +171,14 @@ class SettingsPage{
  commitAux(){if(!this.draft||!this.draft.items.length)return;this.settings.set(this.display()+'AuxConfig',JSON.stringify(this.draft));this.draft=null;
   // a BC page's setup: its auxiliary values, then its design
   if(this.bcEdit){this.open='design';const c=this.config();this.choice=RL.active(c,'cluster')?2:c.clusterAlertStyle==='circle'?1:0;}else this.open=null;this.changed();}
- // A BC page's setup done (its design chosen): what the cluster shows now is kept for that page
+ // A BC page's design chosen: then its Position / size (the Cluster tab's layout screen)
+ bcLayout(){if(!this.bcEdit)return false;this.layoutKind=null;this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set([this.layoutParts()[0].key]);this.setPreview(true);this.changed();return true;}
+ // A BC page's setup done: what the cluster shows now is kept for that page, its positions and sizes too (1.3.41):
+ // every cluster position / size / shown setting, applied again when BC comes to that page
+ bcLayoutKeys(){const keys=this.settings.schema.map(s=>s.key).concat(Object.keys(DEFAULTS));return keys.filter((k,i)=>keys.indexOf(k)===i&&/^cluster/.test(k)&&/(OffsetX|OffsetY|WidthScale|HeightScale|Hidden)$/.test(k));}
  bcSave(){const e=this.bcEdit;if(!e)return false;const c=this.config(),all=BC.parse(this.settings.get('bcPages'),{});all[e.hmi]=all[e.hmi]||{};
-  all[e.hmi][e.page]={kind:'redline',design:c.clusterDesign||'own',aux:c.clusterAuxConfig,alert:c.clusterAlertStyle};this.settings.set('bcPages',JSON.stringify(all));this.bcEdit=null;this.open='bc';this.choice=0;this.changed();return true;}
+  const layout={};this.bcLayoutKeys().forEach(k=>{const v=this.settings.get(k);if(v!==undefined)layout[k]=v;});
+  all[e.hmi][e.page]={kind:'redline',design:c.clusterDesign||'own',aux:c.clusterAuxConfig,alert:c.clusterAlertStyle,layout};this.settings.set('bcPages',JSON.stringify(all));this.bcEdit=null;this.open='bc';this.choice=0;this.changed();return true;}
  button(cv,targets,label,x,y,w,h,act,on,id,max){
   const layoutFocus=ACTION_SCREENS.includes(this.open)&&targets.length===this.choice,focused=layoutFocus&&!/^part/.test(id||'')||this.open==='auxSelect'&&(id==='metric-'+D.METRICS[this.choice]||id==='ok'&&this.choice===D.METRICS.length||id==='clock-zone'&&this.choice===D.METRICS.length+1)||this.open==='rlDesign'&&id==='rl-'+RL.stylesFor(this.display())[this.choice]||this.open==='design'&&id==='design'+this.choice||this.tab===FAV_TAB&&!this.open&&id==='fav-'+this.focus||this.open==='favView'&&id==='favview-'+this.choice;
   // On the design pickers the fill marks the design in use and a white outline the cursor; elsewhere the cursor fills.
@@ -361,7 +368,7 @@ class SettingsPage{
   let a=null;try{a=JSON.parse(s.aux||'null');}catch(e){}
   const design=s.design&&/^rl-/.test(s.design)?tr(RL.NAMES[s.design.slice(3)]||s.design):s.design==='own'?tr('Default design'):'';
   const items=a&&Array.isArray(a.items)?a.items.map(id=>t(D.LABELS[id]||id)).join(' · '):'';
-  return [design,items].filter(Boolean).join(' / ')||tr('Redline cluster');
+  return [design,items].filter(Boolean).join(' / ')+(s.layout&&Object.keys(s.layout).length?' · '+tr('own position'):'')||tr('Redline cluster');
  }
  drawBc(cv,cfg,targets){
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();},hmi=cfg.bcHmi==='ID8'?'ID8':'ID7',f=this.bcFollow;
