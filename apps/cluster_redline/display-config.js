@@ -39,8 +39,8 @@ Object.assign(defaults,{hudTurnBlindOffsetX:0,hudTurnBlindOffsetY:0,hudTurnBlind
 Object.assign(defaults,{greetHello:'on',greetBye:'on'});
 // The HUD headway badge (lead-vehicle.js, headway-overlay.js, 1.3.37): off / simple (time gap + distance) / detail
 // (+ closing speed); placed by its own rectangle, between the turn arrows under the RPM face by default.
-const HEADWAY_PARTS=[{key:'Headway',label:'Lead-car headway',prefix:'hudHeadway',scale:'hudHeadwayScale',w:132,h:46}];
-function headwayRect(cfg){const s=(cfg.hudHeadwayScale||100)/100,w=Math.round(132*s),h=Math.round(46*s);return {x:Math.max(0,Math.min(800-w,Math.round((800-w)/2+(cfg.hudHeadwayOffsetX||0)))),y:Math.max(0,Math.min(480-h,Math.round(242+(cfg.hudHeadwayOffsetY||0)))),w,h};}
+const HEADWAY_PARTS=[{key:'Headway',label:'Lead-car headway',prefix:'hudHeadway',scale:'hudHeadwayScale',w:112,h:60}];
+function headwayRect(cfg){const s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(60*s);return {x:Math.max(0,Math.min(800-w,Math.round((800-w)/2+(cfg.hudHeadwayOffsetX||0)))),y:Math.max(0,Math.min(480-h,Math.round(238+(cfg.hudHeadwayOffsetY||0)))),w,h};}
 Object.assign(defaults,{hudHeadway:'off',hudHeadwayOffsetX:0,hudHeadwayOffsetY:0,hudHeadwayScale:100,hudHeadwayHidden:false});
 // HUD navigation: the turn after the next one under the arrow when it follows close behind (1.3.35)
 Object.assign(defaults,{hudNavThen:'on'});
