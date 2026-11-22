@@ -192,6 +192,22 @@ function build(options) {
                 fs.writeFileSync(path.join(stage, 'javascript', name === 'main.js' ? 'app.js' : name), fs.readFileSync(file));
             }
         });
+        // Source folders an app names in app.json (storeSourceDirs, e.g. Parked Games' games/): their JavaScript too,
+        // under javascript/<folder>/, so whole games stay current source rather than a frozen template.
+        (sourceSpec.storeSourceDirs || []).forEach((folder) => {
+            if (!/^[a-z0-9_-]+$/.test(folder)) throw new Error('Bad storeSourceDirs entry: ' + folder);
+            const from = path.join(sourceDir, folder);
+            if (!fs.existsSync(from)) throw new Error('Missing source folder: ' + folder);
+            walk(from).forEach((file) => {
+                const rel = path.relative(from, file);
+                if (!/\.(js|json)$/.test(file) || /(^|[\\/])test\.js$/.test(rel)) return;
+                const dest = path.join(stage, 'javascript', folder, rel);
+                // Node 8 on the car has no recursive mkdirSync
+                const make = (d) => { if (fs.existsSync(d)) return; make(path.dirname(d)); fs.mkdirSync(d); };
+                make(path.dirname(dest));
+                fs.writeFileSync(dest, fs.readFileSync(file));
+            });
+        });
         if (!fs.existsSync(path.join(stage, 'javascript/app.js'))) throw new Error('App main.js is missing');
         const icon = path.join(sourceDir, 'icon.png');
         if (fs.existsSync(icon)) fs.writeFileSync(path.join(stage, 'rhmiData/variantGroups/Common/images', template + '_icon.png'), fs.readFileSync(icon));
@@ -218,7 +234,9 @@ function build(options) {
             if (base.indexOf(template) >= 0) fs.renameSync(file, path.join(path.dirname(file), base.split(template).join(id)));
         });
         const ready = JSON.parse(fs.readFileSync(packageFile, 'utf8'));
-        ready.name = id; ready.version = version; ready.mguHmi = ['ID7', 'ID8']; ready.mguLocalOnly = true;
+        // both head units, unless the app names its own in storeMguHmi (Parked Games: iDrive 7 only, as the original);
+        // its plain mguHmi (seats_easy_access has one) is not read here, so those packages stay as they were
+        ready.name = id; ready.version = version; ready.mguHmi = Array.isArray(sourceSpec.storeMguHmi) ? sourceSpec.storeMguHmi : ['ID7', 'ID8']; ready.mguLocalOnly = true;
         fs.writeFileSync(packageFile, JSON.stringify(ready, null, 2) + '\n');
         // Missing optional inputs must not prevent installing the app. Native
         // navigation uses a getter only; a notifier-only field cannot establish

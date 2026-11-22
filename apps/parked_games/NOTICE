@@ -1,0 +1,45 @@
+Parked Games (주차 게임) — Korean edition in jaimeen77-cmyk/apps
+
+Source: jaimeen77-cmyk/idrive7games_fork (commit 5c6ac210301822ec9108610e0c95013ba5136369), itself built on the
+MGU App Kit of cauliflowermossgrape/idrive7-apps. Parked Games (apps/parked_games) is copyright Maksim
+(GitHub: MaxxxFoka); the kit is copyright cauliflowermossgrape and its contributors. Both are under the MIT
+licence below, which this edition keeps.
+
+Changes in this edition (jaimeen77-cmyk, 2026): Korean translation of every on-screen text (app.json
+translations.ko, merged into the kit's Korean catalog when tools/prepare-games.py prepares the template); the
+texts the games drew untranslated (literal: true) now go through the kit's translation; app.json store fields
+(mguHmi, supportedLanguages, storeSourceDirs). The games themselves are unchanged.
+
+Fonts in the package keep their own licences beside them: the Ubuntu Font Licence 1.0 (kit/fonts/UFL-Ubuntu.txt)
+and the SIL Open Font Licence 1.1 (kit/fonts/OFL-NotoSansKR.txt, OFL-NotoSansSC.txt).
+
+Not in this package: the GPU renderer (idrive7-renderd, GPL-3.0-or-later, mgu-render by Robert Nisipeanu and
+IterioDev) and the controller gate (mgu-inputgate). They are separate programs the MGU Store installs from the
+source that offers them; this app only talks to them.
+
+BMW, iDrive and the BMW logo are trademarks of BMW AG, used only to say which cars this runs on.
+
+----
+MIT License
+
+Copyright (c) 2026 cauliflowermossgrape
+Copyright (c) 2026 小白151 (GitHub: JackieZ123430), Chinese translation
+Copyright (c) 2026 Maksim (GitHub: MaxxxFoka), Parked Games (apps/parked_games)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

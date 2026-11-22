@@ -19,7 +19,8 @@ function checkPackage(file, id, version, start, language) {
     assert(!names.some((n) => /(^|\/)node_modules\//.test(n) || /(^|\/)oap-sdk\//.test(n)), 'published/build output must contain no SDK');
     const p = json(file, 'package.json');
     assert.strictEqual(p.name, id); assert.strictEqual(p.version, version);
-    assert.deepStrictEqual(p.mguHmi, ['ID7', 'ID8']); assert.strictEqual(p.mguLocalOnly, true);
+    // Parked Games names its own head units (storeMguHmi: iDrive 7 only, as the original); the others take both
+    assert.deepStrictEqual(p.mguHmi, id.indexOf('parked_games') === 0 ? ['ID7'] : ['ID7', 'ID8']); assert.strictEqual(p.mguLocalOnly, true);
     assert.strictEqual(p.mguAppStartType || 'manually', start);
     assert.strictEqual(json(file, 'javascript/kit/locale.json').language, language);
     const title = json(file, 'rhmiData/variantGroups/Common/texts/en_GB.json')['SID_' + id.toUpperCase() + '_TITLE'];
@@ -98,7 +99,7 @@ async function checkSettingsEntry(file, id, version) {
         sourceParser = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'sources'));
         const catalog = await sourceParser.repoCatalog((name) => Promise.resolve(fs.readFileSync(path.join(ROOT, name))), null, 'local');
         assert.deepStrictEqual(catalog.skipped, []);
-        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'mgu-monitor-names', 'seats_easy_access', 'seats_easy_access_ko', 'storage', 'storage_en']);
+        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'idrive_circuit', 'idrive_circuit_en', 'mgu-monitor-names', 'parked_games', 'seats_easy_access', 'seats_easy_access_ko', 'storage', 'storage_en']);
         assert(catalog.components.filter((c) => c.kind === 'app').every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         for (const id of ['cluster_redline', 'cluster_redline_en']) {
             assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.4.0');

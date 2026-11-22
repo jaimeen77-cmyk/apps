@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "id": "parked_games",
+  "language": "ko",
+  "source_version": "0.2.2",
+  "ui_sha256": "1049bdad17dcbb37a80570a97bd24f562c81e1a4c2e5d44b8f8b2db560f4e69b",
+  "size": 1095202,
+  "sha256": "29e49a5335b1bcfcac7b9d43a5e59c6f73a5f822e432003efdbe87e750cddb69",
+  "parts": [
+    "parked_games.tgz.part-00",
+    "parked_games.tgz.part-01",
+    "parked_games.tgz.part-02",
+    "parked_games.tgz.part-03",
+    "parked_games.tgz.part-04",
+    "parked_games.tgz.part-05"
+  ]
+}

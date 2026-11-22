@@ -56,6 +56,8 @@ def main():
                     relative = PurePosixPath(*parts[1:])
                     if len(parts) == 3 and parts[1] == 'javascript' and parts[2] in own:
                         continue  # Built from current repository JS on the head unit.
+                    if len(parts) >= 3 and parts[1] == 'javascript' and parts[2] in spec.get('storeSourceDirs', []):
+                        continue  # Source folders (storeSourceDirs) too: copied by store-build.js.
                     target = stage.joinpath(*relative.parts)
                     if member.isdir():
                         target.mkdir(parents=True, exist_ok=True)
