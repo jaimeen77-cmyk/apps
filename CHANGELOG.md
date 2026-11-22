@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Parked Games 0.2.4 (Korean edition)
+
+- Renamed **8게임즈** (it has eight games).
+
 ## Parked Games 0.2.3 (Korean edition)
 
 - Renamed **6게임**, with the paddle-duel icon.
