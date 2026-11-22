@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.28
+
+- **Hood and trunk in the door-open warning**: an open hood or tailgate shows on the HUD picture in red (the hood lifted, the rear window and tailgate red) and the cluster gives way as for a door. Their switches come in the same door status, but their names have not been seen on a car yet: they are found by name (hood / bonnet / Motorhaube, tailgate / trunk / boot / Heckklappe; not their windows, locks or lights). Basic → Door-open warning shows the names found (or "not found") and the other items the car sends, to fix them if needed. The Position / size preview shows the hood and trunk open too.
+- **Driver greeting on the cluster**: the same words on a dark card in the middle of the cluster's centre display, for the same 3 s; the Redline cluster face steps aside meanwhile, as the HUD one.
+- **Driver greeting conditions**: when it was not shown, the reasons were a restart within 3 minutes of the engine stopping (taken for auto start-stop) and no display ready within a minute. Now a short stop counts as a new start when a door was opened while the engine was off, the greeting waits up to 3 minutes for the HUD or the cluster, and it is shown on whichever is ready. Basic → Settings per driver shows what the greeting did last (shown / skipped: restart within 3 min / missed: display not ready, with how long ago).
+
 ## Cluster Redline 1.3.27
 
 - Door-open picture: the tail lights are two, one a side, apart in the middle of the tailgate as on a BMW, each an L round its corner (was one band across).

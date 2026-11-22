@@ -19,7 +19,13 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
  G.reset();G.setEnabled(true);G.engine(900,true,0);assert.strictEqual(G.read(true,1000),null,'engine first: waits for the driver');
  G.driver('홍길동',false,3000);assert.deepStrictEqual(G.read(true,3100),{name:'홍길동'},'then greeted by name');
  G.reset();G.setEnabled(true);G.engine(900,true,0);assert.strictEqual(G.read(true,G.NAME_WAIT_MS-1),null);assert.deepStrictEqual(G.read(true,G.NAME_WAIT_MS),{name:null},'no driver within 15 s: plain hello');
- G.reset();G.setEnabled(true);G.engine(900,true,0);assert.strictEqual(G.read(false,G.WAIT_MS+1),null);assert.strictEqual(G.read(true,G.WAIT_MS+2),null,'no HUD within a minute: dropped');
+ G.reset();G.setEnabled(true);G.engine(900,true,0);assert.strictEqual(G.read(false,G.WAIT_MS+1),null);assert.strictEqual(G.read(true,G.WAIT_MS+2),null,'no display within 3 minutes: dropped');assert.strictEqual(G.status().last.what,'not_ready');
+ assert.strictEqual(G.WAIT_MS,180000);
+ // a short stop with a door opened (out and in again): greeted; without (auto start-stop): not, and said so
+ G.reset();G.setEnabled(true);G.driver('홍길동',false,0);G.engine(900,true,1000);assert.deepStrictEqual(G.read(true,1100),{name:'홍길동'});assert.strictEqual(G.status().last.what,'shown');
+ G.engine(0,true,30000);G.door(true);G.door(false);G.engine(900,true,60000);assert.deepStrictEqual(G.read(true,60100),{name:'홍길동'},'door opened while off: greeted after a short stop');
+ G.engine(0,true,90000);G.engine(900,true,100000);assert.strictEqual(G.read(true,100100),null);assert.strictEqual(G.status().last.what,'restart','auto start-stop: noted, not greeted');
+ G.door(true);G.engine(900,true,100200);assert.strictEqual(G.read(true,100300),null,'a door opened while running does not count');
  G.reset();G.engine(900,true,0);G.driver('홍길동',false,10);assert.strictEqual(G.read(true,20000),null,'settings per driver off: no greeting');assert.strictEqual(G.wantsEngine(),false);
  // eDrive: the driver's recognition at the start is the start
  G.reset();G.setEnabled(true);G.setHybrid(true);G.driver('홍길동',false,0);assert.deepStrictEqual(G.read(true,10),{name:'홍길동'},'eDrive: greeted when recognised');assert.strictEqual(G.wantsEngine(),false);
@@ -41,7 +47,7 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
   const pt=(w,h)=>({W:w,H:h,draw:()=>({d:Buffer.alloc(64)}),difference:()=>({rects:[],pixels:Buffer.alloc(0)})});
   const out=new Outputs(new C(),pt(1088,480),Object.assign(pt(800,480),{fullTarget:true})),cfg={allClusterOutput:'redline',allHudOutput:'redline'};
   const t=at=>{out.policy.modeSample(4,at-1);out.policy.rpmSample(2000,at);return out.tick(at,cfg).outputs;};
-  assert(t(1000).hud.requested);out.greetingHold=true;let o=t(1200);assert(!o.hud.requested,'greeting: the HUD face steps aside');assert.strictEqual(o.hud.reason,'greeting');assert(o.cluster.requested,'the cluster stays');
+  assert(t(1000).hud.requested);out.greetingHold=true;let o=t(1200);assert(!o.hud.requested,'greeting: the HUD face steps aside');assert.strictEqual(o.hud.reason,'greeting');assert(!o.cluster.requested,'the cluster face too (its own greeting)');assert.strictEqual(o.cluster.reason,'greeting');
   out.greetingHold=false;assert(t(1400).hud.requested,'back after the greeting');out.close();}
  if(process.argv[2]){
   const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),O=require(path.join(dir,'greeting-overlay'));
@@ -51,6 +57,9 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
   const layers=new Map();let k=0,up=0;const client={image(o){layers.set(++k,Object.assign({},o));return k;},pixels(){up++;},set(r,o){Object.assign(layers.get(r),o);},drop(r){layers.delete(r);}};
   const ov=new O.GreetingOverlay(client);ov.tick({name:'홍길동'});const l=layers.get(1);assert(l.klass==='overlay'&&l.target==='hud'&&l.visible);
   ov.tick({name:'홍길동'});assert.strictEqual(up,1,'drawn once');ov.tick(null);assert.strictEqual(l.visible,false);ov.close();
+  // the cluster: its own content layer in the middle of the centre display
+  const oc=new O.GreetingOverlay(client,'map');oc.tick({name:'홍길동'});const c=layers.get(k);assert(c.target==='map'&&c.klass==='content'&&c.visible);assert.strictEqual(c.x+c.w/2,544);oc.close();
+  const cc=O.drawCluster('홍길동');n=0;for(let i=3;i<cc.d.length;i+=4)if(cc.d[i])n++;assert(n>10000,'cluster card drawn');
  }
- console.log('PASS: driver greeting in the upper half of the seen HUD, the HUD face stepping aside meanwhile; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
+ console.log('PASS: driver greeting in the upper half of the seen HUD and on the cluster, both faces stepping aside meanwhile; a short stop with a door opened greeted, the last outcome kept; at engine start (not at auto start-stop restarts; a driver change at once; eDrive at recognition), waits for the driver 15 s and the HUD a minute, 3 s; cached name at once, new name once read, plain hello without one'+(process.argv[2]?', drawn overlay':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

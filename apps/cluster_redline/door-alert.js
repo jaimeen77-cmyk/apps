@@ -9,16 +9,34 @@ const DOORS={statusDoorSwitchDRD:'driverFront',statusDoorSwitchPSD:'passengerFro
 // The picture: 120 x 150, the car seen from above (56 wide, 128 long), room on each side for a door swung open.
 const W=120,H=150;
 const RED='#ff2b3a';
-/** The open doors in a status value (a field however it is wrapped), or null when it names none of them. */
+// The hood and the tailgate (1.3.28): their switches are in the same status, but their names have not been seen on a
+// car yet, so they are found by name (English or German, as the door names and values are): an item naming the
+// hood / bonnet / Motorhaube or the tailgate / trunk / boot / Heckklappe, not its window, lock, button or light.
+const LIDS=[['hood',/hood|bonnet|motorhaube|front_?lid|engine_?lid/i],['trunk',/tailgate|trunk|heckklappe|rear_?lid|boot_?lid|bootlid|deck_?lid|luggage/i]];
+const NOT_LID=/window|glass|scheibe|lock|verriegel|button|taster|light|lamp|leuchte|sensor|position|valid|qualifier|alarm/i;
+const isOpen=x=>x===1||x===true||/OFFEN|OPEN/i.test(String(x))&&!/NICHT|NOT|CLOSED|GESCHLOSSEN/i.test(String(x));
+// every item of a value with a plain value, by name (however it is wrapped, a few levels deep)
+function items(v){const out=[];const walk=(o,d)=>{if(!o||typeof o!=='object'||d>3)return;Object.keys(o).forEach(k=>{const x=o[k];if(x!==null&&typeof x==='object')walk(x,d+1);else out.push([k,x]);});};walk(v,0);return out;}
+/** The hood / trunk items in a value: { seen: ['hood', ...], open: ['trunk', ...], names: { hood: 'statusX' } }. */
+function lids(v){
+ const seen=[],open=[],names={};
+ items(v).forEach(([k,x])=>{if(DOORS[k]||NOT_LID.test(k))return;LIDS.forEach(([lid,re])=>{if(!re.test(k)||names[lid])return;names[lid]=k;seen.push(lid);if(isOpen(x))open.push(lid);});});
+ return {seen,open,names};
+}
+/** The open doors (and hood / trunk) in a status value, or null when it names none of them. */
 function openDoors(v){
  const find=(o,k,d)=>{if(!o||typeof o!=='object'||d>3)return undefined;if(k in o)return o[k];for(const x of Object.keys(o)){const r=find(o[x],k,d+1);if(r!==undefined)return r;}return undefined;};
  let seen=false;const open=[];
- Object.keys(DOORS).forEach(k=>{const x=find(v,k,0);if(x===undefined)return;seen=true;if(x===1||x===true||/_OFFEN$|^OPEN/.test(String(x)))open.push(DOORS[k]);});
+ Object.keys(DOORS).forEach(k=>{const x=find(v,k,0);if(x===undefined)return;seen=true;if(isOpen(x))open.push(DOORS[k]);});
+ const found=lids(v);if(found.seen.length)seen=true;found.open.forEach(l=>open.push(l));
  return seen?open:null;
 }
 class DoorState{
- constructor(){this.open=[];this.received=0;this.at=null;}
- sample(v,now){this.received++;this.at=now;const o=openDoors(v);if(o)this.open=o;}
+ constructor(){this.open=[];this.received=0;this.at=null;this.names=[];this.lidNames={};}
+ // names: what else the status carries (shown on the settings screen, to tell the hood and trunk names on a car)
+ sample(v,now){this.received++;this.at=now;const o=openDoors(v);if(o)this.open=o;
+  items(v).map(([k])=>k).filter(k=>!DOORS[k]).forEach(k=>{if(this.names.indexOf(k)<0&&this.names.length<40)this.names.push(k);});
+  Object.assign(this.lidNames,lids(v).names);}
  clear(){this.open=[];}
 }
 // Left-hand drive (Korea): the driver's doors on the left. Car pointing up, drawn as the car's own door display draws
@@ -51,6 +69,10 @@ function paint(cv,open){
  cv.fill(at(SCREEN),GLASS);cv.fill(at(SIDE_GLASS),GLASS);cv.fill(at(flip(SIDE_GLASS)),GLASS);
  cv.fill(at(ROOF),SILVER);cv.fill(at(PANO),PANO_GLASS);cv.fill(at(REAR_GLASS),GLASS);cv.fill(at(LAMP),[150,34,44,255]);cv.fill(at(flip(LAMP)),[150,34,44,255]);
  cv.line(CX,TOP+76,CX,TOP+79,1.6,EDGE);                                       // the aerial fin
+ // the hood open: lifted from its hinge at the windscreen, so it looks shorter from above, in red; the tailgate open:
+ // lifted from the roof's end, the rear window and the tailgate in red
+ if(has('hood')){cv.fill(at(inset(HOOD,1.02,-0.5)),RED);cv.fill(at(inset(HOOD,0.72,1.5).map(([x,y])=>[x,Math.min(y,23)])),[255,120,128,255]);}
+ if(has('trunk')){cv.fill(at(REAR_GLASS),RED);cv.fill(at(GATE),RED);cv.fill(at([[-19,110],[19,110],[18.5,115],[-18.5,115]]),[255,120,128,255]);}
  // each open door: the opening in the side dark, the door swung out about 80 degrees from its front hinge
  Object.keys(DOOR_AT).forEach(d=>{
   if(!has(d))return;const {side,y,len}=DOOR_AT[d],s=side,x0=HALF+0.2,L=len*0.9,T=len*0.52;
@@ -87,5 +109,5 @@ class DoorOverlay{
  close(){if(this.layer)this.client.drop(this.layer.ref);this.layer=null;}
 }
 // the Position / size preview: every door open
-const SAMPLE=Object.assign(['driverFront','passengerFront','driverRear','passengerRear'],{preview:true});
-module.exports={IFACE,FIELD,DOORS,openDoors,DoorState,DoorOverlay,draw,drawSized,paint,SAMPLE,W,H};
+const SAMPLE=Object.assign(['driverFront','passengerFront','driverRear','passengerRear','hood','trunk'],{preview:true});
+module.exports={IFACE,FIELD,DOORS,LIDS,lids,items,openDoors,DoorState,DoorOverlay,draw,drawSized,paint,SAMPLE,W,H};
