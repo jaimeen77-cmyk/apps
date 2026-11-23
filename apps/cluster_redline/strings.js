@@ -30,7 +30,7 @@ const KO={
  'Highway picture':'고속도로 그림','Junction picture':'갈림길 그림','Roundabout picture':'회전교차로 그림','Road picture':'도로 그림','Not shown':'표시 안 함',
  'Intersection':'교차로','Junction':'갈림길','Roundabout':'회전교차로','Along the main road':'본선 유지','Lane change':'차선 변경','Destination':'목적지',
  'Guidance':'안내','Route list':'경로 목록','Stock HUD':'순정 HUD',
- 'All cluster (Kombi) values':'계기판(Kombi) 전체 값','values':'값','Blue: changes as often as BC was pressed (a candidate for the BC page)':'파란색: BC 누른 횟수만큼 바뀐 값 (BC 화면 후보)',
+ 'The left stalk shows 64 while BC is held, 0 when let go: each press is counted (BC presses).':'BC를 누르고 있는 동안 왼쪽 레버 값이 64, 떼면 0이 됩니다. 누를 때마다 BC 누름으로 셉니다.',
 };
 function language(){return getLanguage();}
 function tr(value){return getLanguage()==='ko'&&Object.prototype.hasOwnProperty.call(KO,value)?KO[value]:t(value);}
