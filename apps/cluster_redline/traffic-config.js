@@ -41,6 +41,27 @@ function filterTraffic(manifest,catalog){
   const get=f.getter&&validId(f.getter.id,1,32767),notify=f.notifier&&validId(f.notifier.id,32768,65535);if(!get&&!notify)return;
   p=p||(proxies[iface]={instances:inst});p.attributes=p.attributes||{};if(p.attributes[name]===undefined)p.attributes[name]=get?(notify?'rs':'r'):'s';
  });
+ scanKombi(manifest,catalog);
  return manifest;
 }
-module.exports={filterTraffic,INPUTS,instanceOf};
+// The BC check's Kombi scan (bc-diag.js, 1.3.44): every field and event of the cluster's interfaces (a name with
+// "Kombi") the catalog defines with a valid getter / notifier or eventId, read only, so the check can show which of
+// them changes with the stock BC page (statusKombiSelection only says "no value" on the user's car). At most
+// SCAN_MAX per interface; what is already there is left as it is.
+const SCAN=/kombi/i,SCAN_MAX=80;
+function scanKombi(manifest,catalog){
+ const defs=catalog&&catalog.interfaces;if(!defs)return manifest;
+ const proxies=manifest.proxies||(manifest.proxies={});
+ Object.keys(defs).filter(i=>SCAN.test(i)).sort().forEach(iface=>{
+  const d=defs[iface],inst=instanceOf(catalog,iface);if(!d||!inst)return;
+  let p=proxies[iface];if(p&&String(p.instances||'').split(',')[0]!==inst)return;
+  let n=0;const add=()=>{p=p||(proxies[iface]={instances:inst});return ++n<=SCAN_MAX;};
+  Object.keys(d.fields||{}).sort().forEach(name=>{const f=d.fields[name];if(!f)return;
+   const get=f.getter&&validId(f.getter.id,1,32767),notify=f.notifier&&validId(f.notifier.id,32768,65535);if(!get&&!notify)return;
+   if(p&&p.attributes&&p.attributes[name]!==undefined)return;if(!add())return;p.attributes=p.attributes||{};p.attributes[name]=get?(notify?'rs':'r'):'s';});
+  Object.keys(d.events||{}).sort().forEach(name=>{const e=d.events[name];if(!e||!validId(e.eventId,32768,65535))return;
+   if(p&&p.broadcasts&&p.broadcasts.includes(name))return;if(!add())return;p.broadcasts=p.broadcasts||[];p.broadcasts.push(name);});
+ });
+ return manifest;
+}
+module.exports={filterTraffic,scanKombi,INPUTS,instanceOf,SCAN,SCAN_MAX};

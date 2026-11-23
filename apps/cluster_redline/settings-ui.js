@@ -37,7 +37,7 @@ function navLogLine(e){
  return [e.time,(NAVLOG_PROVIDER[e.provider]||e.provider)+' '+tr(NAVLOG_SOURCE[e.source]||e.source),kind,(e.fields||[]).join(' '),e.dist,e.text?'"'+e.text+'"':'']
   .filter(Boolean).join(' · ')+' → '+tr(NAVLOG_DRAWN[e.drawn]||e.drawn)+(e.count>1?' ×'+e.count:'');
 }
-const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','navLog','headway','bcCheck','bc'];
+const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','navLog','headway','bcCheck','bcScan','bc'];
 // The BC button check (bc-diag.js, 1.3.39): what the car sends when BC is pressed; main.js sets page.bcDiag
 const BCCHECK_ITEM={key:'bcCheck',label:'BC button check',type:'action'};
 // Following the BC button (bc-follow.js, 1.3.40): its own screen; main.js sets page.bcFollow
@@ -109,6 +109,7 @@ class SettingsPage{
   if(this.bcEdit&&this.open==='layout'&&!this.layoutKind){this.setPreview(false);this.bcSave();return;}
   if(this.open==='bcCheck'&&this.bcFromFollow||this.bcEdit&&(this.open==='auxMode'||this.open==='design')){this.open='bc';this.bcEdit=null;this.bcFromFollow=false;this.draft=null;this.choice=0;this.changed();return;}
   if(this.open==='navLog'){this.open='navMode';this.choice=0;this.changed();return;}
+  if(this.open==='bcScan'){if(this.bcDiag)this.bcDiag.scanStop();this.open='bcCheck';this.choice=0;this.changed();return;}
   if(this.open==='favView'){this.open=null;}
   else if(this.open==='rlDesign'){this.open='design';this.choice=2;}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
@@ -143,7 +144,7 @@ class SettingsPage{
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'||item.key==='hudCarAlerts'?cfg[item.key]:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
- change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver'||this.open==='navMode'||this.open==='navLog'||this.open==='headway'||this.open==='bcCheck'||this.open==='bc')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver'||this.open==='navMode'||this.open==='navLog'||this.open==='headway'||this.open==='bcCheck'||this.open==='bcScan'||this.open==='bc')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
   if(index!==undefined)this.focus=index;
   if(this.tab===FAV_TAB&&!this.open){this.favAction(Math.floor(this.focus/3)+1,this.focus%3);return;}
@@ -216,6 +217,7 @@ class SettingsPage{
   else if(this.open==='navLog')this.drawNavLog(cv,cfg,targets);
   else if(this.open==='headway')this.drawHeadway(cv,cfg,targets);
   else if(this.open==='bcCheck')this.drawBcCheck(cv,cfg,targets);
+  else if(this.open==='bcScan')this.drawBcScan(cv,cfg,targets);
   else if(this.open==='bc')this.drawBc(cv,cfg,targets);
   else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
   else if(this.open==='auxSelect')this.drawAuxSelect(cv,cfg,targets);
@@ -429,6 +431,25 @@ class SettingsPage{
   };
   block('Cluster BC selection','kombi',s&&s.kombi,248);
   block('Left stalk switches','stalk',s&&s.stalk,356);
+  this.button(cv,local,tr('All cluster (Kombi) values'),84,448,700,64,()=>{if(this.bcDiag){this.bcDiag.start();this.bcDiag.scanStart();}this.open='bcScan';this.choice=0;this.changed();},false,'bc-scan');
+  this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
+ }
+ // The Kombi scan (1.3.44, bc-diag.js): every value of the cluster's interfaces, the ones that changed most first,
+ // next to the BC presses counted, so a value that follows the stock BC page shows (marked when its changes match).
+ drawBcScan(cv,cfg,targets){
+  const local=[],d=this.bcDiag,s=d?d.scanStatus():null;
+  cv.text(tr('All cluster (Kombi) values'),100,126,32,'#ef4050',{literal:true});
+  const head=!s?tr('waiting'):s.state==='not_installed'?tr('not installed (reinstall from the Store)'):
+   tr('Press BC several times so the stock BC pages of the cluster go round once.')+' · '+tr('BC presses')+' '+s.presses+' · '+tr('values')+' '+s.received+'/'+s.count;
+  cv.text(head,100,168,20,s&&s.state==='not_installed'?'#ffad45':'#c1cddd',{literal:true});
+  if(s&&s.error)cv.text(s.error,100,196,17,'#ffad45',{literal:true});
+  (s?s.items:[]).slice(0,7).forEach((it,i)=>{
+   const match=s.presses>=2&&it.changes>=2&&Math.abs(it.changes-s.presses)<=1;
+   let line=it.name+' · '+tr('changes')+' '+it.changes+' · '+(it.history.length?it.history.join('  <  '):'-');
+   while(line.length>8&&cv.textWidth(line,18,{literal:true})>1440)line=line.slice(0,-2);
+   cv.text(line,96,232+i*31,18,match?'#37c6ff':it.changes?'#f3f5f7':'#8d97a4',{literal:true});
+  });
+  cv.text(tr('Blue: changes as often as BC was pressed (a candidate for the BC page)'),100,482,18,'#91a1b6',{literal:true});
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // The HUD headway badge (1.3.37): off / simple / detailed, what the colours mean, what the car sends (to check the
