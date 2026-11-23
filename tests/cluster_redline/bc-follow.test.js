@@ -14,9 +14,9 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  const settings={get:k=>values[k],set:(k,v)=>{values[k]=v;L.forEach(f=>f(k,v));},onChange:f=>L.push(f)};
  const signals={loadConfig:()=>({fields:{IndicatorSteeringColumn:{}}}),watch:(i,inst,h)=>{watched++;feed=h;return Promise.resolve({shutdown(){}});}};
  const f=new BcFollow({settings,signals,apply:(v)=>applied.push(v),clock:()=>t});await flush();
- assert.strictEqual(watched,0,'off: nothing read');
+ assert.strictEqual(watched,1,'read whenever the app runs, BC mode or not (1.3.45)');
  // BC mode chosen on a cluster RPM row (1.3.42); the worker says the drive mode now is one in BC mode
- settings.set('allClusterOutput','bc');setNow(true);await flush();assert.strictEqual(watched,1);assert.strictEqual(f.current(),'none');
+ settings.set('allClusterOutput','bc');setNow(true);await flush();assert.strictEqual(watched,1,'one reader');assert.strictEqual(f.current(),'none');
  const press=()=>{t+=500;feed.IndicatorSteeringColumn({operationColumnStalks:64});t+=150;feed.IndicatorSteeringColumn({operationColumnStalks:0});};
  press();assert.strictEqual(f.current(),'efficiency');assert.strictEqual(values.bcCluster,'yield','efficiency: Waze / the stock map');
  press();assert.strictEqual(f.current(),'trip');assert.strictEqual(values.bcCluster,'redline');assert.deepStrictEqual(applied.pop(),{clusterDesign:'rl-tyres',clusterAuxConfig:JSON.stringify({mode:'values',items:['outside','batteryVoltage','economy','avgSpeed']})});
@@ -32,7 +32,8 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  settings.set('bcStart','first');const h=new BcFollow({settings,signals,apply:()=>{},clock:()=>t});await flush();assert.strictEqual(h.current(),'none','the first page');
  // a drive mode not in BC mode: the presses still counted (in step), no screen applied
  setNow(false);const before=applied.length;press();press();assert.strictEqual(f.current(),'trip','counted all the same');assert.strictEqual(applied.length,before,'not in BC mode now: nothing applied');setNow(true);assert(applied.length>before,'back in BC mode: the page applied');
- settings.set('allClusterOutput','stock');assert.strictEqual(values.bcCluster,'','no BC mode: the cluster as the drive modes say');const n=f.presses;press();assert.strictEqual(f.presses,n,'no BC mode: not read');
+ settings.set('allClusterOutput','stock');assert.strictEqual(values.bcCluster,'','no BC mode: the cluster as the drive modes say');const n=f.presses,was=f.current();t+=500;f.stalk({operationColumnStalks:64});t+=150;f.stalk({operationColumnStalks:0});assert.strictEqual(f.presses,n+1,'no BC mode: still counted (1.3.45)');assert.notStrictEqual(f.current(),was,'in step');assert.strictEqual(values.bcCluster,'','no BC mode: no screen');
+ settings.set('allClusterOutput','bc');assert.strictEqual(f.current(),PAGES.ID7.map(p=>p[0])[(PAGES.ID7.map(p=>p[0]).indexOf(was)+1)%6],'BC mode chosen again: the page counted meanwhile');settings.set('allClusterOutput','stock');
  // the cluster per page (outputs.js)
  {const {Outputs}=require('../../apps/cluster_redline/outputs'),{EventEmitter}=require('events');
   class C extends EventEmitter{constructor(){super();this.ready=true;this.targets='map:1088x480,hud:800x480';this.n=0;}image(){return ++this.n;}pixels(){}showWhenSent(){}set(){}drop(){}close(){}}

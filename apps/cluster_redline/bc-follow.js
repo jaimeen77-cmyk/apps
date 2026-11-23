@@ -42,14 +42,17 @@ class BcFollow {
   this.sub=null;this.state='off';this.error=null;this.token=0;this.held=false;this.lastPress=-Infinity;this.presses=0;
   this.settings.onChange((k)=>{if(k==='sportClusterOutput'||k==='allClusterOutput'||k==='bcHmi')this.sync(true);});
   this.onNow=(on)=>{if(on)this.show();};shared.listeners.push(this.onNow);
+  if(this.get('bcStart')==='first')this.settings.set('bcIndex',0);
   this.sync(true);
  }
  get(k){return this.settings.get(k);}
  on(){return anyBc((k)=>this.get(k));}
  // start or stop reading the stalk; first: apply the page in step now (the app's start, following switched on)
  sync(first){
-  if(!this.on()){if(this.sub){this.token++;try{this.sub.shutdown();}catch(e){}this.sub=null;}this.state='off';if(this.get('bcCluster'))this.settings.set('bcCluster','');this.changed();return;}
-  if(first){if(this.get('bcStart')==='first')this.settings.set('bcIndex',0);this.show();}
+  // the presses are counted whenever the app runs (1.3.45), BC mode or not: a page changed while no row was in BC
+  // mode would otherwise put the count out of step once BC mode is chosen; only the screens wait for BC mode
+  if(!this.on()){if(this.get('bcCluster'))this.settings.set('bcCluster','');this.changed();}
+  else if(first)this.show();
   if(this.sub||this.state==='subscribing'||this.state==='not_installed')return;
   let cfg=null;try{cfg=this.signals.loadConfig(LIGHT);}catch(e){}
   const fields=cfg&&cfg.fields?STALK.filter(f=>cfg.fields[f]):[];
@@ -68,7 +71,7 @@ class BcFollow {
   this.held=down;
  }
  press(){
-  if(!this.on())return;const cycle=cycleOf(this.get('bcPages'),hmiOf(k=>this.get(k)));if(!cycle.length)return;
+  const cycle=cycleOf(this.get('bcPages'),hmiOf(k=>this.get(k)));if(!cycle.length)return;
   const i=Math.max(0,Math.min(cycle.length-1,Number(this.get('bcIndex'))||0));this.presses++;
   this.settings.set('bcIndex',(i+1)%cycle.length);this.show();this.changed();
  }
