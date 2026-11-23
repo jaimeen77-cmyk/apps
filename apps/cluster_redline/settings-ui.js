@@ -602,7 +602,11 @@ class SettingsPage{
   const target=this.favValues(fav),changes={};Object.keys(target).forEach(k=>{if(target[k]!==undefined&&this.settings.get(k)!==target[k])changes[k]=target[k];});
   if(this.settings.get('layoutPreview'))changes.layoutPreview='';
   if(!Object.keys(changes).length){this.favSay(n,tr('Already in use'));return false;}
-  this.lastFavLoad=now;this.setValues(changes);this.favSay(n,tr('Loaded'));return true;
+  this.lastFavLoad=now;this.setValues(changes);
+  // BC mode (1.3.47): the page in step keeps its own cluster screen; the favourite's cluster design gives way to it
+  // (the page count itself, bcIndex, is never in a favourite)
+  if(this.bcFollow)try{this.bcFollow.show();}catch(e){}
+  this.favSay(n,tr('Loaded'));return true;
  }
  viewFavorite(n){this.favArmed=null;if(!this.favorite(n)){this.favSay(n,tr('Favorite is empty'));return;}this.open='favView';this.favIndex=n;this.choice=0;this.changed();}
  // A read-only page over the favourite's values, so the same labels and formats as the tabs are used.

@@ -59,6 +59,11 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
   assert(saved.layout&&Object.keys(saved.layout).length>4,'positions and sizes kept');assert(Object.keys(saved.layout).every(k=>/^cluster/.test(k)),'the cluster\'s only');
   // applied again when BC comes to that page
   const got=[];const ff=new BcFollow({settings:st,signals,apply:(x)=>got.push(x),clock:()=>t});await flush();ff.here('torque');assert.strictEqual(got.pop().clusterAuxConfig,saved.aux);
+  // a favourite loaded in BC mode: the page count stays, the page's screen comes back over the favourite's design (1.3.47)
+  {setNow(true);page.bcFollow.here('torque');const idx=v.bcIndex;page.registerFavorite(5);page.lastFavLoad=0;const shown=[];const keep=page.bcFollow;
+   page.bcFollow={show(){shown.push(keep.current());keep.show();}};v.clusterDesign='rl-tyres';assert(page.loadFavorite(5));
+   assert.strictEqual(v.bcIndex,idx,'the page count kept');assert.deepStrictEqual(shown,['torque'],'the page\'s screen again');page.bcFollow=keep;
+   assert(!require(root+'/settings-ui').favKeys(spec.settings).includes('bcIndex'),'never in a favourite');}
   scr().find(x=>x.id==='bc-media-yield').run();assert.strictEqual(JSON.parse(v.bcPages).ID7.media.kind,'yield');
   scr().find(x=>x.id==='bc-trip-here').run();assert.strictEqual(page.bcFollow.current(),'trip');
   scr().find(x=>x.id==='bc-check').run();assert.strictEqual(page.open,'bcCheck');page.back();assert.strictEqual(page.open,'bc');page.back();assert.strictEqual(page.open,null);}

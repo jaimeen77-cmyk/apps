@@ -29,7 +29,7 @@ function idOf(v){
 class DriverProfiles{
  // o: { settings, signals, log, fs, file, keys: () => [setting keys], changed: () => void }
  constructor(o){
-  this.settings=o.settings;this.signals=o.signals;this.log=o.log||{warn(){},info(){}};this.fs=o.fs;this.file=o.file;this.keysOf=o.keys;this.changed=o.changed||(()=>{});this.greet=o.greet||null;this.active=o.active||null;this.greetFor=null;this.greetChange=false;
+  this.settings=o.settings;this.signals=o.signals;this.log=o.log||{warn(){},info(){}};this.fs=o.fs;this.file=o.file;this.keysOf=o.keys;this.changed=o.changed||(()=>{});this.greet=o.greet||null;this.applied=o.applied||null;this.active=o.active||null;this.greetFor=null;this.greetChange=false;
   this.profiles={};this.order=[];this.names={};this.nameSub=null;this.nameState=null;this.current=null;this.sub=null;this.state='off';this.error=null;this.applying=false;this.reads=0;
   try{const d=JSON.parse(this.fs.readFileSync(this.file,'utf8'));if(d&&typeof d==='object'){this.profiles=d.profiles||{};this.order=Array.isArray(d.order)?d.order:Object.keys(this.profiles);this.names=d.names&&typeof d.names==='object'?d.names:{};}}catch(e){}
   this.migrate();
@@ -76,7 +76,9 @@ class DriverProfiles{
   if(!saved){this.profiles[id]=this.snapshot();this.save();this.log.info('driver profile: first seen, current settings kept');this.changed();return;}
   const changes={};Object.keys(saved).forEach(k=>{if(this.keys().indexOf(k)>=0&&saved[k]!==undefined&&this.settings.get(k)!==saved[k])changes[k]=saved[k];});
   if(Object.keys(changes).length){this.applying=true;
-   try{if(typeof this.settings.setMany==='function')this.settings.setMany(changes);else Object.keys(changes).forEach(k=>this.settings.set(k,changes[k]));}finally{this.applying=false;}}
+   try{if(typeof this.settings.setMany==='function')this.settings.setMany(changes);else Object.keys(changes).forEach(k=>this.settings.set(k,changes[k]));}finally{this.applying=false;}
+   // BC mode (1.3.47): the stock BC page in step keeps its own cluster screen over the driver's design
+   if(this.applied)try{this.applied();}catch(e){}}
   this.log.info('driver profile: their settings');this.changed();
  }
  // Hello once per recognised driver, with the name if known by now; change: another driver was in use before.

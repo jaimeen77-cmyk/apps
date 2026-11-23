@@ -13,7 +13,7 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
   if(iface===ACCOUNT){asked.push(inst);setTimeout(()=>{if(names[inst])handlers.name(names[inst]);},0);return Promise.resolve({available:true,shutdown(){}});}
   watched++;assert.strictEqual(iface,IFACE);assert.strictEqual(inst,IFACE);assert.strictEqual(opts.pollMs,5000);feed=handlers[FIELD];return Promise.resolve({available:true,shutdown(){shut++;}});}};
  const wait=()=>new Promise(r=>setTimeout(r,5));
- const d=new DriverProfiles({settings,signals,fs,file:'/data/driver-profiles.json',keys:()=>['hudDesign','navColor','engineProfile','autoStart','driverProfiles']});
+ let reapplied=0;const d=new DriverProfiles({settings,signals,fs,file:'/data/driver-profiles.json',keys:()=>['hudDesign','navColor','engineProfile','autoStart','driverProfiles'],applied:()=>{reapplied++;}});
  await settle();assert.strictEqual(watched,0,'off: nothing read');assert.strictEqual(d.status().state,'off');
  settings.set('driverProfiles','on');await settle();assert.strictEqual(watched,1);assert.strictEqual(d.status().state,'waiting');
  feed({value:'acc-A'});await settle();await wait();
@@ -22,7 +22,7 @@ const settle=async()=>{for(let i=0;i<6;i++)await Promise.resolve();};
  settings.set('hudDesign','rl-ramp');settings.set('engineProfile','diesel');
  feed('acc-B');await settle();await wait();assert.strictEqual(d.status().driver,2,'a new driver');assert.strictEqual(d.status().name,null,'no name read: the number shows');assert.strictEqual(values.hudDesign,'rl-ramp','a new driver keeps what is set');
  settings.set('hudDesign','own');settings.set('navColor','orange');
- feed('acc-A');assert.strictEqual(values.hudDesign,'rl-ramp','driver A gets theirs back');assert.strictEqual(values.navColor,'blue');
+ feed('acc-A');assert.strictEqual(values.hudDesign,'rl-ramp','driver A gets theirs back');assert.strictEqual(reapplied,1,'their settings applied: the BC page\'s screen again (1.3.47)');assert.strictEqual(values.navColor,'blue');
  assert.strictEqual(values.engineProfile,'diesel','the vehicle preset belongs to the car');
  feed('acc-A');const w=writes;feed('acc-A');assert.strictEqual(writes,w,'the same driver: no write');
  feed('acc-B');assert.strictEqual(values.hudDesign,'own');assert.strictEqual(values.navColor,'orange','driver B gets theirs back');
