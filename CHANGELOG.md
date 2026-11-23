@@ -15,6 +15,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
 
+## Cluster Redline 1.3.47
+
+- **Favorites and settings per driver in BC mode**: loading a favorite, or a driver's settings at a driver change, set the cluster's design over the stock BC page's own screen until BC was pressed again. Now the page in step gets its screen back right after (the page count, `bcIndex`, was never in a favorite or a driver's settings, so it stays in step).
+- Tests: `bc-follow` (favorite loaded in BC mode), `driver-profiles` (applied hook).
+
 ## Cluster Redline 1.3.46
 
 - **Cluster (Kombi) values taken out.** The BC button check showed `KombiIF.statusKombiSelection` (1.3.39) and the All cluster (Kombi) values screen read every cluster value (1.3.44); on the user's car none of them follows the stock BC page (2026-11-23: 28 presses, 47 of 49 values received, only timers and clocks changed), and the cluster's diagnostic description (KOMB_G11) has no current-page status either. So they are no longer added at install (`traffic-config.js`: no Kombi input, no Kombi scan) and the screen is gone. The BC button check keeps the left stalk's value, now with the BC presses counted.
