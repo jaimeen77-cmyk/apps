@@ -1,6 +1,6 @@
 'use strict';
-// Host-only: the Korean editions of GIF Home and Phone Terminal (from NamelsMissing/mgu-apps).
-// Builds the actual Store packages, inspects them, and runs both phone pages in a minimal DOM
+// Host-only: the Korean edition of GIF Home (from NamelsMissing/mgu-apps).
+// Builds the actual Store package, inspects it, and runs the phone page in a minimal DOM
 // as a Korean and as an English phone. No vehicle SDK. Run from PowerShell (Windows tar).
 const assert = require('assert'), fs = require('fs'), path = require('path');
 const cp = require('child_process'), vm = require('vm'), os = require('os');
@@ -14,10 +14,6 @@ const APPS = [
       lines: { 'Mode · Random – Selected GIFs': '모드 · 무작위 – 선택한 GIF', 'HTTP server · Running': 'HTTP 서버 · 실행 중',
           'Phone connection · Not verified': '휴대폰 연결 · 확인 안 됨', 'Tap to open': '눌러서 열기',
           '> Pixel drive: Sunset   • Playing': '> 픽셀 드라이브: 노을   • 재생 중', 'Home / Preview': '홈 / 미리보기' } },
-    { template: 'mgu_phone_terminal', id: 'mgu_phone_terminal_ko', title: '폰 터미널', widget: false,
-      lines: { 'PHONE TERMINAL': '폰 터미널', 'Address: 192.168.0.5:18890  (wlan_bridge)': '주소: 192.168.0.5:18890  (wlan_bridge)',
-          'Firewall: OPEN on wlan_bridge': '방화벽: wlan_bridge에서 열림', 'QR LOCKED': 'QR 잠김',
-          'Only use while parked. Root commands can damage the MGU.': '주차 중에만 쓰세요. 루트 명령은 MGU를 손상시킬 수 있습니다.' } },
 ];
 
 function checkPackage(app) {
@@ -142,27 +138,13 @@ function checkPage(name, html, script, keep) {
     assert.deepStrictEqual(en.textNodes.map((n) => n.nodeValue), before, name + ': English phones keep English');
 }
 
-function checkBridgeRegistry() {
-    const { registeredApp, APP_IDS } = require('../native/phone-bridge/server');
-    assert.deepStrictEqual(APP_IDS, ['mgu_phone_terminal_ko', 'mgu_phone_terminal']);
-    const dir = fs.mkdtempSync(path.join(temp, 'registry-'));
-    assert.strictEqual(path.basename(registeredApp(dir)), 'mgu_phone_terminal.json', 'nothing installed: original error path');
-    fs.writeFileSync(path.join(dir, 'mgu_phone_terminal.json'), '{}');
-    assert.strictEqual(path.basename(registeredApp(dir)), 'mgu_phone_terminal.json', 'upstream edition still served');
-    fs.writeFileSync(path.join(dir, 'mgu_phone_terminal_ko.json'), '{}');
-    assert.strictEqual(path.basename(registeredApp(dir)), 'mgu_phone_terminal_ko.json', 'Korean edition first');
-}
 
 try {
     APPS.forEach(checkPackage);
     const gifPage = require('../apps/gif_home/phone_page').page;
     const gifScript = /<script>([\s\S]*)<\/script>/.exec(gifPage)[1];
     checkPage('GIF Home phone page', gifPage, gifScript, []);
-    const bridgeHtml = fs.readFileSync(path.join(root, 'native/phone-bridge/public/index.html'), 'utf8');
-    const bridgeScript = fs.readFileSync(path.join(root, 'native/phone-bridge/public/client.js'), 'utf8');
-    checkPage('Phone Terminal page', bridgeHtml, bridgeScript, ['>_', 'MGU / iDrive 7', 'id', 'uname -a', 'df -h', '/tmp/carplay-audio-analysis.tgz']);
-    checkBridgeRegistry();
-    console.log('GIF Home / Phone Terminal Korean editions: packages, Korean text, font coverage, phone pages, bridge app id');
+    console.log('GIF Home Korean edition: package, Korean text, font coverage, phone page, icons');
 } finally {
     fs.rmSync(temp, { recursive: true, force: true });
 }

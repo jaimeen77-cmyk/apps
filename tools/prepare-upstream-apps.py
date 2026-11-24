@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Generate the Korean SDK-free RHMI/runtime templates for apps taken from NamelsMissing/mgu-apps.
 
-GIF Home (gif_home) and Phone Terminal (mgu_phone_terminal) are built the way MGU Monitor is
+GIF Home (gif_home) is built the way MGU Monitor is
 (tools/prepare-storage.py): the UI, the runtime kit and the Korean font come from an MIT App Kit
 checkout (jaimeen77-cmyk/appsKOR); no SDK build, no oap-sdk and no node_modules. The app's own
 JavaScript is not in the template: tools/store-build.js adds the current apps/<id>/ source at
 install time. Korean text comes from app.json "translations"."ko" (settings, buttons and every
 line the app draws go through the kit's i18n).
 
-    python tools/prepare-upstream-apps.py --kit-root <appsKOR checkout> --kit-commit <sha> [gif_home] [mgu_phone_terminal]
+    python tools/prepare-upstream-apps.py --kit-root <appsKOR checkout> --kit-commit <sha> [gif_home]
 """
 import argparse
 import copy
@@ -27,7 +27,6 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 APPS = {
     'gif_home': {'author': 'NamelsMissing/mgu-apps (GPL-3.0); Korean edition jaimeen77-cmyk', 'cpuLimit': 60, 'memoryKB': 196608},
-    'mgu_phone_terminal': {'author': 'NamelsMissing/mgu-apps (GPL-3.0); Korean edition jaimeen77-cmyk', 'cpuLimit': 35, 'memoryKB': 131072},
 }
 LANGUAGE = 'ko'
 

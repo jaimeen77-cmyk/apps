@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Phone Terminal removed
+
+- **폰 터미널 (한국어)** (`mgu_phone_terminal_ko`) and its bridge (`mgu-phone-bridge` 0.1.7) are no longer offered by this source: the app, the bridge, their templates, tests and catalog entries are removed. GIF 홈 (한국어) and `mgu-gif-net` stay. A copy already installed on the car stays installed; uninstall it there if it is not wanted. Phone Terminal is still offered by its original source, NamelsMissing/mgu-apps.
+- The license note is now `NOTICE.gif-home.md`; the test is `tests/gif-home-ko.test.js`.
+
 ## GIF Home 0.4.0 and Phone Terminal 0.1.7 (Korean editions, new)
 
 - **GIF 홈 (한국어)** (`gif_home_ko`) and **폰 터미널 (한국어)** (`mgu_phone_terminal_ko`) added: GIF Home and Phone Terminal from NamelsMissing/mgu-apps @ `58d26d3` (GPL-3.0; see `NOTICE.gif-home-phone-terminal.md`). Every text on the car is Korean (`apps/<id>/app.json` `translations.ko`, through the kit's translation), and the phone pages are Korean when the phone's language is Korean (English otherwise). iDrive 7 only, as the originals. GIF 홈 has its own icon (a picture supplied by the repository owner), also as the home widget's preview image.
