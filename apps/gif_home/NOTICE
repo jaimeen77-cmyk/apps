@@ -1,0 +1,11 @@
+GIF Home 0.4.0 - Korean edition (GIF 홈, gif_home_ko)
+
+Source: NamelsMissing/mgu-apps, apps/gif_home (commit 58d26d33520ae20826aad68e80122be64b40cf7f),
+GNU General Public License v3. This is a modified version, distributed under the same license:
+Korean text (app.json "translations"), a Korean phone page (phone_page.js) and Store packaging by
+jaimeen77-cmyk/apps. Full license text: LICENSE.GPL-3.0 in the package, LICENSES/GPL-3.0-or-later.txt
+in the repository. Corresponding source: https://github.com/jaimeen77-cmyk/apps
+
+qr_vendor.js: QR Code generator, Copyright (c) 2009 Kazuhiko Arase, MIT License (see LICENSE).
+Runtime kit: jaimeen77-cmyk/appsKOR (cauliflowermossgrape/idrive7-apps), MIT (LICENSE.idrive7-apps).
+Korean font: Noto Sans CJK KR, SIL Open Font License 1.1 (OFL-NotoSansKR.txt).

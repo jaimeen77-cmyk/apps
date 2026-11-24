@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "id": "gif_home",
+  "language": "ko",
+  "source_version": "0.4.0",
+  "ui_sha256": "ddfb93f55fb56e16d8e88b20d17a585e2e91d40cfdcec0eefb70d3bdb3db784f",
+  "size": 1039930,
+  "sha256": "2d399bf596a80d905ea598fa90180868237304055d2c31e2e6e9b00b15d04fda",
+  "parts": [
+    "gif_home.tgz.part-00",
+    "gif_home.tgz.part-01",
+    "gif_home.tgz.part-02",
+    "gif_home.tgz.part-03",
+    "gif_home.tgz.part-04",
+    "gif_home.tgz.part-05",
+    "gif_home.tgz.part-06",
+    "gif_home.tgz.part-07",
+    "gif_home.tgz.part-08",
+    "gif_home.tgz.part-09",
+    "gif_home.tgz.part-10",
+    "gif_home.tgz.part-11",
+    "gif_home.tgz.part-12",
+    "gif_home.tgz.part-13",
+    "gif_home.tgz.part-14",
+    "gif_home.tgz.part-15",
+    "gif_home.tgz.part-16",
+    "gif_home.tgz.part-17",
+    "gif_home.tgz.part-18",
+    "gif_home.tgz.part-19",
+    "gif_home.tgz.part-20",
+    "gif_home.tgz.part-21"
+  ],
+  "provenance": {
+    "app": "NamelsMissing/mgu-apps",
+    "app_license": "GPL-3.0",
+    "runtime": "jaimeen77-cmyk/appsKOR",
+    "commit": "87d450d2221f9e3a5846153ed8f5cd6557fe1201",
+    "license": "MIT",
+    "sdk_included": false
+  }
+}

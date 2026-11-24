@@ -2,6 +2,13 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## GIF Home 0.4.0 and Phone Terminal 0.1.7 (Korean editions, new)
+
+- **GIF 홈 (한국어)** (`gif_home_ko`) and **폰 터미널 (한국어)** (`mgu_phone_terminal_ko`) added: GIF Home and Phone Terminal from NamelsMissing/mgu-apps @ `58d26d3` (GPL-3.0; see `NOTICE.gif-home-phone-terminal.md`). Every text on the car is Korean (`apps/<id>/app.json` `translations.ko`, through the kit's translation), and the phone pages are Korean when the phone's language is Korean (English otherwise). iDrive 7 only, as the originals.
+- Their native helpers come along under their upstream ids: **`mgu-gif-net` 0.1.0** (unchanged) and **`mgu-phone-bridge` 0.1.7** (serves the Korean app id `mgu_phone_terminal_ko` first, then `mgu_phone_terminal`; Korean phone page). Install one Phone Terminal edition at a time.
+- The Korean templates are prepared with `tools/prepare-upstream-apps.py` from the appsKOR kit at `87d450d2` (the same kit as MGU Monitor), SDK-free. The tool refuses a CRLF `localization/ko-additions.tsv` (a Windows checkout), whose fingerprint the car would not match.
+- Tests: upstream's GIF Home and Phone Terminal tests, and `tests/gif-home-phone-terminal-ko.test.js` (both Store packages built and unpacked, Korean text and font coverage, both phone pages as a Korean and an English phone, the bridge's app id).
+
 ## Parked Games 0.2.4 (Korean edition)
 
 - Renamed **8게임즈** (it has eight games).

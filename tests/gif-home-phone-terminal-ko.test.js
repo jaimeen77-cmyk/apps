@@ -1,0 +1,163 @@
+'use strict';
+// Host-only: the Korean editions of GIF Home and Phone Terminal (from NamelsMissing/mgu-apps).
+// Builds the actual Store packages, inspects them, and runs both phone pages in a minimal DOM
+// as a Korean and as an English phone. No vehicle SDK. Run from PowerShell (Windows tar).
+const assert = require('assert'), fs = require('fs'), path = require('path');
+const cp = require('child_process'), vm = require('vm'), os = require('os');
+const { build } = require('../tools/store-build');
+const root = path.resolve(__dirname, '..');
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'ko-gif-terminal-test-'));
+const HANGUL = /[가-힣]/;
+
+const APPS = [
+    { template: 'gif_home', id: 'gif_home_ko', title: 'GIF 홈', widget: true,
+      lines: { 'Mode · Random – Selected GIFs': '모드 · 무작위 – 선택한 GIF', 'HTTP server · Running': 'HTTP 서버 · 실행 중',
+          'Phone connection · Not verified': '휴대폰 연결 · 확인 안 됨', 'Tap to open': '눌러서 열기',
+          '> Pixel drive: Sunset   • Playing': '> 픽셀 드라이브: 노을   • 재생 중', 'Home / Preview': '홈 / 미리보기' } },
+    { template: 'mgu_phone_terminal', id: 'mgu_phone_terminal_ko', title: '폰 터미널', widget: false,
+      lines: { 'PHONE TERMINAL': '폰 터미널', 'Address: 192.168.0.5:18890  (wlan_bridge)': '주소: 192.168.0.5:18890  (wlan_bridge)',
+          'Firewall: OPEN on wlan_bridge': '방화벽: wlan_bridge에서 열림', 'QR LOCKED': 'QR 잠김',
+          'Only use while parked. Root commands can damage the MGU.': '주차 중에만 쓰세요. 루트 명령은 MGU를 손상시킬 수 있습니다.' } },
+];
+
+function checkPackage(app) {
+    const source = JSON.parse(fs.readFileSync(path.join(root, 'apps', app.template, 'app.json'), 'utf8'));
+    const listing = JSON.parse(fs.readFileSync(path.join(root, 'store/apps', app.id, 'app.json'), 'utf8'));
+    assert.deepStrictEqual(listing, { id: app.id, version: source.version });
+    const repo = JSON.parse(fs.readFileSync(path.join(root, 'mgu-repo.json'), 'utf8'));
+    const entry = repo.components.find((c) => c.id === app.id);
+    assert.strictEqual(entry.version, source.version);
+    assert.strictEqual(entry.path, 'store/apps/' + app.id);
+    assert.ok(entry.title.indexOf('(한국어)') > 0);
+    assert.deepStrictEqual(entry.build.args.slice(-4), ['--language', 'ko', '--source', 'apps/' + app.template]);
+    Object.keys(entry.requires).forEach((tool) => {
+        const toolEntry = repo.components.find((c) => c.id === tool && c.kind === 'tool');
+        const component = JSON.parse(fs.readFileSync(path.join(root, toolEntry.path, 'component.json'), 'utf8'));
+        assert.strictEqual(component.id, tool);
+        assert.strictEqual(component.version, entry.requires[tool]);
+        assert.strictEqual(toolEntry.version, component.version);
+    });
+
+    const file = build({ template: app.template, id: app.id, version: source.version, language: 'ko',
+        dir: 'store/apps/' + app.id, source: 'apps/' + app.template, out: path.join(temp, app.id) });
+    const stage = path.join(temp, app.id, 'installed'); fs.mkdirSync(stage);
+    cp.execFileSync('tar', ['-xzf', file, '-C', stage]);
+    const pkgDir = path.join(stage, 'package'), js = path.join(pkgDir, 'javascript');
+    const pkg = require(path.join(pkgDir, 'package.json'));
+    assert.strictEqual(pkg.name, app.id);
+    assert.strictEqual(pkg.version, source.version);
+    assert.deepStrictEqual(pkg.mguHmi, ['ID7']);
+    assert.strictEqual(pkg.license, 'GPL-3.0');
+    assert.strictEqual(pkg.displayName, app.title);
+    for (const rel of ['LICENSE.GPL-3.0', 'LICENSE.idrive7-apps', 'javascript/NOTICE', 'javascript/app.js',
+        'javascript/kit/fonts/korean.json', 'javascript/kit/fonts/OFL-NotoSansKR.txt']) {
+        assert.ok(fs.statSync(path.join(pkgDir, rel)).isFile(), app.id + ': missing ' + rel);
+    }
+    assert.ok(!fs.existsSync(path.join(pkgDir, 'node_modules')), 'no SDK/node_modules in a host build');
+    const spec = require(path.join(js, 'kit/app-spec.json'));
+    assert.strictEqual(spec.title, app.title);
+    spec.screens.forEach((s) => s.buttons.forEach((b) => assert.ok(HANGUL.test(b[1]) || /^IP$/.test(b[1]), 'button ' + b[1])));
+    (spec.settings || []).forEach((s) => {
+        assert.ok(HANGUL.test(s.label), 'setting ' + s.label);
+        (s.options || []).forEach((o) => assert.ok(HANGUL.test(o[1]), 'option ' + o[1]));
+    });
+    assert.deepStrictEqual((spec.settings || []).map((s) => [s.key, s.default]), (source.settings || []).map((s) => [s.key, s.default]));
+    const strings = require(path.join(pkgDir, 'rhmiData/variantGroups/Common/texts/ko_KR.json'));
+    assert.ok(Object.values(strings).indexOf(app.title) >= 0, 'RHMI title is Korean');
+    if (app.widget) {
+        assert.ok(fs.statSync(path.join(pkgDir, 'rhmiDataStartWidget/application.json')).isFile());
+        assert.ok(fs.readFileSync(path.join(js, 'kit/mgu.js'), 'utf8').indexOf("'GIF_HOME_WIDGET'") > 0, 'widget text via StringBundle');
+        const presets = fs.readdirSync(path.join(js, 'resources')).filter((n) => /\.json$/.test(n));
+        assert.strictEqual(presets.length, 5, 'built-in animations are packaged');
+        assert.ok(fs.statSync(path.join(js, 'LICENSE')).isFile(), 'QR code MIT license');
+    }
+    // the packaged translator turns the lines the app draws into Korean
+    const { t } = require(path.join(js, 'kit/i18n'));
+    Object.keys(app.lines).forEach((line) => assert.strictEqual(t(line), app.lines[line]));
+    // every Hangul syllable the app can draw is in the packaged font atlas
+    const glyphs = require(path.join(js, 'kit/fonts/korean.json')).sizes[0].glyphs;
+    const missing = new Set();
+    Object.values(source.translations.ko).join('').split('').filter((c) => HANGUL.test(c)).forEach((c) => { if (!glyphs[c.charCodeAt(0)]) missing.add(c); });
+    assert.deepStrictEqual(Array.from(missing), [], app.id + ': glyphs missing from the Korean font');
+}
+
+// ---- phone pages in a minimal DOM -------------------------------------------------------
+function fakeDom(html, language) {
+    const body = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '');
+    const textNodes = [], attrs = [], elements = {};
+    const re = />([^<]+)</g;
+    for (let m = re.exec(body); m; m = re.exec(body)) if (m[1].trim()) textNodes.push({ nodeValue: m[1].replace(/&gt;/g, '>').replace(/&amp;/g, '&') });
+    const tagRe = /<[a-z]+\b([^>]*)>/g;
+    for (let m = tagRe.exec(body); m; m = tagRe.exec(body)) {
+        const values = {};
+        m[1].replace(/([a-z-]+)="([^"]*)"/g, (_, k, v) => { values[k] = v; });
+        if (values.placeholder || values['aria-label']) attrs.push({ values, getAttribute: (k) => values[k], setAttribute: (k, v) => { values[k] = v; } });
+    }
+    const element = () => ({ textContent: '', value: '', style: {}, disabled: false, files: [], href: '', handlers: {},
+        classList: { add() {}, remove() {}, toggle() {}, contains: () => true },
+        addEventListener(type, fn) { this.handlers[type] = fn; }, appendChild() {}, setAttribute() {}, getAttribute: () => '' });
+    const document = {
+        title: (/<title>([^<]*)<\/title>/.exec(html) || [])[1], body: {}, documentElement: {}, hidden: false,
+        getElementById: (id) => elements[id] || (elements[id] = element()),
+        createElement: element, createTextNode: (v) => ({ nodeValue: v }),
+        querySelectorAll: (sel) => (/placeholder|aria-label/.test(sel) ? attrs : []),
+        createTreeWalker: () => { let i = -1; return { nextNode: () => textNodes[++i] || null }; },
+        execCommand: () => true,
+    };
+    function XMLHttpRequest() {} XMLHttpRequest.prototype = { open() {}, setRequestHeader() {}, send() {} };
+    const context = { document, navigator: { language, languages: [language] }, window: { location: { hash: '' } },
+        location: { search: '?t=abc', pathname: '/' }, history: { replaceState() {} }, URLSearchParams,
+        XMLHttpRequest, fetch: () => Promise.reject(new Error('offline')), setInterval: () => 0, console, Promise };
+    return { context, textNodes, attrs, document };
+}
+function wordsOf(source) {
+    const m = /(?:const|var) WORDS = (\{[\s\S]*?\n    \});/.exec(source);
+    return vm.runInNewContext('(' + m[1] + ')');
+}
+function checkPage(name, html, script, keep) {
+    const words = wordsOf(script);
+    // every L('...') used in the script has a Korean entry
+    const re = /\bL\('((?:[^'\\]|\\.)+)'\)/g;
+    for (let m = re.exec(script); m; m = re.exec(script)) {
+        const key = vm.runInNewContext("'" + m[1] + "'");
+        assert.ok(Object.prototype.hasOwnProperty.call(words, key), name + ': no Korean for ' + key);
+    }
+    Object.keys(words).forEach((k) => assert.ok(HANGUL.test(words[k]), name + ': ' + k));
+    const ko = fakeDom(html, 'ko-KR');
+    vm.runInNewContext(script, ko.context);
+    ko.textNodes.forEach((n) => {
+        const text = n.nodeValue.trim();
+        assert.ok(HANGUL.test(text) || keep.indexOf(text) >= 0, name + ': untranslated "' + text + '"');
+    });
+    ko.attrs.forEach((a) => Object.keys(a.values).filter((k) => k === 'placeholder' || k === 'aria-label')
+        .forEach((k) => assert.ok(HANGUL.test(a.values[k]) || keep.indexOf(a.values[k]) >= 0, name + ': ' + k + ' ' + a.values[k])));
+    assert.strictEqual(ko.document.documentElement.lang, 'ko');
+    const en = fakeDom(html, 'en-US'), before = en.textNodes.map((n) => n.nodeValue);
+    vm.runInNewContext(script, en.context);
+    assert.deepStrictEqual(en.textNodes.map((n) => n.nodeValue), before, name + ': English phones keep English');
+}
+
+function checkBridgeRegistry() {
+    const { registeredApp, APP_IDS } = require('../native/phone-bridge/server');
+    assert.deepStrictEqual(APP_IDS, ['mgu_phone_terminal_ko', 'mgu_phone_terminal']);
+    const dir = fs.mkdtempSync(path.join(temp, 'registry-'));
+    assert.strictEqual(path.basename(registeredApp(dir)), 'mgu_phone_terminal.json', 'nothing installed: original error path');
+    fs.writeFileSync(path.join(dir, 'mgu_phone_terminal.json'), '{}');
+    assert.strictEqual(path.basename(registeredApp(dir)), 'mgu_phone_terminal.json', 'upstream edition still served');
+    fs.writeFileSync(path.join(dir, 'mgu_phone_terminal_ko.json'), '{}');
+    assert.strictEqual(path.basename(registeredApp(dir)), 'mgu_phone_terminal_ko.json', 'Korean edition first');
+}
+
+try {
+    APPS.forEach(checkPackage);
+    const gifPage = require('../apps/gif_home/phone_page').page;
+    const gifScript = /<script>([\s\S]*)<\/script>/.exec(gifPage)[1];
+    checkPage('GIF Home phone page', gifPage, gifScript, []);
+    const bridgeHtml = fs.readFileSync(path.join(root, 'native/phone-bridge/public/index.html'), 'utf8');
+    const bridgeScript = fs.readFileSync(path.join(root, 'native/phone-bridge/public/client.js'), 'utf8');
+    checkPage('Phone Terminal page', bridgeHtml, bridgeScript, ['>_', 'MGU / iDrive 7', 'id', 'uname -a', 'df -h', '/tmp/carplay-audio-analysis.tgz']);
+    checkBridgeRegistry();
+    console.log('GIF Home / Phone Terminal Korean editions: packages, Korean text, font coverage, phone pages, bridge app id');
+} finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+}

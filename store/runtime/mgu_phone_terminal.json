@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "id": "mgu_phone_terminal",
+  "language": "ko",
+  "source_version": "0.1.7",
+  "ui_sha256": "c60a435b4cb9cedf9cfed23b584a18fa4f27280757863411b6dc4544dd462b23",
+  "size": 1029998,
+  "sha256": "9febad314a90d85733a0d974b9299b519aafc2d3578c66332f0c0b2440b284af",
+  "parts": [
+    "mgu_phone_terminal.tgz.part-00",
+    "mgu_phone_terminal.tgz.part-01",
+    "mgu_phone_terminal.tgz.part-02",
+    "mgu_phone_terminal.tgz.part-03",
+    "mgu_phone_terminal.tgz.part-04",
+    "mgu_phone_terminal.tgz.part-05",
+    "mgu_phone_terminal.tgz.part-06",
+    "mgu_phone_terminal.tgz.part-07",
+    "mgu_phone_terminal.tgz.part-08",
+    "mgu_phone_terminal.tgz.part-09",
+    "mgu_phone_terminal.tgz.part-10",
+    "mgu_phone_terminal.tgz.part-11",
+    "mgu_phone_terminal.tgz.part-12",
+    "mgu_phone_terminal.tgz.part-13",
+    "mgu_phone_terminal.tgz.part-14",
+    "mgu_phone_terminal.tgz.part-15",
+    "mgu_phone_terminal.tgz.part-16",
+    "mgu_phone_terminal.tgz.part-17",
+    "mgu_phone_terminal.tgz.part-18",
+    "mgu_phone_terminal.tgz.part-19",
+    "mgu_phone_terminal.tgz.part-20"
+  ],
+  "provenance": {
+    "app": "NamelsMissing/mgu-apps",
+    "app_license": "GPL-3.0",
+    "runtime": "jaimeen77-cmyk/appsKOR",
+    "commit": "87d450d2221f9e3a5846153ed8f5cd6557fe1201",
+    "license": "MIT",
+    "sdk_included": false
+  }
+}
