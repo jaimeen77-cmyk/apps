@@ -16,7 +16,8 @@ const { diagnostics } = require('./diagnostics');
 // jaimeen77-cmyk/apps: the Animation screen (ANIM) through the GPU renderer
 const { area: animArea, History, playbackSettings, frameAt, SPEEDS } = require('./animation');
 const { listSheet } = require('./kit/sheet');
-const { C, backdrop, header, rows, lines, fitText } = require('./look');
+const { C, backdrop, header, rows, lines, fitText, button } = require('./look');
+const { t } = require('./kit/i18n');
 const G = require('./kit/gauges');
 
 const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403, THUMB_IMAGE = 23404;
@@ -75,9 +76,9 @@ mgu.run({
         try {
             if (fs.statSync(cursorFile).size < 1024) resume = JSON.parse(fs.readFileSync(cursorFile, 'utf8')).id;
         } catch (_) {}
-        // jaimeen77-cmyk/apps: five pages (Page cycles them) and Diagnostics (its own button)
-        const panels = ['Widget preview', 'Widget settings', 'Animation', 'Animation settings', 'Phone Connection', 'Diagnostics'];
-        const PREVIEW = 0, WSET = 1, ANIMPAGE = 2, ASET = 3, PHONE = 4, DIAG = 5, PAGES = 5;
+        // jaimeen77-cmyk/apps: four pages (Page cycles them) and Diagnostics (its own button)
+        const panels = ['Widget preview', 'Widget settings', 'Animation', 'Phone Connection', 'Diagnostics'];
+        const PREVIEW = 0, WSET = 1, ANIMPAGE = 2, PHONE = 3, DIAG = 4, PAGES = 4;
         let panel = 0, row = 0, logOffset = 0, confirmClear = false, dirty = true, screenKey = '';
         let widgetIndex = Object.create(null), frame = -1, notice = '';
         const history = new History(30);
@@ -347,25 +348,15 @@ mgu.run({
                 { title: 'Open the animation screen', sub: 'The GIF across the screen at its own speed', value: 'Open', act: () => ui.open('ANIM') },
                 { title: 'Next GIF', sub: label(player.id), value: 'Next', act: () => apply({ type: 'next' }) },
                 { title: 'GPU renderer (mgu-renderd)', sub: gpuReady() ? 'Smooth, up to one frame per screen refresh' : 'Without it: a few frames a second',
-                    value: gpuReady() ? 'Connected' : 'Not running', act: () => setPanel(ASET) },
+                    value: gpuReady() ? 'Connected' : 'Not running' },
+                { title: 'Animation screen', sub: 'GPU renderer (mgu-renderd) or without it', value: optionLabel('renderer'),
+                    act: () => cycleSetting('renderer') },
             ];
         }
-        function animRows() {
-            return [
-                // the Animation screen's own: full screen or margins, and its speed (which GIFs play follows Widget settings)
-                { title: 'Animation picture fit', sub: 'Animation screen only', value: optionLabel('animFit'), act: () => cycleSetting('animFit') },
-                { title: 'Animation speed', sub: 'Animation screen only', value: optionLabel('animSpeed'), act: () => cycleSetting('animSpeed') },
-                { title: 'Animation screen', sub: 'GPU renderer (mgu-renderd) · ' + (gpuReady() ? 'Connected' : 'Not running'),
-                    value: optionLabel('renderer'), act: () => cycleSetting('renderer') },
-                { title: 'Open the animation screen', sub: 'Previous / Next / Animation settings at the bottom', value: 'Open', act: () => ui.open('ANIM') },
-            ];
-        }
-        const rowsFor = n => (n === PREVIEW ? previewRows() : n === WSET ? (picker ? pickerRows() : widgetRows()) : n === ANIMPAGE ? animPageRows() : n === ASET ? animRows() : []);
+        const rowsFor = n => (n === PREVIEW ? previewRows() : n === WSET ? (picker ? pickerRows() : widgetRows()) : n === ANIMPAGE ? animPageRows() : []);
         // the widget's shape (384 x 256)
         const WIDGET_BOX = { x: 84, y: 100, w: 600, h: 400 }, ANIM_BOX = { x: 84, y: 104, w: 720, h: 400 };
         let backdropKey = '';
-        // the Animation screen's picture: the whole GIF fitted, or filled with its edges cropped
-        const animShape = () => (settings.get('animFit') === 'fullCrop' ? 'cover' : 'contain');
         function drawFrameIn(cv, box, still, shape) {
             if (!player.gif || frame < 0) return false;
             const gif = player.gif, img = gif.frames[still ? 0 : frame];
@@ -380,7 +371,7 @@ mgu.run({
             if (phone.link && !upload.active) { clearQr(); phone.detail = 'QR session expired. Rescan to pair again.'; }
             const key = JSON.stringify([panel, row, logOffset, panel === PREVIEW || panel === ANIMPAGE ? frame : 0, player.id,
                 library.state.revision, panel === DIAG ? logVersion : 0, panel === PHONE ? [upload.phoneAt, upload.lastError, upload.lastRequest] : null,
-                [settings.get('fit'), settings.get('speed'), settings.get('animFit'), settings.get('animSpeed'), settings.get('renderer'), gpuReady()], notice, library.error, picker ? picker.picks : null]);
+                [settings.get('fit'), settings.get('speed'), settings.get('animSpeed'), settings.get('renderer'), gpuReady()], notice, library.error, picker ? picker.picks : null]);
             if (key === screenKey && !dirty) return;
             screenKey = key; dirty = false;
             const cv = ctx.canvas(W, H);
@@ -413,10 +404,9 @@ mgu.run({
             }
             if (panel === ANIMPAGE) {
                 cv.fillRect(ANIM_BOX.x, ANIM_BOX.y, ANIM_BOX.w, ANIM_BOX.h, '#000000');
-                drawFrameIn(cv, ANIM_BOX, false, animShape());
+                drawFrameIn(cv, ANIM_BOX, false, 'contain');
                 rows(cv, animPageRows(), row, { x: 840, y: 96, w: 698 }, 92);
             }
-            if (panel === ASET) rows(cv, animRows(), row, {}, 92);
             if (panel === PHONE) {
                 const target = upload.target;
                 lines(cv, [
@@ -509,18 +499,16 @@ mgu.run({
         // Animation screen: the GIF alone, as large as the screen allows, at its own speed with the GPU
         // renderer (the kit calls renderAnim once per screen refresh there); a few frames a second without it.
         let animKey = '', tabsUntil = 0, fullRec = null;
-        // Full screen (Animation settings): the tabs and the bottom bar step aside and the GIF covers the whole
-        // screen; a tap on the screen shows them for a while (tap again: hidden), and they show for a moment when
-        // the screen opens. With margins the tabs always show.
+        // The Animation screen: the GIF on the left (a 4:3 GIF fills its half of the 1920 x 720 screen), on the
+        // right its name, Previous / Next and the playback settings as buttons. The tabs and the bottom bar step
+        // aside (with the GPU renderer the screen is "chrome": false, as a game's); a tap on the GIF shows them for
+        // a while (tap again: hidden), as do the bottom buttons and opening the screen.
         const TABS_SHOWN_MS = 5000;
-        const fullScreen = () => settings.get('animFit') !== 'tabs';
-        const tabsShown = () => !fullScreen() || Date.now() < tabsUntil || !!(ctx.display && ctx.display.sheet);
+        const tabsShown = () => Date.now() < tabsUntil || !!(ctx.display && ctx.display.sheet);
         function showTabs(toggle) {
-            if (!fullScreen()) return;
             tabsUntil = toggle && Date.now() < tabsUntil ? 0 : Date.now() + TABS_SHOWN_MS;
         }
-        // The GPU renderer: the kit draws the header (tabs) and the bar unless the screen says "chrome": false
-        // (as a game's screen does); switching it is a new placement, as when the layout setting changes.
+        // switching "chrome" is a new placement for the renderer, as when the layout setting changes
         function chrome(show) {
             const d = ctx.display;
             if (!d || !d.screen || d.screen.name !== 'ANIM' || (d.screen.chrome !== false) === show) return;
@@ -528,49 +516,93 @@ mgu.run({
             try { if (d.gpu && d.gpu.ready && typeof d._place === 'function') d._place(); }
             catch (e) { record('Full screen switch failed: ' + e.message); }
         }
-        async function renderAnim() {
-            update();
-            const shown = tabsShown();
-            chrome(shown);
-            const cv = ctx.canvas(W, H).clear('#000000');
-            const gpuFull = !!(cv.place && cv.place.full);
-            // where the GIF goes: the whole screen (GPU, tabs hidden: in screen pixels, as a game draws), the page
-            // between the kit's header and bar, or the page below the tabs drawn here (none when hidden)
-            const a = gpuFull ? animArea(cv.place, W, H) : shown ? animArea(null, W, H) : { x: 0, y: 0, w: W, h: H };
-            const fit = animShape();
-            let drawn = false;
+        /** The right-hand panel's buttons: Previous / Next, then a row each (title, value button). */
+        function animButtons() {
+            const p = library.state.playback;
+            return [
+                { key: 'prev', value: 'Previous', arrow: -1, run: () => previousGif() },
+                { key: 'next', value: 'Next', arrow: 1, run: () => apply({ type: 'next' }) },
+                { key: 'pause', title: 'Playback', value: p.paused ? 'Resume' : 'Pause', run: () => apply({ type: 'playback', paused: !p.paused }) },
+                { key: 'mode', title: 'Mode', value: modeName(p), run: () => apply({ type: 'playback', mode: cycle(MODES, p.mode) }) },
+                { key: 'interval', title: 'Switch after', value: intervalLabel(p),
+                    run: () => apply({ type: 'playback', seconds: cycle([0, 5, 10, 15, 30], p.seconds) }) },
+                { key: 'speed', title: 'Animation speed', value: optionLabel('animSpeed'), run: () => cycleSetting('animSpeed') },
+                { key: 'playlist', title: 'Playlist · ' + p.selected.length + ' GIFs', value: 'Make playlist',
+                    run: () => { ui.open('MAIN'); setPanel(WSET); openPicker(); } },
+            ];
+        }
+        /** The split screen drawn on r (its own pixels) inside box; returns the buttons' rects, in the same pixels. */
+        function drawSplit(r, box) {
+            const u = box.h / 720;
+            const gw = Math.min(Math.round(box.w / 2), Math.round(box.h * 4 / 3));
+            r.fillRect(box.x, box.y, box.w, box.h, '#000000');
             if (player.gif && frame >= 0) {
-                // the GIF the widget plays, at the Animation screen's own speed
+                // the GIF the widget plays, at the Animation screen's own speed, the whole of it in the left part
                 const gif = player.gif, clock = player.pauseAt !== null ? player.pauseAt : Date.now();
                 const at = frameAt(gif, Math.max(0, clock - player.start) * (SPEEDS[settings.get('animSpeed')] || 1));
                 const key = player.id + ':' + at;
                 // only a new frame is sent to the renderer again
                 if (key !== animKey) { setImage(ANIM_IMAGE, gif.width, gif.height, gif.frames[at].data); animKey = key; }
-                if (gpuFull && !shown) {
-                    const pl = cv.place;
-                    if (!fullRec || fullRec.w !== pl.w || fullRec.h !== pl.h) fullRec = new Recorder(pl.w, pl.h);
-                    fullRec.reset();
-                    fullRec.fillRect(0, 0, pl.w, pl.h, '#000000');
-                    const r = rectFor(gif.width, gif.height, 0, 0, pl.w, pl.h, fit);
-                    fullRec.image(ANIM_IMAGE, r.x, r.y, r.w, r.h);
-                    cv.xf(1, 0, 0).append(fullRec).xf();
-                } else {
-                    const r = rectFor(gif.width, gif.height, a.x, a.y, a.w, a.h, fit);
-                    cv.image(ANIM_IMAGE, r.x, r.y, r.w, r.h);
-                }
-                drawn = true;
+                const g = rectFor(gif.width, gif.height, box.x, box.y, gw, box.h, 'contain');
+                r.image(ANIM_IMAGE, g.x, g.y, g.w, g.h);
+            } else r.text(t('No GIF'), box.x + gw / 2, box.y + box.h / 2, 34 * u, '#ffffff', { align: 'center' });
+            const px = box.x + gw, pw = box.w - gw, m = Math.round(28 * u), x0 = px + m, w0 = pw - 2 * m;
+            r.fillRect(px, box.y, pw, box.h, C.bg);
+            r.fillRect(px, box.y, Math.max(1, Math.round(2 * u)), box.h, C.rule);
+            let y = box.y + Math.round(26 * u);
+            r.text(t('Now playing'), x0, y + 22 * u, 22 * u, C.dim);
+            r.text(fitText(r, label(player.id), 34 * u, w0), x0, y + 64 * u, 34 * u, C.text);
+            y += Math.round(92 * u);
+            const list = animButtons(), rects = [];
+            const bh = Math.round(100 * u), gap = Math.round(16 * u), half = Math.floor((w0 - gap) / 2);
+            list.slice(0, 2).forEach((b, i) => {
+                const bx = x0 + i * (half + gap);
+                button(r, bx, y, half, bh, b.value, false, false, Math.round(34 * u));
+                // an arrow beside the label, drawn (the Korean font has no arrow characters)
+                const s = Math.round(14 * u), cy = y + bh / 2, ax = b.arrow < 0 ? bx + Math.round(40 * u) : bx + half - Math.round(40 * u);
+                r.polyline([[ax - b.arrow * s, cy - s], [ax + b.arrow * s, cy], [ax - b.arrow * s, cy + s]], Math.max(2, Math.round(4 * u)), C.text);
+                rects.push({ b, x: bx, y, w: half, h: bh });
+            });
+            y += bh + Math.round(18 * u);
+            const rows = list.slice(2), rh = Math.floor((box.y + box.h - Math.round(12 * u) - y) / rows.length);
+            rows.forEach((b, i) => {
+                const yy = y + i * rh, bw = Math.round(w0 * 0.48), bhh = rh - Math.round(14 * u);
+                r.text(fitText(r, b.title, Math.round(26 * u), w0 - bw - 20 * u), x0, yy + rh / 2 + 9 * u, Math.round(26 * u), C.text);
+                button(r, x0 + w0 - bw, yy + Math.round(7 * u), bw, bhh, b.value, false, false, Math.round(26 * u));
+                rects.push({ b, x: x0 + w0 - bw, y: yy + Math.round(7 * u), w: bw, h: bhh });
+                if (i < rows.length - 1) r.line(x0, yy + rh - 1, x0 + w0, yy + rh - 1, Math.max(0.6, 0.6 * u), C.line);
+            });
+            return rects;
+        }
+        async function renderAnim() {
+            update();
+            const shown = tabsShown();
+            chrome(shown);
+            const cv = ctx.canvas(W, H).clear('#000000');
+            const pl = cv.place, gpuFull = !!(pl && pl.full);
+            let rects, toPage = q => q;
+            if (gpuFull && !shown) {
+                // the whole screen is ours: drawn in screen pixels (a game's way), the buttons' rects back in page px
+                if (!fullRec || fullRec.w !== pl.w || fullRec.h !== pl.h) fullRec = new Recorder(pl.w, pl.h);
+                fullRec.reset();
+                rects = drawSplit(fullRec, { x: 0, y: 0, w: pl.w, h: pl.h });
+                cv.xf(1, 0, 0).append(fullRec).xf();
+                toPage = q => ({ x: (q.x - pl.ox) / pl.scale, y: (q.y - pl.oy) / pl.scale, w: q.w / pl.scale, h: q.h / pl.scale });
+            } else {
+                // between the kit's header and bar (GPU, tabs shown), or the HMI's own image (below the tabs drawn here)
+                const box = gpuFull ? animArea(pl, W, H) : shown ? animArea(null, W, H) : { x: 0, y: 0, w: W, h: H };
+                rects = drawSplit(cv, box);
             }
-            if (!drawn) cv.text('No GIF', a.x + a.w / 2, a.y + a.h / 2, 34, '#ffffff', { align: 'center' });
-            // the page tabs on top, Animation selected: in the kit's header with the GPU renderer (a tab tapped
-            // there goes to that page, ctx.onTab), drawn here as on the other pages without it
+            // taps on the buttons, and the iDrive controller's knob through them (where the kit runs the screen)
+            cv.targets = rects.map(q => Object.assign({ key: 'anim-' + q.b.key, run: () => {
+                try { q.b.run(); } catch (e) { record('Animation button failed: ' + e.message); }
+            } }, toPage(q)));
+            // the page tabs on top, Animation selected: in the kit's header with the GPU renderer (a tab tapped there
+            // goes to that page, ctx.onTab), drawn here as on the other pages without it
             if (shown) {
                 const tabs = panels.slice(0, PAGES), badge = 'v' + ctx.spec.version;
                 if (cv.chrome) G.frame(cv, ctx.theme(), tabs, ANIMPAGE, [{ text: badge }]);
                 else if (!gpuFull) header(cv, W, tabs, ANIMPAGE, badge);
-            }
-            if (!gpuFull && shown) {
-                cv.fillRect(0, H - 36, W, 36, [0, 0, 0, 170]);
-                cv.text('GPU renderer (mgu-renderd) is not running: a few frames a second only', 20, H - 11, 20, '#ffd4ad');
             }
             await ui.image('ANIM_GFX', cv);
         }

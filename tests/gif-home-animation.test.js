@@ -24,13 +24,13 @@ assert.deepStrictEqual(h.ids, []);
 const state = { playback: { mode: 'single', single: 'demo', group: null, seconds: 7, paused: false, selected: [] },
     groups: [{ id: 'g1', name: 'Drive', ids: [] }] };
 const applied = [];
-const appSettings = { v: { animFit: 'full', animSpeed: 'normal' }, get(k) { return this.v[k]; }, set(k, v) { this.v[k] = v; } };
+const appSettings = { v: { animSpeed: 'normal' }, get(k) { return this.v[k]; }, set(k, v) { this.v[k] = v; } };
 const s = playbackSettings({
     state: () => state, apply: (a) => { applied.push(a); Object.keys(a).forEach((k) => { if (k !== 'type') state.playback[k] = a[k]; }); },
     files: () => [{ id: 'demo', name: 'Animated BMW logo' }, { id: 'u1', name: 'mine.gif' }],
     modes: MODES, modeNames: MODES.map((m) => 'name ' + m), settings: appSettings, spec,
 });
-assert.deepStrictEqual(s.schema.map((x) => x.key), ['mode', 'single', 'group', 'seconds', 'paused', 'animFit', 'animSpeed']);
+assert.deepStrictEqual(s.schema.map((x) => x.key), ['mode', 'single', 'group', 'seconds', 'paused', 'animSpeed']);
 assert.strictEqual(s.get('group'), null);
 assert.strictEqual(s.display('single'), 'Animated BMW logo');
 assert.deepStrictEqual(s.schema.find((x) => x.key === 'group').options, [[null, 'None'], ['g1', 'Drive']]);
@@ -40,10 +40,9 @@ s.set('mode', 'group');
 s.set('group', 'g1');
 s.cycle('paused');
 assert.deepStrictEqual(applied, [{ type: 'playback', mode: 'group' }, { type: 'playback', group: 'g1' }, { type: 'playback', paused: true }]);
-s.cycle('animFit');
-assert.strictEqual(appSettings.v.animFit, 'fullCrop', 'the animation fit is an app setting, not the library');
-assert.deepStrictEqual(spec.settings.find((x) => x.key === 'animFit').options.map((o) => o[0]), ['full', 'fullCrop', 'tabs']);
-assert.strictEqual(spec.settings.find((x) => x.key === 'animFit').default, 'full', 'full screen, the whole GIF fitted');
+s.cycle('animSpeed');
+assert.strictEqual(appSettings.v.animSpeed, 'fast', 'the animation speed is an app setting, not the library');
+assert.ok(!spec.settings.some((x) => x.key === 'animFit'), 'the split screen always fits the whole GIF');
 assert.strictEqual(applied.length, 3);
 s.set('animSpeed', 'double');
 assert.strictEqual(appSettings.v.animSpeed, 'double');
@@ -53,7 +52,7 @@ const gif = { duration: 300, frames: [{ delay: 100 }, { delay: 100 }, { delay: 1
 assert.deepStrictEqual([0, 99, 100, 250, 300, 450].map((ms) => frameAt(gif, ms)), [0, 0, 1, 2, 0, 1]);
 assert.strictEqual(frameAt(null, 10), 0);
 // the Animation screen's own settings, kept out of the iDrive settings menu
-['animFit', 'animSpeed'].forEach((k) => assert.strictEqual(spec.settings.find((x) => x.key === k).hidden, true, k));
+assert.strictEqual(spec.settings.find((x) => x.key === 'animSpeed').hidden, true);
 assert.strictEqual(s.display('paused'), 'On');
 
 // app.json: the Animation screen is the GPU screen, its buttons are not names the kit's bar hides (BTN_PAGE / BTN_PREV)

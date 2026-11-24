@@ -13,8 +13,8 @@ const APPS = [
     { template: 'gif_home', id: 'gif_home_ko', title: 'GIF 플레이어', widget: true,
       lines: { 'Mode · Random – Selected GIFs': '모드 · 무작위 – 선택한 GIF', 'HTTP server · Running': 'HTTP 서버 · 실행 중',
           'Phone connection · Not verified': '휴대폰 연결 · 확인 안 됨', 'Tap to open': '눌러서 열기',
-          '[x] Pixel drive: Sunset  · Playing': '[x] 픽셀 드라이브: 노을  · 재생 중', 'Widget preview  1/5': '위젯 미리보기  1/5',
-          'Widget settings  2/5': '위젯 설정  2/5', 'Animation settings  4/5': '애니메이션 설정  4/5',
+          '[x] Pixel drive: Sunset  · Playing': '[x] 픽셀 드라이브: 노을  · 재생 중', 'Widget preview  1/4': '위젯 미리보기  1/4',
+          'Widget settings  2/4': '위젯 설정  2/4',
           'Animation screen · GPU renderer (mgu-renderd, smooth)': '애니메이션 화면 · GPU 렌더러 (mgu-renderd, 부드럽게)',
           'GPU renderer (mgu-renderd) · Not running': 'GPU 렌더러(mgu-renderd) · 실행 안 됨' } },
 ];

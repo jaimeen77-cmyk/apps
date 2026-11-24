@@ -45,12 +45,12 @@ function header(cv, W, tabs, selected, badge) {
 }
 
 /** A value button: lit when on (the row the controller is on). */
-function button(cv, x, y, w, h, label, on, picked) {
+function button(cv, x, y, w, h, label, on, picked, textSize) {
     // picked: a value that is chosen (the playlist picker's numbers), in the accent colour
     cv.roundRect(x, y, w, h, 6, picked ? C.picked : on ? C.buttonOn : C.button);
     const text = t(String(label));
-    let size = 28;
-    while (size > 18 && cv.textWidth(text, size, { font: 'bold' }) > w - 24) size--;
+    let size = textSize || 28;
+    while (size > 14 && cv.textWidth(text, size, { font: 'bold' }) > w - 24) size--;
     cv.text(text, x + w / 2, y + h / 2 + size * 0.36, size, C.text, { align: 'center', font: 'bold' });
 }
 

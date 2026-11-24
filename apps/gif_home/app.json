@@ -100,18 +100,6 @@
       ]
     },
     {
-      "key": "animFit",
-      "hidden": true,
-      "label": "Animation picture fit",
-      "type": "choice",
-      "default": "full",
-      "options": [
-        ["full", "Full screen, fitted (tabs hidden, tap to show)"],
-        ["fullCrop", "Full screen, filled (edges cropped)"],
-        ["tabs", "With tabs, fitted"]
-      ]
-    },
-    {
       "key": "animSpeed",
       "hidden": true,
       "label": "Animation speed",
@@ -296,13 +284,10 @@
       "Page: next 6": "페이지: 다음 6개",
       "Widget picture fit": "위젯 그림 맞춤",
       "Widget speed": "위젯 속도",
-      "Animation picture fit": "애니메이션 화면 채우기",
-      "Full screen, fitted (tabs hidden, tap to show)": "풀스크린, 화면에 맞춤 (탭 숨김, 누르면 표시)",
-      "Full screen, filled (edges cropped)": "풀스크린, 꽉 채우기 (가장자리 자름)",
-      "With tabs, fitted": "탭 표시, 화면에 맞춤",
       "2x speed": "2배 속도",
       "Animation screen only": "애니메이션 화면에만 적용",
-      "Home widget only": "홈 위젯에만 적용"
+      "Home widget only": "홈 위젯에만 적용",
+      "GPU renderer (mgu-renderd) or without it": "GPU 렌더러(mgu-renderd) 사용 여부"
     }
   }
 }

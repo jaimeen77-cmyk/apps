@@ -54,8 +54,7 @@ function playbackSettings(o) {
             get options() { return [[null, 'None']].concat(o.state().groups.map((g) => [g.id, g.name])); } },
         { key: 'seconds', label: 'Switch after', type: 'choice', get options() { return seconds(); } },
         { key: 'paused', label: 'Pause animation', type: 'bool' },
-        // the Animation screen's own fit and speed (the widget has its own)
-        { key: 'animFit', label: own('animFit').label, type: 'choice', options: own('animFit').options, app: true },
+        // the Animation screen's own speed (the widget has its own)
         { key: 'animSpeed', label: own('animSpeed').label, type: 'choice', options: own('animSpeed').options, app: true },
     ];
     const find = (key) => schema.find((s) => s.key === key);
