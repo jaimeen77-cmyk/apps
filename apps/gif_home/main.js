@@ -272,7 +272,6 @@ mgu.run({
                 { title: 'Now playing', sub: label(player.id), value: 'Next GIF', act: () => apply({ type: 'next' }) },
                 { title: 'Playback', sub: p.paused ? 'Paused' : 'Playing', value: p.paused ? 'Resume' : 'Pause',
                     act: () => apply({ type: 'playback', paused: !p.paused }) },
-                { title: 'Mode', sub: modeName(p), value: 'Widget settings', act: () => setPanel(WSET) },
             ];
         }
         function widgetRows() {
