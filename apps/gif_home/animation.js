@@ -35,7 +35,7 @@ class History {
 
 /**
  * A settings-like object for kit/sheet.js listSheet: the playback options (mode, single GIF, group, interval,
- * pause) live in the library and change through apply(); fit and speed are the app's own settings.
+ * pause) live in the library and change through apply(); the Animation screen's fit and speed are app settings.
  *   o.state()     -> library.state          o.apply(action) -> library change, as the phone page sends it
  *   o.files()     -> [{ id, name }]         o.modes, o.modeNames: library MODES and their labels
  *   o.settings    the app's Settings        o.spec: app.json (fit / speed options)
@@ -54,8 +54,9 @@ function playbackSettings(o) {
             get options() { return [[null, 'None']].concat(o.state().groups.map((g) => [g.id, g.name])); } },
         { key: 'seconds', label: 'Switch after', type: 'choice', get options() { return seconds(); } },
         { key: 'paused', label: 'Pause animation', type: 'bool' },
-        { key: 'fit', label: own('fit').label, type: 'choice', options: own('fit').options, app: true },
-        { key: 'speed', label: own('speed').label, type: 'choice', options: own('speed').options, app: true },
+        // the Animation screen's own fit and speed (the widget has its own)
+        { key: 'animFit', label: own('animFit').label, type: 'choice', options: own('animFit').options, app: true },
+        { key: 'animSpeed', label: own('animSpeed').label, type: 'choice', options: own('animSpeed').options, app: true },
     ];
     const find = (key) => schema.find((s) => s.key === key);
     const api = {
@@ -92,4 +93,16 @@ function playbackSettings(o) {
     return api;
 }
 
-module.exports = { area, FULL_AREA, SECONDS, History, playbackSettings };
+const SPEEDS = { slow: 0.5, normal: 1, fast: 1.5, double: 2 };
+/** The frame of `gif` shown `ms` into its loop (GIF frame delays). */
+function frameAt(gif, ms) {
+    if (!gif || !gif.frames.length || !(gif.duration > 0)) return 0;
+    let t = Math.max(0, ms) % gif.duration;
+    for (let i = 0; i < gif.frames.length; i++) {
+        if (t < gif.frames[i].delay) return i;
+        t -= gif.frames[i].delay;
+    }
+    return 0;
+}
+
+module.exports = { area, FULL_AREA, SECONDS, SPEEDS, History, playbackSettings, frameAt };

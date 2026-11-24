@@ -2,7 +2,7 @@
 // GIF Home's Animation screen helpers (apps/gif_home/animation.js): Previous history, the settings sheet's
 // adapter over the shared playback options, and where the GIF goes on the page.
 const assert = require('assert');
-const { area, FULL_AREA, History, playbackSettings } = require('../apps/gif_home/animation');
+const { area, FULL_AREA, History, playbackSettings, frameAt } = require('../apps/gif_home/animation');
 const { MODES } = require('../apps/gif_home/library');
 const spec = require('../apps/gif_home/app.json');
 
@@ -24,13 +24,13 @@ assert.deepStrictEqual(h.ids, []);
 const state = { playback: { mode: 'single', single: 'demo', group: null, seconds: 7, paused: false, selected: [] },
     groups: [{ id: 'g1', name: 'Drive', ids: [] }] };
 const applied = [];
-const appSettings = { v: { fit: 'contain', speed: 'normal' }, get(k) { return this.v[k]; }, set(k, v) { this.v[k] = v; } };
+const appSettings = { v: { animFit: 'cover', animSpeed: 'normal' }, get(k) { return this.v[k]; }, set(k, v) { this.v[k] = v; } };
 const s = playbackSettings({
     state: () => state, apply: (a) => { applied.push(a); Object.keys(a).forEach((k) => { if (k !== 'type') state.playback[k] = a[k]; }); },
     files: () => [{ id: 'demo', name: 'Animated BMW logo' }, { id: 'u1', name: 'mine.gif' }],
     modes: MODES, modeNames: MODES.map((m) => 'name ' + m), settings: appSettings, spec,
 });
-assert.deepStrictEqual(s.schema.map((x) => x.key), ['mode', 'single', 'group', 'seconds', 'paused', 'fit', 'speed']);
+assert.deepStrictEqual(s.schema.map((x) => x.key), ['mode', 'single', 'group', 'seconds', 'paused', 'animFit', 'animSpeed']);
 assert.strictEqual(s.get('group'), null);
 assert.strictEqual(s.display('single'), 'Animated BMW logo');
 assert.deepStrictEqual(s.schema.find((x) => x.key === 'group').options, [[null, 'None'], ['g1', 'Drive']]);
@@ -40,11 +40,18 @@ s.set('mode', 'group');
 s.set('group', 'g1');
 s.cycle('paused');
 assert.deepStrictEqual(applied, [{ type: 'playback', mode: 'group' }, { type: 'playback', group: 'g1' }, { type: 'playback', paused: true }]);
-s.cycle('fit');
-assert.strictEqual(appSettings.v.fit, 'cover', 'fit is the app setting, not the library');
+s.cycle('animFit');
+assert.strictEqual(appSettings.v.animFit, 'contain', 'the animation fit is an app setting, not the library');
 assert.strictEqual(applied.length, 3);
-s.set('speed', 'fast');
-assert.strictEqual(appSettings.v.speed, 'fast');
+s.set('animSpeed', 'double');
+assert.strictEqual(appSettings.v.animSpeed, 'double');
+
+// frameAt: the frame shown that far into the loop
+const gif = { duration: 300, frames: [{ delay: 100 }, { delay: 100 }, { delay: 100 }] };
+assert.deepStrictEqual([0, 99, 100, 250, 300, 450].map((ms) => frameAt(gif, ms)), [0, 0, 1, 2, 0, 1]);
+assert.strictEqual(frameAt(null, 10), 0);
+// the Animation screen's own settings, kept out of the iDrive settings menu
+['animFit', 'animSpeed'].forEach((k) => assert.strictEqual(spec.settings.find((x) => x.key === k).hidden, true, k));
 assert.strictEqual(s.display('paused'), 'On');
 
 // app.json: the Animation screen is the GPU screen, its buttons are not names the kit's bar hides (BTN_PAGE / BTN_PREV)

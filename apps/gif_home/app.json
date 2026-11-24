@@ -80,7 +80,7 @@
     },
     {
       "key": "fit",
-      "label": "Picture fit",
+      "label": "Widget picture fit",
       "type": "choice",
       "default": "contain",
       "options": [
@@ -90,13 +90,37 @@
     },
     {
       "key": "speed",
-      "label": "Animation speed",
+      "label": "Widget speed",
       "type": "choice",
       "default": "normal",
       "options": [
         ["slow", "Half speed"],
         ["normal", "Normal"],
         ["fast", "1.5x speed"]
+      ]
+    },
+    {
+      "key": "animFit",
+      "hidden": true,
+      "label": "Animation picture fit",
+      "type": "choice",
+      "default": "cover",
+      "options": [
+        ["cover", "Full screen (tabs hidden, tap to show)"],
+        ["contain", "Whole picture (margins)"]
+      ]
+    },
+    {
+      "key": "animSpeed",
+      "hidden": true,
+      "label": "Animation speed",
+      "type": "choice",
+      "default": "normal",
+      "options": [
+        ["slow", "Half speed"],
+        ["normal", "Normal"],
+        ["fast", "1.5x speed"],
+        ["double", "2x speed"]
       ]
     },
     {
@@ -268,7 +292,15 @@
       "Keep the playlist as it was": "재생 목록을 바꾸지 않음",
       "Pick": "고르기",
       "Press GIFs in the order to play them": "재생할 순서대로 GIF를 누르세요",
-      "Page: next 6": "페이지: 다음 6개"
+      "Page: next 6": "페이지: 다음 6개",
+      "Widget picture fit": "위젯 그림 맞춤",
+      "Widget speed": "위젯 속도",
+      "Animation picture fit": "애니메이션 화면 채우기",
+      "Full screen (tabs hidden, tap to show)": "풀스크린 (탭 숨김, 누르면 표시)",
+      "Whole picture (margins)": "그림 전체 (여백)",
+      "2x speed": "2배 속도",
+      "Animation screen only": "애니메이션 화면에만 적용",
+      "Home widget only": "홈 위젯에만 적용"
     }
   }
 }

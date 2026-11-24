@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const mgu = require('./kit/mgu');
 const { Canvas } = require('./kit/canvas');
-const { setImage, makeLayer, dropLayer } = require('./kit/record');
+const { setImage, makeLayer, dropLayer, Recorder } = require('./kit/record');
 const { open } = require('./kit/pack');
 const { decode } = require('./gif');
 const qrcode = require('./qr_vendor');
@@ -14,7 +14,7 @@ const { Library, MODES, atomic } = require('./library');
 const { Playback } = require('./playback');
 const { diagnostics } = require('./diagnostics');
 // jaimeen77-cmyk/apps: the Animation screen (ANIM) through the GPU renderer
-const { area: animArea, History, playbackSettings } = require('./animation');
+const { area: animArea, History, playbackSettings, frameAt, SPEEDS } = require('./animation');
 const { listSheet } = require('./kit/sheet');
 const { C, backdrop, header, rows, lines, fitText } = require('./look');
 const G = require('./kit/gauges');
@@ -287,6 +287,8 @@ mgu.run({
                     act: () => apply({ type: 'playback', group: cycle([null].concat(library.state.groups.map(g => g.id)), p.group || null) }) },
                 { title: 'Switch after', sub: 'Other modes: the next GIF after this', value: intervalLabel(p),
                     act: () => apply({ type: 'playback', seconds: cycle([0, 5, 10, 15, 30], p.seconds) }) },
+                { title: 'Widget picture fit', sub: 'Home widget only', value: optionLabel('fit'), act: () => cycleSetting('fit') },
+                { title: 'Widget speed', sub: 'Home widget only', value: optionLabel('speed'), act: () => cycleSetting('speed') },
                 { title: 'Playback', sub: p.paused ? 'Paused' : 'Playing', value: p.paused ? 'Resume' : 'Pause',
                     act: () => apply({ type: 'playback', paused: !p.paused }) },
                 { title: 'Next GIF', sub: label(player.id), value: 'Next', act: () => apply({ type: 'next' }) },
@@ -350,8 +352,9 @@ mgu.run({
         }
         function animRows() {
             return [
-                { title: 'Picture fit', sub: 'Widget and animation screen', value: optionLabel('fit'), act: () => cycleSetting('fit') },
-                { title: 'Animation speed', sub: 'Widget and animation screen', value: optionLabel('speed'), act: () => cycleSetting('speed') },
+                // the Animation screen's own: full screen or margins, and its speed (which GIFs play follows Widget settings)
+                { title: 'Animation picture fit', sub: 'Animation screen only', value: optionLabel('animFit'), act: () => cycleSetting('animFit') },
+                { title: 'Animation speed', sub: 'Animation screen only', value: optionLabel('animSpeed'), act: () => cycleSetting('animSpeed') },
                 { title: 'Animation screen', sub: 'GPU renderer (mgu-renderd) · ' + (gpuReady() ? 'Connected' : 'Not running'),
                     value: optionLabel('renderer'), act: () => cycleSetting('renderer') },
                 { title: 'Open the animation screen', sub: 'Previous / Next / Animation settings at the bottom', value: 'Open', act: () => ui.open('ANIM') },
@@ -361,10 +364,10 @@ mgu.run({
         // the widget's shape (384 x 256)
         const WIDGET_BOX = { x: 84, y: 100, w: 600, h: 400 }, ANIM_BOX = { x: 84, y: 104, w: 720, h: 400 };
         let backdropKey = '';
-        function drawFrameIn(cv, box, still) {
+        function drawFrameIn(cv, box, still, fitKey) {
             if (!player.gif || frame < 0) return false;
             const gif = player.gif, img = gif.frames[still ? 0 : frame];
-            const r = rectFor(gif.width, gif.height, box.x, box.y, box.w, box.h, still ? 'cover' : settings.get('fit'));
+            const r = rectFor(gif.width, gif.height, box.x, box.y, box.w, box.h, still ? 'cover' : settings.get(fitKey || 'fit'));
             const id = still ? BACK_IMAGE : PIXEL_IMAGE, key = player.id + ':' + (still ? 0 : frame);
             if (!still || key !== backdropKey) { setImage(id, gif.width, gif.height, img.data); if (still) backdropKey = key; }
             cv.image(id, r.x, r.y, r.w, r.h);
@@ -375,7 +378,7 @@ mgu.run({
             if (phone.link && !upload.active) { clearQr(); phone.detail = 'QR session expired. Rescan to pair again.'; }
             const key = JSON.stringify([panel, row, logOffset, panel === PREVIEW || panel === ANIMPAGE ? frame : 0, player.id,
                 library.state.revision, panel === DIAG ? logVersion : 0, panel === PHONE ? [upload.phoneAt, upload.lastError, upload.lastRequest] : null,
-                [settings.get('fit'), settings.get('speed'), settings.get('renderer'), gpuReady()], notice, library.error, picker ? picker.picks : null]);
+                [settings.get('fit'), settings.get('speed'), settings.get('animFit'), settings.get('animSpeed'), settings.get('renderer'), gpuReady()], notice, library.error, picker ? picker.picks : null]);
             if (key === screenKey && !dirty) return;
             screenKey = key; dirty = false;
             const cv = ctx.canvas(W, H);
@@ -408,7 +411,7 @@ mgu.run({
             }
             if (panel === ANIMPAGE) {
                 cv.fillRect(ANIM_BOX.x, ANIM_BOX.y, ANIM_BOX.w, ANIM_BOX.h, '#000000');
-                drawFrameIn(cv, ANIM_BOX);
+                drawFrameIn(cv, ANIM_BOX, false, 'animFit');
                 rows(cv, animPageRows(), row, { x: 840, y: 96, w: 698 }, 92);
             }
             if (panel === ASET) rows(cv, animRows(), row, {}, 92);
@@ -503,38 +506,86 @@ mgu.run({
 
         // Animation screen: the GIF alone, as large as the screen allows, at its own speed with the GPU
         // renderer (the kit calls renderAnim once per screen refresh there); a few frames a second without it.
-        let animKey = '';
+        let animKey = '', tabsUntil = 0, fullRec = null;
+        // Full screen (Animation settings): the tabs and the bottom bar step aside and the GIF covers the whole
+        // screen; a tap on the screen shows them for a while (tap again: hidden), and they show for a moment when
+        // the screen opens. With margins the tabs always show.
+        const TABS_SHOWN_MS = 5000;
+        const fullScreen = () => settings.get('animFit') === 'cover';
+        const tabsShown = () => !fullScreen() || Date.now() < tabsUntil || !!(ctx.display && ctx.display.sheet);
+        function showTabs(toggle) {
+            if (!fullScreen()) return;
+            tabsUntil = toggle && Date.now() < tabsUntil ? 0 : Date.now() + TABS_SHOWN_MS;
+        }
+        // The GPU renderer: the kit draws the header (tabs) and the bar unless the screen says "chrome": false
+        // (as a game's screen does); switching it is a new placement, as when the layout setting changes.
+        function chrome(show) {
+            const d = ctx.display;
+            if (!d || !d.screen || d.screen.name !== 'ANIM' || (d.screen.chrome !== false) === show) return;
+            if (show) delete d.screen.chrome; else d.screen.chrome = false;
+            try { if (d.gpu && d.gpu.ready && typeof d._place === 'function') d._place(); }
+            catch (e) { record('Full screen switch failed: ' + e.message); }
+        }
         async function renderAnim() {
             update();
+            const shown = tabsShown();
+            chrome(shown);
             const cv = ctx.canvas(W, H).clear('#000000');
-            const a = animArea(cv.place, W, H);
+            const gpuFull = !!(cv.place && cv.place.full);
+            // where the GIF goes: the whole screen (GPU, tabs hidden: in screen pixels, as a game draws), the page
+            // between the kit's header and bar, or the page below the tabs drawn here (none when hidden)
+            const a = gpuFull ? animArea(cv.place, W, H) : shown ? animArea(null, W, H) : { x: 0, y: 0, w: W, h: H };
+            const fit = fullScreen() ? 'cover' : 'contain';
+            let drawn = false;
             if (player.gif && frame >= 0) {
-                const gif = player.gif, key = player.id + ':' + frame;
+                // the GIF the widget plays, at the Animation screen's own speed
+                const gif = player.gif, clock = player.pauseAt !== null ? player.pauseAt : Date.now();
+                const at = frameAt(gif, Math.max(0, clock - player.start) * (SPEEDS[settings.get('animSpeed')] || 1));
+                const key = player.id + ':' + at;
                 // only a new frame is sent to the renderer again
-                if (key !== animKey) { setImage(ANIM_IMAGE, gif.width, gif.height, gif.frames[frame].data); animKey = key; }
-                const r = rectFor(gif.width, gif.height, a.x, a.y, a.w, a.h, settings.get('fit'));
-                cv.image(ANIM_IMAGE, r.x, r.y, r.w, r.h);
-            } else cv.text('No GIF', a.x + a.w / 2, a.y + a.h / 2, 34, '#ffffff', { align: 'center' });
-            // the page tabs stay on top, Animation selected: in the kit's header with the GPU renderer (a tab
-            // tapped there goes to that page, ctx.onTab), drawn here as on the other pages without it
-            const tabs = panels.slice(0, PAGES), badge = 'v' + ctx.spec.version;
-            if (cv.chrome) G.frame(cv, ctx.theme(), tabs, ANIMPAGE, [{ text: badge }]);
-            else header(cv, W, tabs, ANIMPAGE, badge);
-            if (!(cv.place && cv.place.full)) {
+                if (key !== animKey) { setImage(ANIM_IMAGE, gif.width, gif.height, gif.frames[at].data); animKey = key; }
+                if (gpuFull && !shown) {
+                    const pl = cv.place;
+                    if (!fullRec || fullRec.w !== pl.w || fullRec.h !== pl.h) fullRec = new Recorder(pl.w, pl.h);
+                    fullRec.reset();
+                    fullRec.fillRect(0, 0, pl.w, pl.h, '#000000');
+                    const r = rectFor(gif.width, gif.height, 0, 0, pl.w, pl.h, fit);
+                    fullRec.image(ANIM_IMAGE, r.x, r.y, r.w, r.h);
+                    cv.xf(1, 0, 0).append(fullRec).xf();
+                } else {
+                    const r = rectFor(gif.width, gif.height, a.x, a.y, a.w, a.h, fit);
+                    cv.image(ANIM_IMAGE, r.x, r.y, r.w, r.h);
+                }
+                drawn = true;
+            }
+            if (!drawn) cv.text('No GIF', a.x + a.w / 2, a.y + a.h / 2, 34, '#ffffff', { align: 'center' });
+            // the page tabs on top, Animation selected: in the kit's header with the GPU renderer (a tab tapped
+            // there goes to that page, ctx.onTab), drawn here as on the other pages without it
+            if (shown) {
+                const tabs = panels.slice(0, PAGES), badge = 'v' + ctx.spec.version;
+                if (cv.chrome) G.frame(cv, ctx.theme(), tabs, ANIMPAGE, [{ text: badge }]);
+                else if (!gpuFull) header(cv, W, tabs, ANIMPAGE, badge);
+            }
+            if (!gpuFull && shown) {
                 cv.fillRect(0, H - 36, W, 36, [0, 0, 0, 170]);
                 cv.text('GPU renderer (mgu-renderd) is not running: a few frames a second only', 20, H - 11, 20, '#ffd4ad');
             }
             await ui.image('ANIM_GFX', cv);
         }
         ctx.loop('ANIM', 4, renderAnim);
+        // a tap on the animation (where the kit runs the screen) shows or hides the tabs; opening it shows them a moment
+        if (ctx.onTap) ctx.onTap(() => { if (ui.isVisible('ANIM')) showTabs(true); });
+        ui.onVisible((name, visible) => { if (name === 'ANIM' && visible) showTabs(false); });
         if (ctx.onTab) ctx.onTab(i => { if (i !== ANIMPAGE && i < PAGES) { ui.open('MAIN'); setPanel(i); } });
         const animSettings = playbackSettings({
             state: () => library.state, apply: action => { try { apply(action); } catch (e) { record('Animation setting failed: ' + e.message); } },
             files, modes: MODES, modeNames: MODE_NAMES, settings, spec: ctx.spec,
         });
-        ui.onClick('BTN_PREVGIF', () => { try { previousGif(); } catch (e) { record('Previous failed: ' + e.message); } });
-        ui.onClick('BTN_NEXTGIF', () => { try { apply({ type: 'next' }); } catch (e) { record('Next failed: ' + e.message); } });
+        // (each bottom button also brings the tabs back a moment: without the GPU renderer there is no tap)
+        ui.onClick('BTN_PREVGIF', () => { showTabs(false); try { previousGif(); } catch (e) { record('Previous failed: ' + e.message); } });
+        ui.onClick('BTN_NEXTGIF', () => { showTabs(false); try { apply({ type: 'next' }); } catch (e) { record('Next failed: ' + e.message); } });
         ui.onClick('BTN_ANIM_SETTINGS', () => {
+            showTabs(false);
             // drawn over the animation where the kit runs the screen (GPU renderer); otherwise the Playback page
             if (ctx.sheet && ctx.sheet(listSheet(animSettings, 'Animation settings'))) return;
             ui.open('MAIN');
