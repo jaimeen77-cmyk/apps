@@ -499,8 +499,8 @@ mgu.run({
         // Animation screen: the GIF alone, as large as the screen allows, at its own speed with the GPU
         // renderer (the kit calls renderAnim once per screen refresh there); a few frames a second without it.
         let animKey = '', tabsUntil = 0, fullRec = null;
-        // The Animation screen: the GIF on the left (a 4:3 GIF fills its half of the 1920 x 720 screen), on the
-        // right its name, Previous / Next and the playback settings as buttons. The tabs and the bottom bar step
+        // The Animation screen: the GIF on the left (a 3:2 GIF fills its 1080 x 720 of the 1920 x 720 screen), on
+        // the right its name, Previous / Next and the animation speed as buttons. The tabs and the bottom bar step
         // aside (with the GPU renderer the screen is "chrome": false, as a game's); a tap on the GIF shows them for
         // a while (tap again: hidden), as do the bottom buttons and opening the screen.
         const TABS_SHOWN_MS = 5000;
@@ -516,25 +516,19 @@ mgu.run({
             try { if (d.gpu && d.gpu.ready && typeof d._place === 'function') d._place(); }
             catch (e) { record('Full screen switch failed: ' + e.message); }
         }
-        /** The right-hand panel's buttons: Previous / Next, then a row each (title, value button). */
+        /** The right-hand panel's buttons: Previous / Next, and the Animation screen's own speed. */
         function animButtons() {
-            const p = library.state.playback;
             return [
                 { key: 'prev', value: 'Previous', arrow: -1, run: () => previousGif() },
                 { key: 'next', value: 'Next', arrow: 1, run: () => apply({ type: 'next' }) },
-                { key: 'pause', title: 'Playback', value: p.paused ? 'Resume' : 'Pause', run: () => apply({ type: 'playback', paused: !p.paused }) },
-                { key: 'mode', title: 'Mode', value: modeName(p), run: () => apply({ type: 'playback', mode: cycle(MODES, p.mode) }) },
-                { key: 'interval', title: 'Switch after', value: intervalLabel(p),
-                    run: () => apply({ type: 'playback', seconds: cycle([0, 5, 10, 15, 30], p.seconds) }) },
                 { key: 'speed', title: 'Animation speed', value: optionLabel('animSpeed'), run: () => cycleSetting('animSpeed') },
-                { key: 'playlist', title: 'Playlist · ' + p.selected.length + ' GIFs', value: 'Make playlist',
-                    run: () => { ui.open('MAIN'); setPanel(WSET); openPicker(); } },
             ];
         }
         /** The split screen drawn on r (its own pixels) inside box; returns the buttons' rects, in the same pixels. */
         function drawSplit(r, box) {
             const u = box.h / 720;
-            const gw = Math.min(Math.round(box.w / 2), Math.round(box.h * 4 / 3));
+            // the GIF's part is 3:2 (1080 x 720 of the 1920 x 720 screen: a 540 x 360 GIF fits it exactly)
+            const gw = Math.min(Math.round(box.w * 0.6), Math.round(box.h * 3 / 2));
             r.fillRect(box.x, box.y, box.w, box.h, '#000000');
             if (player.gif && frame >= 0) {
                 // the GIF the widget plays, at the Animation screen's own speed, the whole of it in the left part
@@ -546,32 +540,32 @@ mgu.run({
                 const g = rectFor(gif.width, gif.height, box.x, box.y, gw, box.h, 'contain');
                 r.image(ANIM_IMAGE, g.x, g.y, g.w, g.h);
             } else r.text(t('No GIF'), box.x + gw / 2, box.y + box.h / 2, 34 * u, '#ffffff', { align: 'center' });
-            const px = box.x + gw, pw = box.w - gw, m = Math.round(28 * u), x0 = px + m, w0 = pw - 2 * m;
+            const px = box.x + gw, pw = box.w - gw, m = Math.round(32 * u), x0 = px + m, w0 = pw - 2 * m;
             r.fillRect(px, box.y, pw, box.h, C.bg);
             r.fillRect(px, box.y, Math.max(1, Math.round(2 * u)), box.h, C.rule);
-            let y = box.y + Math.round(26 * u);
-            r.text(t('Now playing'), x0, y + 22 * u, 22 * u, C.dim);
-            r.text(fitText(r, label(player.id), 34 * u, w0), x0, y + 64 * u, 34 * u, C.text);
-            y += Math.round(92 * u);
+            let y = box.y + Math.round(30 * u);
+            r.text(t('Now playing'), x0, y + 24 * u, 24 * u, C.dim);
+            r.text(fitText(r, label(player.id), Math.round(36 * u), w0), x0, y + 70 * u, Math.round(36 * u), C.text);
+            y += Math.round(120 * u);
             const list = animButtons(), rects = [];
-            const bh = Math.round(100 * u), gap = Math.round(16 * u), half = Math.floor((w0 - gap) / 2);
+            // Previous / Next: large, side by side
+            const bh = Math.round(190 * u), gap = Math.round(20 * u), half = Math.floor((w0 - gap) / 2);
             list.slice(0, 2).forEach((b, i) => {
                 const bx = x0 + i * (half + gap);
-                button(r, bx, y, half, bh, b.value, false, false, Math.round(34 * u));
+                button(r, bx, y, half, bh, b.value, false, false, Math.round(40 * u));
                 // an arrow beside the label, drawn (the Korean font has no arrow characters)
-                const s = Math.round(14 * u), cy = y + bh / 2, ax = b.arrow < 0 ? bx + Math.round(40 * u) : bx + half - Math.round(40 * u);
-                r.polyline([[ax - b.arrow * s, cy - s], [ax + b.arrow * s, cy], [ax - b.arrow * s, cy + s]], Math.max(2, Math.round(4 * u)), C.text);
+                const s = Math.round(18 * u), cy = y + bh / 2, ax = b.arrow < 0 ? bx + Math.round(44 * u) : bx + half - Math.round(44 * u);
+                r.polyline([[ax - b.arrow * s, cy - s], [ax + b.arrow * s, cy], [ax - b.arrow * s, cy + s]], Math.max(2, Math.round(5 * u)), C.text);
                 rects.push({ b, x: bx, y, w: half, h: bh });
             });
-            y += bh + Math.round(18 * u);
-            const rows = list.slice(2), rh = Math.floor((box.y + box.h - Math.round(12 * u) - y) / rows.length);
-            rows.forEach((b, i) => {
-                const yy = y + i * rh, bw = Math.round(w0 * 0.48), bhh = rh - Math.round(14 * u);
-                r.text(fitText(r, b.title, Math.round(26 * u), w0 - bw - 20 * u), x0, yy + rh / 2 + 9 * u, Math.round(26 * u), C.text);
-                button(r, x0 + w0 - bw, yy + Math.round(7 * u), bw, bhh, b.value, false, false, Math.round(26 * u));
-                rects.push({ b, x: x0 + w0 - bw, y: yy + Math.round(7 * u), w: bw, h: bhh });
-                if (i < rows.length - 1) r.line(x0, yy + rh - 1, x0 + w0, yy + rh - 1, Math.max(0.6, 0.6 * u), C.line);
-            });
+            y += bh + Math.round(40 * u);
+            // the Animation screen's own speed
+            const sp = list[2], rh = Math.round(110 * u), bw = Math.round(w0 * 0.5), bhh = rh - Math.round(20 * u);
+            r.text(fitText(r, sp.title, Math.round(30 * u), w0 - bw - 20 * u), x0, y + rh / 2 + 11 * u, Math.round(30 * u), C.text);
+            button(r, x0 + w0 - bw, y + Math.round(10 * u), bw, bhh, sp.value, false, false, Math.round(30 * u));
+            rects.push({ b: sp, x: x0 + w0 - bw, y: y + Math.round(10 * u), w: bw, h: bhh });
+            // which GIFs, in what order: Widget settings (in orange)
+            r.text(fitText(r, 'The animation order follows Widget settings', Math.round(24 * u), w0), x0, box.y + box.h - Math.round(34 * u), Math.round(24 * u), C.warn);
             return rects;
         }
         async function renderAnim() {

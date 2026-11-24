@@ -287,7 +287,8 @@
       "2x speed": "2배 속도",
       "Animation screen only": "애니메이션 화면에만 적용",
       "Home widget only": "홈 위젯에만 적용",
-      "GPU renderer (mgu-renderd) or without it": "GPU 렌더러(mgu-renderd) 사용 여부"
+      "GPU renderer (mgu-renderd) or without it": "GPU 렌더러(mgu-renderd) 사용 여부",
+      "The animation order follows Widget settings": "애니메이션 순서는 위젯 설정을 따릅니다"
     }
   }
 }
