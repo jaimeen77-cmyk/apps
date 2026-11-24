@@ -24,7 +24,7 @@ assert.deepStrictEqual(h.ids, []);
 const state = { playback: { mode: 'single', single: 'demo', group: null, seconds: 7, paused: false, selected: [] },
     groups: [{ id: 'g1', name: 'Drive', ids: [] }] };
 const applied = [];
-const appSettings = { v: { animFit: 'cover', animSpeed: 'normal' }, get(k) { return this.v[k]; }, set(k, v) { this.v[k] = v; } };
+const appSettings = { v: { animFit: 'full', animSpeed: 'normal' }, get(k) { return this.v[k]; }, set(k, v) { this.v[k] = v; } };
 const s = playbackSettings({
     state: () => state, apply: (a) => { applied.push(a); Object.keys(a).forEach((k) => { if (k !== 'type') state.playback[k] = a[k]; }); },
     files: () => [{ id: 'demo', name: 'Animated BMW logo' }, { id: 'u1', name: 'mine.gif' }],
@@ -41,7 +41,9 @@ s.set('group', 'g1');
 s.cycle('paused');
 assert.deepStrictEqual(applied, [{ type: 'playback', mode: 'group' }, { type: 'playback', group: 'g1' }, { type: 'playback', paused: true }]);
 s.cycle('animFit');
-assert.strictEqual(appSettings.v.animFit, 'contain', 'the animation fit is an app setting, not the library');
+assert.strictEqual(appSettings.v.animFit, 'fullCrop', 'the animation fit is an app setting, not the library');
+assert.deepStrictEqual(spec.settings.find((x) => x.key === 'animFit').options.map((o) => o[0]), ['full', 'fullCrop', 'tabs']);
+assert.strictEqual(spec.settings.find((x) => x.key === 'animFit').default, 'full', 'full screen, the whole GIF fitted');
 assert.strictEqual(applied.length, 3);
 s.set('animSpeed', 'double');
 assert.strictEqual(appSettings.v.animSpeed, 'double');

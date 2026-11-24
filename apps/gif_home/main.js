@@ -364,10 +364,12 @@ mgu.run({
         // the widget's shape (384 x 256)
         const WIDGET_BOX = { x: 84, y: 100, w: 600, h: 400 }, ANIM_BOX = { x: 84, y: 104, w: 720, h: 400 };
         let backdropKey = '';
-        function drawFrameIn(cv, box, still, fitKey) {
+        // the Animation screen's picture: the whole GIF fitted, or filled with its edges cropped
+        const animShape = () => (settings.get('animFit') === 'fullCrop' ? 'cover' : 'contain');
+        function drawFrameIn(cv, box, still, shape) {
             if (!player.gif || frame < 0) return false;
             const gif = player.gif, img = gif.frames[still ? 0 : frame];
-            const r = rectFor(gif.width, gif.height, box.x, box.y, box.w, box.h, still ? 'cover' : settings.get(fitKey || 'fit'));
+            const r = rectFor(gif.width, gif.height, box.x, box.y, box.w, box.h, still ? 'cover' : shape || settings.get('fit'));
             const id = still ? BACK_IMAGE : PIXEL_IMAGE, key = player.id + ':' + (still ? 0 : frame);
             if (!still || key !== backdropKey) { setImage(id, gif.width, gif.height, img.data); if (still) backdropKey = key; }
             cv.image(id, r.x, r.y, r.w, r.h);
@@ -411,7 +413,7 @@ mgu.run({
             }
             if (panel === ANIMPAGE) {
                 cv.fillRect(ANIM_BOX.x, ANIM_BOX.y, ANIM_BOX.w, ANIM_BOX.h, '#000000');
-                drawFrameIn(cv, ANIM_BOX, false, 'animFit');
+                drawFrameIn(cv, ANIM_BOX, false, animShape());
                 rows(cv, animPageRows(), row, { x: 840, y: 96, w: 698 }, 92);
             }
             if (panel === ASET) rows(cv, animRows(), row, {}, 92);
@@ -511,7 +513,7 @@ mgu.run({
         // screen; a tap on the screen shows them for a while (tap again: hidden), and they show for a moment when
         // the screen opens. With margins the tabs always show.
         const TABS_SHOWN_MS = 5000;
-        const fullScreen = () => settings.get('animFit') === 'cover';
+        const fullScreen = () => settings.get('animFit') !== 'tabs';
         const tabsShown = () => !fullScreen() || Date.now() < tabsUntil || !!(ctx.display && ctx.display.sheet);
         function showTabs(toggle) {
             if (!fullScreen()) return;
@@ -535,7 +537,7 @@ mgu.run({
             // where the GIF goes: the whole screen (GPU, tabs hidden: in screen pixels, as a game draws), the page
             // between the kit's header and bar, or the page below the tabs drawn here (none when hidden)
             const a = gpuFull ? animArea(cv.place, W, H) : shown ? animArea(null, W, H) : { x: 0, y: 0, w: W, h: H };
-            const fit = fullScreen() ? 'cover' : 'contain';
+            const fit = animShape();
             let drawn = false;
             if (player.gif && frame >= 0) {
                 // the GIF the widget plays, at the Animation screen's own speed
