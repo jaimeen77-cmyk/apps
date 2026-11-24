@@ -13,8 +13,11 @@ const { compensateWidget } = require('./widget_tone');
 const { Library, MODES, atomic } = require('./library');
 const { Playback } = require('./playback');
 const { diagnostics } = require('./diagnostics');
+// jaimeen77-cmyk/apps: the Animation screen (ANIM) through the GPU renderer
+const { area: animArea, History, playbackSettings } = require('./animation');
+const { listSheet } = require('./kit/sheet');
 
-const W = 1600, H = 520, PIXEL_IMAGE = 23401;
+const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402;
 const PRESETS = [
     ['demo', 'Animated BMW logo', 'demo.json'],
     ['drift', 'Pixel drift: Night City', 'drift_city.json'],
@@ -70,9 +73,12 @@ mgu.run({
         try {
             if (fs.statSync(cursorFile).size < 1024) resume = JSON.parse(fs.readFileSync(cursorFile, 'utf8')).id;
         } catch (_) {}
-        const panels = ['Home / Preview', 'Library', 'Playback', 'Phone Connection', 'Diagnostics'];
+        // jaimeen77-cmyk/apps: five pages (Page cycles them) and Diagnostics (its own button)
+        const panels = ['Widget preview', 'Widget settings', 'Animation', 'Animation settings', 'Phone Connection', 'Diagnostics'];
+        const PREVIEW = 0, WSET = 1, ANIMPAGE = 2, ASET = 3, PHONE = 4, DIAG = 5, PAGES = 5;
         let panel = 0, row = 0, logOffset = 0, confirmClear = false, dirty = true, screenKey = '';
         let widgetIndex = Object.create(null), frame = -1, notice = '';
+        const history = new History(30);
         const phone = { enabled: false, addresses: [], index: 0, bridge: '', ready: false,
             detail: '', qr: null, link: '', export: false, searching: false };
         function update(skip, persist) {
@@ -80,7 +86,7 @@ mgu.run({
             const previous = player.id, now = Date.now();
             frame = player.update(library.state, files().map(f => f.id), now, speed, skip, resume);
             resume = null;
-            if (previous !== player.id) { dirty = true; cursorDirty = true; }
+            if (previous !== player.id) { history.left(previous); dirty = true; cursorDirty = true; }
             if (cursorDirty && (persist || now - lastSave >= 5000)) {
                 lastSave = now;
                 cursorDirty = false;
@@ -112,6 +118,19 @@ mgu.run({
                 library.change(action, check);
                 update(false, true);
             }
+            dirty = true;
+        }
+        /** Previous: in Single mode the library's previous GIF; otherwise the GIF played before (mode unchanged). */
+        function previousGif() {
+            const p = library.state.playback;
+            if (p.mode === 'single') {
+                const ids = files().map(f => f.id);
+                const current = ids.indexOf(p.single);
+                return apply({ type: 'activate', id: ids[(current - 1 + ids.length) % ids.length] });
+            }
+            const ok = eligible();
+            const id = history.back(player.id, item => ok.includes(item));
+            if (id && player.set(id, Date.now())) { record('Previous: ' + id); cursorDirty = true; update(false, true); }
             dirty = true;
         }
         const upload = new GifUploadServer({
@@ -168,7 +187,7 @@ mgu.run({
         async function connect(next) {
             if (phone.connecting) return;
             phone.connecting = true;
-            panel = 3;
+            panel = PHONE;
             phone.enabled = true; phone.export = false; phone.ready = false;
             phone.bridge = ''; phone.detail = 'Searching for local Wi-Fi'; clearQr();
             upload.end();
@@ -235,38 +254,91 @@ mgu.run({
         }
 
         const intervalLabel = p => p.seconds ? p.seconds + ' s' : 'One full GIF pass';
-        function playRows() {
+        const cycle = (list, value, by) => list[(Math.max(0, list.indexOf(value)) + (by || 1) + list.length) % list.length];
+        const settingSpec = key => (ctx.spec.settings || []).find(item => item.key === key);
+        const optionLabel = key => {
+            const s = settingSpec(key);
+            const o = s && (s.options || []).find(item => item[0] === settings.get(key));
+            return o ? o[1] : String(settings.get(key));
+        };
+        const cycleSetting = key => settings.set(key, cycle(settingSpec(key).options.map(o => o[0]), settings.get(key)));
+        /** Widget settings: what the phone page sets (playback), and the GIFs in the selected list. */
+        function widgetRows() {
             const p = library.state.playback, group = library.state.groups.find(g => g.id === p.group);
-            return [
-                'Mode · ' + MODE_NAMES[MODES.indexOf(p.mode)],
-                'Group · ' + (group ? group.name : 'None'),
-                'Interval · ' + intervalLabel(p),
-                p.paused ? 'Resume playback' : 'Pause playback',
-                'Next GIF'
+            const all = files();
+            const rows = [
+                { text: 'Mode · ' + MODE_NAMES[MODES.indexOf(p.mode)],
+                    act: () => apply({ type: 'playback', mode: cycle(MODES, p.mode) }) },
+                { text: 'Single GIF · ' + label(p.single),
+                    act: () => apply({ type: 'playback', single: cycle(all.map(f => f.id), p.single) }) },
+                { text: 'Group · ' + (group ? group.name : 'None'),
+                    act: () => apply({ type: 'playback', group: cycle([null].concat(library.state.groups.map(g => g.id)), p.group || null) }) },
+                { text: 'Interval · ' + intervalLabel(p),
+                    act: () => apply({ type: 'playback', seconds: cycle([0, 5, 10, 15, 30], p.seconds) }) },
+                { text: p.paused ? 'Resume playback' : 'Pause playback', act: () => apply({ type: 'playback', paused: !p.paused }) },
+                { text: 'Next GIF', act: () => apply({ type: 'next' }) },
             ];
+            all.forEach(f => {
+                const on = p.selected.includes(f.id);
+                rows.push({ text: (on ? '[x] ' : '[  ] ') + f.name + (f.id === player.id ? '  · Playing' : ''),
+                    act: () => apply({ type: 'playback', selected: on ? p.selected.filter(id => id !== f.id) : p.selected.concat([f.id]) }) });
+            });
+            return rows;
+        }
+        const gpuReady = () => !!(ctx.display && ctx.display.gpu && ctx.display.gpu.ready);
+        /** Animation settings: how the Animation screen draws (the shared playback is under Widget settings). */
+        function animRows() {
+            return [
+                { text: 'Picture fit · ' + optionLabel('fit'), act: () => cycleSetting('fit') },
+                { text: 'Animation speed · ' + optionLabel('speed'), act: () => cycleSetting('speed') },
+                { text: 'Animation screen · ' + optionLabel('renderer'), act: () => cycleSetting('renderer') },
+                { text: 'Open the animation screen', act: () => ui.open('ANIM') },
+            ];
+        }
+        const rowsFor = n => (n === WSET ? widgetRows() : n === ASET ? animRows() : []);
+        // the widget's shape (384 x 256), as large as the page allows
+        const WIDGET_BOX = { x: 500, y: 20, w: 600, h: 400 };
+        function drawFrameIn(cv, box) {
+            if (!player.gif || frame < 0) return false;
+            const gif = player.gif, img = gif.frames[frame];
+            const r = rectFor(gif.width, gif.height, box.x, box.y, box.w, box.h, settings.get('fit'));
+            setImage(PIXEL_IMAGE, gif.width, gif.height, img.data);
+            cv.image(PIXEL_IMAGE, r.x, r.y, r.w, r.h);
+            return true;
         }
         async function render() {
             update();
             if (phone.link && !upload.active) { clearQr(); phone.detail = 'QR session expired. Rescan to pair again.'; }
-            const key = JSON.stringify([panel, row, logOffset, panel === 0 ? frame : 0, player.id,
-                library.state.revision, panel === 4 ? logVersion : 0, panel === 3 ? [upload.phoneAt, upload.lastError, upload.lastRequest] : null]);
+            const key = JSON.stringify([panel, row, logOffset, panel === PREVIEW || panel === ANIMPAGE ? frame : 0, player.id,
+                library.state.revision, panel === DIAG ? logVersion : 0, panel === PHONE ? [upload.phoneAt, upload.lastError, upload.lastRequest] : null,
+                panel === ASET || panel === ANIMPAGE ? [settings.get('fit'), settings.get('speed'), settings.get('renderer'), gpuReady()] : null]);
             if (key === screenKey && !dirty) return;
             screenKey = key; dirty = false;
             const cv = ctx.canvas(W, H).clear('#090b13');
             const line = (s, y, x, size, ink) => cv.text(String(s).slice(0, x > 800 ? 44 : 112),
                 x || 40, y, size || 27, ink || '#d9e5f9');
-            if (panel === 0) drawFrame(cv, W, H, false);
-            if (panel === 1) {
-                const list = files(), start = Math.floor(row / 7) * 7;
-                list.slice(start, start + 7).forEach((f, index) => line((index + start === row ? '> ' : '   ') +
-                    f.name + (f.id === player.id ? '   • Playing' : ''), 95 + index * 45));
-                line('Next item moves through the library. Select plays the highlighted GIF.', 420, 40, 22);
+            if (panel === PREVIEW) {
+                cv.fillRect(WIDGET_BOX.x, WIDGET_BOX.y, WIDGET_BOX.w, WIDGET_BOX.h, '#080911');
+                if (!drawFrameIn(cv, WIDGET_BOX)) line('No GIF', 230, 720);
+                line('Next item: next GIF · Select: pause / resume', 412, 40, 20, '#96acc4');
             }
-            if (panel === 2) {
-                playRows().forEach((entry, i) => line((row === i ? '> ' : '   ') + entry, 95 + i * 49));
-                line(library.state.playback.selected.length + ' selected GIFs · ' + eligible().length + ' in current mode', 375);
+            if (panel === WSET || panel === ASET) {
+                const rows = rowsFor(panel), first = Math.floor(row / 7) * 7;
+                rows.slice(first, first + 7).forEach((entry, i) => line((row === first + i ? '> ' : '   ') + entry.text, 80 + i * 46));
+                line(panel === WSET
+                    ? library.state.playback.selected.length + ' selected GIFs · ' + eligible().length + ' in current mode'
+                    : 'GPU renderer (mgu-renderd) · ' + (gpuReady() ? 'Connected' : 'Not running'), 412, 40, 22, '#96acc4');
             }
-            if (panel === 3) {
+            if (panel === ANIMPAGE) {
+                const box = { x: 760, y: 30, w: 800, h: 380 };
+                cv.fillRect(box.x, box.y, box.w, box.h, '#000000');
+                drawFrameIn(cv, box);
+                line('The GIF across the screen at its own speed', 110, 40, 27, '#ffffff');
+                line('Select: open the animation screen', 170, 40, 24);
+                line('Next item: next GIF', 215, 40, 24);
+                line('GPU renderer (mgu-renderd) · ' + (gpuReady() ? 'Connected' : 'Not running'), 290, 40, 22, '#96acc4');
+            }
+            if (panel === PHONE) {
                 const target = upload.target;
                 line('HTTP server · ' + (upload.listening ? 'Running' : (upload.serverError || 'Not listening')), 91);
                 line('Network bridge · ' + (phone.bridge || 'Waiting'), 135);
@@ -278,7 +350,7 @@ mgu.run({
                 line(phone.export ? 'Scan to download diagnostic JSON' : phone.link ? 'Scan with iPhone Camera' : phone.detail, 399, 40, 23);
                 if (phone.qr) cv.blit(phone.qr, 1220, 65);
             }
-            if (panel === 4) {
+            if (panel === DIAG) {
                 const entries = diag.entries().slice().reverse();
                 entries.slice(logOffset, logOffset + 8).forEach((entry, i) =>
                     line(entry.time.slice(11, 19) + '  ' + entry.message, 80 + i * 38, 40, 22));
@@ -286,9 +358,9 @@ mgu.run({
                     'Next item pages the log. Select clears it. Export is available under Phone.', 412, 40, 22);
             }
             cv.fillRect(0, H - 80, W, 80, [7, 9, 19, 235]);
-            line(panels[panel], H - 33, 40, 28, '#fff');
-            line(label(player.id) + '  |  ' + MODE_NAMES[MODES.indexOf(library.state.playback.mode)], H - 33, 400, 24);
-            if (notice || library.error) line(notice || library.error, H - 8, 400, 16, '#ffd4ad');
+            line(panels[panel] + (panel < PAGES ? '  ' + (panel + 1) + '/' + PAGES : ''), H - 33, 40, 28, '#fff');
+            line(label(player.id) + '  |  ' + MODE_NAMES[MODES.indexOf(library.state.playback.mode)], H - 33, 480, 24);
+            if (notice || library.error) line(notice || library.error, H - 8, 480, 16, '#ffd4ad');
             try { await ui.image('MAIN_GFX', cv); }
             catch (e) { record('Preview frame could not be sent to HMI'); dirty = true; throw e; }
         }
@@ -296,37 +368,27 @@ mgu.run({
             panel = next; row = 0; logOffset = 0; confirmClear = false; notice = ''; dirty = true;
         }
         function nextRow() {
-            if (panel === 3) return connect(phone.addresses.length > 1);
-            if (panel === 4) {
+            if (panel === PHONE) return connect(phone.addresses.length > 1);
+            if (panel === DIAG) {
                 logOffset = logOffset + 8 >= diag.entries().length ? 0 : logOffset + 8;
                 confirmClear = false;
-            } else if (panel === 0) apply({ type: 'next' });
-            else row = (row + 1) % (panel === 1 ? files().length : playRows().length);
+            } else if (panel === PREVIEW || panel === ANIMPAGE) apply({ type: 'next' });
+            else row = (row + 1) % Math.max(1, rowsFor(panel).length);
             dirty = true;
         }
         function select() {
             const p = library.state.playback;
             try {
-                if (panel === 0) apply({ type: 'playback', paused: !p.paused });
-                if (panel === 1) {
-                    const file = files()[row];
-                    if (file) apply({ type: 'activate', id: file.id });
+                if (panel === PREVIEW) apply({ type: 'playback', paused: !p.paused });
+                if (panel === WSET || panel === ASET) {
+                    const entry = rowsFor(panel)[row];
+                    if (entry) entry.act();
                 }
-                if (panel === 2) {
-                    const groups = [null].concat(library.state.groups.map(g => g.id));
-                    const times = [0, 5, 10, 15, 30];
-                    const changes = [
-                        { mode: MODES[(MODES.indexOf(p.mode) + 1) % MODES.length] },
-                        { group: groups[(groups.indexOf(p.group) + 1) % groups.length] },
-                        { seconds: times[(times.indexOf(p.seconds) + 1) % times.length] },
-                        { paused: !p.paused }
-                    ];
-                    apply(row === 4 ? { type: 'next' } : Object.assign({ type: 'playback' }, changes[row]));
-                }
-                if (panel === 3 && upload.active && phone.ready && upload.phoneAt !== null) {
+                if (panel === ANIMPAGE) ui.open('ANIM');
+                if (panel === PHONE && upload.active && phone.ready && upload.phoneAt !== null) {
                     phone.export = !phone.export; refreshQr();
-                } else if (panel === 3) return connect(false);
-                if (panel === 4) {
+                } else if (panel === PHONE) return connect(false);
+                if (panel === DIAG) {
                     if (confirmClear) { diag.clear(); logOffset = 0; }
                     confirmClear = !confirmClear;
                 }
@@ -343,18 +405,54 @@ mgu.run({
             screenKey = ''; widgetIndex = Object.create(null);
             if (key === 'widgetBackground' || key === 'widgetTone') updateWidgetBackground();
         });
-        ui.onClick('BTN_PAGE', () => setPanel((panel + 1) % panels.length));
+        // Page: the five pages in turn (from Diagnostics, back to the first)
+        ui.onClick('BTN_PAGE', () => setPanel(panel >= PAGES - 1 ? 0 : panel + 1));
         ui.onClick('BTN_PHONE', () => {
-            if (panel !== 3 && phone.enabled && upload.active) return setPanel(3);
-            if (panel !== 3) setPanel(3);
+            if (panel !== PHONE && phone.enabled && upload.active) return setPanel(PHONE);
+            if (panel !== PHONE) setPanel(PHONE);
             if (!phone.enabled || !upload.active) return connect(false);
             return stopPhone();
         });
         ui.onClick('BTN_NEXT', nextRow);
         ui.onClick('BTN_SELECT', select);
-        ui.onClick('BTN_DIAG', () => setPanel(4));
+        ui.onClick('BTN_DIAG', () => setPanel(DIAG));
         ui.onVisible((name, visible) => { if (name === 'MAIN' && visible) dirty = true; });
         ctx.loop('MAIN', 4, render);
+
+        // Animation screen: the GIF alone, as large as the screen allows, at its own speed with the GPU
+        // renderer (the kit calls renderAnim once per screen refresh there); a few frames a second without it.
+        let animKey = '';
+        async function renderAnim() {
+            update();
+            const cv = ctx.canvas(W, H).clear('#000000');
+            const a = animArea(cv.place, W, H);
+            if (player.gif && frame >= 0) {
+                const gif = player.gif, key = player.id + ':' + frame;
+                // only a new frame is sent to the renderer again
+                if (key !== animKey) { setImage(ANIM_IMAGE, gif.width, gif.height, gif.frames[frame].data); animKey = key; }
+                const r = rectFor(gif.width, gif.height, a.x, a.y, a.w, a.h, settings.get('fit'));
+                cv.image(ANIM_IMAGE, r.x, r.y, r.w, r.h);
+            } else cv.text('No GIF', a.x + a.w / 2, a.y + a.h / 2, 34, '#ffffff', { align: 'center' });
+            if (!(cv.place && cv.place.full)) {
+                cv.fillRect(0, 0, W, 40, [0, 0, 0, 170]);
+                cv.text('GPU renderer (mgu-renderd) is not running: a few frames a second only', 20, 28, 20, '#ffd4ad');
+            }
+            await ui.image('ANIM_GFX', cv);
+        }
+        ctx.loop('ANIM', 4, renderAnim);
+        const animSettings = playbackSettings({
+            state: () => library.state, apply: action => { try { apply(action); } catch (e) { record('Animation setting failed: ' + e.message); } },
+            files, modes: MODES, modeNames: MODE_NAMES, settings, spec: ctx.spec,
+        });
+        ui.onClick('BTN_ANIM', () => ui.open('ANIM'));
+        ui.onClick('BTN_PREVGIF', () => { try { previousGif(); } catch (e) { record('Previous failed: ' + e.message); } });
+        ui.onClick('BTN_NEXTGIF', () => { try { apply({ type: 'next' }); } catch (e) { record('Next failed: ' + e.message); } });
+        ui.onClick('BTN_ANIM_SETTINGS', () => {
+            // drawn over the animation where the kit runs the screen (GPU renderer); otherwise the Playback page
+            if (ctx.sheet && ctx.sheet(listSheet(animSettings, 'Animation settings'))) return;
+            ui.open('MAIN');
+            setPanel(WSET);
+        });
         setInterval(() => { checkBridge().catch(() => record('Network status check failed')); }, 2500);
         // The playlist advances even when neither preview nor widget is visible.
         setInterval(() => update(), 250);

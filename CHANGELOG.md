@@ -2,6 +2,14 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## GIF Home 0.4.1 (Korean edition)
+
+- **Animation screen (애니메이션)**: the GIF across the screen at its own speed through the GPU renderer (mgu-renderd: up to one frame per screen refresh; without it a few frames a second, with a notice). Bottom buttons **이전 / 다음 / 애니메이션 설정**; Previous goes back to the GIF played before without changing the playback mode; the settings open over the animation (the kit's sheet: mode, single GIF, group, interval, pause, picture fit, speed), or the Widget settings page where the kit does not run the screen. Opened from the new **애니메이션** button or page 3.
+- **Five pages**: 위젯 미리보기 → 위젯 설정 (the phone page's playback settings, and each GIF in or out of the selected list; the Library page is merged into it) → 애니메이션 → 애니메이션 설정 (picture fit, speed, GPU renderer / without) → 휴대폰 연결. Diagnostics left the page cycle and opens with its button. Widget and animation share one playback setting.
+- The **renderer** setting is now the Animation screen's (default GPU renderer); the main pages stay on the HMI's own drawing. The template's kit `display.js` serves the screen marked `"gpu": true` (`tools/prepare-upstream-apps.py`).
+- The bullet before "재생 중" was a character the Korean font lacks (drawn as "?"): now `·`. `tests/gif-home-ko.test.js` checks every non-ASCII character `main.js` draws against the font; `tests/gif-home-animation.test.js` is new.
+- Not yet checked on the car: the GPU drawing of the Animation screen, its sheet and buttons.
+
 ## Phone Terminal removed
 
 - **폰 터미널 (한국어)** (`mgu_phone_terminal_ko`) and its bridge (`mgu-phone-bridge` 0.1.7) are no longer offered by this source: the app, the bridge, their templates, tests and catalog entries are removed. GIF 홈 (한국어) and `mgu-gif-net` stay. A copy already installed on the car stays installed; uninstall it there if it is not wanted. Phone Terminal is still offered by its original source, NamelsMissing/mgu-apps.

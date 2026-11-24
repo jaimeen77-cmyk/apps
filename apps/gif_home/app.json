@@ -2,7 +2,7 @@
   "id": "gif_home",
   "title": "GIF Home",
   "description": "Animated BMW home widget with a local phone GIF library, groups and playlists.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "maxDiskUsage": 125829120,
   "vendor": "custom",
   "loggingId": "GFI1",
@@ -36,19 +36,31 @@
         ["BTN_SELECT", "Select"],
         ["BTN_PHONE", "Phone"],
         ["BTN_DIAG", "Diagnostics"],
-        ["BTN_SETTINGS", "Settings"]
+        ["BTN_SETTINGS", "Settings"],
+        ["BTN_ANIM", "Animation"]
+      ]
+    },
+    {
+      "name": "ANIM",
+      "kind": "canvas",
+      "title": "Animation",
+      "gpu": true,
+      "buttons": [
+        ["BTN_PREVGIF", "Previous"],
+        ["BTN_NEXTGIF", "Next"],
+        ["BTN_ANIM_SETTINGS", "Animation settings"]
       ]
     }
   ],
   "settings": [
     {
       "key": "renderer",
-      "label": "App display mode",
+      "label": "Animation screen",
       "type": "choice",
-      "default": "software",
+      "default": "auto",
       "options": [
-        ["software", "Native BMW display (recommended)"],
-        ["auto", "GPU renderer (experimental)"]
+        ["auto", "GPU renderer (mgu-renderd, smooth)"],
+        ["software", "Without GPU (a few frames a second)"]
       ]
     },
     {
@@ -134,9 +146,6 @@
       "Phone": "휴대폰",
       "Diagnostics": "진단",
       "Settings": "설정",
-      "App display mode": "앱 화면 방식",
-      "Native BMW display (recommended)": "BMW 기본 화면 (권장)",
-      "GPU renderer (experimental)": "GPU 렌더러 (실험)",
       "Animation": "애니메이션",
       "Custom if available": "올린 GIF 우선",
       "Custom GIF only": "올린 GIF만",
@@ -161,8 +170,6 @@
       "Extended edge compensation": "가장자리 보정 강화",
       "Original colours, native background off": "원래 색, 기본 배경 끔",
       "Pause animation": "애니메이션 일시정지",
-      "Home / Preview": "홈 / 미리보기",
-      "Library": "라이브러리",
       "Playback": "재생",
       "Phone Connection": "휴대폰 연결",
       "Single GIF": "GIF 하나",
@@ -179,7 +186,6 @@
       "Pause playback": "재생 일시정지",
       "Next GIF": "다음 GIF",
       "Playing": "재생 중",
-      "Next item moves through the library. Select plays the highlighted GIF.": "다음 항목으로 라이브러리를 넘기고, 선택으로 고른 GIF를 재생합니다.",
       "selected GIFs": "개 선택",
       "in current mode": "개 현재 모드 대상",
       "HTTP server": "HTTP 서버",
@@ -221,7 +227,29 @@
       "Built-in animation unavailable": "기본 애니메이션을 쓸 수 없음",
       "Library changed. Refresh and retry.": "라이브러리가 바뀌었습니다. 다시 시도하세요.",
       "Tap to open": "눌러서 열기",
-      "NO GIF": "GIF 없음"
+      "NO GIF": "GIF 없음",
+      "Animation screen": "애니메이션 화면",
+      "GPU renderer (mgu-renderd, smooth)": "GPU 렌더러 (mgu-renderd, 부드럽게)",
+      "Without GPU (a few frames a second)": "GPU 없이 (초당 몇 프레임)",
+      "Previous": "이전",
+      "Next": "다음",
+      "Animation settings": "애니메이션 설정",
+      "Switch after": "전환 간격",
+      "5 seconds": "5초",
+      "10 seconds": "10초",
+      "15 seconds": "15초",
+      "30 seconds": "30초",
+      "No GIF": "GIF 없음",
+      "GPU renderer (mgu-renderd) is not running: a few frames a second only": "GPU 렌더러(mgu-renderd)가 없어 초당 몇 프레임만 표시합니다",
+      "Widget preview": "위젯 미리보기",
+      "Widget settings": "위젯 설정",
+      "Next item: next GIF · Select: pause / resume": "다음 항목: 다음 GIF · 선택: 일시정지 / 다시 재생",
+      "Open the animation screen": "애니메이션 화면 열기",
+      "The GIF across the screen at its own speed": "GIF를 화면 가득, 원래 속도로 보여 줍니다",
+      "Select: open the animation screen": "선택: 애니메이션 화면 열기",
+      "Next item: next GIF": "다음 항목: 다음 GIF",
+      "GPU renderer (mgu-renderd)": "GPU 렌더러(mgu-renderd)",
+      "Not running": "실행 안 됨"
     }
   }
 }

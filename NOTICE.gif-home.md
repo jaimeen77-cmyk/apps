@@ -15,12 +15,12 @@ GIF 홈은 NamelsMissing/mgu-apps(GPL-3.0)에서 가져와 한국어로 고친 �
 
 | Here | Upstream | Changes in this repository |
 |---|---|---|
-| `apps/gif_home/` | `apps/gif_home/` | `app.json`: Korean dictionary (`translations.ko`), `storeSourceDirs`, `storeMguHmi`; `phone_page.js`: Korean phone page when the phone's language is Korean; `README.ko.md`, `NOTICE`, `icon.png` added |
+| `apps/gif_home/` | `apps/gif_home/` | `app.json`: Korean dictionary (`translations.ko`), `storeSourceDirs`, `storeMguHmi`; `phone_page.js`: Korean phone page when the phone's language is Korean; `main.js`: five pages, the Animation screen (0.4.1); `animation.js`, `README.ko.md`, `NOTICE`, `icon.png` added |
 | `native/gif-net/` | `native/gif-net/` | unchanged (`mgu-gif-net` 0.1.0) |
 | `tests/gif_home_*.test.js` | `tests/` | unchanged |
 
 Written for this repository (GPL-3.0, as part of the modified work): `tools/prepare-upstream-apps.py`,
-`store/apps/gif_home_ko/`, the `store/runtime/gif_home*` templates, `tests/gif-home-ko.test.js`.
+`store/apps/gif_home_ko/`, the `store/runtime/gif_home*` templates, `tests/gif-home-ko.test.js`, `tests/gif-home-animation.test.js`.
 
 ## Components by others (their own licenses, unchanged)
 
