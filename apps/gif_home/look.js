@@ -7,7 +7,7 @@ const { t } = require('./kit/i18n');
 const C = {
     bg: '#090b0e', text: '#f3f5f7', dim: '#8d97a4', sub: '#b8c5d4', faint: '#6f7c8c', accent: '#f32b40',
     rule: '#51555c', line: '#292d34', button: '#252a31', buttonOn: '#57202d', badge: '#bdc6d2', warn: '#ffad45',
-    tabFrom: '#170b10', tabTo: '#49202b', rowFrom: '#30131a', rowTo: '#090b0e',
+    picked: '#a3192b', tabFrom: '#170b10', tabTo: '#49202b', rowFrom: '#30131a', rowTo: '#090b0e',
 };
 const HEAD = 80, LEFT = 78, RIGHT = 1538, BOTTOM = 512;
 
@@ -45,8 +45,9 @@ function header(cv, W, tabs, selected, badge) {
 }
 
 /** A value button: lit when on (the row the controller is on). */
-function button(cv, x, y, w, h, label, on) {
-    cv.roundRect(x, y, w, h, 6, on ? C.buttonOn : C.button);
+function button(cv, x, y, w, h, label, on, picked) {
+    // picked: a value that is chosen (the playlist picker's numbers), in the accent colour
+    cv.roundRect(x, y, w, h, 6, picked ? C.picked : on ? C.buttonOn : C.button);
     const text = t(String(label));
     let size = 28;
     while (size > 18 && cv.textWidth(text, size, { font: 'bold' }) > w - 24) size--;
@@ -73,7 +74,7 @@ function rows(cv, list, focus, area, h) {
         cv.text(fitText(cv, r.title, two ? 30 : 27, maxText), tx, two ? y + 36 : y + h / 2 + 10, two ? 30 : 27, r.dim ? C.faint : C.text);
         if (two && r.sub) cv.text(fitText(cv, r.sub, 21, maxText), tx, y + 66, 21, r.subColor || C.sub);
         if (r.note) cv.text(r.note, x + w - bw - 24, y + (two ? 36 : h / 2 + 8), 22, C.warn, { align: 'right' });
-        if (r.value != null) button(cv, x + w - bw - 8, y + 10, bw, h - 22, r.value, on);
+        if (r.value != null) button(cv, x + w - bw - 8, y + 10, bw, h - 22, r.value, on, r.picked);
         cv.line(x + 6, y + h - 1, x + w - 2, y + h - 1, 0.6, C.line);
     });
     if (list.length > fit) {
@@ -100,4 +101,4 @@ function fitText(cv, s, size, w) {
     return text + '...';
 }
 
-module.exports = { C, HEAD, LEFT, RIGHT, BOTTOM, backdrop, header, button, rows, lines };
+module.exports = { C, HEAD, LEFT, RIGHT, BOTTOM, backdrop, header, button, rows, lines, fitText };

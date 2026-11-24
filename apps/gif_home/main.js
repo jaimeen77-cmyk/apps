@@ -16,9 +16,9 @@ const { diagnostics } = require('./diagnostics');
 // jaimeen77-cmyk/apps: the Animation screen (ANIM) through the GPU renderer
 const { area: animArea, History, playbackSettings } = require('./animation');
 const { listSheet } = require('./kit/sheet');
-const { C, backdrop, header, rows, lines } = require('./look');
+const { C, backdrop, header, rows, lines, fitText } = require('./look');
 
-const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403;
+const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403, THUMB_IMAGE = 23404;
 const PRESETS = [
     ['demo', 'Animated BMW logo', 'demo.json'],
     ['drift', 'Pixel drift: Night City', 'drift_city.json'],
@@ -290,24 +290,54 @@ mgu.run({
                     act: () => apply({ type: 'playback', paused: !p.paused }) },
                 { title: 'Next GIF', sub: label(player.id), value: 'Next', act: () => apply({ type: 'next' }) },
             ];
-            // the selected list in its order (Sequential plays it so), as the phone page's "Selected order":
-            // Move up swaps a GIF with the one above it, and the focus goes up with it (Select again: up again)
-            p.selected.forEach((id, i) => {
-                rows.push({ title: 'Order ' + (i + 1) + ' · ' + label(id), sub: 'Selected order (Sequential mode)',
-                    value: i ? 'Move up' : 'First', act: i ? () => {
-                        const ids = p.selected.slice();
-                        ids[i] = ids[i - 1]; ids[i - 1] = id;
-                        apply({ type: 'playback', selected: ids });
-                        row = Math.max(0, row - 1);
-                    } : null });
-            });
-            all.forEach(f => {
-                const on = p.selected.includes(f.id);
-                rows.push({ title: f.name, sub: (on ? 'In the selected list' : 'Not in the selected list') + (f.id === player.id ? ' · Playing' : ''),
-                    subColor: on ? '#b8c5d4' : '#6f7c8c', value: on ? 'Remove' : 'Add',
-                    act: () => apply({ type: 'playback', selected: on ? p.selected.filter(id => id !== f.id) : p.selected.concat([f.id]) }) });
+            // the playlist (the selected list, in order): made in its own window (the picker)
+            rows.push({ title: 'Playlist · ' + p.selected.length + ' GIFs', sub: p.selected.map(label).join(', '),
+                value: 'Make playlist', act: openPicker });
+            return rows;
+        }
+        // The playlist picker: every GIF; pressing one gives it the next number, pressing it again takes it out
+        // (the others close up). Confirm plays just those, in that order (Sequential); Cancel keeps the old list.
+        let picker = null;
+        const PICK_ACTIONS = 3;     // Confirm, Clear all, Cancel: the first rows
+        function openPicker() {
+            picker = { picks: library.state.playback.selected.filter(id => files().some(f => f.id === id)) };
+            row = PICK_ACTIONS;
+            dirty = true;
+        }
+        function closePicker() {
+            picker = null;
+            row = widgetRows().length - 1;      // back on the Playlist row
+            dirty = true;
+        }
+        function pickerRows() {
+            const picks = picker.picks;
+            const rows = [
+                { title: 'Confirm', sub: picks.length ? picks.length + ' GIFs, in this order (Sequential)' : 'Pick GIFs below first',
+                    value: picks.length ? 'Confirm' : '-', picked: picks.length > 0, act: () => {
+                        if (!picks.length) return;
+                        apply({ type: 'playback', selected: picks.slice(), mode: 'sequential' });
+                        closePicker();
+                    } },
+                { title: 'Clear all', sub: 'Start the order again', value: 'Clear', act: () => { picker.picks = []; } },
+                { title: 'Cancel', sub: 'Keep the playlist as it was', value: 'Cancel', act: closePicker },
+            ];
+            files().forEach(f => {
+                const n = picks.indexOf(f.id) + 1;
+                rows.push({ title: f.name, value: n ? String(n) : 'Pick', picked: n > 0, act: () => {
+                    picker.picks = n ? picks.filter(id => id !== f.id) : picks.concat([f.id]);
+                } });
             });
             return rows;
+        }
+        // The picker's preview: the first picture of the GIF the focus is on (decoded once per GIF)
+        let thumb = { id: null, gif: null };
+        function thumbFor(id) {
+            if (thumb.id !== id) {
+                thumb = { id, gif: null };
+                try { thumb.gif = decode(gifBytes(id)); } catch (_) { record('Preview could not open GIF: ' + id); }
+                if (thumb.gif) { const g = thumb.gif; setImage(THUMB_IMAGE, g.width, g.height, g.frames[0].data); }
+            }
+            return thumb.gif;
         }
         function animPageRows() {
             return [
@@ -326,7 +356,7 @@ mgu.run({
                 { title: 'Open the animation screen', sub: 'Previous / Next / Animation settings at the bottom', value: 'Open', act: () => ui.open('ANIM') },
             ];
         }
-        const rowsFor = n => (n === PREVIEW ? previewRows() : n === WSET ? widgetRows() : n === ANIMPAGE ? animPageRows() : n === ASET ? animRows() : []);
+        const rowsFor = n => (n === PREVIEW ? previewRows() : n === WSET ? (picker ? pickerRows() : widgetRows()) : n === ANIMPAGE ? animPageRows() : n === ASET ? animRows() : []);
         // the widget's shape (384 x 256)
         const WIDGET_BOX = { x: 84, y: 100, w: 600, h: 400 }, ANIM_BOX = { x: 84, y: 104, w: 720, h: 400 };
         let backdropKey = '';
@@ -344,7 +374,7 @@ mgu.run({
             if (phone.link && !upload.active) { clearQr(); phone.detail = 'QR session expired. Rescan to pair again.'; }
             const key = JSON.stringify([panel, row, logOffset, panel === PREVIEW || panel === ANIMPAGE ? frame : 0, player.id,
                 library.state.revision, panel === DIAG ? logVersion : 0, panel === PHONE ? [upload.phoneAt, upload.lastError, upload.lastRequest] : null,
-                [settings.get('fit'), settings.get('speed'), settings.get('renderer'), gpuReady()], notice, library.error]);
+                [settings.get('fit'), settings.get('speed'), settings.get('renderer'), gpuReady()], notice, library.error, picker ? picker.picks : null]);
             if (key === screenKey && !dirty) return;
             screenKey = key; dirty = false;
             const cv = ctx.canvas(W, H);
@@ -356,7 +386,25 @@ mgu.run({
                 if (!drawFrameIn(cv, WIDGET_BOX)) cv.text('No GIF', WIDGET_BOX.x + WIDGET_BOX.w / 2, WIDGET_BOX.y + 210, 30, C.dim, { align: 'center' });
                 rows(cv, previewRows(), row, { x: 720, y: 96, w: 818 }, 92);
             }
-            if (panel === WSET) rows(cv, widgetRows(), row, {}, 69);
+            if (panel === WSET && !picker) rows(cv, widgetRows(), row, {}, 69);
+            if (panel === WSET && picker) {
+                rows(cv, pickerRows(), row, { x: 78, y: 96, w: 900 }, 69);
+                const box = { x: 1010, y: 132, w: 528, h: 270 };
+                // the GIF the focus is on; on Confirm / Clear / Cancel the first one picked
+                const f = files()[row - PICK_ACTIONS], id = f ? f.id : picker.picks[0];
+                cv.text('Make playlist', box.x, 118, 22, C.dim);
+                cv.fillRect(box.x, box.y, box.w, box.h, '#000000');
+                const g = id && thumbFor(id);
+                if (g) { const r = rectFor(g.width, g.height, box.x, box.y, box.w, box.h, 'contain'); cv.image(THUMB_IMAGE, r.x, r.y, r.w, r.h); }
+                const order = picker.picks.map((pick, i) => (i + 1) + '. ' + label(pick));
+                if (!order.length) cv.text('Press GIFs in the order to play them', box.x, box.y + box.h + 34, 21, C.dim);
+                [order.slice(0, 2), order.slice(2, 4)].forEach((part, k) => {
+                    if (!part.length) return;
+                    const more = k === 1 && order.length > 4 ? '   + ' + (order.length - 4) : '';
+                    cv.text(fitText(cv, part.join('   '), 21, box.w - (more ? 70 : 0)) + more, box.x, box.y + box.h + 34 + k * 32, 21, C.sub);
+                });
+                cv.text('Page: next 6', box.x + box.w, 118, 20, C.faint, { align: 'right' });
+            }
             if (panel === ANIMPAGE) {
                 cv.fillRect(ANIM_BOX.x, ANIM_BOX.y, ANIM_BOX.w, ANIM_BOX.h, '#000000');
                 drawFrameIn(cv, ANIM_BOX);
@@ -395,6 +443,7 @@ mgu.run({
             catch (e) { record('Preview frame could not be sent to HMI'); dirty = true; throw e; }
         }
         function setPanel(next) {
+            picker = null;
             panel = next; row = 0; logOffset = 0; confirmClear = false; notice = ''; dirty = true;
         }
         function nextRow() {
@@ -432,7 +481,11 @@ mgu.run({
             if (key === 'widgetBackground' || key === 'widgetTone') updateWidgetBackground();
         });
         // Page: the five pages in turn (from Diagnostics, back to the first)
-        ui.onClick('BTN_PAGE', () => setPanel(panel >= PAGES - 1 ? 0 : panel + 1));
+        // (in the playlist picker: the list's next 6 rows)
+        ui.onClick('BTN_PAGE', () => {
+            if (picker) { row = (row + 6) % pickerRows().length; dirty = true; return; }
+            setPanel(panel >= PAGES - 1 ? 0 : panel + 1);
+        });
         ui.onClick('BTN_PHONE', () => {
             if (panel !== PHONE && phone.enabled && upload.active) return setPanel(PHONE);
             if (panel !== PHONE) setPanel(PHONE);
