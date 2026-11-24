@@ -259,7 +259,11 @@
       "Without it: a few frames a second": "없으면 초당 몇 프레임",
       "Widget and animation screen": "위젯과 애니메이션 화면 공통",
       "Previous / Next / Animation settings at the bottom": "아래에 이전 / 다음 / 애니메이션 설정 버튼",
-      "Select: show the QR code": "선택: QR 코드 표시"
+      "Select: show the QR code": "선택: QR 코드 표시",
+      "Order": "순서",
+      "Selected order (Sequential mode)": "선택한 순서 (차례대로 모드)",
+      "Move up": "위로",
+      "First": "맨 위"
     }
   }
 }

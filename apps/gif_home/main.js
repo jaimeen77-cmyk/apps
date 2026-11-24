@@ -290,6 +290,17 @@ mgu.run({
                     act: () => apply({ type: 'playback', paused: !p.paused }) },
                 { title: 'Next GIF', sub: label(player.id), value: 'Next', act: () => apply({ type: 'next' }) },
             ];
+            // the selected list in its order (Sequential plays it so), as the phone page's "Selected order":
+            // Move up swaps a GIF with the one above it, and the focus goes up with it (Select again: up again)
+            p.selected.forEach((id, i) => {
+                rows.push({ title: 'Order ' + (i + 1) + ' · ' + label(id), sub: 'Selected order (Sequential mode)',
+                    value: i ? 'Move up' : 'First', act: i ? () => {
+                        const ids = p.selected.slice();
+                        ids[i] = ids[i - 1]; ids[i - 1] = id;
+                        apply({ type: 'playback', selected: ids });
+                        row = Math.max(0, row - 1);
+                    } : null });
+            });
             all.forEach(f => {
                 const on = p.selected.includes(f.id);
                 rows.push({ title: f.name, sub: (on ? 'In the selected list' : 'Not in the selected list') + (f.id === player.id ? ' · Playing' : ''),
