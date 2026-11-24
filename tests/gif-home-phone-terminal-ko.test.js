@@ -70,6 +70,11 @@ function checkPackage(app) {
         const presets = fs.readdirSync(path.join(js, 'resources')).filter((n) => /\.json$/.test(n));
         assert.strictEqual(presets.length, 5, 'built-in animations are packaged');
         assert.ok(fs.statSync(path.join(js, 'LICENSE')).isFile(), 'QR code MIT license');
+        // the user's picture is both the menu icon and the widget's preview image
+        const icon = fs.readFileSync(path.join(root, 'apps/gif_home/icon.png'));
+        assert.ok(icon.equals(fs.readFileSync(path.join(root, 'store/apps/gif_home_ko/icon.png'))), 'Store listing icon');
+        assert.ok(icon.equals(fs.readFileSync(path.join(pkgDir, 'rhmiData/variantGroups/Common/images/gif_home_ko_icon.png'))), 'menu icon');
+        assert.ok(icon.equals(fs.readFileSync(path.join(pkgDir, 'rhmiDataStartWidget/variantGroups/Common/images/gif_home_ko_widget_icon.png'))), 'widget icon');
     }
     // the packaged translator turns the lines the app draws into Korean
     const { t } = require(path.join(js, 'kit/i18n'));

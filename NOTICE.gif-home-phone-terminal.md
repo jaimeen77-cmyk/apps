@@ -32,6 +32,8 @@ Written for this repository (GPL-3.0, as part of the modified work): `tools/prep
 - Runtime kit and RHMI generation in the Store templates: `jaimeen77-cmyk/appsKOR` kit
   (commit `87d450d2221f9e3a5846153ed8f5cd6557fe1201`), based on `cauliflowermossgrape/idrive7-apps`, MIT
   (`LICENSE.appsKOR`; shipped in each package as `LICENSE.idrive7-apps`).
+- `apps/gif_home/icon.png` (also `store/apps/gif_home_ko/icon.png`): a picture supplied by the repository owner,
+  cropped and scaled to 140 x 140. It is not part of the GPL-licensed code; its own rights stay with its owner.
 - Korean font: Noto Sans CJK KR, SIL Open Font License 1.1 (shipped as `OFL-NotoSansKR.txt`).
 
 No BMW SDK, oap-sdk or node_modules is included in the source or the templates.

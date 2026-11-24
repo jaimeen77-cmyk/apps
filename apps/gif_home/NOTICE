@@ -8,4 +8,5 @@ in the repository. Corresponding source: https://github.com/jaimeen77-cmyk/apps
 
 qr_vendor.js: QR Code generator, Copyright (c) 2009 Kazuhiko Arase, MIT License (see LICENSE).
 Runtime kit: jaimeen77-cmyk/appsKOR (cauliflowermossgrape/idrive7-apps), MIT (LICENSE.idrive7-apps).
+icon.png: a picture supplied by the repository owner (not part of the GPL-licensed code).
 Korean font: Noto Sans CJK KR, SIL Open Font License 1.1 (OFL-NotoSansKR.txt).

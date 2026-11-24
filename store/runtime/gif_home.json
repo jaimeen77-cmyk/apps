@@ -4,8 +4,8 @@
   "language": "ko",
   "source_version": "0.4.0",
   "ui_sha256": "ddfb93f55fb56e16d8e88b20d17a585e2e91d40cfdcec0eefb70d3bdb3db784f",
-  "size": 1039930,
-  "sha256": "2d399bf596a80d905ea598fa90180868237304055d2c31e2e6e9b00b15d04fda",
+  "size": 1135310,
+  "sha256": "ef655cf153620041050e53d5b872f2c7bc4206029a2cafb45fae3293509a351a",
   "parts": [
     "gif_home.tgz.part-00",
     "gif_home.tgz.part-01",
@@ -28,7 +28,9 @@
     "gif_home.tgz.part-18",
     "gif_home.tgz.part-19",
     "gif_home.tgz.part-20",
-    "gif_home.tgz.part-21"
+    "gif_home.tgz.part-21",
+    "gif_home.tgz.part-22",
+    "gif_home.tgz.part-23"
   ],
   "provenance": {
     "app": "NamelsMissing/mgu-apps",
