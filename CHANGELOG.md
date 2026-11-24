@@ -2,7 +2,7 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## Cluster Redline 1.3.48
+## Cluster Redline 1.3.49
 
 - **New layout: Car** (Redline app layouts, cluster and HUD; on the HUD the car is drawn alone on black, which is clear on the glass: no road, no frame round it, the lamps, flames, smoke and light trails still show). A big animated picture of a car seen from slightly above and behind at night fills the middle and does what your car does, from its own G and gear: reversing lamps in reverse, brake lamps and a dipping nose at 0.18 G of braking, cornering in three steps by the sideways G, left and right: from 0.10 G a lean into the bend, from 0.25 G the tail stepping out with a little smoke, from 0.35 G a full drift with thick tyre smoke and light trails; exhaust flames at 0.12 G of acceleration, otherwise driving straight on. A new state must last 150 ms and a shown one stays at least 400 ms, so one noisy sample does not flicker it; 10 frames a second through the cluster render service. Under it a slim rpm bar; the gear on the left, the rpm on the right; along the bottom a small G meter and up to four readouts as chosen (power, torque, G, ...; two with bars in gauge mode). The drive mode colours it, as the Sport dial: in Sport a glowing red neon frame round the picture, a red rpm bar, rpm and GEAR label and **SPORT** (SPORT+) spelt out under the rpm; Comfort a thin blue frame and **COMFORT**; Eco Pro sky blue. Each element moves, sizes and hides on its own (Position / size: Car picture, RPM gauge, Gear, Drive mode, RPM number, G-force meter, Readouts 1-4, M mark).
 - While the picture shows, the two G sources are read every 200 ms instead of every second.
