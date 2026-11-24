@@ -8,8 +8,9 @@
 // unpacked on first use and scaled to the element's size once (kept while that state and size last).
 const zlib=require('zlib');
 const isNum=x=>typeof x==='number'&&isFinite(x);
-// G thresholds. Lateral G is positive to the left (ISO 8855, as the meter's dot is drawn).
-const TH={brake:-0.18,accel:0.12,turn:0.22};
+// G thresholds. Lateral G is positive to the left (ISO 8855, as the meter's dot is drawn). Cornering has three
+// steps (TURN): leaning into the bend, the tail stepping out with a little smoke, a full drift.
+const TH={brake:-0.18,accel:0.12,turn:0.10},TURN=[0.10,0.25,0.35];
 const HOLD_MS=400,CONFIRM_MS=150,FPS=10;
 // Two sets: the cluster's (the car on a night road) and the HUD's (the car alone on black, which is clear on the
 // glass), each loaded on first use.
@@ -20,15 +21,17 @@ function frames(set){
  Object.keys(src.states).forEach(s=>{states[s]=zlib.inflateSync(Buffer.from(src.states[s],'base64'));});
  return (data[k]={W:src.W,H:src.H,N:src.N,pal,states});
 }
-// What the car is doing, from its G and gear: 'reverse', 'brake', 'left', 'right', 'accel' or 'cruise'.
+// What the car is doing, from its G and gear: 'reverse', 'brake', 'left1'..'left3', 'right1'..'right3', 'accel' or 'cruise'.
 function want(g,stage){
  if(stage==='R')return 'reverse';
- const lat=g&&isNum(g.lat)?g.lat:0,lon=g&&isNum(g.long)?g.long:0;
+ const lat=g&&isNum(g.lat)?g.lat:0,lon=g&&isNum(g.long)?g.long:0,a=Math.abs(lat);
  // braking and cornering at once: whichever is further past its threshold
- const b=lon<=TH.brake?lon/TH.brake:0,t=Math.abs(lat)>=TH.turn?Math.abs(lat)/TH.turn:0;
- if(b||t)return b>=t?'brake':lat>0?'left':'right';
+ const b=lon<=TH.brake?lon/TH.brake:0,t=a>=TH.turn?a/TH.turn:0;
+ if(b||t){if(b>=t)return 'brake';const step=a>=TURN[2]?3:a>=TURN[1]?2:1;return (lat>0?'left':'right')+step;}
  return lon>=TH.accel?'accel':'cruise';
 }
+// A state's pictures: the cornering ones are the right-hand drift, mirrored for a left one.
+function look(s){const m=/^(left|right)([123])$/.exec(s);return m?{state:'turn'+m[2],mirror:m[1]==='left'}:{state:s,mirror:false};}
 // A new state must last CONFIRM_MS and the shown one HOLD_MS, so a single noisy sample does not flicker.
 const shown={};
 function pick(display,g,stage,now){
@@ -41,8 +44,8 @@ function pick(display,g,stage,now){
 }
 // The frame to show on a display: {state, mirror, i, set} (set: the HUD's own pictures on the HUD).
 function frameOf(display,g,stage,now){
- const s=pick(display,g,stage,now),set=display==='hud'?'hud':'cluster',n=frames(set).N;
- return {state:s==='left'||s==='right'?'turn':s,mirror:s==='left',i:Math.floor(now*FPS/1000)%n,set};
+ const s=look(pick(display,g,stage,now)),set=display==='hud'?'hud':'cluster',n=frames(set).N;
+ return {state:s.state,mirror:s.mirror,i:Math.floor(now*FPS/1000)%n,set};
 }
 function reset(){Object.keys(shown).forEach(k=>delete shown[k]);}
 // One frame as RGBA at w x h (bilinear), its edges fading out into the dark cluster.
@@ -85,4 +88,4 @@ function draw(r,f,x,y,w,h){
  }
  if(typeof r.blit==='function'){const {Canvas}=require('./kit/canvas'),c=new Canvas(w,h);c.d.set(px);r.blit(c,x,y);}
 }
-module.exports={TH,want,pick,frameOf,reset,draw,frames,FPS};
+module.exports={TH,TURN,want,look,pick,frameOf,reset,draw,frames,FPS};

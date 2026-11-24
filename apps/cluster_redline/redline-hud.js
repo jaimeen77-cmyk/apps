@@ -59,8 +59,8 @@ function kst(state){const t=new Date((isNum(state.now)?state.now:Date.now())+9*3
 function carOf(state,d){
  const cfg=state.config,p=d||'hud';if(style(cfg,p)!=='car')return null;
  const a=state.aux||{},live=a.car&&a.car[p];if(live)return live;
- const s=require('./car-meter').want({lat:a.gLat,long:a.gLong},gearOf(state.gear).stage);
- return {state:s==='left'||s==='right'?'turn':s,mirror:s==='left',i:0,set:p==='hud'?'hud':'cluster'};
+ const CM=require('./car-meter'),s=CM.look(CM.want({lat:a.gLat,long:a.gLong},gearOf(state.gear).stage));
+ return {state:s.state,mirror:s.mirror,i:0,set:p==='hud'?'hud':'cluster'};
 }
 function frame(state,now,d){
  const cfg=state.config,rpm=isNum(state.rpm)?state.rpm:null,spec=shiftSpec(cfg,state.mode),g=gearOf(state.gear);
