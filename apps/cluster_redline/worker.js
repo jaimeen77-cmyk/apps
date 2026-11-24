@@ -97,7 +97,7 @@ function start(ctx) {
     routeEvents.onReply=(reply)=>navProbe.route(maneuvers.provider,reply,drawnOf(decodeReply(reply).value));
     hudGuidance.onEvent=(event,decoded)=>navProbe.turn('hud',maneuvers.provider,event,drawnOf(decoded));
     const lanes=new LaneGuidance(mono);
-    const traffic=new TrafficSigns(),trafficSubs=[];
+    const traffic=new TrafficSigns(),trafficSubs=[];let carSpeed={v:null,at:null};   // (carSpeed: the Car layout's own copy of the speed)
     // the HUD headway badge (lead-vehicle.js): made once the manifest's instances can be read, below
     let lead=null;const headwayOverlay=new HeadwayOverlay(client);
     const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',greetingNow=null;
@@ -186,7 +186,9 @@ function start(ctx) {
                 if (!(cfg.fields && cfg.fields[field] || cfg.events && cfg.events[field] || cfg.broadcasts && cfg.broadcasts[field])) return;
                 entry.configured = true;
                 // our speed also goes to the headway badge (its time gap), whatever the vehicle alerts do with it
-                const handlers = {}; handlers[field] = (v) => { if (!stopped) { entry.received++; entry.at = mono(); traffic.sample(field, v, entry.at); if (lead && field === TRAFFIC_FIELDS[0][1]) lead.sampleSpeed(v, entry.at); } };
+                const handlers = {}; handlers[field] = (v) => { if (!stopped) { entry.received++; entry.at = mono(); traffic.sample(field, v, entry.at); if (field === TRAFFIC_FIELDS[0][1]) { if (lead) lead.sampleSpeed(v, entry.at);
+                    // and to the Car layout (standing still): kept apart, as the vehicle alerts clear theirs while they are off
+                    const r = v && v.speedVehicleCentreOfGravity; carSpeed = { v: typeof r === 'number' && isFinite(r) && r >= 0 && r <= 400 * 64 ? r / 64 : null, at: entry.at }; } } };
                 signals.watch(iface, instanceOf(iface), handlers, log, {}).then((s) => { entry.sub = s; keep(s); }).catch((e) => { entry.error = String(e && e.message || e); });
             } catch (e) { entry.error = String(e && e.message || e); }
         });
@@ -338,7 +340,8 @@ function start(ctx) {
             // The G-force meter's Car picture (car-meter.js): the car's state (held against noise) and frame, per display
             const carFaces=carMeterFaces(config);
             if(carFaces.length){const CM=require('./car-meter'),stage=require('./redline-hud').gearOf(gearbox.gear).stage,g={lat:controller.aux.gLat,long:controller.aux.gLong};
-                controller.aux.car={};carFaces.forEach(d=>{controller.aux.car[d]=CM.frameOf(d,g,stage,at);});}
+                const speed=carSpeed.at!==null&&at-carSpeed.at<=2000?carSpeed.v:null;   // (a speed older than 2 s is not known)
+                controller.aux.car={};carFaces.forEach(d=>{controller.aux.car[d]=CM.frameOf(d,g,stage,at,speed);});}
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
             if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
             Object.keys(PROJECTED).forEach((provider)=>{

@@ -1,7 +1,8 @@
 'use strict';
 // Car picture in place of the G-force meter's dot (G-force + RPM rings layout, "Car picture" on the
 // G-force meter's Position / size screen): a car seen from behind at night that follows the car's own G.
-//   reverse gear: reversing lamps lit         braking: brake lamps lit, the nose dipping
+//   reverse gear: reversing lamps lit         standing still: the road still, the engine idling
+//   braking: brake lamps lit, the nose dipping
 //   cornering: the tail sliding out, smoke     accelerating: flames from the exhaust
 //   otherwise: driving straight on
 // The frames (car-meter-frames.js) are original drawings, small palette images; each state's frames are
@@ -21,9 +22,12 @@ function frames(set){
  Object.keys(src.states).forEach(s=>{states[s]=zlib.inflateSync(Buffer.from(src.states[s],'base64'));});
  return (data[k]={W:src.W,H:src.H,N:src.N,pal,states});
 }
-// What the car is doing, from its G and gear: 'reverse', 'brake', 'left1'..'left3', 'right1'..'right3', 'accel' or 'cruise'.
-function want(g,stage){
+// What the car is doing, from its G, gear and speed (km/h, null when unknown): 'reverse', 'stop', 'brake',
+// 'left1'..'left3', 'right1'..'right3', 'accel' or 'cruise'. Standing still: under 1 km/h, or in P when the
+// speed is not known.
+function want(g,stage,speed){
  if(stage==='R')return 'reverse';
+ if(isNum(speed)?speed<1:stage==='P')return 'stop';
  const lat=g&&isNum(g.lat)?g.lat:0,lon=g&&isNum(g.long)?g.long:0,a=Math.abs(lat);
  // braking and cornering at once: whichever is further past its threshold
  const b=lon<=TH.brake?lon/TH.brake:0,t=a>=TH.turn?a/TH.turn:0;
@@ -34,8 +38,8 @@ function want(g,stage){
 function look(s){const m=/^(left|right)([123])$/.exec(s);return m?{state:'turn'+m[2],mirror:m[1]==='left'}:{state:s,mirror:false};}
 // A new state must last CONFIRM_MS and the shown one HOLD_MS, so a single noisy sample does not flicker.
 const shown={};
-function pick(display,g,stage,now){
- const m=shown[display]||(shown[display]={cur:'cruise',since:-Infinity,cand:null,candSince:0}),w=want(g,stage);
+function pick(display,g,stage,now,speed){
+ const m=shown[display]||(shown[display]={cur:'cruise',since:-Infinity,cand:null,candSince:0}),w=want(g,stage,speed);
  if(w===m.cur){m.cand=null;return m.cur;}
  if(w==='reverse'||m.cur==='reverse'){m.cur=w;m.since=now;m.cand=null;return m.cur;}   // the gear is no guess
  if(m.cand!==w){m.cand=w;m.candSince=now;}
@@ -43,8 +47,8 @@ function pick(display,g,stage,now){
  return m.cur;
 }
 // The frame to show on a display: {state, mirror, i, set} (set: the HUD's own pictures on the HUD).
-function frameOf(display,g,stage,now){
- const s=look(pick(display,g,stage,now)),set=display==='hud'?'hud':'cluster',n=frames(set).N;
+function frameOf(display,g,stage,now,speed){
+ const s=look(pick(display,g,stage,now,speed)),set=display==='hud'?'hud':'cluster',n=frames(set).N;
  return {state:s.state,mirror:s.mirror,i:Math.floor(now*FPS/1000)%n,set};
 }
 function reset(){Object.keys(shown).forEach(k=>delete shown[k]);}
