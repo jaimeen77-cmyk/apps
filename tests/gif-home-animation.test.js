@@ -6,10 +6,10 @@ const { area, FULL_AREA, History, playbackSettings } = require('../apps/gif_home
 const { MODES } = require('../apps/gif_home/library');
 const spec = require('../apps/gif_home/app.json');
 
-// area: the full-screen GPU layout shows FULL_AREA of the page; the software path the whole page
+// area: the full-screen GPU layout shows FULL_AREA of the page (its header holds the tabs); the software path all below its tabs
 assert.deepStrictEqual(area({ full: true }, 1600, 520), FULL_AREA);
-assert.deepStrictEqual(area({ full: false }, 1600, 520), { x: 0, y: 0, w: 1600, h: 520 });
-assert.deepStrictEqual(area(undefined, 1600, 520), { x: 0, y: 0, w: 1600, h: 520 });
+assert.deepStrictEqual(area({ full: false }, 1600, 520), { x: 0, y: 80, w: 1600, h: 440 }, 'below the tabs');
+assert.deepStrictEqual(area(undefined, 1600, 520), { x: 0, y: 80, w: 1600, h: 440 });
 
 // History: newest first, skips the current GIF and what is no longer eligible, bounded
 const h = new History(3);

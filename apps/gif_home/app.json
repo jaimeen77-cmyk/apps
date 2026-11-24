@@ -36,8 +36,7 @@
         ["BTN_SELECT", "Select"],
         ["BTN_PHONE", "Phone"],
         ["BTN_DIAG", "Diagnostics"],
-        ["BTN_SETTINGS", "Settings"],
-        ["BTN_ANIM", "Animation"]
+        ["BTN_SETTINGS", "Settings"]
       ]
     },
     {

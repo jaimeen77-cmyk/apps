@@ -5,11 +5,12 @@
 
 const SECONDS = [0, 5, 10, 15, 30];
 // The part of the 1600 x 520 page the kit's full-screen GPU layout shows between its header and its
-// slim button bar (kit/runtime/display.js FULL.src); the software path shows the whole page.
-const FULL_AREA = { x: 12, y: 38, w: 1576, h: 482 };
+// slim button bar (kit/runtime/display.js FULL.src); the software path shows the whole page, below the tabs GIF
+// Home draws itself (look.js HEAD).
+const FULL_AREA = { x: 12, y: 38, w: 1576, h: 482 }, TABS_H = 80;
 
 function area(place, width, height) {
-    return place && place.full ? FULL_AREA : { x: 0, y: 0, w: width, h: height };
+    return place && place.full ? FULL_AREA : { x: 0, y: TABS_H, w: width, h: height - TABS_H };
 }
 
 /** GIFs played before the current one, for Previous (newest last). */

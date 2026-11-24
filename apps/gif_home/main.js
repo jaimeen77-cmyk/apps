@@ -17,6 +17,7 @@ const { diagnostics } = require('./diagnostics');
 const { area: animArea, History, playbackSettings } = require('./animation');
 const { listSheet } = require('./kit/sheet');
 const { C, backdrop, header, rows, lines, fitText } = require('./look');
+const G = require('./kit/gauges');
 
 const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403, THUMB_IMAGE = 23404;
 const PRESETS = [
@@ -485,6 +486,8 @@ mgu.run({
         ui.onClick('BTN_PAGE', () => {
             if (picker) { row = (row + 6) % pickerRows().length; dirty = true; return; }
             setPanel(panel >= PAGES - 1 ? 0 : panel + 1);
+            // page 3 is the Animation screen itself (BACK there comes back to this page; Page goes on to 4)
+            if (panel === ANIMPAGE) ui.open('ANIM');
         });
         ui.onClick('BTN_PHONE', () => {
             if (panel !== PHONE && phone.enabled && upload.active) return setPanel(PHONE);
@@ -512,18 +515,23 @@ mgu.run({
                 const r = rectFor(gif.width, gif.height, a.x, a.y, a.w, a.h, settings.get('fit'));
                 cv.image(ANIM_IMAGE, r.x, r.y, r.w, r.h);
             } else cv.text('No GIF', a.x + a.w / 2, a.y + a.h / 2, 34, '#ffffff', { align: 'center' });
+            // the page tabs stay on top, Animation selected: in the kit's header with the GPU renderer (a tab
+            // tapped there goes to that page, ctx.onTab), drawn here as on the other pages without it
+            const tabs = panels.slice(0, PAGES), badge = 'v' + ctx.spec.version;
+            if (cv.chrome) G.frame(cv, ctx.theme(), tabs, ANIMPAGE, [{ text: badge }]);
+            else header(cv, W, tabs, ANIMPAGE, badge);
             if (!(cv.place && cv.place.full)) {
-                cv.fillRect(0, 0, W, 40, [0, 0, 0, 170]);
-                cv.text('GPU renderer (mgu-renderd) is not running: a few frames a second only', 20, 28, 20, '#ffd4ad');
+                cv.fillRect(0, H - 36, W, 36, [0, 0, 0, 170]);
+                cv.text('GPU renderer (mgu-renderd) is not running: a few frames a second only', 20, H - 11, 20, '#ffd4ad');
             }
             await ui.image('ANIM_GFX', cv);
         }
         ctx.loop('ANIM', 4, renderAnim);
+        if (ctx.onTab) ctx.onTab(i => { if (i !== ANIMPAGE && i < PAGES) { ui.open('MAIN'); setPanel(i); } });
         const animSettings = playbackSettings({
             state: () => library.state, apply: action => { try { apply(action); } catch (e) { record('Animation setting failed: ' + e.message); } },
             files, modes: MODES, modeNames: MODE_NAMES, settings, spec: ctx.spec,
         });
-        ui.onClick('BTN_ANIM', () => ui.open('ANIM'));
         ui.onClick('BTN_PREVGIF', () => { try { previousGif(); } catch (e) { record('Previous failed: ' + e.message); } });
         ui.onClick('BTN_NEXTGIF', () => { try { apply({ type: 'next' }); } catch (e) { record('Next failed: ' + e.message); } });
         ui.onClick('BTN_ANIM_SETTINGS', () => {

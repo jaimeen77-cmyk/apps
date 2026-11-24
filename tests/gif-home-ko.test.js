@@ -73,11 +73,11 @@ function checkPackage(app) {
         const anim = spec.screens.find((s) => s.name === 'ANIM');
         assert.ok(anim && anim.gpu === true, 'ANIM is the GPU screen');
         assert.deepStrictEqual(anim.buttons.map((b) => b[0]), ['BTN_PREVGIF', 'BTN_NEXTGIF', 'BTN_ANIM_SETTINGS']);
-        assert.ok(spec.screens.find((s) => s.name === 'MAIN').buttons.some((b) => b[0] === 'BTN_ANIM'), 'MAIN opens it');
+        assert.ok(!spec.screens.find((s) => s.name === 'MAIN').buttons.some((b) => b[0] === 'BTN_ANIM'), 'page 3 opens it, no own button');
         assert.ok(fs.readFileSync(path.join(js, 'kit/display.js'), 'utf8').indexOf('canvasScreens.find((s) => s.gpu === true)') > 0, 'display.js patched');
         assert.ok(fs.statSync(path.join(js, 'animation.js')).isFile(), 'animation.js packaged');
         const ui = fs.readFileSync(path.join(pkgDir, 'rhmiData/uiDescriptions/ID7/uiDescription.json'), 'utf8');
-        ['ANIM_GFX', 'BTN_PREVGIF', 'BTN_NEXTGIF', 'BTN_ANIM_SETTINGS', 'BTN_ANIM'].forEach((id) => assert.ok(ui.indexOf('"' + id + '"') > 0, id));
+        ['ANIM_GFX', 'BTN_PREVGIF', 'BTN_NEXTGIF', 'BTN_ANIM_SETTINGS'].forEach((id) => assert.ok(ui.indexOf('"' + id + '"') > 0, id));
         // the user's picture is both the menu icon and the widget's preview image
         const icon = fs.readFileSync(path.join(root, 'apps/gif_home/icon.png'));
         assert.ok(icon.equals(fs.readFileSync(path.join(root, 'store/apps/gif_home_ko/icon.png'))), 'Store listing icon');
