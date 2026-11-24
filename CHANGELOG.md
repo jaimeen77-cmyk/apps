@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## MGU Monitor 1.1.8
+
+- **Home widget: CPU and memory graphs.** The big widget now draws the whole head unit's CPU and memory (RAM) use over the last 30 minutes (the app's 10-second samples, 0 to 100 %), the current values on the right, orange on a CPU / memory rise or a suspected leak. The app storage line stays at the bottom (red at the warning threshold). The small widget shows `CPU · RAM` with a memory bar, and the storage text and bar during a storage warning.
+- The big widget is redrawn only when a sample, the disks, the theme or the language changed (before: every second).
+- Widget texts are kept in `main.js`, so `app.json` is unchanged apart from the version and the SDK-free UI templates stay valid.
+
 ## GIF Home 0.4.1 (Korean edition)
 
 - **Animation screen (애니메이션)**: the GIF across the screen at its own speed through the GPU renderer (mgu-renderd: up to one frame per screen refresh; without it a few frames a second, with a notice). Bottom buttons **이전 / 다음 / 애니메이션 설정**; Previous goes back to the GIF played before without changing the playback mode; the settings open over the animation (the kit's sheet: mode, single GIF, group, interval, pause, picture fit, speed), or the Widget settings page where the kit does not run the screen. Opened from page 3.

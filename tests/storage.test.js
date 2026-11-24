@@ -8,14 +8,14 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'storage-test-'));
 const previews = process.env.STORAGE_PREVIEW_DIR;
 async function checkRenderer(language) {
     const id = language === 'ko' ? 'storage' : 'storage_en';
-    const file = build({ template:'storage', id, version:'1.1.7', language,
+    const file = build({ template:'storage', id, version:'1.1.8', language,
         dir:language === 'ko' ? 'apps/storage' : 'store/apps/storage_en',
         source:'apps/storage', out:path.join(temp,id) });
     const stage = path.join(temp,id,'installed');fs.mkdirSync(stage);
     cp.execFileSync('tar',['-xzf',file,'-C',stage]);
     const js = path.join(stage,'package/javascript');
     const spec = require(path.join(js,'kit/app-spec.json'));
-    assert.strictEqual(spec.version,'1.1.7');
+    assert.strictEqual(spec.version,'1.1.8');
     assert.strictEqual(spec.title,language==='ko'?'MGU 모니터':'MGU Monitor');
     const pkg=require(path.join(stage,'package/package.json'));
     assert.strictEqual(pkg.displayName,spec.title);
@@ -57,7 +57,12 @@ async function checkRenderer(language) {
             if(previews){fs.mkdirSync(previews,{recursive:true});fs.writeFileSync(path.join(previews,`disks-${mode}-${language}.png`),play(frame.words(),new Canvas(frame.w,frame.h)).png());}
             cells=[];const cv=widget({spawnId:1,big:true});
             assert(cells.some(c=>c[1]==='Title'&&c[2].includes(t('MGU Monitor'))));
-            assert(cells.some(c=>c[1]==='Progress'&&c[2]===(mode==='crit'?95:44)));
+            // CPU / memory graphs; a storage alert takes the small widget's text and bar
+            if(mode==='crit')assert(cells.some(c=>c[1]==='Progress'&&c[2]===95));
+            else assert(cells.some(c=>c[1]==='TextRecordings'&&/^CPU \d+% · (RAM|메모리) \d+%$/.test(c[2])),JSON.stringify(cells));
+            assert(cv,'big widget drawn');
+            assert(labels.includes('CPU')&&labels.includes(language==='ko'?'최근 30분':'last 30 min'));
+            assert.strictEqual(widget({spawnId:1,big:true}),null,'unchanged widget is not drawn again');
             if(previews)fs.writeFileSync(path.join(previews,`widget-${mode}-${language}.png`),cv.png());
         }
         values.page='apps';callbacks.forEach(fn=>fn('page'));await loop();await loop();
@@ -65,6 +70,7 @@ async function checkRenderer(language) {
         assert(labels.some(s=>s.includes(language==='ko'?'앱 4개':'4 apps')));
         if(previews)fs.writeFileSync(path.join(previews,`apps-${language}.png`),play(frame.words(),new Canvas(frame.w,frame.h)).png());
         assert(timers.some(timer=>timer.ms===10000),'collection interval must be 10 seconds');
+        values.demo='ok';await handlers.BTN_ACTION();
         for(let i=0;i<=180;i++) {
             clock+=10000;
             activeMonitor.sample(clock,null,false,{apps:[
@@ -72,6 +78,10 @@ async function checkRenderer(language) {
                 {uid:12210,name:'Redline',cpu:10+i/3,rss:(32+i*2/3)*1048576,processes:1,partial:false}
             ],denied:2,skipped:0,error:''});
         }
+        // the widget graphs over 30 minutes of samples
+        cells=[];const full=widget({spawnId:1,big:true});assert(full,'new samples redraw the widget');
+        // host /proc samples: CPU may read -- when no tick passed between two samples
+        assert(cells.some(c=>c[1]==='TextRecordings'&&/^CPU (\d+%|--) · (RAM|메모리) \d+%$/.test(c[2])),JSON.stringify(cells));
         await handlers.BTN_APP();await handlers.BTN_APP();labels.length=0;await loop();
         assert(labels.some(s=>s.includes(t('Redline'))));
         assert(labels.some(s=>s.includes(language==='ko'?'누수 의심':'possible leak')));
@@ -94,6 +104,10 @@ async function checkRenderer(language) {
         assert(labels.some(s=>s.includes(newest)),'Next app picks the newest day');
         if(previews)fs.writeFileSync(path.join(previews,`history-day-${language}.png`),play(frame.words(),new Canvas(frame.w,frame.h)).png());
         await handlers.BTN_PAGE();
+        // Widget preview: 30 minutes of demo samples (the demo series is a sine wave)
+        for(let i=0;i<=180;i++){clock+=10000;activeMonitor.sample(clock,'ok',false,null);}
+        const demoWidget=widget({spawnId:1,big:true});assert(demoWidget);
+        if(previews)fs.writeFileSync(path.join(previews,`widget-usage-${language}.png`),demoWidget.png());
         // Exercise the packaged Widget.set and real HmiText with an SDK bridge mock.
         const box={module:{exports:{}},__dirname:path.join(js,'kit'),console,process,Buffer,setTimeout,clearTimeout,
             require(name){if(name==='oap-sdk')return {logging:{getSDKLogger:()=>({info(){},warn(e){throw Error(e);},error(){}})}};
@@ -128,5 +142,5 @@ async function checkRenderer(language) {
     assert((await S.appFolders(path.join(temp,'missing'))).error);
     const real=await S.fileSystems();assert(!real.error&&real.list.length);assert(S.memory().total>0&&S.uptime()>0);
     await checkRenderer('ko');await checkRenderer('en');
-    console.log('PASS: Storage 1.1.7 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
+    console.log('PASS: Storage 1.1.8 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>fs.rmSync(temp,{recursive:true,force:true}));

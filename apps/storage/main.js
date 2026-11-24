@@ -21,7 +21,7 @@ const G = require('./kit/gauges');
 const { withAlpha, ScaledCanvas } = require('./kit/canvas');
 const S = require('./sysinfo');
 const BG = require('./bg');
-const { UsageMonitor, memoryPercent, INTERVAL } = require('./usage');
+const { UsageMonitor, memoryPercent, INTERVAL, WINDOW } = require('./usage');
 const { ProcessUsage } = require('./process-usage');
 const { UsageView } = require('./usage-view');
 const { UsageHistory, demoDays } = require('./usage-history');
@@ -313,8 +313,17 @@ mgu.run({
         }
 
         /* ---------- 홈 화면 위젯 ---------- */
-        const wcan = {}, wprev = {};
-        const widgetColor = (p, t) => (p >= alertOf() ? t.crit : p >= 75 ? t.warn : '#2fb56b');
+        // CPU·메모리 최근 30분 그래프(10초 수집 이력 usage.history) + 아래 한 줄로 앱 저장공간.
+        // 문구는 app.json(UI 템플릿 지문)에 넣지 않고 여기서 언어별로 둡니다.
+        const widgetLabels = {
+            'last 30m': { en: 'last 30 min', ko: '최근 30분' },
+            'storage': { en: 'App storage {percent}% · {size} free', ko: '앱 저장공간 {percent}% · {size} 여유' },
+            'small': { en: 'CPU {cpu} · RAM {ram}', ko: 'CPU {cpu} · 메모리 {ram}' },
+            'RAM': { en: 'RAM', ko: '메모리' },
+        };
+        const wtr = (key, values) => Object.keys(values || {}).reduce((out, k) => out.split('{' + k + '}').join(String(values[k])),
+            widgetLabels[key][getLanguage()] || widgetLabels[key].en);
+        const wcan = {}, wprev = {}, wkey = {};
         function setCells(inst, cells) {
             const prev = wprev[inst.spawnId] || (wprev[inst.spawnId] = {});
             Object.keys(cells).forEach((k) => {
@@ -324,36 +333,78 @@ mgu.run({
                 ctx.widget.set(inst.spawnId, k, cells[k][0], cells[k][1]);
             });
         }
+        // one usage graph: header (label, current value) and the last 30 minutes as a filled line, 0..100%
+        function widgetChart(cv, t, y, label, note, value, color, warn) {
+            const x = 26, w = 332, top = y + 12, h = 58;
+            const latest = usage.history[usage.history.length - 1];
+            const now = latest ? latest.time : Date.now();
+            cv.text(label, x, y, 18, t.dim);
+            if (note) cv.text(note, x + cv.textWidth(label, 18) + 10, y, 13, t.dim);
+            const current = latest ? value(latest) : null;
+            cv.text(G.isNum(current) ? current.toFixed(0) + '%' : '--', x + w, y + 4, 28, warn ? t.warn : t.text, { align: 'right', font: 'num' });
+            cv.roundRect(x, top, w, h, 6, withAlpha('#ffffff', 0.05));
+            cv.line(x, top + h / 2, x + w, top + h / 2, 1, withAlpha('#ffffff', 0.08));
+            let segment = [];
+            const flush = () => {
+                if (segment.length > 1) {
+                    cv.fill(segment.concat([[segment[segment.length - 1][0], top + h], [segment[0][0], top + h]]), withAlpha(color, 0.25));
+                    cv.polyline(segment, 2, color);
+                } else if (segment.length === 1) cv.fillRect(segment[0][0] - 1.5, segment[0][1] - 1.5, 3, 3, color);
+                segment = [];
+            };
+            let previous = null;
+            usage.history.forEach((s) => {
+                const v = value(s);
+                if (!G.isNum(v)) { flush(); previous = null; return; }
+                if (previous !== null && s.time - previous > INTERVAL * 1.5) flush();
+                const px = x + 2 + (w - 4) * Math.max(0, 1 - (now - s.time) / WINDOW);
+                segment.push([px, top + h * (1 - Math.max(0, Math.min(100, v)) / 100)]);
+                previous = s.time;
+            });
+            flush();
+        }
         function renderWidget(inst) {
             const { appFs } = shown();
             const p = appFs ? pct(appFs.used, appFs.size) : null;
             const alert = p !== null && p >= alertOf();
-            if (appFs) {
-                setCells(inst, {
-                    Title: [(alert ? '! ' : '') + tr('MGU Monitor'), 'Text'],
+            const latest = usage.history[usage.history.length - 1];
+            const cpu = latest ? latest.cpu : null, ram = latest ? memoryPercent(latest) : null;
+            const percentText = (v) => (G.isNum(v) ? v.toFixed(0) + '%' : '--');
+            const cells = { Title: [(alert ? '! ' : '') + tr('MGU Monitor'), 'Text'] };
+            if (alert || (!latest && appFs)) {
+                // the storage alert keeps the small widget's text and bar
+                Object.assign(cells, {
                     TextRecordings: [tr('App storage {percent}% - free {size}', { percent: p.toFixed(0), size: sz(appFs.avail) }), 'Text'],
-                    ProgressbarVisible: [true, 'Bool'],
-                    Progress: [Math.round(p), 'Float'],
+                    ProgressbarVisible: [true, 'Bool'], Progress: [Math.round(p), 'Float'],
                 });
+            } else if (latest) {
+                Object.assign(cells, {
+                    TextRecordings: [wtr('small', { cpu: percentText(cpu), ram: percentText(ram) }), 'Text'],
+                    ProgressbarVisible: [G.isNum(ram), 'Bool'],
+                });
+                if (G.isNum(ram)) cells.Progress = [Math.round(ram), 'Float'];
             }
+            if (latest || appFs) setCells(inst, cells);
             if (!inst.big) return null;
-            const sw = ctx.spec.startWidget || {}, size2 = sw.size || [384, 256], w = size2[0], h = size2[1], scale = sw.scale || 2;
             const t = ctx.theme();
+            // redraw only when something shown changed (a new 10-second sample, the disks, theme or language)
+            const key = [latest ? latest.time : 0, usage.history.length, p === null ? '' : p.toFixed(1), appFs ? appFs.avail : '', alert, settings.get('theme'), getLanguage()].join('|');
+            if (wkey[inst.spawnId] === key && wcan[inst.spawnId]) return null;
+            wkey[inst.spawnId] = key;
+            const sw = ctx.spec.startWidget || {}, size2 = sw.size || [384, 256], w = size2[0], h = size2[1], scale = sw.scale || 2;
             const cv = (wcan[inst.spawnId] || (wcan[inst.spawnId] = new ScaledCanvas(w, h, scale))).clear([0, 0, 0, 0]);
             cv.roundRect(6, 6, w - 12, h - 12, 18, withAlpha(t.panelTop, 0.96));
-            if (appFs === undefined || appFs === null || p === null) { cv.text('No data', w / 2, h / 2, 26, t.dim, { align: 'center' }); return cv.canvas; }
-            const col = widgetColor(p, t);
-            cv.text('APP STORAGE', 28, 42, 20, t.dim, { font: 'bold', spacing: 1.5 });
-            const ps = p.toFixed(0);
-            cv.text(ps, 26, 130, 92, alert ? t.crit : t.text, { font: 'num' });
-            const pw = cv.textWidth(ps, 92, { font: 'num' });
-            cv.text('%', 26 + pw + 10, 130, 36, t.dim);
-            cv.text(tr('free {size} / {total}', { size: sz(appFs.avail), total: sz(appFs.size) }), 28, 170, 22, t.dim, { font: 'bold' });
-            const bx = 28, by = 200, bw = w - 56, bh = 20;
-            cv.roundRect(bx, by, bw, bh, bh / 2, withAlpha('#ffffff', 0.12));
-            const fw = Math.max(0, Math.round(bw * Math.min(100, p) / 100));
-            if (fw > 0) cv.roundRect(bx, by, fw, bh, bh / 2, col);
-            if (alert) cv.text('FULL', w - 28, 42, 22, t.crit, { align: 'right', font: 'bold', spacing: 1 });
+            if (!latest) {
+                cv.text(tr('Reading...'), w / 2, h / 2, 24, t.dim, { align: 'center' });
+            } else {
+                const trend = latest.trend || {};
+                widgetChart(cv, t, 36, 'CPU', wtr('last 30m'), (s) => s.cpu, t.accent, trend.cpuRising);
+                widgetChart(cv, t, 132, wtr('RAM'), '', memoryPercent, t.cold || t.accent2, trend.memoryRising || trend.leakSuspected);
+            }
+            if (appFs && p !== null) {
+                const line = (alert ? '! ' : '') + wtr('storage', { percent: p.toFixed(0), size: sz(appFs.avail) });
+                cv.text(line, 26, 232, 16, alert ? t.crit : t.dim, { font: 'bold' });
+            }
             return cv.canvas;
         }
 
@@ -373,6 +424,8 @@ mgu.run({
             ctx.widget.loop(() => 1, renderWidget);
             ctx.widget.onChange((why) => {
                 if (why === 'resized' || why === 'placed') Object.keys(wprev).forEach((k) => delete wprev[k]);
+                // the image again after any change of the widget (placed, shown, resized)
+                Object.keys(wkey).forEach((k) => delete wkey[k]);
                 // 앱 화면을 안 열고 위젯만 올려둔 경우에도 알림이 뜨도록, 배치/표시 때 즉시 갱신
                 if (why === 'placed' || why === 'shown') readDisks();
             });
