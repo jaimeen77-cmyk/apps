@@ -16,8 +16,9 @@ const { diagnostics } = require('./diagnostics');
 // jaimeen77-cmyk/apps: the Animation screen (ANIM) through the GPU renderer
 const { area: animArea, History, playbackSettings } = require('./animation');
 const { listSheet } = require('./kit/sheet');
+const { C, backdrop, header, rows, lines } = require('./look');
 
-const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402;
+const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403;
 const PRESETS = [
     ['demo', 'Animated BMW logo', 'demo.json'],
     ['drift', 'Pixel drift: Night City', 'drift_city.json'],
@@ -253,7 +254,7 @@ mgu.run({
             }
         }
 
-        const intervalLabel = p => p.seconds ? p.seconds + ' s' : 'One full GIF pass';
+        const intervalLabel = p => p.seconds ? p.seconds + ' seconds' : 'One full GIF pass';
         const cycle = (list, value, by) => list[(Math.max(0, list.indexOf(value)) + (by || 1) + list.length) % list.length];
         const settingSpec = key => (ctx.spec.settings || []).find(item => item.key === key);
         const optionLabel = key => {
@@ -262,48 +263,70 @@ mgu.run({
             return o ? o[1] : String(settings.get(key));
         };
         const cycleSetting = key => settings.set(key, cycle(settingSpec(key).options.map(o => o[0]), settings.get(key)));
-        /** Widget settings: what the phone page sets (playback), and the GIFs in the selected list. */
+        const gpuReady = () => !!(ctx.display && ctx.display.gpu && ctx.display.gpu.ready);
+        const modeName = p => MODE_NAMES[MODES.indexOf(p.mode)];
+        // Each page's rows: title, the line below it, the value button on the right, what Select does.
+        function previewRows() {
+            const p = library.state.playback;
+            return [
+                { title: 'Now playing', sub: label(player.id), value: 'Next GIF', act: () => apply({ type: 'next' }) },
+                { title: 'Playback', sub: p.paused ? 'Paused' : 'Playing', value: p.paused ? 'Resume' : 'Pause',
+                    act: () => apply({ type: 'playback', paused: !p.paused }) },
+                { title: 'Mode', sub: modeName(p), value: 'Widget settings', act: () => setPanel(WSET) },
+            ];
+        }
         function widgetRows() {
             const p = library.state.playback, group = library.state.groups.find(g => g.id === p.group);
             const all = files();
             const rows = [
-                { text: 'Mode · ' + MODE_NAMES[MODES.indexOf(p.mode)],
+                { title: 'Mode', sub: eligible().length + ' in current mode', value: modeName(p),
                     act: () => apply({ type: 'playback', mode: cycle(MODES, p.mode) }) },
-                { text: 'Single GIF · ' + label(p.single),
+                { title: 'Single GIF', sub: 'Used in the Single GIF mode', value: label(p.single),
                     act: () => apply({ type: 'playback', single: cycle(all.map(f => f.id), p.single) }) },
-                { text: 'Group · ' + (group ? group.name : 'None'),
+                { title: 'Group', sub: 'Used in the Random – Group mode', value: group ? group.name : 'None',
                     act: () => apply({ type: 'playback', group: cycle([null].concat(library.state.groups.map(g => g.id)), p.group || null) }) },
-                { text: 'Interval · ' + intervalLabel(p),
+                { title: 'Switch after', sub: 'Other modes: the next GIF after this', value: intervalLabel(p),
                     act: () => apply({ type: 'playback', seconds: cycle([0, 5, 10, 15, 30], p.seconds) }) },
-                { text: p.paused ? 'Resume playback' : 'Pause playback', act: () => apply({ type: 'playback', paused: !p.paused }) },
-                { text: 'Next GIF', act: () => apply({ type: 'next' }) },
+                { title: 'Playback', sub: p.paused ? 'Paused' : 'Playing', value: p.paused ? 'Resume' : 'Pause',
+                    act: () => apply({ type: 'playback', paused: !p.paused }) },
+                { title: 'Next GIF', sub: label(player.id), value: 'Next', act: () => apply({ type: 'next' }) },
             ];
             all.forEach(f => {
                 const on = p.selected.includes(f.id);
-                rows.push({ text: (on ? '[x] ' : '[  ] ') + f.name + (f.id === player.id ? '  · Playing' : ''),
+                rows.push({ title: f.name, sub: (on ? 'In the selected list' : 'Not in the selected list') + (f.id === player.id ? ' · Playing' : ''),
+                    subColor: on ? '#b8c5d4' : '#6f7c8c', value: on ? 'Remove' : 'Add',
                     act: () => apply({ type: 'playback', selected: on ? p.selected.filter(id => id !== f.id) : p.selected.concat([f.id]) }) });
             });
             return rows;
         }
-        const gpuReady = () => !!(ctx.display && ctx.display.gpu && ctx.display.gpu.ready);
-        /** Animation settings: how the Animation screen draws (the shared playback is under Widget settings). */
-        function animRows() {
+        function animPageRows() {
             return [
-                { text: 'Picture fit · ' + optionLabel('fit'), act: () => cycleSetting('fit') },
-                { text: 'Animation speed · ' + optionLabel('speed'), act: () => cycleSetting('speed') },
-                { text: 'Animation screen · ' + optionLabel('renderer'), act: () => cycleSetting('renderer') },
-                { text: 'Open the animation screen', act: () => ui.open('ANIM') },
+                { title: 'Open the animation screen', sub: 'The GIF across the screen at its own speed', value: 'Open', act: () => ui.open('ANIM') },
+                { title: 'Next GIF', sub: label(player.id), value: 'Next', act: () => apply({ type: 'next' }) },
+                { title: 'GPU renderer (mgu-renderd)', sub: gpuReady() ? 'Smooth, up to one frame per screen refresh' : 'Without it: a few frames a second',
+                    value: gpuReady() ? 'Connected' : 'Not running', act: () => setPanel(ASET) },
             ];
         }
-        const rowsFor = n => (n === WSET ? widgetRows() : n === ASET ? animRows() : []);
-        // the widget's shape (384 x 256), as large as the page allows
-        const WIDGET_BOX = { x: 500, y: 20, w: 600, h: 400 };
-        function drawFrameIn(cv, box) {
+        function animRows() {
+            return [
+                { title: 'Picture fit', sub: 'Widget and animation screen', value: optionLabel('fit'), act: () => cycleSetting('fit') },
+                { title: 'Animation speed', sub: 'Widget and animation screen', value: optionLabel('speed'), act: () => cycleSetting('speed') },
+                { title: 'Animation screen', sub: 'GPU renderer (mgu-renderd) · ' + (gpuReady() ? 'Connected' : 'Not running'),
+                    value: optionLabel('renderer'), act: () => cycleSetting('renderer') },
+                { title: 'Open the animation screen', sub: 'Previous / Next / Animation settings at the bottom', value: 'Open', act: () => ui.open('ANIM') },
+            ];
+        }
+        const rowsFor = n => (n === PREVIEW ? previewRows() : n === WSET ? widgetRows() : n === ANIMPAGE ? animPageRows() : n === ASET ? animRows() : []);
+        // the widget's shape (384 x 256)
+        const WIDGET_BOX = { x: 84, y: 100, w: 600, h: 400 }, ANIM_BOX = { x: 84, y: 104, w: 720, h: 400 };
+        let backdropKey = '';
+        function drawFrameIn(cv, box, still) {
             if (!player.gif || frame < 0) return false;
-            const gif = player.gif, img = gif.frames[frame];
-            const r = rectFor(gif.width, gif.height, box.x, box.y, box.w, box.h, settings.get('fit'));
-            setImage(PIXEL_IMAGE, gif.width, gif.height, img.data);
-            cv.image(PIXEL_IMAGE, r.x, r.y, r.w, r.h);
+            const gif = player.gif, img = gif.frames[still ? 0 : frame];
+            const r = rectFor(gif.width, gif.height, box.x, box.y, box.w, box.h, still ? 'cover' : settings.get('fit'));
+            const id = still ? BACK_IMAGE : PIXEL_IMAGE, key = player.id + ':' + (still ? 0 : frame);
+            if (!still || key !== backdropKey) { setImage(id, gif.width, gif.height, img.data); if (still) backdropKey = key; }
+            cv.image(id, r.x, r.y, r.w, r.h);
             return true;
         }
         async function render() {
@@ -311,56 +334,53 @@ mgu.run({
             if (phone.link && !upload.active) { clearQr(); phone.detail = 'QR session expired. Rescan to pair again.'; }
             const key = JSON.stringify([panel, row, logOffset, panel === PREVIEW || panel === ANIMPAGE ? frame : 0, player.id,
                 library.state.revision, panel === DIAG ? logVersion : 0, panel === PHONE ? [upload.phoneAt, upload.lastError, upload.lastRequest] : null,
-                panel === ASET || panel === ANIMPAGE ? [settings.get('fit'), settings.get('speed'), settings.get('renderer'), gpuReady()] : null]);
+                [settings.get('fit'), settings.get('speed'), settings.get('renderer'), gpuReady()], notice, library.error]);
             if (key === screenKey && !dirty) return;
             screenKey = key; dirty = false;
-            const cv = ctx.canvas(W, H).clear('#090b13');
-            const line = (s, y, x, size, ink) => cv.text(String(s).slice(0, x > 800 ? 44 : 112),
-                x || 40, y, size || 27, ink || '#d9e5f9');
+            const cv = ctx.canvas(W, H);
+            // the current GIF's first picture, dimmed, behind every page
+            backdrop(cv, W, H, (x, y, w, h) => drawFrameIn(cv, { x, y, w, h }, true));
+            header(cv, W, panels.slice(0, PAGES), panel < PAGES ? panel : -1, 'v' + ctx.spec.version);
             if (panel === PREVIEW) {
                 cv.fillRect(WIDGET_BOX.x, WIDGET_BOX.y, WIDGET_BOX.w, WIDGET_BOX.h, '#080911');
-                if (!drawFrameIn(cv, WIDGET_BOX)) line('No GIF', 230, 720);
-                line('Next item: next GIF · Select: pause / resume', 412, 40, 20, '#96acc4');
+                if (!drawFrameIn(cv, WIDGET_BOX)) cv.text('No GIF', WIDGET_BOX.x + WIDGET_BOX.w / 2, WIDGET_BOX.y + 210, 30, C.dim, { align: 'center' });
+                rows(cv, previewRows(), row, { x: 720, y: 96, w: 818 }, 92);
             }
-            if (panel === WSET || panel === ASET) {
-                const rows = rowsFor(panel), first = Math.floor(row / 7) * 7;
-                rows.slice(first, first + 7).forEach((entry, i) => line((row === first + i ? '> ' : '   ') + entry.text, 80 + i * 46));
-                line(panel === WSET
-                    ? library.state.playback.selected.length + ' selected GIFs · ' + eligible().length + ' in current mode'
-                    : 'GPU renderer (mgu-renderd) · ' + (gpuReady() ? 'Connected' : 'Not running'), 412, 40, 22, '#96acc4');
-            }
+            if (panel === WSET) rows(cv, widgetRows(), row, {}, 69);
             if (panel === ANIMPAGE) {
-                const box = { x: 760, y: 30, w: 800, h: 380 };
-                cv.fillRect(box.x, box.y, box.w, box.h, '#000000');
-                drawFrameIn(cv, box);
-                line('The GIF across the screen at its own speed', 110, 40, 27, '#ffffff');
-                line('Select: open the animation screen', 170, 40, 24);
-                line('Next item: next GIF', 215, 40, 24);
-                line('GPU renderer (mgu-renderd) · ' + (gpuReady() ? 'Connected' : 'Not running'), 290, 40, 22, '#96acc4');
+                cv.fillRect(ANIM_BOX.x, ANIM_BOX.y, ANIM_BOX.w, ANIM_BOX.h, '#000000');
+                drawFrameIn(cv, ANIM_BOX);
+                rows(cv, animPageRows(), row, { x: 840, y: 96, w: 698 }, 92);
             }
+            if (panel === ASET) rows(cv, animRows(), row, {}, 92);
             if (panel === PHONE) {
                 const target = upload.target;
-                line('HTTP server · ' + (upload.listening ? 'Running' : (upload.serverError || 'Not listening')), 91);
-                line('Network bridge · ' + (phone.bridge || 'Waiting'), 135);
-                line('Selected IP / Port · ' + (target ? target.ip + ':' + upload.port + ' (' + target.interface + ')' : 'None'), 179);
-                line('QR session · ' + (upload.active ? 'Active' : 'Expired / inactive'), 223);
-                line('Phone connection · ' + (upload.active && phone.ready && upload.phoneAt !== null ? 'Connected' : 'Not verified'), 267);
-                line('Last request · ' + (upload.lastRequest || 'Phone request not received'), 311, 40, 23);
-                line('Last error · ' + (upload.lastError || phone.detail || 'None'), 353, 40, 23, '#ffd4ad');
-                line(phone.export ? 'Scan to download diagnostic JSON' : phone.link ? 'Scan with iPhone Camera' : phone.detail, 399, 40, 23);
-                if (phone.qr) cv.blit(phone.qr, 1220, 65);
+                lines(cv, [
+                    ['HTTP server', upload.listening ? 'Running' : (upload.serverError || 'Not listening')],
+                    ['Network bridge', phone.bridge || 'Waiting'],
+                    ['Selected IP / Port', target ? target.ip + ':' + upload.port + ' (' + target.interface + ')' : 'None'],
+                    ['QR session', upload.active ? 'Active' : 'Expired / inactive'],
+                    ['Phone connection', upload.active && phone.ready && upload.phoneAt !== null ? 'Connected' : 'Not verified'],
+                    ['Last request', upload.lastRequest || 'Phone request not received'],
+                    ['Last error', upload.lastError || phone.detail || 'None', C.warn],
+                ], { x: 100, y: 136, w: 1000, split: 300, step: 46 });
+                const hint = phone.export ? 'Scan to download diagnostic JSON' : phone.link ? 'Scan with iPhone Camera' : phone.detail;
+                if (hint) cv.text(hint, 100, 474, 24, C.sub);
+                if (phone.qr) { cv.roundRect(1196, 104, 340, 340, 10, '#ffffff'); cv.blit(phone.qr, 1206, 114); }
+                else {
+                    cv.roundRect(1196, 104, 340, 340, 10, C.button);
+                    cv.text('Select: show the QR code', 1366, 280, 22, C.dim, { align: 'center' });
+                }
             }
             if (panel === DIAG) {
+                cv.text('Diagnostics', 100, 128, 30, C.text);
                 const entries = diag.entries().slice().reverse();
-                entries.slice(logOffset, logOffset + 8).forEach((entry, i) =>
-                    line(entry.time.slice(11, 19) + '  ' + entry.message, 80 + i * 38, 40, 22));
-                line(confirmClear ? 'Press Select again to clear the log' :
-                    'Next item pages the log. Select clears it. Export is available under Phone.', 412, 40, 22);
+                entries.slice(logOffset, logOffset + 7).forEach((entry, i) =>
+                    cv.text(String(entry.time.slice(11, 19) + '  ' + entry.message).slice(0, 112), 100, 176 + i * 40, 22, C.sub));
+                cv.text(confirmClear ? 'Press Select again to clear the log' :
+                    'Next item pages the log. Select clears it. Export is available under Phone.', 100, 480, 22, C.dim);
             }
-            cv.fillRect(0, H - 80, W, 80, [7, 9, 19, 235]);
-            line(panels[panel] + (panel < PAGES ? '  ' + (panel + 1) + '/' + PAGES : ''), H - 33, 40, 28, '#fff');
-            line(label(player.id) + '  |  ' + MODE_NAMES[MODES.indexOf(library.state.playback.mode)], H - 33, 480, 24);
-            if (notice || library.error) line(notice || library.error, H - 8, 480, 16, '#ffd4ad');
+            if (notice || library.error) cv.text(String(notice || library.error).slice(0, 110), 1530, 506, 18, C.warn, { align: 'right' });
             try { await ui.image('MAIN_GFX', cv); }
             catch (e) { record('Preview frame could not be sent to HMI'); dirty = true; throw e; }
         }
@@ -370,21 +390,17 @@ mgu.run({
         function nextRow() {
             if (panel === PHONE) return connect(phone.addresses.length > 1);
             if (panel === DIAG) {
-                logOffset = logOffset + 8 >= diag.entries().length ? 0 : logOffset + 8;
+                logOffset = logOffset + 7 >= diag.entries().length ? 0 : logOffset + 7;
                 confirmClear = false;
-            } else if (panel === PREVIEW || panel === ANIMPAGE) apply({ type: 'next' });
-            else row = (row + 1) % Math.max(1, rowsFor(panel).length);
+            } else row = (row + 1) % Math.max(1, rowsFor(panel).length);
             dirty = true;
         }
         function select() {
-            const p = library.state.playback;
             try {
-                if (panel === PREVIEW) apply({ type: 'playback', paused: !p.paused });
-                if (panel === WSET || panel === ASET) {
+                if (panel < PHONE) {
                     const entry = rowsFor(panel)[row];
-                    if (entry) entry.act();
+                    if (entry && entry.act) entry.act();
                 }
-                if (panel === ANIMPAGE) ui.open('ANIM');
                 if (panel === PHONE && upload.active && phone.ready && upload.phoneAt !== null) {
                     phone.export = !phone.export; refreshQr();
                 } else if (panel === PHONE) return connect(false);

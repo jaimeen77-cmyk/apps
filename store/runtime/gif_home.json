@@ -3,9 +3,9 @@
   "id": "gif_home",
   "language": "ko",
   "source_version": "0.4.1",
-  "ui_sha256": "3144fa28b491714e06df4d198f52edbb21d62e27adc12f3c5ce9e5c560f6b2b0",
-  "size": 1136049,
-  "sha256": "bcb8b4096eeb073faa30ef53227d9892c67e60ea8e3657ff21359f206d43e4d9",
+  "ui_sha256": "7acd32f0afb213b9d4390df101c6bca0624f1fc56bd4bc215113582c3c92204d",
+  "size": 1136275,
+  "sha256": "3feb134b29d4a2555df3801c999841195410926b92e54a41a6792b5c5b83b72d",
   "parts": [
     "gif_home.tgz.part-00",
     "gif_home.tgz.part-01",

@@ -7,7 +7,7 @@ function phone() {
     var nav = typeof navigator !== 'undefined' ? navigator : {};
     var KO = [].concat(nav.languages || [], nav.language || []).some(function (l) { return /^ko(?:-|$)/i.test(String(l)); });
     var WORDS = {
-        'GIF Home': 'GIF 홈', 'Connecting to MGU…': 'MGU에 연결하는 중…', 'Playing': '재생 중',
+        'GIF Home': 'GIF 플레이어', 'Connecting to MGU…': 'MGU에 연결하는 중…', 'Playing': '재생 중',
         'GIF library': 'GIF 라이브러리', 'Choose GIFs': 'GIF 고르기', 'Upload': '업로드',
         'Delete marked uploads': '표시한 업로드 삭제', 'Groups': '그룹', 'Create group': '그룹 만들기',
         'Playback': '재생', 'Connection': '연결', 'Extend session': '세션 연장',

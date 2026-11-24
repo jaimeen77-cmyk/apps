@@ -10,7 +10,7 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'ko-gif-terminal-test-'));
 const HANGUL = /[가-힣]/;
 
 const APPS = [
-    { template: 'gif_home', id: 'gif_home_ko', title: 'GIF 홈', widget: true,
+    { template: 'gif_home', id: 'gif_home_ko', title: 'GIF 플레이어', widget: true,
       lines: { 'Mode · Random – Selected GIFs': '모드 · 무작위 – 선택한 GIF', 'HTTP server · Running': 'HTTP 서버 · 실행 중',
           'Phone connection · Not verified': '휴대폰 연결 · 확인 안 됨', 'Tap to open': '눌러서 열기',
           '[x] Pixel drive: Sunset  · Playing': '[x] 픽셀 드라이브: 노을  · 재생 중', 'Widget preview  1/5': '위젯 미리보기  1/5',

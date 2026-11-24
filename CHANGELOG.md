@@ -8,6 +8,8 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - **Five pages**: 위젯 미리보기 → 위젯 설정 (the phone page's playback settings, and each GIF in or out of the selected list; the Library page is merged into it) → 애니메이션 → 애니메이션 설정 (picture fit, speed, GPU renderer / without) → 휴대폰 연결. Diagnostics left the page cycle and opens with its button. Widget and animation share one playback setting.
 - The **renderer** setting is now the Animation screen's (default GPU renderer); the main pages stay on the HMI's own drawing. The template's kit `display.js` serves the screen marked `"gpu": true` (`tools/prepare-upstream-apps.py`).
 - The bullet before "재생 중" was a character the Korean font lacks (drawn as "?"): now `·`. `tests/gif-home-ko.test.js` checks every non-ASCII character `main.js` draws against the font; `tests/gif-home-animation.test.js` is new.
+- **Renamed GIF 플레이어** (car menu, widget, phone page, Store listing).
+- **New look for the pages** (`look.js`, GIF Home's own drawing code in the style of the owner's other apps' settings): the five pages as tabs on top with the version, rows as cards with a value button on the right, the row the controller is on lit with a red bar, the current GIF dimmed behind. **다음 항목** moves between the rows on every page but Phone connection and Diagnostics; **선택** presses the row's button.
 - Not yet checked on the car: the GPU drawing of the Animation screen, its sheet and buttons.
 
 ## Phone Terminal removed
