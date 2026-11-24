@@ -202,6 +202,8 @@ class SettingsPage{
  }
  draw(cv,status,liveState){
   this.liveState=liveState||null;
+  // My picture's previews read the GIFs from the app's data folder (my-picture.js), once the layout is chosen
+  if(this.dataDir&&!this.myPictureDir&&['hud','cluster'].some(d=>this.config()[d+'Design']==='rl-mypic')){this.myPictureDir=true;require('./my-picture').setDir(this.dataDir);}
   const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);{const B=require('./settings-bg');B.paint(cv,W,H,B.left(cv),B.top(cv,cv.chrome?0:80));}
   const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
   // 'Favorites' is not in the kit's own catalogue: its Korean comes from strings.js.
@@ -766,6 +768,10 @@ class SettingsPage{
   cv.text(group.length?group.length+' '+t('selected')+' · '+tr(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});
   cv.text(nav||uniform?'Width and height scale together.':'Width / height difference limited to 30%.',790,432,18,'#a8b6c8');
+  // My picture: whether each of its three GIFs is read (my-picture.js), what is wrong with one that is not
+  if(!nav&&RL.style(cfg,display)==='mypic'){const MP=require('./my-picture');MP.scan(Date.now());const why={missing:'missing',too_large:'too large',too_big:'too big'};
+   const line=MP.status().map(s=>s.name+'.gif '+(s.ok?s.w+'×'+s.h+' '+s.frames+' '+tr('frames'):tr(why[s.error]||'unreadable'))).join(' · ');
+   cv.text(tr('My GIFs')+': '+line,790,500,17,'#ffad45',{literal:true});}
   const hidden=group.length&&group.every(p=>cfg[this.layoutPrefix(p)+'Hidden']);
   const marks=!nav&&group.some(p=>/^Mark/.test(p.key));
   const mMark=!nav&&parts.some(p=>p.key==='RlMark'),markOn=mMark&&!cfg[display+'RlMarkHidden'];
