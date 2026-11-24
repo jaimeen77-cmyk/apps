@@ -13,7 +13,7 @@ const gear = require('./gear');
 const guidance = require('./guidance');
 const {NativeNavigation} = require('./native-navigation');
 const {AuxInfo,SOURCES,auxOf}=require('./aux-info');
-const D=require('./display-config'),{navAllowed,auxConfig,rpmOutput,clockText,sportMode}=D;
+const D=require('./display-config'),{navAllowed,auxConfig,rpmOutput,clockText,sportMode,carMeterFaces}=D;
 const {BatteryVoltage}=require('./battery-voltage');
 const {PROJECTED} = require('./projection-config');
 const {HudGuidance,INTERFACE:HUD_GUIDANCE,INSTANCE:HUD_INSTANCE,METHODS:HUD_METHODS}=require('./hud-guidance');
@@ -325,7 +325,9 @@ function start(ctx) {
                 // A subscribed value (the exterior temperature) is kept across a provider gap, as eDrive keeps it.
                 if(!available){if(!entry.notifyOnly)auxInfo.clearSource(source,'unavailable');return;}
                 if(!wanted&&!entry.notifyOnly){auxInfo.clearSource(source);return;}
-                if(entry.notifyOnly||!wanted||!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<source.pollMs)return;
+                // the Car picture follows the G: its two sources are read more often while it is shown
+                const pollMs=source.carPollMs&&carMeterFaces(config).length?source.carPollMs:source.pollMs;
+                if(entry.notifyOnly||!wanted||!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<pollMs)return;
                 entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;
                 Promise.resolve().then(()=>sub.proxy.getValue(source.field,1000)).then(value=>{
                     if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.sample(source,value,mono());
@@ -333,6 +335,10 @@ function start(ctx) {
             });
             const voltageWanted=live&&neededAux.has('batteryVoltage');
             batteryVoltage.tick(at,voltageWanted,controller.policy.rpm>0&&controller.policy.rpmAt!==null&&at-controller.policy.rpmAt<=2500);controller.aux=Object.assign(auxInfo.read(at),{batteryVoltage:batteryVoltage.read(at)},neededAux.has('clock')?{clock:clockText(config)}:{});
+            // The G-force meter's Car picture (car-meter.js): the car's state (held against noise) and frame, per display
+            const carFaces=carMeterFaces(config);
+            if(carFaces.length){const CM=require('./car-meter'),stage=require('./redline-hud').gearOf(gearbox.gear).stage,g={lat:controller.aux.gLat,long:controller.aux.gLong};
+                controller.aux.car={};carFaces.forEach(d=>{controller.aux.car[d]=CM.frameOf(d,g,stage,at);});}
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
             if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
             Object.keys(PROJECTED).forEach((provider)=>{

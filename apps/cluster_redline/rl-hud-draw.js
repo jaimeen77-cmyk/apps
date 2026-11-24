@@ -421,6 +421,10 @@ function scaled(r, k, ox, oy) {
         line: (xa, ya, xb, yb, w, c) => r.line(X(xa), Y(ya), X(xb), Y(yb), w * k, c),
         text: (s, x, y, size, c, o) => r.text(s, X(x), Y(y), size * k, c, o && o.spacing ? Object.assign({}, o, { spacing: o.spacing * k }) : o),
         textWidth: (s, size, o) => r.textWidth(s, size * k, o && o.spacing ? Object.assign({}, o, { spacing: o.spacing * k }) : o) / k,
+        // the G-force meter's Car picture (car-meter.js): frame f in the box x, y, w x h
+        // room an element keeps without drawing in it (measured by redline-hud.js bounds only)
+        reserve: (x, y, w, h) => { if (typeof r.reserve === 'function') r.reserve(X(x), Y(y), w * k, h * k); },
+        picture: (f, x, y, w, h) => (typeof r.picture === 'function' ? r.picture(f, X(x), Y(y), w * k, h * k) : require('./car-meter').draw(r, f, X(x), Y(y), w * k, h * k)),
     };
 }
 

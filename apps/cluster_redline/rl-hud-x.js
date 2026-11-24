@@ -406,7 +406,43 @@ function drawTyres(cv,f,h){
  }
  void ko;
 }
-const DRAW={shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
+// Car (cluster only): a big picture of a car seen from behind at night in the middle, doing what the car does
+// (car-meter.js: driving on, flames when accelerating, brake lamps, a drift either way, reversing); a slim rpm
+// bar under it, the gear on the left, the rpm on the right, and along the bottom a small G meter and up to four
+// readouts (power, torque, G, ... as chosen; two with bars in gauge mode).
+// The drive mode colours it (as the Sport dial): Sport red with a neon frame round the picture, Comfort blue, Eco sky blue.
+const CAR={x:254,y:8,w:580,h:326};
+function carMode(drive){const m=String(drive||''),ko=language()==='ko';
+ if(/SPORT/.test(m))return {sport:true,word:/PLUS/.test(m)?(ko?'스포츠+':'SPORT+'):(ko?'스포츠':'SPORT')};
+ if(/ECO/.test(m))return {sport:false,word:ko?'에코 프로':'ECO PRO'};return {sport:false,word:m?(ko?'컴포트':'COMFORT'):''};}
+function drawCar(cv,f,h){
+ const d=f.d,max=f.max,q=cue(f),g=f.g||{},th=sdTheme(f.drive),dm=carMode(f.drive),main=rgbA(th.main,255);
+ if(want(f,'carpic')){if(cv.reserve)cv.reserve(CAR.x-10,CAR.y-6,CAR.w+20,CAR.h+12);if(f.car&&typeof cv.picture==='function')cv.picture(f.car,CAR.x,CAR.y,CAR.w,CAR.h);
+  // a frame in the drive mode's colour: a glowing neon one in Sport, a thin line otherwise (none on the HUD,
+  // where the car stands alone on the glass)
+  if(!(f.car&&f.car.set==='hud')){const x0=CAR.x-4,y0=CAR.y-2,x1=CAR.x+CAR.w+4,y1=CAR.y+CAR.h+2,c=18,fr=[[x0+c,y0],[x1-c,y0],[x1,y0+c],[x1,y1-c],[x1-c,y1],[x0+c,y1],[x0,y1-c],[x0,y0+c],[x0+c,y0]];
+  (dm.sport?[[12,rgbA(th.main,30)],[6,rgbA(th.main,70)],[2.4,rgbA(th.trim,255)]]:[[2,rgbA(th.main,150)]]).forEach(([w,col])=>cv.polyline(fr,w,col));}}
+ if(want(f,'gauge')){
+  // slim segmented rpm bar: the drive mode's colour in Sport (white otherwise), then the count-in colours, flashing at the shift point
+  const n=40,pitch=CAR.w/n,r=isNum(d.rpm)?clamp(d.rpm,0,max):0,lo=dm.sport?main:'#e8edf3';
+  for(let i=0;i<n;i++){const v=(i+0.5)/n*max,on=v<=r,col=v>=f.redline?h.P.high:v>=f.cue.from?h.P.mid:lo,fl=on&&q.flash;
+   cv.fillRect(CAR.x+i*pitch+1,346,pitch-3,14,fl?(q.on?h.P.flash:C.off):on?col:v>=f.redline?C.redDim:C.off);}
+ }
+ if(want(f,'gear')){cv.text(language()==='ko'?'기어':'GEAR',128,92,24,dm.sport?main:C.dim,{align:'center',font:'bold',literal:true});cv.text(h.gearText(d),128,246,150,C.text,{align:'center',font:h.gearFont(f.opts)});}
+ if(want(f,'mode')){if(f.mode)cv.text(f.mode,196,128,34,C.accent,{font:'bold'});
+  // the drive mode spelt out under the rpm, in its colour
+  if(dm.word)cv.text(dm.word,960,270,dm.sport?36:28,main,{align:'center',font:'bold',literal:true,spacing:dm.sport?3:1});}
+ if(want(f,'rpm')){cv.text(rpmText(d),960,176,64,q.flash&&q.on?h.P.flash:dm.sport?main:C.text,{align:'center',font:'bold'});cv.text('rpm',960,214,24,C.dim,{align:'center',font:'bold',literal:true});}
+ if(want(f,'gmeter')){const cx=128,cy=416;ring(cv,cx,cy,54,3,'#2a3039');ring(cv,cx,cy,27,2,'#1f252d');cv.line(cx-54,cy,cx+54,cy,2,'#1f252d');cv.line(cx,cy-54,cx,cy+54,2,'#1f252d');
+  const lat=isNum(g.lat)?clamp(g.lat,-1.2,1.2):0,lon=isNum(g.long)?clamp(g.long,-1.2,1.2):0;cv.circle(cx+lat*48,cy-lon*48,9,'#ffd522');
+  cv.text(isNum(g.total)?g.total.toFixed(2)+' G':'-- G',cx,346,26,'#ffd522',{align:'center',font:'bold'});}
+ const list=f.readouts||[],gauges=list.length&&list[0].gauge,n=gauges?2:4,x0=250,w=(1068-x0)/n;
+ for(let i=0;i<n;i++){const it=list[i],id='read'+'ABCD'[i];if(!want(f,id)||!it)continue;const mid=x0+w*(i+0.5);
+  cv.text(it.label,mid,404,24,C.dim,{align:'center',font:'bold'});
+  cv.text(it.value,mid,gauges?446:458,gauges?42:50,it.tone==='hot'?'#ff5a3a':it.tone==='cold'?'#5ab0ff':C.text,{align:'center',font:'bold'});
+  if(gauges&&gb(it)){if(isTemp(it))thermo(cv,mid-150,464,300,10,it.frac,it.tone==='hot'?h.P.high:h.P.low,{glass:C.soft});else slants(cv,mid-150,458,300,14,16,6,it.frac,(k,m)=>k>=m-3?h.P.high:h.P.low,null,3);}}
+}
+const DRAW={car:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX};
