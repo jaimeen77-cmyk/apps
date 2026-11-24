@@ -1,18 +1,19 @@
 'use strict';
-// Car picture in place of the G-force meter's dot (G-force + RPM rings layout, "Car picture" on the
-// G-force meter's Position / size screen): a car seen from behind at night that follows the car's own G.
+// The Car layout's picture: a car seen from slightly above and behind at night that does what the car does,
+// from its own G, gear and speed.
 //   reverse gear: reversing lamps lit         standing still: the road still, the engine idling
 //   braking: brake lamps lit, the nose dipping
-//   cornering: the tail sliding out, smoke     accelerating: flames from the exhaust
+//   cornering (three steps): a lean, the tail stepping out, a full drift   accelerating: flames from the exhaust
 //   otherwise: driving straight on
-// The frames (car-meter-frames.js) are original drawings, small palette images; each state's frames are
-// unpacked on first use and scaled to the element's size once (kept while that state and size last).
+// A new state fades in over the old one (FADE_MS), so a change does not jump.
+// The frames (car-meter-frames.js, tools/car-meter/) are original drawings, small palette images; each state's
+// frames are unpacked on first use and scaled to the element's size once (kept while that state and size last).
 const zlib=require('zlib');
 const isNum=x=>typeof x==='number'&&isFinite(x);
 // G thresholds. Lateral G is positive to the left (ISO 8855, as the meter's dot is drawn). Cornering has three
 // steps (TURN): leaning into the bend, the tail stepping out with a little smoke, a full drift.
 const TH={brake:-0.18,accel:0.12,turn:0.10},TURN=[0.10,0.25,0.35];
-const HOLD_MS=400,CONFIRM_MS=150,FPS=10;
+const HOLD_MS=400,CONFIRM_MS=150,FPS=10,FADE_MS=300,FADE_STEPS=6;
 // Two sets: the cluster's (the car on a night road) and the HUD's (the car alone on black, which is clear on the
 // glass), each loaded on first use.
 const data={};
@@ -46,17 +47,26 @@ function pick(display,g,stage,now,speed){
  if(now-m.candSince>=CONFIRM_MS&&now-m.since>=HOLD_MS){m.cur=w;m.since=now;m.cand=null;}
  return m.cur;
 }
-// The frame to show on a display: {state, mirror, i, set} (set: the HUD's own pictures on the HUD).
+// The frame to show on a display: {state, mirror, i, set} (set: the HUD's own pictures on the HUD); for FADE_MS
+// after a change also from: the old picture (still moving) and t (0..1, in FADE_STEPS steps): how far the new one
+// has faded in.
 function frameOf(display,g,stage,now,speed){
- const s=look(pick(display,g,stage,now,speed)),set=display==='hud'?'hud':'cluster',n=frames(set).N;
- return {state:s.state,mirror:s.mirror,i:Math.floor(now*FPS/1000)%n,set};
+ const s=look(pick(display,g,stage,now,speed)),set=display==='hud'?'hud':'cluster',n=frames(set).N,m=shown[display];
+ const key=s.state+(s.mirror?'<':''),i=Math.floor(now*FPS/1000)%n;
+ if(m.lookKey!==key){if(m.lookKey)m.fade={from:m.look,at:now};m.lookKey=key;m.look=s;}
+ const out={state:s.state,mirror:s.mirror,i,set};
+ if(m.fade&&now-m.fade.at<FADE_MS){
+  out.from={state:m.fade.from.state,mirror:m.fade.from.mirror,i,set};
+  out.t=Math.max(1,Math.min(FADE_STEPS-1,Math.ceil((now-m.fade.at)/FADE_MS*FADE_STEPS)))/FADE_STEPS;
+ }else m.fade=null;
+ return out;
 }
 function reset(){Object.keys(shown).forEach(k=>delete shown[k]);}
 // One frame as RGBA at w x h (bilinear), its edges fading out into the dark cluster.
 const scaledCache=new Map();
 function rgba(f,w,h){
  const key=(f.set||'cluster')+'|'+f.state+'|'+(f.mirror?1:0)+'|'+w+'|'+h;let list=scaledCache.get(key);
- if(!list){if(scaledCache.size>=4)scaledCache.clear();list=[];scaledCache.set(key,list);}
+ if(!list){if(scaledCache.size>=6)scaledCache.clear();list=[];scaledCache.set(key,list);}   // (a fade on each display: 4)
  if(list[f.i])return list[f.i];
  const D=frames(f.set),sw=D.W,sh=D.H,src=D.states[f.state],off=f.i*sw*sh,pal=D.pal,out=new Uint8ClampedArray(w*h*4);
  const fade=Math.max(1,Math.round(Math.min(w,h)*0.14)),hud=f.set==='hud';
@@ -79,7 +89,12 @@ function rgba(f,w,h){
 // Draws frame f into r (a kit Canvas, or anything with blit) at x, y (pixels), w x h.
 function draw(r,f,x,y,w,h){
  x=Math.round(x);y=Math.round(y);w=Math.round(w);h=Math.round(h);if(w<2||h<2)return;
- const px=rgba(f,w,h);
+ let px=rgba(f,w,h);
+ // fading from the old picture: the two mixed (colour weighted by each one's cover, so edges stay soft)
+ if(f.from&&f.t>0&&f.t<1){const a=rgba(f.from,w,h),b=px,t=f.t,mix=new Uint8ClampedArray(b.length);
+  for(let p=0;p<b.length;p+=4){const wa=a[p+3]*(1-t),wb=b[p+3]*t,al=wa+wb;if(!al)continue;
+   mix[p]=(a[p]*wa+b[p]*wb)/al;mix[p+1]=(a[p+1]*wa+b[p+1]*wb)/al;mix[p+2]=(a[p+2]*wa+b[p+2]*wb)/al;mix[p+3]=al;}
+  px=mix;}
  if(r.d&&isNum(r.w)&&isNum(r.h)){
   const dd=r.d,dw=r.w,x0=Math.max(0,x),x1=Math.min(r.w,x+w),y0=Math.max(0,y),y1=Math.min(r.h,y+h);
   for(let yy=y0;yy<y1;yy++)for(let xx=x0;xx<x1;xx++){
@@ -92,4 +107,4 @@ function draw(r,f,x,y,w,h){
  }
  if(typeof r.blit==='function'){const {Canvas}=require('./kit/canvas'),c=new Canvas(w,h);c.d.set(px);r.blit(c,x,y);}
 }
-module.exports={TH,TURN,want,look,pick,frameOf,reset,draw,frames,FPS};
+module.exports={TH,TURN,want,look,pick,frameOf,reset,draw,frames,FPS,FADE_MS};

@@ -75,6 +75,20 @@ assert(diff(right,left,pic)>pic.w*pic.h*0.1,'left and right differ');
 assert(diff(cruise0,draw(st(car('brake'))),pic)>200,'braking lights the brake lamps');
 assert.notStrictEqual(K.key(st(car('cruise',0)),'cluster'),K.key(st(car('cruise',1)),'cluster'),'a new frame repaints');
 {const keys=RL.keys(st(car('cruise',0)),'cluster'),keys2=RL.keys(st(car('cruise',1)),'cluster');assert.notStrictEqual(keys('carpic'),keys2('carpic'));assert.strictEqual(keys('gear'),keys2('gear'),'only the picture tile repaints');}
+// a change fades: for 300 ms the old picture (still moving) under the new one fading in, in six steps
+{CM.reset();const G0={lat:0,long:0},GB={lat:0,long:-0.4};
+ let f=CM.frameOf('fade',G0,'D',0,30);assert(!f.from,'no fade at the start');
+ CM.frameOf('fade',GB,'D',1000,30);f=CM.frameOf('fade',GB,'D',1200,30);assert.strictEqual(f.state,'brake');assert.deepStrictEqual([f.from.state,f.t],['cruise',1/6],'just changed: mostly the old picture');
+ f=CM.frameOf('fade',GB,'D',1350,30);assert(f.from&&f.t===0.5,'half way');assert.strictEqual(f.from.i,f.i,'the old picture keeps moving');
+ f=CM.frameOf('fade',GB,'D',1499,30);assert(f.from&&f.t===5/6);
+ f=CM.frameOf('fade',GB,'D',1500,30);assert(!f.from&&f.t===undefined,'done after 300 ms');
+ f=CM.frameOf('fade',{lat:-0.5,long:0},'D',2000,30);f=CM.frameOf('fade',{lat:-0.5,long:0},'D',2200,30);assert.deepStrictEqual([f.state,f.from.state],['turn3','brake']);
+ f=CM.frameOf('fade',{lat:0.5,long:0},'D',2800,30);f=CM.frameOf('fade',{lat:0.5,long:0},'D',3000,30);assert.deepStrictEqual([f.state,f.mirror,f.from.state,f.from.mirror],['turn3',true,'turn3',false],'a right drift to a left one fades too');
+ // drawn: between the two pictures, and each step repaints
+ const half=draw(st({car:{cluster:{state:'brake',mirror:false,i:0,set:'cluster',from:{state:'turn3',mirror:false,i:0,set:'cluster'},t:0.5}}})),A=draw(st(car('turn3'))),B=draw(st(car('brake')));
+ assert(diff(half,A,pic)>200&&diff(half,B,pic)>200,'a mix of both');
+ const k1=RL.keys(st({car:{cluster:{state:'brake',i:0,set:'cluster',from:{state:'turn3',i:0,set:'cluster'},t:0.5}}}),'cluster')('carpic'),k2=RL.keys(st({car:{cluster:{state:'brake',i:0,set:'cluster',from:{state:'turn3',i:0,set:'cluster'},t:4/6}}}),'cluster')('carpic');assert.notStrictEqual(k1,k2,'each fade step repaints');
+ if(process.env.CAR_METER_PREVIEW){const p=new Canvas(half.w,half.h);p.clear('#05070b');p.blit(half,0,0);fs.writeFileSync(path.join(path.resolve(process.env.CAR_METER_PREVIEW),'fade-half.png'),p.png());}}
 // the drive mode colours it: Sport red (neon frame, rpm bar, the word SPORT), Comfort blue, Eco sky blue
 {const red=(im,r)=>{let n=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++){const i=(y*im.w+x)*4;if(im.d[i+3]&&im.d[i]>150&&im.d[i+1]<90&&im.d[i+2]<90)n++;}return n;};
  const blue=(im,r)=>{let n=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++){const i=(y*im.w+x)*4;if(im.d[i+3]&&im.d[i+2]>150&&im.d[i]<120)n++;}return n;};
