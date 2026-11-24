@@ -8,7 +8,7 @@ GIF 홈은 움직이는 GIF를 BMW iDrive 7 홈 화면의 큰 위젯에 재생�
 
 원본은 [NamelsMissing/mgu-apps](https://github.com/NamelsMissing/mgu-apps)의 GIF Home(GPL-3.0)이고,
 이 판은 차량 화면·설정·휴대폰 페이지를 한국어로 옮긴 수정본입니다. 라이선스는
-[NOTICE](NOTICE)와 [저장소 안내](../../NOTICE.gif-home-phone-terminal.md)를 보세요.
+[NOTICE](NOTICE)와 [저장소 안내](../../NOTICE.gif-home.md)를 보세요.
 
 ## 설치
 
@@ -103,6 +103,6 @@ GIF는 앱 데이터 폴더의 `gifs/`에, 목록·그룹·재생 설정은 `lib
 한국어 템플릿: `python tools/prepare-upstream-apps.py --kit-root <appsKOR 체크아웃> --kit-commit <커밋> gif_home`
 (Windows 체크아웃이면 먼저 `localization/ko-additions.tsv`를 LF로 바꿔야 합니다. 도구가 확인합니다).
 차량에서는 MGU Store가 `tools/store-build.js`로 현재 `apps/gif_home/` 소스와 템플릿을 합쳐 설치합니다.
-검사: `node tests/gif-home-phone-terminal-ko.test.js`(PowerShell), 원본 검사 `tests/gif_home_*.test.js`.
+검사: `node tests/gif-home-ko.test.js`(PowerShell), 원본 검사 `tests/gif_home_*.test.js`.
 
 QR 생성기는 Kazuhiko Arase의 QR Code Generator(MIT, 2009)입니다. [LICENSE](LICENSE)를 보세요.

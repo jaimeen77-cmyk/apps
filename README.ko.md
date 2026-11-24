@@ -39,7 +39,6 @@ ID8에서도 Store 목록을 숨기지 않도록 카탈로그의 HMI 필터를 �
 | Circuit 사용 | [회로 퍼즐](apps/idrive_circuit/README.ko.md) | [Circuit](apps/idrive_circuit/README.md) |
 | 8게임즈 | [8게임즈](apps/parked_games/README.ko.md) | — |
 | GIF 홈 (휴대폰으로 GIF 올리기) | [GIF 홈](apps/gif_home/README.ko.md) | [GIF Home](apps/gif_home/README.md) |
-| 폰 터미널 | [폰 터미널](apps/mgu_phone_terminal/README.ko.md) | [Phone Terminal](apps/mgu_phone_terminal/README.md) |
 
 MGU Store에서 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가하고 새로고침한 뒤 한국어 또는 English판을 설치하세요. 레드라인은 `cluster-render` **0.4.0 이상**이 필요합니다. 기존 설치는 Installed에서 업데이트하고 앱 상단 **v1.2.5**을 확인하세요. 한국어·영어판을 함께 설치했다면 사용하지 않는 판의 앱 실행과 자동 시작을 끕니다.
 
