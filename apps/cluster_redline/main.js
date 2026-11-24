@@ -64,7 +64,6 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
         greet: (name, change) => require('./driver-greeting').driver(name, change), active: (on) => require('./driver-greeting').setEnabled(on),
         applied: () => { if (page.bcFollow) page.bcFollow.show(); } });
     page.driverStatus = () => drivers.status();
-    page.dataDir = ctx.dataDir;   // (My picture's GIFs for the settings previews: <data>/my-pictures/)
     // The BC button check (bc-diag.js): read once its screen is opened, redrawn on every change
     const bcDiag = new (require('./bc-diag').BcDiag)({ signals: ctx.signals, log: ctx.log, changed: () => queue.request() });
     page.bcDiag = bcDiag;

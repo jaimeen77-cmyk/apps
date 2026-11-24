@@ -442,7 +442,7 @@ function drawCar(cv,f,h){
   cv.text(it.value,mid,gauges?446:458,gauges?42:50,it.tone==='hot'?'#ff5a3a':it.tone==='cold'?'#5ab0ff':C.text,{align:'center',font:'bold'});
   if(gauges&&gb(it)){if(isTemp(it))thermo(cv,mid-150,464,300,10,it.frac,it.tone==='hot'?h.P.high:h.P.low,{glass:C.soft});else slants(cv,mid-150,458,300,14,16,6,it.frac,(k,m)=>k>=m-3?h.P.high:h.P.low,null,3);}}
 }
-const DRAW={car:drawCar,mypic:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
+const DRAW={car:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX};

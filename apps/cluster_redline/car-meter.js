@@ -78,7 +78,6 @@ function rgba(f,w,h){
 }
 // Draws frame f into r (a kit Canvas, or anything with blit) at x, y (pixels), w x h.
 function draw(r,f,x,y,w,h){
- if(f&&f.mine){require('./my-picture').draw(r,f,x,y,w,h);return;}   // the My picture layout's own GIF
  x=Math.round(x);y=Math.round(y);w=Math.round(w);h=Math.round(h);if(w<2||h<2)return;
  const px=rgba(f,w,h);
  if(r.d&&isNum(r.w)&&isNum(r.h)){

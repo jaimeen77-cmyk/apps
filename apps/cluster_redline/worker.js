@@ -98,8 +98,6 @@ function start(ctx) {
     hudGuidance.onEvent=(event,decoded)=>navProbe.turn('hud',maneuvers.provider,event,drawnOf(decoded));
     const lanes=new LaneGuidance(mono);
     const traffic=new TrafficSigns(),trafficSubs=[];let carSpeed={v:null,at:null};   // (carSpeed: the Car layout's own copy of the speed)
-    // My picture's GIFs go in <data>/my-pictures/ (made here, so tools/my-pictures.js finds it; my-picture.js loads with the layout)
-    if(ctx.dataDir){try{fs.mkdirSync(path.join(ctx.dataDir,'my-pictures'));}catch(e){}}
     // the HUD headway badge (lead-vehicle.js): made once the manifest's instances can be read, below
     let lead=null;const headwayOverlay=new HeadwayOverlay(client);
     const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',greetingNow=null;
@@ -330,7 +328,7 @@ function start(ctx) {
                 if(!available){if(!entry.notifyOnly)auxInfo.clearSource(source,'unavailable');return;}
                 if(!wanted&&!entry.notifyOnly){auxInfo.clearSource(source);return;}
                 // the Car picture follows the G: its two sources are read more often while it is shown
-                const pollMs=source.carPollMs&&carMeterFaces(config).some(d=>config[d+'Design']==='rl-car')?source.carPollMs:source.pollMs;
+                const pollMs=source.carPollMs&&carMeterFaces(config).length?source.carPollMs:source.pollMs;
                 if(entry.notifyOnly||!wanted||!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<pollMs)return;
                 entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;
                 Promise.resolve().then(()=>sub.proxy.getValue(source.field,1000)).then(value=>{
@@ -339,13 +337,11 @@ function start(ctx) {
             });
             const voltageWanted=live&&neededAux.has('batteryVoltage');
             batteryVoltage.tick(at,voltageWanted,controller.policy.rpm>0&&controller.policy.rpmAt!==null&&at-controller.policy.rpmAt<=2500);controller.aux=Object.assign(auxInfo.read(at),{batteryVoltage:batteryVoltage.read(at)},neededAux.has('clock')?{clock:clockText(config)}:{});
-            // The Car layout's picture (car-meter.js: the car's state, held against noise, and frame) or My picture's
-            // GIFs (my-picture.js: stop / drive / reverse, the folder looked at every 5 s), per display
+            // The G-force meter's Car picture (car-meter.js): the car's state (held against noise) and frame, per display
             const carFaces=carMeterFaces(config);
-            if(carFaces.length){const CM=require('./car-meter'),MP=require('./my-picture'),stage=require('./redline-hud').gearOf(gearbox.gear).stage,g={lat:controller.aux.gLat,long:controller.aux.gLong};
+            if(carFaces.length){const CM=require('./car-meter'),stage=require('./redline-hud').gearOf(gearbox.gear).stage,g={lat:controller.aux.gLat,long:controller.aux.gLong};
                 const speed=carSpeed.at!==null&&at-carSpeed.at<=2000?carSpeed.v:null;   // (a speed older than 2 s is not known)
-                if(carFaces.some(d=>config[d+'Design']==='rl-mypic')){if(!MP.folder()&&ctx.dataDir)MP.setDir(ctx.dataDir);MP.scan(at);}
-                controller.aux.car={};carFaces.forEach(d=>{controller.aux.car[d]=config[d+'Design']==='rl-mypic'?MP.frameOf(d,stage,speed,at):CM.frameOf(d,g,stage,at,speed);});}
+                controller.aux.car={};carFaces.forEach(d=>{controller.aux.car[d]=CM.frameOf(d,g,stage,at,speed);});}
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
             if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
             Object.keys(PROJECTED).forEach((provider)=>{
