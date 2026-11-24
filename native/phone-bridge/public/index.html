@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#090f1b">
+  <title>MGU Phone Terminal</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/client.js" defer></script>
+</head>
+<body>
+  <main>
+    <header class="heading">
+      <div class="brand"><span class="brand-icon">&gt;_</span><div><h1>Phone Terminal</h1><p>MGU / iDrive 7</p></div></div>
+      <span class="pill" id="state">Not connected</span>
+    </header>
+    <section class="notice"><strong>Root terminal.</strong> Commands execute directly on the car's head unit. Work only while parked. Incorrect commands can disable the MGU. The session stays active until Disconnect, Revoke Access on iDrive, or a head unit restart.</section>
+    <section class="panel" id="pair-panel">
+      <h2>Connect your phone</h2>
+      <p id="pair-message">Start a new session in the Phone Terminal app on the car, then scan its QR code.</p>
+    </section>
+    <section class="panel hidden" id="terminal-panel">
+      <div class="terminal-top"><div><h2>Terminal</h2><p>Non-interactive commands · max. 15 s each</p></div><button id="disconnect" class="secondary">Disconnect</button></div>
+      <div class="shortcuts" aria-label="Read-only commands">
+        <button type="button" data-cmd="id">id</button>
+        <button type="button" data-cmd="uname -a">uname -a</button>
+        <button type="button" data-cmd="df -h">df -h</button>
+        <button type="button" data-cmd="ip -4 addr">IP addresses</button>
+      </div>
+      <div class="field-heading"><label for="command">Shell command</label><button id="clear-command" type="button" class="text-button">Clear command</button></div>
+      <textarea id="command" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="e.g. ls -la /var/opt/public/oap"></textarea>
+      <div class="actions"><span id="hint">Commands execute as root.</span><button id="run">Run command</button></div>
+      <div class="field-heading"><label for="output">Output</label><button id="copy-output" type="button" class="text-button">Copy output</button></div>
+      <pre id="output" role="log" aria-live="polite">Ready.</pre>
+      <p id="copy-status" role="status" aria-live="polite"></p>
+      <div class="footer"><span id="expiry"></span><button id="clear" type="button" class="text-button">Clear output</button></div>
+      <div class="file-transfer">
+        <h2>Download a file from the MGU</h2>
+        <p>Enter the absolute path of a file on the head unit. For a directory, create a .tgz archive in the terminal first. Maximum file size: 256 MiB.</p>
+        <label for="file-path">File path on the head unit</label>
+        <input id="file-path" type="text" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="/tmp/carplay-audio-analysis.tgz">
+        <div class="actions file-actions">
+          <button type="button" id="prepare-file">Prepare download</button>
+          <button type="button" id="example-file" class="secondary">CarPlay archive example</button>
+        </div>
+        <p id="file-message" role="status">A download link is valid for 60 seconds and can be used once.</p>
+        <a id="save-file" class="download-link hidden" href="#" download>Save file on phone</a>
+      </div>
+    </section>
+    <footer>Local network only. No cloud account or SSH private key needed on the phone.</footer>
+  </main>
+</body>
+</html>
