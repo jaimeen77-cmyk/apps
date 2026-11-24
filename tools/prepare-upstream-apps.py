@@ -70,6 +70,17 @@ def patch_widget_text(module, app_id):
     module.write_text(code.replace(old, new), encoding='utf-8', newline='\n')
 
 
+def patch_gpu_screen(module):
+    """The kit's GPU renderer serves an app's first canvas screen; an app.json screen with "gpu": true is served instead
+    (GIF Home: the Animation screen, while its main screen stays on the software path)."""
+    code = module.read_text(encoding='utf-8')
+    old = "        this.screen = canvasScreens[0] || null;\n"
+    new = "        this.screen = canvasScreens.find((s) => s.gpu === true) || canvasScreens[0] || null;\n"
+    if code.count(old) != 1:
+        raise ValueError('Unsupported display runtime')
+    module.write_text(code.replace(old, new), encoding='utf-8', newline='\n')
+
+
 def generate(kit_root, kit_commit, app_id):
     # store-build.js fingerprints the raw bytes of this file; the car's checkout has LF endings.
     if b'\r' in (ROOT / 'localization/ko-additions.tsv').read_bytes():
@@ -114,6 +125,8 @@ def generate(kit_root, kit_commit, app_id):
         write(rt / 'app-spec.json', runtime_spec)
         if spec.get('startWidget'):
             patch_widget_text(rt / 'mgu.js', app_id)
+        if any(s.get('gpu') is True for s in spec['screens']):
+            patch_gpu_screen(rt / 'display.js')
         pkg = {'name': app_id, 'displayName': spec['title'], 'version': original['version'], 'description': spec['description'],
                'main': 'javascript/app.js', 'private': False, 'author': extra['author'], 'license': 'GPL-3.0',
                'mguHmi': original.get('storeMguHmi', ['ID7']), 'mguLocalOnly': True, 'engines': {'node': '>=8.7.0'},

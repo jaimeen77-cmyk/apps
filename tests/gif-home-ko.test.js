@@ -10,10 +10,13 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'ko-gif-terminal-test-'));
 const HANGUL = /[가-힣]/;
 
 const APPS = [
-    { template: 'gif_home', id: 'gif_home_ko', title: 'GIF 홈', widget: true,
+    { template: 'gif_home', id: 'gif_home_ko', title: 'GIF 플레이어', widget: true,
       lines: { 'Mode · Random – Selected GIFs': '모드 · 무작위 – 선택한 GIF', 'HTTP server · Running': 'HTTP 서버 · 실행 중',
           'Phone connection · Not verified': '휴대폰 연결 · 확인 안 됨', 'Tap to open': '눌러서 열기',
-          '> Pixel drive: Sunset   • Playing': '> 픽셀 드라이브: 노을   • 재생 중', 'Home / Preview': '홈 / 미리보기' } },
+          '[x] Pixel drive: Sunset  · Playing': '[x] 픽셀 드라이브: 노을  · 재생 중', 'Widget preview  1/4': '위젯 미리보기  1/4',
+          'Widget settings  2/4': '위젯 설정  2/4',
+          'Animation screen · GPU renderer (mgu-renderd, smooth)': '애니메이션 화면 · GPU 렌더러 (mgu-renderd, 부드럽게)',
+          'GPU renderer (mgu-renderd) · Not running': 'GPU 렌더러(mgu-renderd) · 실행 안 됨' } },
 ];
 
 function checkPackage(app) {
@@ -66,6 +69,15 @@ function checkPackage(app) {
         const presets = fs.readdirSync(path.join(js, 'resources')).filter((n) => /\.json$/.test(n));
         assert.strictEqual(presets.length, 5, 'built-in animations are packaged');
         assert.ok(fs.statSync(path.join(js, 'LICENSE')).isFile(), 'QR code MIT license');
+        // the Animation screen: drawn by the GPU renderer (the template's display.js serves the "gpu" screen)
+        const anim = spec.screens.find((s) => s.name === 'ANIM');
+        assert.ok(anim && anim.gpu === true, 'ANIM is the GPU screen');
+        assert.deepStrictEqual(anim.buttons.map((b) => b[0]), ['BTN_PREVGIF', 'BTN_NEXTGIF', 'BTN_ANIM_SETTINGS']);
+        assert.ok(!spec.screens.find((s) => s.name === 'MAIN').buttons.some((b) => b[0] === 'BTN_ANIM'), 'page 3 opens it, no own button');
+        assert.ok(fs.readFileSync(path.join(js, 'kit/display.js'), 'utf8').indexOf('canvasScreens.find((s) => s.gpu === true)') > 0, 'display.js patched');
+        assert.ok(fs.statSync(path.join(js, 'animation.js')).isFile(), 'animation.js packaged');
+        const ui = fs.readFileSync(path.join(pkgDir, 'rhmiData/uiDescriptions/ID7/uiDescription.json'), 'utf8');
+        ['ANIM_GFX', 'BTN_PREVGIF', 'BTN_NEXTGIF', 'BTN_ANIM_SETTINGS'].forEach((id) => assert.ok(ui.indexOf('"' + id + '"') > 0, id));
         // the user's picture is both the menu icon and the widget's preview image
         const icon = fs.readFileSync(path.join(root, 'apps/gif_home/icon.png'));
         assert.ok(icon.equals(fs.readFileSync(path.join(root, 'store/apps/gif_home_ko/icon.png'))), 'Store listing icon');
@@ -80,6 +92,12 @@ function checkPackage(app) {
     const missing = new Set();
     Object.values(source.translations.ko).join('').split('').filter((c) => HANGUL.test(c)).forEach((c) => { if (!glyphs[c.charCodeAt(0)]) missing.add(c); });
     assert.deepStrictEqual(Array.from(missing), [], app.id + ': glyphs missing from the Korean font');
+    // and every other non-ASCII character the app draws (a line with Hangul is drawn in the Korean font)
+    const drawn = new Set();
+    fs.readFileSync(path.join(root, 'apps', app.template, 'main.js'), 'utf8').replace(/'([^'\\]|\\.)*'/g, (s) => {
+        s.split('').forEach((c) => { if (c.charCodeAt(0) > 126 && !glyphs[c.charCodeAt(0)]) drawn.add(c); });
+    });
+    assert.deepStrictEqual(Array.from(drawn), [], app.id + ': characters main.js draws that the Korean font lacks');
 }
 
 // ---- phone pages in a minimal DOM -------------------------------------------------------

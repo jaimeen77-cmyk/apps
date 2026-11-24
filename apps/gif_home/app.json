@@ -2,7 +2,7 @@
   "id": "gif_home",
   "title": "GIF Home",
   "description": "Animated BMW home widget with a local phone GIF library, groups and playlists.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "maxDiskUsage": 125829120,
   "vendor": "custom",
   "loggingId": "GFI1",
@@ -38,17 +38,28 @@
         ["BTN_DIAG", "Diagnostics"],
         ["BTN_SETTINGS", "Settings"]
       ]
+    },
+    {
+      "name": "ANIM",
+      "kind": "canvas",
+      "title": "Animation",
+      "gpu": true,
+      "buttons": [
+        ["BTN_PREVGIF", "Previous"],
+        ["BTN_NEXTGIF", "Next"],
+        ["BTN_ANIM_SETTINGS", "Animation settings"]
+      ]
     }
   ],
   "settings": [
     {
       "key": "renderer",
-      "label": "App display mode",
+      "label": "Animation screen",
       "type": "choice",
-      "default": "software",
+      "default": "auto",
       "options": [
-        ["software", "Native BMW display (recommended)"],
-        ["auto", "GPU renderer (experimental)"]
+        ["auto", "GPU renderer (mgu-renderd, smooth)"],
+        ["software", "Without GPU (a few frames a second)"]
       ]
     },
     {
@@ -69,7 +80,7 @@
     },
     {
       "key": "fit",
-      "label": "Picture fit",
+      "label": "Widget picture fit",
       "type": "choice",
       "default": "contain",
       "options": [
@@ -79,13 +90,26 @@
     },
     {
       "key": "speed",
-      "label": "Animation speed",
+      "label": "Widget speed",
       "type": "choice",
       "default": "normal",
       "options": [
         ["slow", "Half speed"],
         ["normal", "Normal"],
         ["fast", "1.5x speed"]
+      ]
+    },
+    {
+      "key": "animSpeed",
+      "hidden": true,
+      "label": "Animation speed",
+      "type": "choice",
+      "default": "normal",
+      "options": [
+        ["slow", "Half speed"],
+        ["normal", "Normal"],
+        ["fast", "1.5x speed"],
+        ["double", "2x speed"]
       ]
     },
     {
@@ -126,7 +150,7 @@
   "storeMguHmi": ["ID7"],
   "translations": {
     "ko": {
-      "GIF Home": "GIF 홈",
+      "GIF Home": "GIF 플레이어",
       "Animated BMW home widget with a local phone GIF library, groups and playlists.": "휴대폰으로 올린 GIF를 BMW 홈 위젯에 움직이는 그림으로 · 라이브러리 · 그룹 · 재생 목록",
       "Page": "페이지",
       "Next item / IP": "다음 항목 / IP",
@@ -134,9 +158,6 @@
       "Phone": "휴대폰",
       "Diagnostics": "진단",
       "Settings": "설정",
-      "App display mode": "앱 화면 방식",
-      "Native BMW display (recommended)": "BMW 기본 화면 (권장)",
-      "GPU renderer (experimental)": "GPU 렌더러 (실험)",
       "Animation": "애니메이션",
       "Custom if available": "올린 GIF 우선",
       "Custom GIF only": "올린 GIF만",
@@ -161,8 +182,6 @@
       "Extended edge compensation": "가장자리 보정 강화",
       "Original colours, native background off": "원래 색, 기본 배경 끔",
       "Pause animation": "애니메이션 일시정지",
-      "Home / Preview": "홈 / 미리보기",
-      "Library": "라이브러리",
       "Playback": "재생",
       "Phone Connection": "휴대폰 연결",
       "Single GIF": "GIF 하나",
@@ -173,14 +192,9 @@
       "Mode": "모드",
       "Group": "그룹",
       "None": "없음",
-      "Interval": "간격",
       "One full GIF pass": "GIF 한 바퀴",
-      "Resume playback": "재생 계속",
-      "Pause playback": "재생 일시정지",
       "Next GIF": "다음 GIF",
       "Playing": "재생 중",
-      "Next item moves through the library. Select plays the highlighted GIF.": "다음 항목으로 라이브러리를 넘기고, 선택으로 고른 GIF를 재생합니다.",
-      "selected GIFs": "개 선택",
       "in current mode": "개 현재 모드 대상",
       "HTTP server": "HTTP 서버",
       "Running": "실행 중",
@@ -221,7 +235,60 @@
       "Built-in animation unavailable": "기본 애니메이션을 쓸 수 없음",
       "Library changed. Refresh and retry.": "라이브러리가 바뀌었습니다. 다시 시도하세요.",
       "Tap to open": "눌러서 열기",
-      "NO GIF": "GIF 없음"
+      "NO GIF": "GIF 없음",
+      "Animation screen": "애니메이션 화면",
+      "GPU renderer (mgu-renderd, smooth)": "GPU 렌더러 (mgu-renderd, 부드럽게)",
+      "Without GPU (a few frames a second)": "GPU 없이 (초당 몇 프레임)",
+      "Previous": "이전",
+      "Next": "다음",
+      "Animation settings": "애니메이션 설정",
+      "Switch after": "전환 간격",
+      "5 seconds": "5초",
+      "10 seconds": "10초",
+      "15 seconds": "15초",
+      "30 seconds": "30초",
+      "No GIF": "GIF 없음",
+      "GPU renderer (mgu-renderd) is not running: a few frames a second only": "GPU 렌더러(mgu-renderd)가 없어 초당 몇 프레임만 표시합니다",
+      "Widget preview": "위젯 미리보기",
+      "Widget settings": "위젯 설정",
+      "Open the animation screen": "애니메이션 화면 열기",
+      "The GIF across the screen at its own speed": "GIF를 화면 가득, 원래 속도로 보여 줍니다",
+      "GPU renderer (mgu-renderd)": "GPU 렌더러(mgu-renderd)",
+      "Not running": "실행 안 됨",
+      "Now playing": "지금 재생 중",
+      "Paused": "일시정지됨",
+      "Resume": "다시 재생",
+      "Pause": "일시정지",
+      "Used in the Single GIF mode": "\"GIF 하나\" 모드에서 재생할 GIF",
+      "Used in the Random – Group mode": "\"무작위 – 그룹\" 모드에서 쓸 그룹",
+      "Other modes: the next GIF after this": "다른 모드에서 다음 GIF로 넘어가는 간격",
+      "Open": "열기",
+      "Smooth, up to one frame per screen refresh": "부드럽게, 화면이 바뀔 때마다 한 프레임",
+      "Without it: a few frames a second": "없으면 초당 몇 프레임",
+      "Widget and animation screen": "위젯과 애니메이션 화면 공통",
+      "Previous / Next / Animation settings at the bottom": "아래에 이전 / 다음 / 애니메이션 설정 버튼",
+      "Select: show the QR code": "선택: QR 코드 표시",
+      "Playlist": "재생 목록",
+      "GIFs": "개",
+      "Make playlist": "목록 만들기",
+      "Confirm": "확인",
+      "GIFs, in this order (Sequential)": "개, 이 순서로 차례대로 재생",
+      "Pick GIFs below first": "먼저 아래에서 GIF를 고르세요",
+      "Clear all": "모두 해제",
+      "Start the order again": "순서를 처음부터 다시",
+      "Clear": "해제",
+      "Cancel": "취소",
+      "Keep the playlist as it was": "재생 목록을 바꾸지 않음",
+      "Pick": "고르기",
+      "Press GIFs in the order to play them": "재생할 순서대로 GIF를 누르세요",
+      "Page: next 6": "페이지: 다음 6개",
+      "Widget picture fit": "위젯 그림 맞춤",
+      "Widget speed": "위젯 속도",
+      "2x speed": "2배 속도",
+      "Animation screen only": "애니메이션 화면에만 적용",
+      "Home widget only": "홈 위젯에만 적용",
+      "GPU renderer (mgu-renderd) or without it": "GPU 렌더러(mgu-renderd) 사용 여부",
+      "The animation order follows Widget settings": "애니메이션 순서는 위젯 설정을 따릅니다"
     }
   }
 }
