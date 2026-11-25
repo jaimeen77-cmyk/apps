@@ -144,7 +144,7 @@ if(process.argv[2]){
     const spec=require(path.join(dir,'kit/app-spec.json')),vals={};spec.settings.forEach(s=>{vals[s.key]=s.default;});
     assert(spec.settings.find(s=>s.key==='allHudOutput').options.some(o=>o[0]==='nosport'));
     const page=new SettingsPage({schema:spec.settings,get:k=>vals[k],set:(k,v)=>{vals[k]=v;},onChange(){}},()=>{},'test');
-    page.selectTab(1);page.focus=page.keys().indexOf('turn');page.activate();assert.strictEqual(page.open,'turn');
+    page.selectTab(0);page.activate(page.keys().indexOf('hudLamps'));page.focus=page.keys().indexOf('turn');page.activate();assert.strictEqual(page.open,'turn');
     const screen=()=>{const cv=new Canvas(1600,520);page.draw(cv,{},null);return cv.targets;};
     screen().find(t=>t.id==='turn-on').run();screen().find(t=>t.id==='turn-style-chevron').run();screen().find(t=>t.id==='turn-color-orange').run();
     assert.deepStrictEqual([vals.hudTurnSignals,vals.hudTurnStyle,vals.hudTurnColor],['on','chevron','orange']);

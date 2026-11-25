@@ -48,14 +48,14 @@ const ok=(events)=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInVie
   v.attach({proxy:{}});for(let i=0;i<6;i++){t+=1000;v.tick(t,true);await settle();}
   assert.deepStrictEqual(asked[4],[],'then the empty list');assert.deepStrictEqual(v.types,[]);assert.deepStrictEqual(asked[5],[],'kept');assert(v.read(t,'camera'));}
  // demand: GuidanceEventList only while alerts are on; yield follows the phone's guidance flags
- {const on=demand(settings({appEnabled:true,hudCarAlerts:'all',navDisplayMode:'stock'}),null),off=demand(settings({appEnabled:true,navDisplayMode:'stock'}),null);
+ {const on=demand(settings({appEnabled:true,hudCarAlerts:'all',navDisplayMode:'stock'}),null),off=demand(settings({appEnabled:true,hudCarAlerts:'off',navDisplayMode:'stock'}),null);assert.strictEqual(settings({}).hudCarAlerts,'all','all by default (1.3.48)');
   assert(on.fields.has('de.bmw.infotainment.navigation.guiding.GuidanceEventList'));assert(!off.fields.has('de.bmw.infotainment.navigation.guiding.GuidanceEventList'));
   assert(!demand(settings({appEnabled:true,hudCarAlerts:'all',hudCarAlertHidden:true,navDisplayMode:'stock'}),null).fields.has('de.bmw.infotainment.navigation.guiding.GuidanceEventList'),'hidden: not read');
   const y=demand(settings({appEnabled:true,clusterYieldGuidance:'phone',allClusterOutput:'redline',hudNavigationEnabled:false}),null);
   assert(Array.from(y.fields).some(f=>/CarPlayManager\.projectedGuidanceActive$/.test(f)),'yield reads CarPlay guidance flags');
   assert(Array.from(y.fields).some(f=>/AndroidAutoProjectedManager\.projectedGuidanceMetadataAvailable$/.test(f)));}
  // settings
- {assert.strictEqual(settings({}).hudCarAlerts,'off');assert.strictEqual(settings({hudCarAlerts:'bogus'}).hudCarAlerts,'off');
+ {assert.strictEqual(settings({}).hudCarAlerts,'all');assert.strictEqual(settings({hudCarAlerts:'bogus'}).hudCarAlerts,'all');
   ['speed','school','camera','all'].forEach(m=>assert.strictEqual(settings({hudCarAlerts:m}).hudCarAlerts,m));
   const c=settings({hudCarAlertOffsetX:40,hudCarAlertOffsetY:-20,hudCarAlertScale:100}),r=D.navRect(c,'CarAlert');
   assert.deepStrictEqual(r,{x:Math.round((800-330)/2+40),y:220,w:330,h:150});assert(!D.NAV_PARTS.some(p=>p.key==='CarAlert'),'navigation picture unchanged');
@@ -111,7 +111,7 @@ const ok=(events)=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInVie
   const {SettingsPage}=require(path.join(dir,'settings-ui')),{Canvas}=require(path.join(dir,'kit/canvas')),spec=require(path.join(dir,'kit/app-spec.json'));
   const vals={};spec.settings.forEach(x=>{vals[x.key]=x.default;});
   const page=new SettingsPage({schema:spec.settings,get:k=>vals[k],set:(k,v)=>{vals[k]=v;},onChange(){}},()=>{},'test');
-  page.selectTab(3);assert(page.keys().includes('hudCarAlerts'));page.focus=page.keys().indexOf('hudCarAlerts');page.activate();page.choose(4);assert.strictEqual(vals.hudCarAlerts,'all');
+  page.selectTab(3);assert(!page.keys().includes('hudCarAlerts'),'no option: always on (1.3.48)');
   page.focus=page.keys().indexOf('layout');page.activate();const i=page.layoutParts().findIndex(p=>p.key==='CarAlert');assert(i>=0,'Vehicle alerts in the NAV Position / size');
   page.selectLayoutPart(i,true);assert(/^nav:CarAlert@/.test(vals.layoutPreview));page.adjust(0,1);page.adjust(2,1);
   assert.strictEqual(vals.hudCarAlertOffsetX,D.defaults.hudCarAlertOffsetX+10);assert.strictEqual(vals.hudCarAlertScale,75);

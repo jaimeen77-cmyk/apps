@@ -70,9 +70,11 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     // Following the BC button (bc-follow.js): a BC press moves the Redline cluster to that stock page's screen; the
     // design goes through the settings page's switch so each design keeps its own layout
     const bcFollow = new (require('./bc-follow').BcFollow)({ settings: ctx.settings, signals: ctx.signals, log: ctx.log, changed: () => queue.request(),
-        apply: (values) => { const v = Object.assign({}, values); delete v.clusterDesign; page.setValues(Object.assign(values.clusterDesign ? page.designSwitch(values.clusterDesign, 'cluster') : {}, v)); } });
+        apply: (values, display) => { const d = display === 'hud' ? 'hud' : 'cluster', v = Object.assign({}, values); delete v[d + 'Design']; page.setValues(Object.assign(values[d + 'Design'] ? page.designSwitch(values[d + 'Design'], d) : {}, v)); } });
     page.bcFollow = bcFollow;
     // 1.3.40-1.3.41 had its own on / off: on becomes BC mode in all drive modes (1.3.42)
+    // vehicle alerts (1.3.48): always all of them; the Navigation tab has no option for them any more
+    if (ctx.settings.get('hudCarAlerts') !== 'all') ctx.settings.set('hudCarAlerts', 'all');
     if (ctx.settings.get('bcFollow') === 'on') { if (ctx.settings.get('allClusterOutput') !== 'bc' && ctx.settings.get('sportClusterOutput') !== 'bc') ctx.settings.set('allClusterOutput', 'bc'); ctx.settings.set('bcFollow', 'off'); }
     // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');

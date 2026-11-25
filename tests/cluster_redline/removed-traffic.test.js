@@ -10,7 +10,7 @@ assert.equal(page.open,null);assert.equal(page.tab,0);
 assert(![].concat(...GROUPS).includes('hudTrafficMode'));
 page.selectTab(1);const cv=page.draw(new Canvas(1600,520));
 assert(!cv.targets.some(t=>/probe|traffic/i.test(t.id||'')));
-const cfg=settings({hudTrafficMode:'both',appEnabled:true,allHudOutput:'redline'});
+const cfg=settings({hudTrafficMode:'both',appEnabled:true,allHudOutput:'redline',hudCarAlerts:'off'});
 assert.equal(cfg.hudTrafficMode,'off','old settings and favorites cannot reactivate alerts');
 assert(!Array.from(demand(cfg,'COMFORT').fields).some(f=>/TrafficSign|FrontCamera|Vehicle2\.statusCarSpeed2/.test(f)));
 // traffic-signs / traffic-live are back for the vehicle alerts (1.3.9); the probe stays retired.

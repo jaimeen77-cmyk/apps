@@ -9,8 +9,8 @@ try{
   const full=new Canvas(1600,520);full.chrome={};page.draw(full);assert.strictEqual(full.chrome.tabs.tabs.length,5);
  }
  page.selectTab(1);page.activate(0);page.choose(0);assert.strictEqual(values.sportHudOutput,'redline');page.activate(1);page.choose(1);assert.strictEqual(values.allHudOutput,'nosport');page.activate(1);page.choose(2);assert.strictEqual(values.allHudOutput,'stock');
- page.activate(3);page.draw(new Canvas(1600,520));assert(labels.includes('5060'));page.choose(1);assert.strictEqual(values.hudAlertStyle,'circle');
- page.selectTab(2);page.activate(3);page.draw(new Canvas(1600,520));page.choose(0);assert.strictEqual(values.clusterAlertStyle,'bar');
+ page.activate(page.keys().indexOf('design'));page.draw(new Canvas(1600,520));page.choose(1);page.back();assert.strictEqual(values.hudAlertStyle,'circle');
+ page.selectTab(2);page.activate(page.keys().indexOf('design'));page.draw(new Canvas(1600,520));page.choose(0);page.back();assert.strictEqual(values.clusterAlertStyle,'bar');
  if(require(dir+'/kit/locale.json').language==='ko'){
   const atlas=require(dir+'/kit/fonts/korean.json').sizes[0].glyphs;
   for(const label of labels)for(const ch of label)if(/[가-힣]/.test(ch))assert(atlas[ch.charCodeAt(0)],'missing Korean glyph '+ch);

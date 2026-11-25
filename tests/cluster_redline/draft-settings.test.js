@@ -7,13 +7,13 @@ const ui=load('settings-ui.js',{'./kit/i18n':{t:x=>x},'./kit/gauges':{},'./setti
 function canvas(){const c={labels:[],textWidth:(s,z)=>String(s).length*z/2,text(s){this.labels.push(s);}};for(const n of ['clear','line','polyline','fillRect','roundRect','gradientRect'])c[n]=()=>{};return c;}
 const saved=store({autoStart:false,appEnabled:false}),page=new ui.SettingsPage(saved,null,'draft');
 let cv=page.draw(canvas());
-assert.strictEqual(page.keys().length,9,'Basic: six settings, the Comfort / Eco shift alert RPM, Settings per driver and the door-open warning');
+assert.strictEqual(page.keys().join(','),'appEnabled,driverProfiles,hudLamps,vehiclePreset','Basic (1.3.48): App operation, Settings per driver, HUD lamps, Vehicle preset');
 for(const r of cv.targets)assert(r.x>=0&&r.y>=0&&r.x+r.w<=1600&&r.y+r.h<=520);
-cv.targets.find(r=>r.x===990).act();assert.strictEqual(saved.get('appEnabled'),true);assert.strictEqual(saved.get('autoStart'),false);
-cv.targets.find(r=>r.x===1268).act();assert.strictEqual(saved.get('appEnabled'),false);
+cv.targets.find(r=>r.id==='operation-true').act();assert.strictEqual(saved.get('appEnabled'),true);assert.strictEqual(saved.get('autoStart'),true,'Start: auto start too (1.3.48)');
+cv.targets.find(r=>r.id==='operation-false').act();assert.strictEqual(saved.get('appEnabled'),false);assert.strictEqual(saved.get('autoStart'),false,'Stop: no auto start');
 page.selectTab(1);page.activate(0);cv=page.draw(canvas());assert(cv.labels.includes('Back')&&!cv.labels.includes('Cancel'));
 const back=cv.targets.find(r=>r.x===1210&&r.y===448);assert(back);back.act();assert.strictEqual(page.open,null);
-page.activate(4);cv=page.draw(canvas());assert(cv.targets.find(r=>r.x===1210&&r.y===448));
+page.activate(3);cv=page.draw(canvas());assert(cv.targets.find(r=>r.x===1210&&r.y===448));
 assert.strictEqual(spec.settings.find(s=>s.key==='displayMode').options.length,2);
 async function lifecycle(autoStart){
  const s=store({autoStart,appEnabled:!autoStart}),calls=[],events=new (require('events').EventEmitter)();let entry;

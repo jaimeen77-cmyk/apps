@@ -21,7 +21,7 @@ for(const tab of [1,2,3])for(const style of ['circle','bar']){
   for(let a=0;a<buttons.length;a++)for(let b=a+1;b<buttons.length;b++){const x=buttons[a],y=buttons[b];assert(!(x.x<y.x+y.w&&x.x+x.w>y.x&&x.y<y.y+y.h&&x.y+x.h>y.y),'click targets must not overlap: '+x.id+' / '+y.id);}
  }
 }
-const cfg=settings({allHudOutput:'redline',allClusterOutput:'redline'}),hidden=Object.assign({},cfg,{navDisplayMode:'stock',hudDoorAlert:'off',hudMarkLineHidden:true,clusterMarkTopLineHidden:true,clusterMarkBottomLineHidden:true});
+const cfg=settings({allHudOutput:'redline',allClusterOutput:'redline'}),hidden=Object.assign({},cfg,{navDisplayMode:'stock',hudDoorAlert:'off',hudCarAlertHidden:true,hudMarkLineHidden:true,clusterMarkTopLineHidden:true,clusterMarkBottomLineHidden:true});
 for(const d of ['hud','cluster'])D.PARTS.forEach(p=>hidden[d+p+'Hidden']=true);
 assert.strictEqual(demand(settings(hidden),'COMFORT').fields.size,0,'all hidden / stock NAV requests no data');
 const onlyGear=Object.assign({},hidden,{hudGearHidden:false,hudAlertHidden:true});let q=demand(settings(onlyGear),'COMFORT');assert(q.gear&&!q.rpm&&!q.torque);assert(!q.fields.has('de.bmw.infotainment.vehicle.CDS.statusEngineSpeed2'));

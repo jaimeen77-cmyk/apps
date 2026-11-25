@@ -100,12 +100,12 @@ assert(mp.layoutActions.every(a=>a.x+a.w<=1600&&a.y+a.h<=520),'editor buttons fi
 // two own-design pictures stay themselves while a Redline layout is chosen.
 {const {placement}=require(root+'/layout'),HUDP=require(root+'/hud-draw'),pv={};spec.settings.forEach(x=>{pv[x.key]=x.default;});pv.hudAuxConfig=AUX;
  const pg=new SettingsPage({schema:spec.settings,get:k=>pv[k],set:(k,v)=>{pv[k]=v;},setMany(c){Object.assign(pv,c);}},null,'1.2.18');pg.selectTab(1);
- const pick=st=>{pg.activate(pg.keys().indexOf('design'));pg.choose(2);pg.choose(RL.stylesFor('hud').indexOf(st));};
+ const pick=st=>{pg.activate(pg.keys().indexOf('design'));pg.choose(2+RL.stylesFor('hud').indexOf(st));pg.back();};
  pick('arc');pg.activate(pg.keys().indexOf('layout'));pg.selectLayoutPart(1,true);pg.adjust(0,1);pg.adjust(0,1);pg.back();assert.strictEqual(pv.hudRlGearOffsetX,20);
  pick('ramp');assert.strictEqual(pv.hudRlGearOffsetX,0,'another layout starts from its own (default) positions');pv.hudRlGearOffsetX=-30;
  pick('arc');assert.strictEqual(pv.hudRlGearOffsetX,20,'back on Arc: its positions again');pick('ramp');assert.strictEqual(pv.hudRlGearOffsetX,-30);
- pg.activate(pg.keys().indexOf('design'));pg.choose(0);assert.strictEqual(pv.hudDesign,'own');assert.strictEqual(pv.hudRlGearOffsetX,0);
- pg.activate(pg.keys().indexOf('design'));assert.strictEqual(pg.choice,0,'own design focused');pick('arc');pg.activate(pg.keys().indexOf('design'));assert.strictEqual(pg.choice,2,'Redline layout focused');pg.back();
+ pg.activate(pg.keys().indexOf('design'));pg.choose(0);pg.back();assert.strictEqual(pv.hudDesign,'own');assert.strictEqual(pv.hudRlGearOffsetX,0);
+ pg.activate(pg.keys().indexOf('design'));assert.strictEqual(pg.choice,0,'own design focused (Jam top alert bar)');pg.back();pick('arc');pg.activate(pg.keys().indexOf('design'));assert.strictEqual(pg.choice,2+RL.stylesFor('hud').indexOf('arc'),'Redline layout focused');pg.back();pg.back();
  assert(D.partsFor('hud',settings({hudDesign:'rl-arc'}))[0].uniform,'Whole layout: one Size control');
  const inside=(r,f)=>r.x>=f.x-1&&r.y>=f.y-1&&r.x+r.w<=f.x+f.w+1&&r.y+r.h<=f.y+f.h+1;
  for(const d of ['hud','cluster'])for(const st of RL.stylesFor(d))for(const ex of [{},{[d+'RpmGaugeWidthScale']:200,[d+'RpmGaugeOffsetX']:900,[d+'RpmGaugeOffsetY']:900},{[d+'RpmGaugeOffsetX']:-900,[d+'RpmGaugeOffsetY']:-900},{[d+'RlGearWidthScale']:200,[d+'RlGearOffsetX']:700,[d+'RlMarkHidden']:false,[d+'RlMarkOffsetY']:-700}]){

@@ -31,6 +31,8 @@ const KO={
  'Intersection':'교차로','Junction':'갈림길','Roundabout':'회전교차로','Along the main road':'본선 유지','Lane change':'차선 변경','Destination':'목적지',
  'Guidance':'안내','Route list':'경로 목록','Stock HUD':'순정 HUD',
  'The left stalk shows 64 while BC is held, 0 when let go: each press is counted (BC presses).':'BC를 누르고 있는 동안 왼쪽 레버 값이 64, 떼면 0이 됩니다. 누를 때마다 BC 누름으로 셉니다.',
+ 'HUD lamps':'HUD 표시등','Vehicle type':'차량 종류','Start app (auto start)':'앱 켜기 (자동 켜기)','Stop app (no auto start)':'앱 끄기 (자동 켜기 꺼짐)',
+ 'Jam top alert bar':'잼상단알림선','Jam circle alert':'잼원형알림','No auxiliary information':'부가정보 없음',
 };
 function language(){return getLanguage();}
 function tr(value){return getLanguage()==='ko'&&Object.prototype.hasOwnProperty.call(KO,value)?KO[value]:t(value);}

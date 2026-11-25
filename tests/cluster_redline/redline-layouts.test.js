@@ -45,11 +45,11 @@ assert.deepStrictEqual(RL.readouts(Object.assign({},base,{config:settings({hudAu
 const values={};spec.settings.forEach(s=>{values[s.key]=s.default;});
 const page=new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;},setMany(c){Object.assign(values,c);}},null,'1.2.5');
 const english=[];const draw=()=>{const cv=new Canvas(1600,520),text=cv.text;cv.text=function(v,x,y,z,c,o){const shown=o&&o.literal?String(v):t(v);if(/[A-Za-z]{4,}/.test(shown.replace(/\b(HUD|RPM|Redline|appsKOR|MIT|VFD|M3|M4|M5|F80|G80|E60)\b/g,'')))english.push(shown);return text.apply(this,arguments);};page.draw(cv);};
-page.selectTab(1);page.activate(page.keys().indexOf('design'));draw();page.choose(2);assert.strictEqual(page.open,'rlDesign');draw();
-page.choose(RL.stylesFor('hud').indexOf('arc'));assert.strictEqual(values.hudDesign,'rl-arc');assert(/F80/.test(page.value(page.item(),page.config())));
+page.selectTab(1);page.activate(page.keys().indexOf('design'));assert.strictEqual(page.open,'rlDesign','the design row opens the layouts (1.3.48)');draw();
+page.choose(2+RL.stylesFor('hud').indexOf('arc'));page.back();assert.strictEqual(values.hudDesign,'rl-arc');assert(/F80/.test(page.value(page.item(),page.config())));
 page.activate(page.keys().indexOf('layout'));assert.deepStrictEqual(page.layoutParts().map(p=>p.key),['RpmGauge','RlGear','RlMode','RlAlert','RlGauge','RlReadA','RlReadB','RlMark']);draw();page.back();
-page.activate(page.keys().indexOf('design'));page.choose(1);assert.strictEqual(values.hudDesign,'own');assert.strictEqual(values.hudAlertStyle,'circle');
-page.selectTab(2);page.activate(page.keys().indexOf('design'));assert.strictEqual(page.open,'design');page.choose(2);assert.strictEqual(page.open,'rlDesign','the cluster offers the Redline layouts too');draw();page.choose(RL.STYLES.indexOf('ramp'));assert.strictEqual(values.clusterDesign,'rl-ramp');assert.strictEqual(values.hudDesign,'own','HUD and cluster designs are separate');
-page.activate(page.keys().indexOf('design'));page.choose(0);assert.strictEqual(values.clusterDesign,'own');assert.strictEqual(values.clusterAlertStyle,'bar');
+page.activate(page.keys().indexOf('design'));page.choose(1);page.back();assert.strictEqual(values.hudDesign,'own');assert.strictEqual(values.hudAlertStyle,'circle');
+page.selectTab(2);page.activate(page.keys().indexOf('design'));assert.strictEqual(page.open,'rlDesign','the cluster offers the Redline layouts too');draw();page.choose(2+RL.stylesFor('cluster').indexOf('ramp'));page.back();assert.strictEqual(values.clusterDesign,'rl-ramp');assert.strictEqual(values.hudDesign,'own','HUD and cluster designs are separate');
+page.activate(page.keys().indexOf('design'));page.choose(0);page.back();assert.strictEqual(values.clusterDesign,'own');assert.strictEqual(values.clusterAlertStyle,'bar');
 if(getLanguage()==='ko')assert.deepStrictEqual(english,[],'untranslated labels');
 console.log('PASS: nine Redline app layouts (HUD, and cluster picker) drawn 1:1 at HUD size with live rpm/gear/shift, aux readouts, navigation alongside, Position / size, settings picker');

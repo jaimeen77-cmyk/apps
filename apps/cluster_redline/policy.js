@@ -90,8 +90,8 @@ function full(raw) {
     if (Object.prototype.hasOwnProperty.call(raw, 'displayTarget')) out.displayTarget = ['map', 'panel', 'hud'].indexOf(raw.displayTarget) >= 0 ? raw.displayTarget : 'unknown';
     if ([60, 65, 70, 75, 80, 85, 90, 100].indexOf(raw.widgetScale) >= 0) out.widgetScale = raw.widgetScale;
     const outputKeys = ['sportClusterOutput', 'sportHudOutput', 'allClusterOutput', 'allHudOutput'];
-    // BC mode (1.3.42): the cluster rows only
-    outputKeys.forEach((key) => { if (raw[key] !== undefined) out[key] = ['redline', 'stock'].concat(/^all/.test(key) ? ['nosport'] : [], /Cluster/.test(key) ? ['bc'] : []).indexOf(raw[key]) >= 0 ? raw[key] : 'stock'; });
+    // BC mode (1.3.42 the cluster rows; 1.3.48 the HUD rows too)
+    outputKeys.forEach((key) => { if (raw[key] !== undefined) out[key] = ['redline', 'stock'].concat(/^all/.test(key) ? ['nosport'] : [], ['bc']).indexOf(raw[key]) >= 0 ? raw[key] : 'stock'; });
     // Direct legacy callers retain their selected single output. The entry
     // migrates persisted choices before the worker reads the new schema.
     if (raw.displayTarget && outputKeys.every((key) => raw[key] === undefined)) {
