@@ -334,14 +334,16 @@ mgu.run({
             });
         }
         // one usage graph: header (label, current value) and the last 30 minutes as a filled line, 0..100%
+        // (1.1.10) inside the layout's safe area (startWidget.safe: 9 % each side, 10 % top and bottom), which the
+        // HMI crops; the HMI's own title row stays clear above, its progress bar and second text line are off
         function widgetChart(cv, t, y, label, note, value, color, warn) {
-            const x = 26, w = 332, top = y + 12, h = 58;
+            const x = WX, w = WW, top = y + 8, h = 34;
             const latest = usage.history[usage.history.length - 1];
             const now = latest ? latest.time : Date.now();
-            cv.text(label, x, y, 18, t.dim);
-            if (note) cv.text(note, x + cv.textWidth(label, 18) + 10, y, 13, t.dim);
+            cv.text(label, x, y, 16, t.dim);
+            if (note) cv.text(note, x + cv.textWidth(label, 16) + 8, y, 12, t.dim);
             const current = latest ? value(latest) : null;
-            cv.text(G.isNum(current) ? current.toFixed(0) + '%' : '--', x + w, y + 4, 28, warn ? t.warn : t.text, { align: 'right', font: 'num' });
+            cv.text(G.isNum(current) ? current.toFixed(0) + '%' : '--', x + w, y + 2, 22, warn ? t.warn : t.text, { align: 'right', font: 'num' });
             cv.roundRect(x, top, w, h, 6, withAlpha('#ffffff', 0.05));
             cv.line(x, top + h / 2, x + w, top + h / 2, 1, withAlpha('#ffffff', 0.08));
             let segment = [];
@@ -363,6 +365,8 @@ mgu.run({
             });
             flush();
         }
+        // the drawn widget's box: the safe area of the 384 x 256 image (x 35..349, y 26..230), a little inside it
+        const WX = 40, WW = 304;
         function renderWidget(inst) {
             const { appFs } = shown();
             const p = appFs ? pct(appFs.used, appFs.size) : null;
@@ -377,12 +381,15 @@ mgu.run({
                     TextRecordings: [tr('App storage {percent}% - free {size}', { percent: p.toFixed(0), size: sz(appFs.avail) }), 'Text'],
                     ProgressbarVisible: [true, 'Bool'], Progress: [Math.round(p), 'Float'],
                 });
-            } else if (latest) {
+            } else if (latest && !inst.big) {
                 Object.assign(cells, {
                     TextRecordings: [wtr('small', { cpu: percentText(cpu), ram: percentText(ram) }), 'Text'],
                     ProgressbarVisible: [G.isNum(ram), 'Bool'],
                 });
                 if (G.isNum(ram)) cells.Progress = [Math.round(ram), 'Float'];
+            } else if (latest) {
+                // the big widget draws the numbers and graphs itself: the HMI's text line and bar would cover them
+                Object.assign(cells, { TextRecordings: ['', 'Text'], ProgressbarVisible: [false, 'Bool'] });
             }
             if (latest || appFs) setCells(inst, cells);
             if (!inst.big) return null;
@@ -398,12 +405,13 @@ mgu.run({
                 cv.text(tr('Reading...'), w / 2, h / 2, 24, t.dim, { align: 'center' });
             } else {
                 const trend = latest.trend || {};
-                widgetChart(cv, t, 36, 'CPU', wtr('last 30m'), (s) => s.cpu, t.accent, trend.cpuRising);
-                widgetChart(cv, t, 132, wtr('RAM'), '', memoryPercent, t.cold || t.accent2, trend.memoryRising || trend.leakSuspected);
+                widgetChart(cv, t, 84, 'CPU', wtr('last 30m'), (s) => s.cpu, t.accent, trend.cpuRising);
+                widgetChart(cv, t, 150, wtr('RAM'), '', memoryPercent, t.cold || t.accent2, trend.memoryRising || trend.leakSuspected);
             }
             if (appFs && p !== null) {
                 const line = (alert ? '! ' : '') + wtr('storage', { percent: p.toFixed(0), size: sz(appFs.avail) });
-                cv.text(line, 26, 232, 16, alert ? t.crit : t.dim, { font: 'bold' });
+                let size = 15; while (size > 11 && cv.textWidth(line, size, { font: 'bold' }) > WW) size--;
+                cv.text(line, WX, 216, size, alert ? t.crit : t.dim, { font: 'bold' });
             }
             return cv.canvas;
         }

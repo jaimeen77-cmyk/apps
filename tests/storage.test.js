@@ -8,14 +8,14 @@ const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'storage-test-'));
 const previews = process.env.STORAGE_PREVIEW_DIR;
 async function checkRenderer(language) {
     const id = language === 'ko' ? 'storage' : 'storage_en';
-    const file = build({ template:'storage', id, version:'1.1.9', language,
+    const file = build({ template:'storage', id, version:'1.1.10', language,
         dir:language === 'ko' ? 'apps/storage' : 'store/apps/storage_en',
         source:'apps/storage', out:path.join(temp,id) });
     const stage = path.join(temp,id,'installed');fs.mkdirSync(stage);
     cp.execFileSync('tar',['-xzf',file,'-C',stage]);
     const js = path.join(stage,'package/javascript');
     const spec = require(path.join(js,'kit/app-spec.json'));
-    assert.strictEqual(spec.version,'1.1.9');
+    assert.strictEqual(spec.version,'1.1.10');
     assert.strictEqual(spec.title,language==='ko'?'MGU 모니터':'MGU Monitor');
     const pkg=require(path.join(stage,'package/package.json'));
     assert.strictEqual(pkg.displayName,spec.title);
@@ -59,7 +59,8 @@ async function checkRenderer(language) {
             assert(cells.some(c=>c[1]==='Title'&&c[2].includes(t('MGU Monitor'))));
             // CPU / memory graphs; a storage alert takes the small widget's text and bar
             if(mode==='crit')assert(cells.some(c=>c[1]==='Progress'&&c[2]===95));
-            else assert(cells.some(c=>c[1]==='TextRecordings'&&/^CPU \d+% · (RAM|메모리) \d+%$/.test(c[2])),JSON.stringify(cells));
+            else{assert(cells.some(c=>c[1]==='TextRecordings'&&c[2]==='')&&cells.some(c=>c[1]==='ProgressbarVisible'&&c[2]===false),'big widget: the HMI text line and bar off (1.1.10)');
+                const big=cells.slice();cells=[];widget({spawnId:2,big:false});assert(cells.some(c=>c[1]==='TextRecordings'&&/^CPU \d+% · (RAM|메모리) \d+%$/.test(c[2])),'small widget: the text line '+JSON.stringify(cells));cells=big;}
             assert(cv,'big widget drawn');
             assert(labels.includes('CPU')&&labels.includes(language==='ko'?'최근 30분':'last 30 min'));
             assert.strictEqual(widget({spawnId:1,big:true}),null,'unchanged widget is not drawn again');
@@ -81,7 +82,7 @@ async function checkRenderer(language) {
         // the widget graphs over 30 minutes of samples
         cells=[];const full=widget({spawnId:1,big:true});assert(full,'new samples redraw the widget');
         // host /proc samples: CPU may read -- when no tick passed between two samples
-        assert(cells.some(c=>c[1]==='TextRecordings'&&/^CPU (\d+%|--) · (RAM|메모리) \d+%$/.test(c[2])),JSON.stringify(cells));
+        cells=[];widget({spawnId:3,big:false});assert(cells.some(c=>c[1]==='TextRecordings'&&/^CPU (\d+%|--) · (RAM|메모리) \d+%$/.test(c[2])),JSON.stringify(cells));
         await handlers.BTN_APP();await handlers.BTN_APP();labels.length=0;await loop();
         assert(labels.some(s=>s.includes(t('Redline'))));
         assert(labels.some(s=>s.includes(language==='ko'?'누수 의심':'possible leak')));
@@ -142,5 +143,5 @@ async function checkRenderer(language) {
     assert((await S.appFolders(path.join(temp,'missing'))).error);
     const real=await S.fileSystems();assert(!real.error&&real.list.length);assert(S.memory().total>0&&S.uptime()>0);
     await checkRenderer('ko');await checkRenderer('en');
-    console.log('PASS: Storage 1.1.9 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
+    console.log('PASS: Storage 1.1.10 actual packages, KO/EN disks/apps/alerts/widgets, Unicode widget transport, df/parser, read-only filesystem measurement and demo labels');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>fs.rmSync(temp,{recursive:true,force:true}));
