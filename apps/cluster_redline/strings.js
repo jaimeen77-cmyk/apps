@@ -42,6 +42,7 @@ const KO={
  'Required: choose a GIF':'필수: GIF를 고르세요','Uses the driving GIF':'주행 GIF 사용','GIF player not running':'GIF 플레이어가 꺼져 있음','choose the driving GIF first':'주행 GIF를 먼저 고르세요',
  'The driving GIF is required; scenes without their own show it (a turn: the other turn mirrored first). A change of scene fades.':'주행 GIF는 꼭 골라야 합니다. GIF가 없는 장면은 주행 GIF가 나옵니다(좌·우회전은 반대쪽 회전 GIF를 좌우 반전해 먼저 씁니다). 장면이 바뀔 때는 부드럽게 넘어갑니다.',
  'Turning left':'좌회전','Turning right':'우회전','Uses the right-turn GIF mirrored':'우회전 GIF 좌우 반전','Uses the left-turn GIF mirrored':'좌회전 GIF 좌우 반전',
+ 'No GIF: the Car layout\'s own car is shown.':'GIF 없음: 자동차 레이아웃의 자동차 그림이 나옵니다.',
 };
 function language(){return getLanguage();}
 function tr(value){return getLanguage()==='ko'&&Object.prototype.hasOwnProperty.call(KO,value)?KO[value]:t(value);}

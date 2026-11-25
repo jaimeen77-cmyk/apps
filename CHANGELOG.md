@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.54
+
+- **My design without any GIF is the Car layout itself**: with no GIF fetched (or none usable) the picture is the Car layout's own car, braking, drifting, flaming and reversing with the car's G and gear, not one still picture per scene.
+- **Back to the Car picture**: *Fetch from GIF player* with every scene left empty removes the copies ("No GIF: the Car layout's own car is shown."). With only some scenes chosen, the driving GIF is still required.
+- Tests: `my-picture` (no GIF: the Car layout's states; clearing).
+
 ## Cluster Redline 1.3.53
 
 - Final check (performance, errors): a damaged My design copy cut short reported zlib's own error code; it now reads as unreadable like any other damaged one (the driving GIF or the Car picture stands in). No other change.

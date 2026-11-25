@@ -485,8 +485,8 @@ class SettingsPage{
    if(r&&r.error)now+=' · '+tr('not kept')+' ('+(why[r.error]?tr(why[r.error]):r.error)+')';
    cv.text(now,1050,y+28,17,s.ok||s.uses?'#5ee08f':'#91a1b6',{literal:true});
   });
-  const note=res.error?tr(why[res.error]||res.error):tr('The driving GIF is required; scenes without their own show it (a turn: the other turn mirrored first). A change of scene fades.');
-  cv.text(note,100,432,16,res.error?'#ff8a8a':'#91a1b6',{literal:true});
+  const note=res.cleared?tr('No GIF: the Car layout\'s own car is shown.'):res.error?tr(why[res.error]||res.error):tr('The driving GIF is required; scenes without their own show it (a turn: the other turn mirrored first). A change of scene fades.');
+  cv.text(note,100,432,16,res.cleared?'#5ee08f':res.error?'#ff8a8a':'#91a1b6',{literal:true});
   this.button(cv,local,st.busy?tr('Fetching'):tr('Fetch from GIF player'),84,448,380,64,()=>this.myPicFetch(),false,'mypic-fetch',24);
   this.button(cv,local,tr('Refresh'),476,448,200,64,()=>this.myPicList(),false,'mypic-refresh',24);
   this.button(cv,local,tr('Next')+': '+tr('Auxiliary information'),688,448,500,64,()=>{const a=D.auxConfig(this.config()[this.display()+'AuxConfig']);this.open='auxMode';this.choice=a.mode==='off'?2:a.mode==='values'?1:0;this.changed();},false,'mypic-next',24);

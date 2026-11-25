@@ -104,6 +104,14 @@ if(process.env.MY_PICTURE_PREVIEW){const out=path.resolve(process.env.MY_PICTURE
   // a damaged copy: unreadable ('broken', also a cut one), the drive GIF or the Car picture stands in
   {const good=fs.readFileSync(path.join(data,'my-pictures','stop.mpic'));fs.writeFileSync(path.join(data,'my-pictures','stop.mpic'),good.slice(0,good.length-20));MPR.scan(0,true);
    assert.strictEqual(MPR.status()[0].error,'broken');assert.strictEqual(MPR.status()[0].uses,'drive');fs.writeFileSync(path.join(data,'my-pictures','stop.mpic'),good);MPR.scan(0,true);}
+  // nothing chosen: every copy removed (back to the Car picture)
+  {const tmpd=fs.mkdtempSync(path.join(os.tmpdir(),'mypic-clear-'));fs.mkdirSync(path.join(tmpd,'my-pictures'));['drive.mpic','left.mpic','stop.gif'].forEach(n=>fs.writeFileSync(path.join(tmpd,'my-pictures',n),'x'));
+   assert.deepStrictEqual(await new Promise(res=>MPS.fetchChosen(tmpd,{},res)),{cleared:true});assert.strictEqual(fs.readdirSync(path.join(tmpd,'my-pictures')).length,0);MPR.setDir(data);MPR.scan(0,true);}
+  // no GIF at all: the Car layout itself (1.3.54): its drifting car with the G, as car-meter.js draws it
+  {const empty=fs.mkdtempSync(path.join(os.tmpdir(),'mypic-none-')),CMx=require(path.join(repo,'apps/cluster_redline/car-meter'));MPR.setDir(empty);MPR.scan(0,true);MPR.reset();CMx.reset();
+   let cf=MPR.frameOf('c','D',40,50000,{lat:0,long:0});assert.strictEqual(cf.state,'cruise');assert(!cf.mine,'the Car picture');
+   for(let t=50050;t<=51000;t+=50)cf=MPR.frameOf('c','D',40,t,{lat:-0.4,long:0});assert(/^turn/.test(cf.state),'cornering: the Car layout\'s drift ('+cf.state+')');
+   cf=MPR.frameOf('c','R',3,51100,{lat:0,long:0});assert.strictEqual(cf.state,'reverse');MPR.setDir(data);MPR.scan(0,true);MPR.reset();}
   // the share answers only GET from this head unit, only listed GIFs
   const st=await new Promise(res=>require('http').get({host:'127.0.0.1',port:18884,path:'/gif?id=../library.json'},r=>{r.resume();res(r.statusCode);}));assert.strictEqual(st,404);
  }finally{share.stop();}
