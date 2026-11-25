@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.60
+
+- **Fix: the cluster's Animation picture stood still while the HUD's moved.** The cluster and the HUD share one upload allowance (at most 1 MB/s, less when cluster-render says so). With an animation the HUD sent its small changes twenty times a second and spent the credit as fast as it came, so the cluster's bigger changes (its picture) never went. Now an output refused for want of credit keeps what builds up for itself (up to 1 s) and the two take turns when both want more than there is (`upload.js`). Simulated: with 600 KB/s the cluster went from 0 to about 3 pictures a second (the HUD about 3 instead of 10); with 1 MB/s about 5 on the cluster and 9 on the HUD.
+- Tests: `upload-fair` (new).
+
 ## MGU 모니터 1.1.10
 
 - **Big home widget fitted**: on the car the graphs' labels and numbers were cut at the sides and the HMI's own text line and progress bar lay over them. Everything is now drawn inside the layout's safe area (`startWidget.safe`: 9 % each side, 10 % top and bottom; x 40..344 of 384), below the HMI's title row, a little smaller (labels 16, values 22, graphs 34 high); the app storage line shrinks to fit. The big widget turns the HMI's second text line and progress bar off (the small widget keeps them: "CPU · 메모리" and the memory bar).

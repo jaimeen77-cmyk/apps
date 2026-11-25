@@ -183,7 +183,7 @@ class Controller {
         const canvas = painter.draw(d), source=canvas.d;
         const pixels=ArrayBuffer.isView(source)?Buffer.from(source.buffer,source.byteOffset,source.byteLength):Buffer.from(source);
         if (!this.previous) {
-            this.upload.allow(pixels.length, now, true);
+            this.upload.allow(pixels.length, now, true, this);
             if (!this.ownsUpload) this.upload.waitUntil = now + Math.max(250, Math.ceil(pixels.length / this.upload.rate * 1000));
             this.client.pixels(this.ref, null, pixels);
             // The production client waits if pixels are still queued behind
@@ -193,7 +193,7 @@ class Controller {
             else this.client.set(this.ref, { visible: true });
         } else {
             const delta = painter.difference(this.previous, pixels);
-            if (delta.rects.length && !this.upload.allow(delta.pixels.length, now, false)) return Object.assign(d, { requested: true, layerState: this.layerState });
+            if (delta.rects.length && !this.upload.allow(delta.pixels.length, now, false, this)) return Object.assign(d, { requested: true, layerState: this.layerState });
             if (delta.rects.length) this.client.pixels(this.ref, delta.rects, delta.pixels);
         }
         // Retained canvases are mutable. Keep one stable sent-frame snapshot,
