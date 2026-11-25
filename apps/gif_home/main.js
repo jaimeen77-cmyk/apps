@@ -20,7 +20,7 @@ const { C, backdrop, header, rows, lines, fitText, button } = require('./look');
 const { t, getLanguage } = require('./kit/i18n');
 const G = require('./kit/gauges');
 
-const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403, THUMB_IMAGE = 23404, FADE_IMAGE = 23405;
+const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403, FADE_IMAGE = 23405;
 const PRESETS = [
     ['demo', 'Animated BMW logo', 'demo.json'],
     ['drift', 'Pixel drift: Night City', 'drift_city.json'],
@@ -76,9 +76,11 @@ mgu.run({
         try {
             if (fs.statSync(cursorFile).size < 1024) resume = JSON.parse(fs.readFileSync(cursorFile, 'utf8')).id;
         } catch (_) {}
-        // jaimeen77-cmyk/apps: four pages (Page cycles them) and Diagnostics (its own button)
-        const panels = ['Widget preview', 'Widget settings', 'Animation', 'Phone Connection', 'Diagnostics'];
-        const PREVIEW = 0, WSET = 1, ANIMPAGE = 2, PHONE = 3, DIAG = 4, PAGES = 4;
+        // jaimeen77-cmyk/apps: three pages (Page cycles them) and Diagnostics (its own button). 0.4.8: no Widget
+        // settings page; the playback settings (mode, GIF, group, interval, pause, playlist) are made on the phone
+        // page, the widget's picture settings (fit, speed, frames, background) on the kit's Settings screen.
+        const panels = ['Widget preview', 'Animation', 'Phone Connection', 'Diagnostics'];
+        const PREVIEW = 0, ANIMPAGE = 1, PHONE = 2, DIAG = 3, PAGES = 3;
         let panel = 0, row = 0, logOffset = 0, confirmClear = false, dirty = true, screenKey = '';
         let widgetIndex = Object.create(null), frame = -1, notice = '';
         const history = new History(30);
@@ -256,7 +258,6 @@ mgu.run({
             }
         }
 
-        const intervalLabel = p => p.seconds ? p.seconds + ' seconds' : 'One full GIF pass';
         const cycle = (list, value, by) => list[(Math.max(0, list.indexOf(value)) + (by || 1) + list.length) % list.length];
         const settingSpec = key => (ctx.spec.settings || []).find(item => item.key === key);
         const optionLabel = key => {
@@ -266,7 +267,6 @@ mgu.run({
         };
         const cycleSetting = key => settings.set(key, cycle(settingSpec(key).options.map(o => o[0]), settings.get(key)));
         const gpuReady = () => !!(ctx.display && ctx.display.gpu && ctx.display.gpu.ready);
-        const modeName = p => MODE_NAMES[MODES.indexOf(p.mode)];
         // Each page's rows: title, the line below it, the value button on the right, what Select does.
         function previewRows() {
             const p = library.state.playback;
@@ -275,74 +275,6 @@ mgu.run({
                 { title: 'Playback', sub: p.paused ? 'Paused' : 'Playing', value: p.paused ? 'Resume' : 'Pause',
                     act: () => apply({ type: 'playback', paused: !p.paused }) },
             ];
-        }
-        function widgetRows() {
-            const p = library.state.playback, group = library.state.groups.find(g => g.id === p.group);
-            const all = files();
-            const rows = [
-                { title: 'Mode', sub: eligible().length + ' in current mode', value: modeName(p),
-                    act: () => apply({ type: 'playback', mode: cycle(MODES, p.mode) }) },
-                { title: 'Single GIF', sub: 'Used in the Single GIF mode', value: label(p.single),
-                    act: () => apply({ type: 'playback', single: cycle(all.map(f => f.id), p.single) }) },
-                { title: 'Group', sub: 'Used in the Random – Group mode', value: group ? group.name : 'None',
-                    act: () => apply({ type: 'playback', group: cycle([null].concat(library.state.groups.map(g => g.id)), p.group || null) }) },
-                { title: 'Switch after', sub: 'Other modes: the next GIF after this', value: intervalLabel(p),
-                    act: () => apply({ type: 'playback', seconds: cycle([0, 5, 10, 15, 30], p.seconds) }) },
-                { title: 'Widget picture fit', sub: 'Home widget only', value: optionLabel('fit'), act: () => cycleSetting('fit') },
-                { title: 'Widget speed', sub: 'Home widget only', value: optionLabel('speed'), act: () => cycleSetting('speed') },
-                { title: 'Playback', sub: p.paused ? 'Paused' : 'Playing', value: p.paused ? 'Resume' : 'Pause',
-                    act: () => apply({ type: 'playback', paused: !p.paused }) },
-                { title: 'Next GIF', sub: label(player.id), value: 'Next', act: () => apply({ type: 'next' }) },
-            ];
-            // the playlist (the selected list, in order): made in its own window (the picker)
-            rows.push({ title: 'Playlist · ' + p.selected.length + ' GIFs', sub: p.selected.map(label).join(', '),
-                value: 'Make playlist', act: openPicker });
-            return rows;
-        }
-        // The playlist picker: every GIF; pressing one gives it the next number, pressing it again takes it out
-        // (the others close up). Confirm plays just those, in that order (Sequential); Cancel keeps the old list.
-        let picker = null;
-        const PICK_ACTIONS = 3;     // Confirm, Clear all, Cancel: the first rows
-        function openPicker() {
-            picker = { picks: library.state.playback.selected.filter(id => files().some(f => f.id === id)) };
-            row = PICK_ACTIONS;
-            dirty = true;
-        }
-        function closePicker() {
-            picker = null;
-            row = widgetRows().length - 1;      // back on the Playlist row
-            dirty = true;
-        }
-        function pickerRows() {
-            const picks = picker.picks;
-            const rows = [
-                { title: 'Confirm', sub: picks.length ? picks.length + ' GIFs, in this order (Sequential)' : 'Pick GIFs below first',
-                    value: picks.length ? 'Confirm' : '-', picked: picks.length > 0, act: () => {
-                        if (!picks.length) return;
-                        apply({ type: 'playback', selected: picks.slice(), mode: 'sequential' });
-                        closePicker();
-                    } },
-                { title: 'Clear all', sub: 'Start the order again', value: 'Clear', act: () => { picker.picks = []; } },
-                { title: 'Cancel', sub: 'Keep the playlist as it was', value: 'Cancel', act: closePicker },
-            ];
-            files().forEach(f => {
-                const n = picks.indexOf(f.id) + 1;
-                rows.push({ title: f.name, value: n ? String(n) : 'Pick', picked: n > 0, act: () => {
-                    picker.picks = n ? picks.filter(id => id !== f.id) : picks.concat([f.id]);
-                } });
-            });
-            return rows;
-        }
-        // The picker's preview: the first picture of the GIF the focus is on (decoded once per GIF; 0.4.7: only that
-        // picture, not the whole GIF kept beside the one playing)
-        let thumb = { id: null, gif: null };
-        function thumbFor(id) {
-            if (thumb.id !== id) {
-                thumb = { id, gif: null };
-                try { thumb.gif = decode(gifBytes(id), { firstOnly: true }); } catch (_) { record('Preview could not open GIF: ' + id); }
-                if (thumb.gif) { const g = thumb.gif; setImage(THUMB_IMAGE, g.width, g.height, g.frames[0].data); }
-            }
-            return thumb.gif;
         }
         function animPageRows() {
             return [
@@ -354,7 +286,7 @@ mgu.run({
                     act: () => cycleSetting('renderer') },
             ];
         }
-        const rowsFor = n => (n === PREVIEW ? previewRows() : n === WSET ? (picker ? pickerRows() : widgetRows()) : n === ANIMPAGE ? animPageRows() : []);
+        const rowsFor = n => (n === PREVIEW ? previewRows() : n === ANIMPAGE ? animPageRows() : []);
         // the widget's shape (384 x 256)
         const WIDGET_BOX = { x: 84, y: 100, w: 600, h: 400 }, ANIM_BOX = { x: 84, y: 104, w: 720, h: 400 };
         let backdropKey = '';
@@ -372,7 +304,7 @@ mgu.run({
             if (phone.link && !upload.active) { clearQr(); phone.detail = 'QR session expired. Rescan to pair again.'; }
             const key = JSON.stringify([panel, row, logOffset, panel === PREVIEW || panel === ANIMPAGE ? frame : 0, player.id,
                 library.state.revision, panel === DIAG ? logVersion : 0, panel === PHONE ? [upload.phoneAt, upload.lastError, upload.lastRequest] : null,
-                [settings.get('fit'), settings.get('speed'), settings.get('animSpeed'), settings.get('renderer'), gpuReady()], notice, library.error, picker ? picker.picks : null]);
+                [settings.get('fit'), settings.get('speed'), settings.get('animSpeed'), settings.get('renderer'), gpuReady()], notice, library.error]);
             if (key === screenKey && !dirty) return;
             screenKey = key; dirty = false;
             const cv = ctx.canvas(W, H);
@@ -383,25 +315,6 @@ mgu.run({
                 cv.fillRect(WIDGET_BOX.x, WIDGET_BOX.y, WIDGET_BOX.w, WIDGET_BOX.h, '#080911');
                 if (!drawFrameIn(cv, WIDGET_BOX)) cv.text('No GIF', WIDGET_BOX.x + WIDGET_BOX.w / 2, WIDGET_BOX.y + 210, 30, C.dim, { align: 'center' });
                 rows(cv, previewRows(), row, { x: 720, y: 96, w: 818 }, 92);
-            }
-            if (panel === WSET && !picker) rows(cv, widgetRows(), row, {}, 69);
-            if (panel === WSET && picker) {
-                rows(cv, pickerRows(), row, { x: 78, y: 96, w: 900 }, 69);
-                const box = { x: 1010, y: 132, w: 528, h: 270 };
-                // the GIF the focus is on; on Confirm / Clear / Cancel the first one picked
-                const f = files()[row - PICK_ACTIONS], id = f ? f.id : picker.picks[0];
-                cv.text('Make playlist', box.x, 118, 22, C.dim);
-                cv.fillRect(box.x, box.y, box.w, box.h, '#000000');
-                const g = id && thumbFor(id);
-                if (g) { const r = rectFor(g.width, g.height, box.x, box.y, box.w, box.h, 'contain'); cv.image(THUMB_IMAGE, r.x, r.y, r.w, r.h); }
-                const order = picker.picks.map((pick, i) => (i + 1) + '. ' + label(pick));
-                if (!order.length) cv.text('Press GIFs in the order to play them', box.x, box.y + box.h + 34, 21, C.dim);
-                [order.slice(0, 2), order.slice(2, 4)].forEach((part, k) => {
-                    if (!part.length) return;
-                    const more = k === 1 && order.length > 4 ? '   + ' + (order.length - 4) : '';
-                    cv.text(fitText(cv, part.join('   '), 21, box.w - (more ? 70 : 0)) + more, box.x, box.y + box.h + 34 + k * 32, 21, C.sub);
-                });
-                cv.text('Page: next 6', box.x + box.w, 118, 20, C.faint, { align: 'right' });
             }
             if (panel === ANIMPAGE) {
                 cv.fillRect(ANIM_BOX.x, ANIM_BOX.y, ANIM_BOX.w, ANIM_BOX.h, '#000000');
@@ -440,7 +353,6 @@ mgu.run({
             catch (e) { record('Preview frame could not be sent to HMI'); dirty = true; throw e; }
         }
         function setPanel(next) {
-            picker = null;
             panel = next; row = 0; logOffset = 0; confirmClear = false; notice = ''; dirty = true;
         }
         function nextRow() {
@@ -477,12 +389,10 @@ mgu.run({
             screenKey = ''; widgetIndex = Object.create(null);
             if (key === 'widgetBackground' || key === 'widgetTone') updateWidgetBackground();
         });
-        // Page: the five pages in turn (from Diagnostics, back to the first)
-        // (in the playlist picker: the list's next 6 rows)
+        // Page: the three pages in turn (from Diagnostics, back to the first)
         ui.onClick('BTN_PAGE', () => {
-            if (picker) { row = (row + 6) % pickerRows().length; dirty = true; return; }
             setPanel(panel >= PAGES - 1 ? 0 : panel + 1);
-            // page 3 is the Animation screen itself (BACK there comes back to this page; Page goes on to 4)
+            // page 2 is the Animation screen itself (BACK there comes back to this page; Page goes on to 3)
             if (panel === ANIMPAGE) ui.open('ANIM');
         });
         ui.onClick('BTN_PHONE', () => {
@@ -505,6 +415,8 @@ mgu.run({
         let fullView = false;
         // kept here, not in app.json (whose text is part of the Store's UI template)
         const FULL_VIEW = getLanguage() === 'ko' ? '전체보기' : 'Full view';
+        // 0.4.8: the playback settings are made on the phone page (no Widget settings page)
+        const ORDER_NOTE = getLanguage() === 'ko' ? '애니메이션 순서는 휴대폰에서 정한 재생 설정을 따릅니다' : 'The animation order follows the playback settings made on the phone';
         // Without the GPU renderer the page is the HMI's image component, not centred on the iDrive 7 screen
         // (1920 x 720; the image at x 124, y 82, 1600 x 520: its middle 36 px left of and 18 px above the screen's).
         // The GIF goes in the largest box of the page whose middle is the screen's, so it sits in the screen's centre.
@@ -613,7 +525,7 @@ mgu.run({
             button(r, x0, y, w0, fh, fv.value, false, false, Math.round(32 * u));
             rects.push({ b: fv, x: x0, y, w: w0, h: fh });
             // which GIFs, in what order: Widget settings (in orange)
-            r.text(fitText(r, 'The animation order follows Widget settings', Math.round(24 * u), w0), x0, box.y + box.h - Math.round(34 * u), Math.round(24 * u), C.warn);
+            r.text(fitText(r, ORDER_NOTE, Math.round(24 * u), w0), x0, box.y + box.h - Math.round(34 * u), Math.round(24 * u), C.warn);
             return rects;
         }
         async function renderAnim() {
@@ -677,10 +589,11 @@ mgu.run({
         ui.onClick('BTN_ANIM_SETTINGS', () => {
             if (leaveFull()) return;
             showTabs(false);
-            // drawn over the animation where the kit runs the screen (GPU renderer); otherwise the Playback page
+            // drawn over the animation where the kit runs the screen (GPU renderer); otherwise the Phone page, where
+            // the playback settings are made (0.4.8: no Widget settings page)
             if (ctx.sheet && ctx.sheet(listSheet(animSettings, 'Animation settings'))) return;
             ui.open('MAIN');
-            setPanel(WSET);
+            setPanel(PHONE);
         });
         setInterval(() => { checkBridge().catch(() => record('Network status check failed')); }, 2500);
         // The playlist advances even when neither preview nor widget is visible.
