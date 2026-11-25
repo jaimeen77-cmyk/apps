@@ -81,6 +81,74 @@ def patch_gpu_screen(module):
     module.write_text(code.replace(old, new), encoding='utf-8', newline='\n')
 
 
+NATIVE_PIXMAPS = r'''
+// jaimeen77-cmyk/apps (GIF 플레이어): pixel images (setImage) over mgu-render/1 as pixmaps (PROTOCOL.md X_PIXMAP,
+// X_PIXELS), and op 18 in the frames sent there in that dialect's field order (x y w h r id, not id ver x y w h).
+// Without this the kit's client dropped them on that dialect: the picture stayed black.
+const X_PIXMAP = 0x4d520003, X_PIXELS = 0x4d520004, X_DROP_IMAGE = 11, PIXMAP_RGBA_OPAQUE = 2, PIXMAP_NEAREST = 0;
+const OP_WORDS = { 1: 1, 2: 5, 4: 6, 5: 7, 7: 8, 8: 11, 9: 6, 12: 3, 13: 4, 14: 0, 15: 9, 16: 1, 17: 3, 18: 6 };
+function nativeImageOps(u) {
+    const f = new Float32Array(u.buffer, u.byteOffset, u.length);
+    let i = 0, out = null, of = null;
+    while (i < u.length) {
+        const op = u[i++];
+        const n = op === 3 ? 5 + 2 * u[i + 4] : op === 6 ? 6 + 2 * u[i + 5] : op === 10 ? 1 + 9 * u[i] : op === 11 ? 3 + 8 * u[i + 2] : OP_WORDS[op];
+        if (n === undefined || i + n > u.length) break;      // an op this walker does not know: the rest as it was
+        if (op === 18) {
+            if (!out) { out = new Uint32Array(u); of = new Float32Array(out.buffer, out.byteOffset, out.length); }
+            const id = u[i];
+            of[i] = f[i + 2]; of[i + 1] = f[i + 3]; of[i + 2] = f[i + 4]; of[i + 3] = f[i + 5]; of[i + 4] = 0; out[i + 5] = id;
+        }
+        i += n;
+    }
+    return out || u;
+}
+'''
+
+
+def patch_native_pixmaps(module):
+    """The kit's renderer client (renderd.js) on mgu-render/1: pixel images as pixmaps, op 18 in that dialect's order."""
+    code = module.read_text(encoding='utf-8')
+    pairs = [
+        ("const X_MODE_LAYER = 1;\n", "const X_MODE_LAYER = 1;\n" + NATIVE_PIXMAPS),
+        ("this.info = { touch: !!(caps & 1), controller: !!(caps & 2), frontGate: !!(caps & 4) };",
+         "this.info = { touch: !!(caps & 1), controller: !!(caps & 2), frontGate: !!(caps & 4), pixmaps: !!(caps & 8) };"),
+        ("this.sent.image.clear(); this.waiting = false; }",
+         "this.sent.image.clear(); if (this.sent.pixmap) this.sent.pixmap.clear(); this.waiting = false; }"),
+        ("        if (this.native) { if (!this.imgWarned) { this.imgWarned = true; this.log.warn('renderd: pixel images need the upstream dialect'); } return; }\n",
+         "        if (this.native) return this._ensurePixmap(id);\n"),
+        ("    _ensureLayer(id) {",
+         """    /** mgu-render/1: the image as a pixmap of its size (made again when the size changes), its pixels when its version is new */
+    _ensurePixmap(id) {
+        if (!this.info || !this.info.pixmaps) { if (!this.imgWarned) { this.imgWarned = true; this.log.warn('renderd: this renderer has no pixmaps'); } return; }
+        const im = rec.imageById.get(id);
+        if (!im || !im.data) return;
+        if (this.sent.image.get(id) === im.ver) return;
+        const made = this.sent.pixmap || (this.sent.pixmap = new Map()), size = im.w + 'x' + im.h;
+        if (made.get(id) !== size) {
+            if (made.has(id)) this._write(this._u32msg(X_DROP_IMAGE, [id]));
+            this._write(this._u32msg(X_PIXMAP, [id, im.w, im.h, PIXMAP_RGBA_OPAQUE, PIXMAP_NEAREST]));
+            made.set(id, size);
+        }
+        const n = im.w * im.h * 4, b = this._imageBuf(8 + 24 + n);
+        b.writeUInt32LE(X_PIXELS, 0); b.writeUInt32LE(24 + n, 4);
+        b.writeUInt32LE(id, 8); b.writeUInt32LE(1, 12); b.writeUInt32LE(0, 16); b.writeUInt32LE(0, 20);
+        b.writeUInt32LE(im.w, 24); b.writeUInt32LE(im.h, 28);
+        Buffer.from(im.data.buffer, im.data.byteOffset, n).copy(b, 32);
+        this._write(b);
+        this.sent.image.set(id, im.ver);
+    }
+    _ensureLayer(id) {"""),
+        ("        return this._write(msg(M.FRAME, words(r.words())));",
+         "        return this._write(msg(M.FRAME, words(this.native ? nativeImageOps(r.words()) : r.words())));"),
+    ]
+    for old, new in pairs:
+        if code.count(old) != 1:
+            raise ValueError('Unsupported renderer client: ' + old[:60])
+        code = code.replace(old, new)
+    module.write_text(code, encoding='utf-8', newline='\n')
+
+
 def generate(kit_root, kit_commit, app_id):
     # store-build.js fingerprints the raw bytes of this file; the car's checkout has LF endings.
     if b'\r' in (ROOT / 'localization/ko-additions.tsv').read_bytes():
@@ -127,6 +195,7 @@ def generate(kit_root, kit_commit, app_id):
             patch_widget_text(rt / 'mgu.js', app_id)
         if any(s.get('gpu') is True for s in spec['screens']):
             patch_gpu_screen(rt / 'display.js')
+            patch_native_pixmaps(rt / 'renderd.js')
         pkg = {'name': app_id, 'displayName': spec['title'], 'version': original['version'], 'description': spec['description'],
                'main': 'javascript/app.js', 'private': False, 'author': extra['author'], 'license': 'GPL-3.0',
                'mguHmi': original.get('storeMguHmi', ['ID7']), 'mguLocalOnly': True, 'engines': {'node': '>=8.7.0'},

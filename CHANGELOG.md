@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## GIF 플레이어 0.4.4 (Korean edition)
+
+- **Animation screen black on the car (fixed)**: on the GPU renderer's own dialect (mgu-render/1) the kit's renderer client dropped pixel images ("pixel images need the upstream dialect"), and op 18 went out in the upstream field order, so the GIF never showed and frames could be refused. The Store template's `kit/runtime/renderd.js` now sends them as pixmaps (`X_PIXMAP` once per size, `X_PIXELS` per new frame, RGBA, nearest) when the renderer offers pixmaps, and rewrites op 18 to `x y w h r id` in the frames sent there; the recording kept for the software path is unchanged (`tools/prepare-upstream-apps.py`, `patch_native_pixmaps`).
+- Tests: `tests/gif-home-ko.test.js` drives the packaged client as on a renderer with pixmaps (pixmap, pixels, rewritten op 18, no re-upload of the same frame, a new pixmap at a new size).
+- Not changed: the main pages are the HMI's own image, so their drawn buttons do not take touch; the bottom bar (다음 항목 / 선택) works them.
+
 ## Cluster Redline 1.3.57, MGU Monitor 1.1.9 and Seats Easy Access 0.7.10
 
 - **Cluster Redline**: the settings watermark no longer shows the cafe name "BMW Coding 배움터" or the blog address. The Korean edition keeps the profile picture and 서울II잼님; the English edition shows no watermark. The background photo is unchanged.
