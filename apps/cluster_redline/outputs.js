@@ -21,6 +21,13 @@ class OutputClient extends EventEmitter {
     get ready() { return this.client.ready; }
     get targets() { return this.client.targets; }
     image(options) { const ref = this.client.image(options); if (ref) this.refs.add(ref); return ref; }
+    // the GPU flipbook's (flipbook.js, 1.3.62): an atlas, a palette and an effect layer; only with a client that has them
+    get effect() { return typeof this.client.effect === 'function' ? (options) => { const ref = this.client.effect(options); if (ref) this.refs.add(ref); return ref; } : undefined; }
+    get asset() { return typeof this.client.asset === 'function' ? (options) => { const ref = this.client.asset(options); if (ref) this.refs.add(ref); return ref; } : undefined; }
+    get animate() { return typeof this.client.animate === 'function' ? (ref, o) => this.client.animate(ref, o) : undefined; }
+    uniform() { return this.client.uniform.apply(this.client, arguments); }
+    bind() { return this.client.bind.apply(this.client, arguments); }
+    stop() { return this.client.stop.apply(this.client, arguments); }
     pixels() { return this.client.pixels.apply(this.client, arguments); }
     set() { return this.client.set.apply(this.client, arguments); }
     canPaint(ref) { return this.client.canPaint?this.client.canPaint(ref):true; }

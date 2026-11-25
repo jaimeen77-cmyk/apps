@@ -4,6 +4,7 @@ const gear = require('./gear');
 const { Telemetry } = require('./telemetry');
 const { UploadPacer } = require('./upload');
 const { placement } = require('./layout');
+const { Flipbook } = require('./flipbook');
 // Only these exact server contracts describe a lost layer or temporary
 // resource/attachment failure. Malformed frames, unsupported targets, native
 // slot refusals and guard decisions must not become retry loops.
@@ -24,6 +25,8 @@ class Controller {
         this.retryAfter = 0; this.recoverySince = null; this.recovering = false;
         this.transitions = []; this.lastReason = null;
         client.on('budget', (cap) => this.upload.budget(cap));
+        // the Animation layout's GIFs on the GPU (flipbook.js, 1.3.62), one per display this controller shows
+        this.flips = {};
         this.targetName = null; this.targetStates = {}; this.paintKey = null;
         this.renderCache = null;
         this.now = 0; this.failure = null; this.healthySince = null; this.layerReason = '';
@@ -55,6 +58,7 @@ class Controller {
         this.targetName = null; this.layerReason = ''; this.healthySince = null;
         this.navContend = false;
         if(this.renderCache)this.renderCache.reset();
+        Object.keys(this.flips || {}).forEach((k) => this.flips[k].hide());
         // Target events describe the renderer's global slot, not this ref.
         // Keep the latest ownership through a drop: a new layer need not
         // produce another target event if the native slot has not changed.
@@ -172,6 +176,9 @@ class Controller {
             this.layerScale = cfg.widgetScale;
             this.targetName = cfg.displayTarget;
         }
+        // The Animation layout's GIF: drawn by the renderer from frames sent once (flipbook.js), so the image leaves it
+        // out (a still placeholder: no repaint, nothing sent, for each new frame of it); painted as before until then.
+        this.flipbook(now, d, cfg, rect, painter, panel, hud);
         // Do not repaint a whole canvas 60 times/s when no source value changed.
         // Keep freshness/mode checks above this cache so stale signals still hide.
         const paintKey = painter.key ? painter.key(d) : [d.rpm,d.shift,d.flash,d.gear,d.torqueNm,d.powerPS,d.torquePeak,d.powerPeak,JSON.stringify([cfg,d.renderRpm,d.aux,hud?d.navigation:null])].join('|');
@@ -209,6 +216,17 @@ class Controller {
         }
         return Object.assign(d, { requested: true, layerState: this.layerState });
     }
-    close() { this.hide(); this.policy.reset(); this.client.close(); }
+    flipbook(now, d, cfg, rect, painter, panel, hud) {
+        const display = hud ? 'hud' : 'cluster', car = d.aux && d.aux.car, frame = car && car[display];
+        let flip = this.flips[display];
+        if (!flip) { if (!frame || !frame.mine || typeof this.client.effect !== 'function') return; flip = this.flips[display] = new Flipbook(this.client, display, this.upload); }
+        Object.keys(this.flips).forEach((k) => { if (k !== display) this.flips[k].release(); });
+        let box = null;
+        if (frame && frame.mine) { try { box = require('./redline-hud').pictureBox(d, display); } catch (e) { box = null; } }
+        const on = flip.update(now, { target: cfg.displayTarget, klass: panel ? 'overlay' : 'content', z: 101, rect, iw: painter.W, ih: painter.H, box, frame, sent: !!this.previous });
+        d.flipbook = flip.status();
+        if (on) d.aux = Object.assign({}, d.aux, { car: Object.assign({}, car, { [display]: { flip: true, set: display } }) });
+    }
+    close() { this.hide(); Object.keys(this.flips).forEach((k) => this.flips[k].release()); this.policy.reset(); this.client.close(); }
 }
 module.exports = { Controller };

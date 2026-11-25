@@ -2,6 +2,14 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.62 (GIFs at their own speed: the GPU flipbook)
+
+- **The Animation layout's GIFs run at their own frame rate, 20 a second and more, on the cluster and the HUD.** Before, each new GIF frame was painted into the layout's image and its changed pixels sent (about 160 KB a frame on the cluster, against at most 1 MB/s shared with the HUD: 3-5 frames a second). Now every frame goes to cluster-render once, when the GIFs are loaded: an atlas of colour numbers (r8, the frames side by side, at most about 1.8 MB a display) and a palette (256 colours a GIF). A small effect layer over the picture draws the frame (fitted, bilinear, edges fading; on the HUD black see-through, the same pixels as before) and the renderer steps through the frames itself at the GIF's delays, so nothing is sent per frame. A change of scene sends the new GIF's steps and fades over 400 ms (smoothly now, not in 8 steps).
+- The layout's image leaves the picture out while the effect layer is shown, so it is no longer repainted or sent for the GIF's frames either (less CPU and memory traffic).
+- Fallback: until cluster-render shows the layer (the atlas written), or when it refuses it, the picture is painted into the image as in 1.3.61. Its pixel memory full: half the room tried (the frames thinned alike), then a quarter; anything else refused: not tried again for these GIFs. A GIF with more than 255 colours keeps its 255 most used ones (the others the nearest).
+- The Car layout's own animated car (no GIF chosen) is still painted as before.
+- Tests: `flipbook` (new). The shader was checked against the painted picture in WebGL (GLSL ES 1.00): identical on the cluster, on the HUD, mirrored and fading.
+
 ## Cluster Redline 1.3.61 · GIF 플레이어 0.4.7 (memory, CPU)
 
 - **Cluster Redline**: a GIF from the GIF player is scaled down to the picture's box *while it is decoded* (`gif-decode.js` `box`): a 640 x 360, 90-frame GIF took about 41 MB at once when fetched, now about 10 MB. Drawing a GIF frame (the cluster and the HUD, twenty times a second) no longer makes arrays per pixel: sampling positions, weights and the edge fade are worked out once per size, buffers are reused and the last six results kept (the same frame drawn again costs nothing). Measured on the PC: 3.3 → 1.5 ms a frame, the same picture (at most 4 of 255 apart from rounding).

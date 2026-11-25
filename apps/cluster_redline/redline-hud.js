@@ -240,4 +240,15 @@ function keys(state,d){
   else v=JSON.stringify(base.concat([id]));
   return (memo[id]=v);};
 }
-module.exports={scene,VERTICAL_GAUGES,CLUSTER_BASE,GAUGE_LAYOUTS,CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,keys,elements,bounds,partRect,partPainter,nodes,placed};
+// Where the Animation layout's picture is in the painted image (1.3.62, flipbook.js): {x, y, w, h} in the cluster's
+// 1088 x 480 image or the HUD's 800 x 480 one, or null (not the Animation layout, its picture hidden).
+const boxCache={};
+function pictureBox(state,d){
+ const cfg=state&&state.config;if(!cfg||state.renderRpm===false)return null;const st=style(cfg,d);if(st!=='car'&&st!=='mypic'||cfg[d+'RpmGaugeHidden'])return null;
+ const ck=JSON.stringify(cfg),c=boxCache[d]||(boxCache[d]={key:null,v:null});if(c.key===ck)return c.v;c.key=ck;c.v=null;
+ const face=d==='cluster'?{x:0,y:0,w:1088,h:480}:require('./layout').placement(cfg,'hud',require('./hud-draw'));
+ const e=placed(state,rect(cfg,face,d),d,face).find(v=>v.id==='carpic');if(!e||!e.b||!e.r)return null;
+ const X=require('./rl-hud-x'),k=e.r.w/e.b.w;
+ return (c.v={x:e.r.x+(X.CAR.x*X.S-e.b.x)*k,y:e.r.y+(X.CAR.y*X.S-e.b.y)*k,w:X.CAR.w*X.S*k,h:X.CAR.h*X.S*k});
+}
+module.exports={pictureBox,scene,VERTICAL_GAUGES,CLUSTER_BASE,GAUGE_LAYOUTS,CLUSTER_ONLY,HUD_ONLY,stylesFor,HUD_BASE,safe,room,STYLES,NAMES,IW,IH,heightOf,extent,clampTo,ELEMENTS,PART,PART_NAMES,LABELS,style,active,gearOf,readouts,frame,paint,draw,drawSized,rect,key,keys,elements,bounds,partRect,partPainter,nodes,placed};

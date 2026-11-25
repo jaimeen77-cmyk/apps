@@ -445,4 +445,4 @@ function drawCar(cv,f,h){
 const DRAW={car:drawCar,mypic:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
-module.exports={STYLES:Object.keys(DRAW),IH,drawX};
+module.exports={STYLES:Object.keys(DRAW),IH,drawX,CAR,S};
