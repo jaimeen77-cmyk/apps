@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## GIF Home 0.4.4 (Korean edition)
+
+- **The GPU renderer is installed with it**: the Store entry now requires `idrive7-renderd` 2.1.18, `mgu-inputgate` 1.1.0 and `mgu-deploy` 0.7.17 (as 8게임즈 does), offered by the appsKOR source. Without the renderer the Animation screen was drawn in the HMI's own image: a few frames a second (4) and no touch, only the bottom buttons. With it the kit draws the screen up to one frame per screen refresh and its buttons take taps.
+- The Widget preview / Widget settings / Phone pages stay the HMI's drawing (bottom buttons), as before.
+
 ## Cluster Redline 1.3.57, MGU Monitor 1.1.9 and Seats Easy Access 0.7.10
 
 - **Cluster Redline**: the settings watermark no longer shows the cafe name "BMW Coding 배움터" or the blog address. The Korean edition keeps the profile picture and 서울II잼님; the English edition shows no watermark. The background photo is unchanged.
