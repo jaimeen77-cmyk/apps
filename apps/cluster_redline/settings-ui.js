@@ -122,7 +122,7 @@ class SettingsPage{
   if(this.bcEdit&&this.open==='layout'&&!this.layoutKind){this.setPreview(false);this.bcSave();return;}
   if(this.open==='bcCheck'&&this.bcFromFollow||this.bcEdit&&(this.open==='auxMode'||this.open==='auxSelect'||this.open==='design'||this.open==='rlDesign'||this.open==='myPic')){this.open='bc';this.bcEdit=null;this.bcFromFollow=false;this.draft=null;this.choice=0;this.changed();return;}
   if(this.open==='navLog'){this.open='navMode';this.choice=0;this.changed();return;}
-  if(this.open==='myPic'&&!this.bcEdit){this.open='rlDesign';this.choice=Math.max(0,designList(this.display()).indexOf('mypic'));this.changed();return;}
+  if(this.open==='myPic'&&!this.bcEdit){this.open='rlDesign';this.choice=Math.max(0,designList(this.display()).indexOf('car'));this.changed();return;}
   if(this.open==='favView'){this.open=null;}
   else if(this.open==='auxMode'){this.open='rlDesign';this.choice=Math.max(0,designList(this.display()).indexOf(designNow(this.config(),this.display())));}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
@@ -197,7 +197,8 @@ class SettingsPage{
   if(this.open==='rlDesign'){const d=this.display(),st=designList(d)[index];if(!st)return;
    if(JAM[st]){const values=this.designSwitch('own');values[d+'AlertStyle']=st==='jam-circle'?'circle':'bar';this.setValues(values);}else this.setValues(this.designSwitch('rl-'+st));
    // My design (1.3.50): first its GIFs from the GIF player, then its auxiliary values
-   if(st==='mypic'){this.openMyPic();return;}
+   // the Animation layout (1.3.55, with My design merged in): on the cluster its GIFs first
+   if(st==='car'&&d==='cluster'){this.openMyPic();return;}
    // then its auxiliary values
    const a=D.auxConfig(this.config()[d+'AuxConfig']);this.open='auxMode';this.choice=a.mode==='off'?2:a.mode==='values'?1:0;this.changed();return;}
   const list=options(this.item(),this.config());if(!list[index])return;
@@ -229,7 +230,7 @@ class SettingsPage{
  draw(cv,status,liveState){
   this.liveState=liveState||null;
   // My picture's previews read the GIFs from the app's data folder (my-picture.js), once the layout is chosen
-  if(this.dataDir&&!this.myPictureDir&&['hud','cluster'].some(d=>this.config()[d+'Design']==='rl-mypic')){this.myPictureDir=true;require('./my-picture').setDir(this.dataDir);}
+  if(this.dataDir&&!this.myPictureDir&&this.config().clusterDesign==='rl-car'){this.myPictureDir=true;require('./my-picture').setDir(this.dataDir);}
   const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);{const B=require('./settings-bg');B.paint(cv,W,H,B.left(cv),B.top(cv,cv.chrome?0:80));}
   const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
   // 'Favorites' is not in the kit's own catalogue: its Korean comes from strings.js.
@@ -462,7 +463,7 @@ class SettingsPage{
  drawMyPic(cv,cfg,targets){
   const local=[],MPS=require('./my-picture-source'),MP=require('./my-picture'),st=this.myPic||{},B=MP.BOX,SRC=MP.SOURCE,choice=this.myPicChoice();
   const kb=b=>b>=1024*1024?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
-  cv.text(tr('My design'),100,118,32,'#ef4050',{literal:true});
+  cv.text(tr('Animation')+' · '+tr('My GIFs'),100,118,32,'#ef4050',{literal:true});
   // the sizes (1.3.51): another size is fitted when it is copied, so only the GIF player's own limits apply
   cv.text(tr('Recommended')+': '+tr('canvas')+' '+B.w+' × '+B.h+' · '+tr('other sizes are fitted automatically')+' ('+tr('at most')+' '+SRC.maxW+' × '+SRC.maxH+', '+kb(SRC.maxBytes)+') · '+tr('Over N frames: N kept').replace(/N/g,MP.MAX_FRAMES),100,152,19,'#5ee08f',{literal:true});
   const src=st.state==='loading'?tr('GIF player')+': '+tr('waiting'):st.state==='error'?tr('GIF player')+': '+tr(st.error==='not_running'?'not running or older than 0.4.3 (update it and open it once)':'not reachable')+' ('+st.error+')':tr('GIF player')+': GIF '+(st.files||[]).length;
@@ -476,16 +477,18 @@ class SettingsPage{
    cv.text(tr(label)+(must?' *':''),100,y+29,22,'#f3f5f7',{literal:true});
    this.button(cv,local,'−',290,y,70,40,()=>this.myPicStep(slot,-1),false,'mypic-'+slot+'-prev');
    const fit=f?MPS.fits(f):'ok';
-   let line=!id?(must?tr('Required: choose a GIF'):stand(slot)):(f?(f.preset?tr('Built-in')+' · ':'')+f.name:id)+(f&&f.width?' · '+f.width+' × '+f.height+(MPS.resized(f)&&fit==='ok'?' → '+tr('fitted to')+' '+B.w+' × '+B.h:''):'')+(f&&f.bytes?' · '+kb(f.bytes):'')+(fit!=='ok'?' · '+tr(why[fit]):'');
+   // no GIF at all: the Animation layout's car (1.3.55); the driving GIF is required once any other is chosen
+   const any=Object.keys(choice).some(k=>choice[k]),need=must&&!id&&any;
+   let line=!id?(must?tr(any?'Required: choose a GIF':'None: the car picture'):any?stand(slot):tr('None: the car picture')):(f?(f.preset?tr('Built-in')+' · ':'')+f.name:id)+(f&&f.width?' · '+f.width+' × '+f.height+(MPS.resized(f)&&fit==='ok'?' → '+tr('fitted to')+' '+B.w+' × '+B.h:''):'')+(f&&f.bytes?' · '+kb(f.bytes):'')+(fit!=='ok'?' · '+tr(why[fit]):'');
    while(line.length>4&&cv.textWidth(line,20,{literal:true})>560)line=line.slice(0,-2);
-   cv.roundRect(372,y,580,40,6,'#1b2027');cv.text(line,386,y+28,19,fit!=='ok'||must&&!id?'#ff8a8a':!id?'#91a1b6':'#f3f5f7',{literal:true});
+   cv.roundRect(372,y,580,40,6,'#1b2027');cv.text(line,386,y+28,19,fit!=='ok'||need?'#ff8a8a':!id?'#91a1b6':'#f3f5f7',{literal:true});
    this.button(cv,local,'+',964,y,70,40,()=>this.myPicStep(slot,1),false,'mypic-'+slot+'-next');
    const s=status.find(x=>x.name===slot)||{},r=res[slot];
    let now=s.ok?tr('In use')+': '+s.w+' × '+s.h+' · '+s.frames+' '+tr('frames'):s.mirrored?tr(s.uses==='right'?'Uses the right-turn GIF mirrored':'Uses the left-turn GIF mirrored'):s.uses==='drive'?tr('Uses the driving GIF'):tr('Car picture (none)');
    if(r&&r.error)now+=' · '+tr('not kept')+' ('+(why[r.error]?tr(why[r.error]):r.error)+')';
    cv.text(now,1050,y+28,17,s.ok||s.uses?'#5ee08f':'#91a1b6',{literal:true});
   });
-  const note=res.cleared?tr('No GIF: the Car layout\'s own car is shown.'):res.error?tr(why[res.error]||res.error):tr('The driving GIF is required; scenes without their own show it (a turn: the other turn mirrored first). A change of scene fades.');
+  const note=res.cleared?tr('No GIF: the Car layout\'s own car is shown.'):res.error?tr(why[res.error]||res.error):tr('No GIF: the car picture. With GIFs the driving GIF is required; scenes without their own show it (a turn: the other turn mirrored first). A change of scene fades.');
   cv.text(note,100,432,16,res.cleared?'#5ee08f':res.error?'#ff8a8a':'#91a1b6',{literal:true});
   this.button(cv,local,st.busy?tr('Fetching'):tr('Fetch from GIF player'),84,448,380,64,()=>this.myPicFetch(),false,'mypic-fetch',24);
   this.button(cv,local,tr('Refresh'),476,448,200,64,()=>this.myPicList(),false,'mypic-refresh',24);
@@ -850,7 +853,7 @@ class SettingsPage{
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});
   cv.text(nav||uniform?'Width and height scale together.':'Width / height difference limited to 30%.',790,432,18,'#a8b6c8');
   // My picture: whether each of its three GIFs is read (my-picture.js), what is wrong with one that is not
-  if(!nav&&RL.style(cfg,display)==='mypic'){const MP=require('./my-picture');MP.scan(Date.now());const why={missing:'missing',too_large:'too large',too_big:'too big'};
+  if(!nav&&display==='cluster'&&RL.style(cfg,display)==='car'){const MP=require('./my-picture');MP.scan(Date.now());const why={missing:'missing',too_large:'too large',too_big:'too big'};
    const SC={stop:'Standing still',drive:'Driving',reverse:'Reverse',left:'Turning left',right:'Turning right'},line=MP.status().map(s=>tr(SC[s.name])+' '+(s.ok?s.w+'×'+s.h+' '+s.frames+' '+tr('frames'):s.uses==='drive'?tr('Uses the driving GIF'):tr(why[s.error]||'unreadable'))).join(' · ');
    cv.text(tr('My GIFs')+': '+line,790,500,17,'#ffad45',{literal:true});}
   const hidden=group.length&&group.every(p=>cfg[this.layoutPrefix(p)+'Hidden']);

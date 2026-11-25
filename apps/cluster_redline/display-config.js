@@ -61,7 +61,7 @@ Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'all
 });
 ['hud','cluster'].forEach(d=>RL_PARTS.forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=p==='RlMark';}));
 // The displays showing the Car layout's car picture (car-meter.js) or My picture's GIFs (my-picture.js) now.
-function carMeterFaces(cfg){return ['cluster','hud'].filter(d=>(cfg[d+'Design']==='rl-car'||cfg[d+'Design']==='rl-mypic')&&!cfg[d+'RlCarPicHidden']&&!cfg[d+'RpmGaugeHidden']);}
+function carMeterFaces(cfg){return ['cluster','hud'].filter(d=>cfg[d+'Design']==='rl-car'&&!cfg[d+'RlCarPicHidden']&&!cfg[d+'RpmGaugeHidden']);}
 function partsFor(display,cfg){
  // A Redline app layout: the RPM gauge part moves and sizes it whole, then each of its elements on its own.
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own'){const RL=require('./redline-hud');const order=['RlCar','RlCarPic','RlGear','RlMode','RlAlert','RlRpm','RlGauge','RlGMeter','RlTemp','RlRead','RlReadA','RlReadB','RlReadC','RlReadD','RlMark'];return [{key:'RpmGauge',label:'Whole layout',uniform:true}].concat(RL.elements(cfg,display).sort((x,y)=>order.indexOf(x.key)-order.indexOf(y.key)).map(e=>({key:e.key,label:RL.LABELS[e.key],uniform:true})));}
@@ -98,7 +98,8 @@ function normalize(raw,out){
  // usually UTC); the English version keeps the head unit's time.
  out.clockZone=['auto','utc9'].includes(raw.clockZone)?raw.clockZone:require('./strings').language()==='ko'?'utc9':'auto';
  out.hudDesign=HUD_ONLY_DESIGNS.includes(raw.hudDesign)?raw.hudDesign:'own';
- out.clusterDesign=HUD_DESIGNS.includes(raw.clusterDesign)&&raw.clusterDesign!=='rl-sporthud'?raw.clusterDesign:'own';
+ // My design (1.3.50-1.3.54) is part of the Animation (Car) layout since 1.3.55: its GIFs show there on the cluster
+ out.clusterDesign=raw.clusterDesign==='rl-mypic'?'rl-car':HUD_DESIGNS.includes(raw.clusterDesign)&&raw.clusterDesign!=='rl-sporthud'?raw.clusterDesign:'own';
  out.hudTurnBlindSpot=raw.hudTurnBlindSpot==='on'?'on':'off';out.hudTurnSignals=raw.hudTurnSignals==='on'?'on':'off';out.hudTurnStyle=TURN_STYLES.includes(raw.hudTurnStyle)?raw.hudTurnStyle:'arrow';out.hudTurnColor=Object.prototype.hasOwnProperty.call(TURN_COLORS,raw.hudTurnColor)?raw.hudTurnColor:'green';
  TURN_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));

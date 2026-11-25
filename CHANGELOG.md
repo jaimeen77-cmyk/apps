@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.55
+
+- **One layout: Animation** (the Car layout and My design merged; 애니메이션 in Korean). The design picker lists it once. On the cluster, choosing it opens its GIF screen (*Animation · My GIFs*): with no GIF the car of the Car layout shows (braking, three steps of drift each way, flames, reverse); with GIFs from the GIF player they show instead (driving required once any is chosen; standing still, reverse, turning left / right). On the HUD it is the car, as before.
+- A cluster set to My design (`rl-mypic`) reads as the Animation layout, its GIFs kept.
+- Tests: `my-picture`, `redline-layouts` (19 layouts, 16 on the HUD).
+
 ## Cluster Redline 1.3.54
 
 - **My design without any GIF is the Car layout itself**: with no GIF fetched (or none usable) the picture is the Car layout's own car, braking, drifting, flaming and reversing with the car's G and gear, not one still picture per scene.
