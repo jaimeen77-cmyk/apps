@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.59
+
+- **Your GIFs on the HUD too**: the Animation layout shows the same GIFs on the HUD as on the cluster (one copy in `my-pictures/`, so GIFs put in from either display show on both; on the HUD black is see-through). Choosing Animation on the HUD opens the same *Animation · My GIFs* screen. No GIF: the car, as before.
+- Tests: `my-picture` (HUD frame and preview).
+
 ## GIF 플레이어 0.4.6 (Korean edition)
 
 - **Smooth change on the Animation screen**: when the next (or previous) GIF comes, it fades in over the last picture of the one before, eased, in 0.6 s (op 16 opacity with the GPU renderer: about 36 frames). Without the GPU renderer the new GIF simply replaces the old one.
