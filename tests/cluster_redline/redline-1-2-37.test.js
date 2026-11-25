@@ -16,8 +16,10 @@ const {SettingsPage}=require(root+'/settings-ui'),spec=require(root+'/kit/app-sp
   delete require.cache[require.resolve(root+'/settings-bg')];
   const B=require(root+'/settings-bg'),seen=[];
   B.mark({text:v=>{seen.push(v);return 0;},textWidth:()=>100,fillRect:()=>{},drawImage:()=>{}},1600,520);
-  if(language()==='ko')assert(seen.some(v=>/잼님/.test(v))&&seen.some(v=>/배움터/.test(v)),'Korean edition keeps the cafe name: '+seen);
-  else assert.deepStrictEqual(seen.filter(v=>/[가-힣]/.test(v)),[],'English edition: no Korean words');
+  // 1.3.57: the Korean edition shows only the profile (서울II잼님), no cafe name or blog address; the English edition none
+  if(language()==='ko')assert(seen.some(v=>/잼님/.test(v)),'Korean edition keeps the profile name: '+seen);
+  else assert.deepStrictEqual(seen,[],'English edition: no watermark');
+  assert(!seen.some(v=>/배움터|codingbmw|BMW Coding/.test(v)),'no cafe name or blog address: '+seen);
  }finally{if(has)fonts.has=has;}
 }
 
