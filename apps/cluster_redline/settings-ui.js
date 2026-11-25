@@ -48,7 +48,7 @@ function navLogLine(e){
 const JAM={'jam-bar':'Jam top alert bar','jam-circle':'Jam circle alert'};
 function designList(display){return Object.keys(JAM).concat(RL.stylesFor(display));}
 function designNow(cfg,display){return RL.active(cfg,display)?RL.style(cfg,display):cfg[display+'AlertStyle']==='circle'?'jam-circle':'jam-bar';}
-const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','navLog','headway','bcCheck','bc'];
+const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','navLog','headway','bcCheck','bc','myPic'];
 // The BC button check (bc-diag.js, 1.3.39): what the car sends when BC is pressed; main.js sets page.bcDiag
 const BCCHECK_ITEM={key:'bcCheck',label:'BC button check',type:'action'};
 // Following the BC button (bc-follow.js, 1.3.40): its own screen; main.js sets page.bcFollow
@@ -104,7 +104,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:this.sub&&SUBMENUS[this.sub]?SUBMENUS[this.sub]:GROUPS[this.tab];}
  item(){return this.itemOf(this.keys()[this.focus]);}
@@ -120,8 +120,9 @@ class SettingsPage{
   // following the BC button: its check and a page's setup (auxiliary values, then design) come back to its screen
   // a BC page's last step, Position / size: leaving it keeps the page's setup, positions and sizes too (1.3.41)
   if(this.bcEdit&&this.open==='layout'&&!this.layoutKind){this.setPreview(false);this.bcSave();return;}
-  if(this.open==='bcCheck'&&this.bcFromFollow||this.bcEdit&&(this.open==='auxMode'||this.open==='auxSelect'||this.open==='design'||this.open==='rlDesign')){this.open='bc';this.bcEdit=null;this.bcFromFollow=false;this.draft=null;this.choice=0;this.changed();return;}
+  if(this.open==='bcCheck'&&this.bcFromFollow||this.bcEdit&&(this.open==='auxMode'||this.open==='auxSelect'||this.open==='design'||this.open==='rlDesign'||this.open==='myPic')){this.open='bc';this.bcEdit=null;this.bcFromFollow=false;this.draft=null;this.choice=0;this.changed();return;}
   if(this.open==='navLog'){this.open='navMode';this.choice=0;this.changed();return;}
+  if(this.open==='myPic'&&!this.bcEdit){this.open='rlDesign';this.choice=Math.max(0,designList(this.display()).indexOf('mypic'));this.changed();return;}
   if(this.open==='favView'){this.open=null;}
   else if(this.open==='auxMode'){this.open='rlDesign';this.choice=Math.max(0,designList(this.display()).indexOf(designNow(this.config(),this.display())));}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
@@ -159,7 +160,7 @@ class SettingsPage{
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'||item.key==='hudCarAlerts'?cfg[item.key]:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
- change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver'||this.open==='navMode'||this.open==='navLog'||this.open==='headway'||this.open==='bcCheck'||this.open==='bc')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver'||this.open==='navMode'||this.open==='navLog'||this.open==='headway'||this.open==='bcCheck'||this.open==='bc'||this.open==='myPic')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
   if(index!==undefined)this.focus=index;
   if(this.tab===FAV_TAB&&!this.open){this.favAction(Math.floor(this.focus/3)+1,this.focus%3);return;}
@@ -195,6 +196,8 @@ class SettingsPage{
    const values=this.designSwitch('own');values[this.display()+'AlertStyle']=index===1?'circle':'bar';this.setValues(values);if(this.bcLayout())return;this.open=null;this.changed();return;}
   if(this.open==='rlDesign'){const d=this.display(),st=designList(d)[index];if(!st)return;
    if(JAM[st]){const values=this.designSwitch('own');values[d+'AlertStyle']=st==='jam-circle'?'circle':'bar';this.setValues(values);}else this.setValues(this.designSwitch('rl-'+st));
+   // My design (1.3.50): first its GIFs from the GIF player, then its auxiliary values
+   if(st==='mypic'){this.openMyPic();return;}
    // then its auxiliary values
    const a=D.auxConfig(this.config()[d+'AuxConfig']);this.open='auxMode';this.choice=a.mode==='off'?2:a.mode==='values'?1:0;this.changed();return;}
   const list=options(this.item(),this.config());if(!list[index])return;
@@ -225,6 +228,8 @@ class SettingsPage{
  }
  draw(cv,status,liveState){
   this.liveState=liveState||null;
+  // My picture's previews read the GIFs from the app's data folder (my-picture.js), once the layout is chosen
+  if(this.dataDir&&!this.myPictureDir&&['hud','cluster'].some(d=>this.config()[d+'Design']==='rl-mypic')){this.myPictureDir=true;require('./my-picture').setDir(this.dataDir);}
   const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);{const B=require('./settings-bg');B.paint(cv,W,H,B.left(cv),B.top(cv,cv.chrome?0:80));}
   const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
   // 'Favorites' is not in the kit's own catalogue: its Korean comes from strings.js.
@@ -240,6 +245,7 @@ class SettingsPage{
   else if(this.open==='headway')this.drawHeadway(cv,cfg,targets);
   else if(this.open==='bcCheck')this.drawBcCheck(cv,cfg,targets);
   else if(this.open==='bc')this.drawBc(cv,cfg,targets);
+  else if(this.open==='myPic')this.drawMyPic(cv,cfg,targets);
   else if(this.open==='auxMode')this.drawAuxMode(cv,cfg,targets);
   else if(this.open==='auxSelect')this.drawAuxSelect(cv,cfg,targets);
   else if(this.open==='design')this.drawDesign(cv,cfg,targets);
@@ -441,6 +447,43 @@ class SettingsPage{
   });
   const st=f?f.status():null,msg=!st?'':st.state==='not_installed'?tr('not installed (reinstall from the Store)'):st.state==='error'?tr('subscription error'):bcOn?tr('BC presses')+' '+st.presses:'';
   if(msg)cv.text(msg,100,494,20,'#ffad45',{literal:true});
+  this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
+ }
+ // My design (1.3.50, my-picture-source.js): up to three GIFs from the GIF player, one for each scene (standing still,
+ // driving, reverse), the sizes that fit shown first; Fetch copies them into my-pictures/; Next: auxiliary values.
+ openMyPic(){this.open='myPic';this.choice=0;if(this.dataDir)require('./my-picture').setDir(this.dataDir);this.myPicList();this.changed();}
+ myPicList(){const st=this.myPic=Object.assign(this.myPic||{},{state:'loading',error:null});
+  require('./my-picture-source').list((e,files)=>{st.state=e?'error':'ready';st.error=e?e.message:null;st.files=files||[];this.changed();});}
+ myPicChoice(){let v={};try{v=JSON.parse(this.settings.get('myPicIds')||'{}')||{};}catch(e){}return v;}
+ myPicStep(slot,delta){const files=(this.myPic&&this.myPic.files)||[],ids=[''].concat(files.map(f=>f.id)),c=this.myPicChoice(),i=Math.max(0,ids.indexOf(c[slot]||''));
+  c[slot]=ids[(i+delta+ids.length)%ids.length];this.settings.set('myPicIds',JSON.stringify(c));this.changed();}
+ myPicFetch(){const st=this.myPic;if(!st||st.busy||!this.dataDir)return;st.busy=true;st.result=null;this.changed();
+  require('./my-picture-source').fetchChosen(this.dataDir,this.myPicChoice(),(out)=>{st.busy=false;st.result=out;this.changed();});}
+ drawMyPic(cv,cfg,targets){
+  const local=[],MPS=require('./my-picture-source'),MP=require('./my-picture'),st=this.myPic||{},L=MP.LIMIT,R=MPS.RECOMMENDED,choice=this.myPicChoice();
+  const kb=b=>b>=1024*1024?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
+  cv.text(tr('My design'),100,118,32,'#ef4050',{literal:true});
+  cv.text(tr('Recommended')+': '+tr('canvas')+' '+R.w+' × '+R.h+' ('+tr('at most')+' '+L.maxW+' × '+L.maxH+') · '+tr('at most')+' '+L.maxFrames+' '+tr('frames')+' · '+tr('file')+' '+kb(L.maxBytes)+' '+tr('or less'),100,152,20,'#5ee08f',{literal:true});
+  const src=st.state==='loading'?tr('GIF player')+': '+tr('waiting'):st.state==='error'?tr('GIF player')+': '+tr(st.error==='not_running'?'not running or older than 0.4.3 (update it and open it once)':'not reachable')+' ('+st.error+')':tr('GIF player')+': GIF '+(st.files||[]).length;
+  cv.text(src,100,180,19,st.state==='error'?'#ffad45':'#c1cddd',{literal:true});
+  const status=MP.status(),why={missing:'not set',too_large:'file too large',too_big:'canvas too big',not_gif:'not a GIF',no_frames:'no frames',broken:'unreadable'};
+  [['stop','Standing still'],['drive','Driving'],['reverse','Reverse']].forEach(([slot,label],i)=>{
+   const y=198+i*62,id=choice[slot]||'',f=(st.files||[]).find(x=>x.id===id);
+   cv.text(tr(label),100,y+36,24,'#f3f5f7',{literal:true});
+   this.button(cv,local,'−',290,y,70,50,()=>this.myPicStep(slot,-1),false,'mypic-'+slot+'-prev');
+   let name=!id?tr('Car picture (none)'):f?(f.preset?tr('Built-in')+' · ':'')+f.name:id;const fit=f?MPS.fits(f):'ok';
+   const info=f&&f.width?' · '+f.width+' × '+f.height:'';const size=f&&f.bytes?' · '+kb(f.bytes):'';
+   let line=name+info+size+(fit!=='ok'?' · '+tr(why[fit]):'');while(line.length>4&&cv.textWidth(line,20,{literal:true})>560)line=line.slice(0,-2);
+   cv.roundRect(372,y,580,50,6,'#1b2027');cv.text(line,386,y+33,20,fit!=='ok'?'#ff8a8a':'#f3f5f7',{literal:true});
+   this.button(cv,local,'+',964,y,70,50,()=>this.myPicStep(slot,1),false,'mypic-'+slot+'-next');
+   const s=status.find(x=>x.name===slot)||{},res=st.result&&st.result[slot];
+   const now=s.ok?tr('In use')+': '+s.w+' × '+s.h+' · '+s.frames+' '+tr('frames'):tr(why[s.error]||'not set');
+   cv.text(now+(res&&res!=='ok'&&res!=='none'?' · '+tr('not kept')+' ('+(why[res]?tr(why[res]):res)+')':''),1050,y+33,18,s.ok?'#5ee08f':'#91a1b6',{literal:true});
+  });
+  cv.text(tr('Each scene shows its GIF: standing still, driving, reverse. A scene without one shows the Car picture.'),100,420,18,'#91a1b6',{literal:true});
+  this.button(cv,local,st.busy?tr('Fetching'):tr('Fetch from GIF player'),84,448,380,64,()=>this.myPicFetch(),false,'mypic-fetch',24);
+  this.button(cv,local,tr('Refresh'),476,448,200,64,()=>this.myPicList(),false,'mypic-refresh',24);
+  this.button(cv,local,tr('Next')+': '+tr('Auxiliary information'),688,448,500,64,()=>{const a=D.auxConfig(this.config()[this.display()+'AuxConfig']);this.open='auxMode';this.choice=a.mode==='off'?2:a.mode==='values'?1:0;this.changed();},false,'mypic-next',24);
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // The BC button check (1.3.39): press BC through the stock BC pages; if each page brings back its own value, each
@@ -800,6 +843,10 @@ class SettingsPage{
   cv.text(group.length?group.length+' '+t('selected')+' · '+tr(selected.label):t('Select items to adjust'),84,456,21,'#b8c5d4',{literal:true});
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});
   cv.text(nav||uniform?'Width and height scale together.':'Width / height difference limited to 30%.',790,432,18,'#a8b6c8');
+  // My picture: whether each of its three GIFs is read (my-picture.js), what is wrong with one that is not
+  if(!nav&&RL.style(cfg,display)==='mypic'){const MP=require('./my-picture');MP.scan(Date.now());const why={missing:'missing',too_large:'too large',too_big:'too big'};
+   const line=MP.status().map(s=>s.name+'.gif '+(s.ok?s.w+'×'+s.h+' '+s.frames+' '+tr('frames'):tr(why[s.error]||'unreadable'))).join(' · ');
+   cv.text(tr('My GIFs')+': '+line,790,500,17,'#ffad45',{literal:true});}
   const hidden=group.length&&group.every(p=>cfg[this.layoutPrefix(p)+'Hidden']);
   const marks=!nav&&group.some(p=>/^Mark/.test(p.key));
   const mMark=!nav&&parts.some(p=>p.key==='RlMark'),markOn=mMark&&!cfg[display+'RlMarkHidden'];

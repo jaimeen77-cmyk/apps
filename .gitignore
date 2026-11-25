@@ -8,6 +8,8 @@ preview/
 *.pem
 id_rsa
 *.zip
+# your own GIFs for the My picture layout stay on your PC and the car (tools/my-pictures.js)
+my-pictures/
 __pycache__/
 *.pyc
 .store-test-*/

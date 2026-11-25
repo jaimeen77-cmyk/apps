@@ -670,6 +670,13 @@ mgu.run({
             const enabled = !!settings.get('widgetBackground') && settings.get('widgetTone') !== 'neutral';
             ctx.widget.instances().forEach(inst => ctx.widget.set(inst.spawnId, 'background', enabled, 'Bool'));
         }
+        // Cluster Redline's "My design" layout borrows GIFs from here (redline-share.js: 127.0.0.1 only, read only)
+        new (require('./redline-share').RedlineShare)({
+            version: ctx.spec && ctx.spec.version, record,
+            list: () => library.state.files.map(f => ({ id: f.id, name: f.name, bytes: f.bytes, width: f.width, height: f.height, preset: false }))
+                .concat(presets.map(p => ({ id: p.id, name: p.name, bytes: 0, preset: true }))),
+            read: gifBytes
+        }).start();
         if (ctx.widget) {
             ctx.widget.loop(() => Math.max(1, Math.min(6, Number(settings.get('widgetFps')) || 4)), widgetImage);
             ctx.widget.onChange(() => { widgetIndex = Object.create(null); updateWidgetBackground(); });

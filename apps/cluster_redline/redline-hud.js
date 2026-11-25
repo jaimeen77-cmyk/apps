@@ -9,14 +9,14 @@ let drawing=null;const kit=()=>drawing||(drawing={DRAW:require('./rl-hud-draw'),
 const {shiftSpec}=require('./shift-alert'),{auxConfig}=require('./display-config'),{gauges}=require('./units'),{language}=require('./strings');
 // The Redline app's layouts (Minimal and Split wings not offered: Standard with parts hidden covers them),
 // then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
-const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','car'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','car'];
-const NAMES={car:'Car',standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
+const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','car','mypic'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','car','mypic'];
+const NAMES={car:'Car',mypic:'My design',standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
 // Layouts made for the cluster only (too detailed for the HUD's glass): not offered on the HUD.
 // Layouts that draw the auxiliary items as bar gauges in gauge mode (the others show them as text).
-const GAUGE_LAYOUTS=['standard','digital','vfd','vector','ramp','shift','logger','ribbon','hexagon','classic','sporthud','sportdial','tyres','car'];
+const GAUGE_LAYOUTS=['standard','digital','vfd','vector','ramp','shift','logger','ribbon','hexagon','classic','sporthud','sportdial','tyres','car','mypic'];
 // Layouts whose gauges stand upright: the clock (a horizontal gauge only) is left out of them.
 const VERTICAL_GAUGES=['hexagon','classic'];
-const CLUSTER_ONLY=['sportdial','classic','tyres'],HUD_ONLY=['sporthud'],stylesFor=d=>STYLES.filter(s=>!(d==='hud'?CLUSTER_ONLY:HUD_ONLY).includes(s));
+const CLUSTER_ONLY=['sportdial','classic','tyres','mypic'],HUD_ONLY=['sporthud'],stylesFor=d=>STYLES.filter(s=>!(d==='hud'?CLUSTER_ONLY:HUD_ONLY).includes(s));
 const IW=400,IH=130,heightOf=st=>TALL.includes(st)?176:IH,isNum=x=>typeof x==='number'&&isFinite(x);
 function style(cfg,d){const m=/^rl-([a-z]+)$/.exec(cfg&&cfg[(d||'hud')+'Design']||'');return m&&STYLES.includes(m[1])?m[1]:null;}
 function active(cfg,d){return !!style(cfg,d);}
@@ -57,8 +57,10 @@ function kst(state){const t=new Date((isNum(state.now)?state.now:Date.now())+9*3
 // The Car layout's picture (car-meter.js): the frame the worker picked this tick (aux.car), or, without one
 // (settings previews), the state the G and gear show now, first frame.
 function carOf(state,d){
- const cfg=state.config,p=d||'hud';if(style(cfg,p)!=='car')return null;
+ const cfg=state.config,p=d||'hud',st=style(cfg,p);if(st!=='car'&&st!=='mypic')return null;
  const a=state.aux||{},live=a.car&&a.car[p];if(live)return live;
+ // My picture (my-picture.js) without the worker: the scene the gear shows now (its GIF, else the own picture)
+ if(st==='mypic'){const MP=require('./my-picture');MP.scan(Date.now());return MP.frameAt(MP.want(gearOf(state.gear).stage,null),p==='hud'?'hud':'cluster',0);}
  const CM=require('./car-meter'),s=CM.look(CM.want({lat:a.gLat,long:a.gLong},gearOf(state.gear).stage));
  return {state:s.state,mirror:s.mirror,i:0,set:p==='hud'?'hud':'cluster'};
 }
@@ -124,7 +126,8 @@ const ELEMENTS={
  luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],
  sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark'],
  tyres:['car','gear','mode','readA','readB','readC','readD'],
- car:['carpic','gauge','gear','mode','rpm','gmeter','readA','readB','readC','readD','mark']};
+ car:['carpic','gauge','gear','mode','rpm','gmeter','readA','readB','readC','readD','mark'],
+ mypic:['carpic','gauge','gear','mode','rpm','gmeter','readA','readB','readC','readD','mark']};   // (My picture: the Car layout with your own GIFs)
 const PART={carpic:'RlCarPic',gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',car:'RlCar',mark:'RlMark'};
 const PART_NAMES=Object.keys(PART).map(k=>PART[k]);
 const LABELS={RlCarPic:'Car picture',RlCar:'Car and tyres',RlTemp:'Temperature gauge',RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
