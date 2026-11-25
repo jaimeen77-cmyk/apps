@@ -1,8 +1,7 @@
 'use strict';
 // The Animation layout's GIF on a layer of its own (1.3.64, picture-layer.js): an image layer over the picture's place
 // at the GIF's own size (the renderer scaling it), only its changed pixels sent, the layout's image leaving the
-// picture out once it shows (not sent again for the GIF's frames); a new GIF size a new layer; off (My GIFs → Fast GIF
-// layer) or refused: painted into the layout's image as before.
+// picture out once it shows (not sent again for the GIF's frames); a new GIF size a new layer; refused: painted into the layout's image as before.
 const assert=require('assert'),fs=require('fs'),os=require('os'),path=require('path'),{EventEmitter}=require('events');
 const root=path.join(path.resolve(process.argv[2]),'source/javascript'),fx=path.join(__dirname,'fixtures');
 const MP=require(root+'/my-picture'),GIF=require(root+'/gif-decode'),{Outputs}=require(root+'/outputs'),D=require(root+'/policy');
@@ -18,7 +17,6 @@ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'piclayer-'));fs.mkdirSync(path.j
 fs.writeFileSync(path.join(tmp,'my-pictures','drive.mpic'),MP.encode(fit('pattern-64x36.gif')));
 fs.writeFileSync(path.join(tmp,'my-pictures','stop.mpic'),MP.encode(fit('big-640x360-60f.gif')));
 MP.setDir(tmp);MP.scan(0,true);MP.reset();
-assert.strictEqual(D.settings({}).myPicLayer,'on','on by default');assert.strictEqual(D.settings({myPicLayer:'off'}).myPicLayer,'off');assert.strictEqual(D.settings({myPicLayer:'x'}).myPicLayer,'on');
 let speed=50;const run=(cfg,client,from,to,speed)=>{const out=client.out||(client.out=new Outputs(client,require(root+'/draw'),require(root+'/hud-compose')));
  for(let t=from;t<=to;t+=50){out.policy.modeSample(1,t-1000);out.policy.rpmSample(3000,t);out.aux={car:{cluster:MP.frameOf('cluster','D',speed,t,{lat:0,long:0}),hud:MP.frameOf('hud','D',speed,t,{lat:0,long:0})}};client.last=out.tick(t,cfg);}return client.out;};
 const cfg={clusterDesign:'rl-car',hudDesign:'rl-car',sportClusterOutput:'redline',sportHudOutput:'redline'};
@@ -38,17 +36,15 @@ run(cfg,c,5550,7500,50);assert.strictEqual(layoutPx(),before,'the layout\'s imag
 assert.strictEqual(c.last.outputs.cluster.flipbook.state,'shown');
 // another scene with a GIF of another size (320 x 180): a new layer, fading from the old GIF
 speed=0;run(cfg,c,7550,8500,0);const big=[...c.layers.values()].filter(l=>l.iw===320&&l.ih===180);assert.strictEqual(big.length,2,'a new layer for the new size');assert(!c.layers.has(cp[0]),'the old one dropped');
-// off: painted into the layout's image as before, no picture layer
-{const c2=new Client();run(Object.assign({myPicLayer:'off'},cfg),c2,1000,4000,50);assert.strictEqual(c2.layers.size,2,'only the layout\'s images');}
+// always on (1.3.66: the switch removed), even with the old stored Off
+{const c2=new Client();run(Object.assign({myPicLayer:'off'},cfg),c2,1000,4000,50);assert.strictEqual(c2.layers.size,4,'the picture layers too');}
 // refused: dropped, painted as before, not tried again for these GIFs
 {const c3=new Client(),o3=run(cfg,c3,1000,4000,50),r=[...c3.layers.keys()].find(k=>k!==o3.cluster.ref&&k!==o3.hud.ref&&c3.layers.get(k).target!=='hud');
  c3.emit('layer',r,'error','image buffer or quad refused');run(cfg,c3,4050,6000,50);assert.strictEqual([...c3.layers.values()].filter(l=>l.target!=='hud'&&l.iw===64).length,0,'not again');assert(c3.last.outputs.cluster.flipbook.failure);}
 // no GIF: the Car layout's car, no layer
 ['drive','stop'].forEach(n=>fs.unlinkSync(path.join(tmp,'my-pictures',n+'.mpic')));MP.scan(20000,true);run(cfg,c,20000,20500,50);assert.strictEqual(c.layers.size,2);
-// the My GIFs screen's toggle: off and on again, its label following (1.3.66: it read the setting wrongly, stuck off)
+// the My GIFs screen: no switch any more; Record to a file read by the settings screen (1.3.66)
 {const {SettingsPage}=require(root+'/settings-ui'),{Canvas}=require(root+'/kit/canvas'),spec=require(root+'/kit/app-spec.json'),v={};spec.settings.forEach(x=>{v[x.key]=x.default;});v.clusterDesign='rl-car';
- const page=new SettingsPage({schema:spec.settings,get:k=>v[k],set:(k,x)=>{v[k]=x;},onChange(){}},()=>{},'t');page.openMyPic();
- const tap=()=>{const cv=new Canvas(1600,520);page.draw(cv,'',{});const t=cv.targets.find(x=>x.id==='mypic-layer');t.run();return v.myPicLayer;};
- assert.strictEqual(tap(),'off');assert.strictEqual(page.config().myPicLayer,'off','the screen reads it');assert.strictEqual(tap(),'on','tapped again: on');assert.strictEqual(tap(),'off');
- v.navProbeLog='on';assert.strictEqual(page.config().navProbeLog,'on','the record button reads it too');}
+ const page=new SettingsPage({schema:spec.settings,get:k=>v[k],set:(k,x)=>{v[k]=x;},onChange(){}},()=>{},'t');page.openMyPic();const cv=new Canvas(1600,520);page.draw(cv,'',{});
+ assert(!cv.targets.some(x=>x.id==='mypic-layer'));v.navProbeLog='on';assert.strictEqual(page.config().navProbeLog,'on');}
 console.log('PASS: GIF on its own layer: at its own size, scaled by the renderer, changed pixels only, layout image left alone, new layer for a new size, off / refused / no GIF painted as before');

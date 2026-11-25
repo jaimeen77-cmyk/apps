@@ -8,10 +8,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
-## Cluster Redline 1.3.66 (Fast GIF layer button fixed)
+## Cluster Redline 1.3.66 (the GIF always on its own layer)
 
-- **Fix: the My GIFs screen's Fast GIF layer button got stuck off.** The screen did not read that setting, so the button always said On and each tap wrote Off again: the GIF went back to the slow way and never came back. It now reads it (and Navigation display's Record to a file too, which had the same gap): a tap turns it off, another on.
-- Tests: `picture-layer` (the button off and on again).
+- **Fix: the GIF went back to the slow way and stayed there.** The My GIFs screen's Fast GIF layer button did not read its setting, so it always said On and each tap wrote Off. The button is gone: the GIF is always on its own layer (1.3.64's fast way), an Off stored by 1.3.64-1.3.65 included. A refused layer still falls back to painting it as before.
+- Navigation display's Record to a file had the same gap (the screen did not read the setting): fixed.
+- Tests: `picture-layer` (always on, an old Off ignored; no switch on the screen).
 
 ## Cluster Redline 1.3.65 (lead-car headway: is the radar's service offered?)
 
