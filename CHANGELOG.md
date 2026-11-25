@@ -8,6 +8,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.66 (Fast GIF layer button fixed)
+
+- **Fix: the My GIFs screen's Fast GIF layer button got stuck off.** The screen did not read that setting, so the button always said On and each tap wrote Off again: the GIF went back to the slow way and never came back. It now reads it (and Navigation display's Record to a file too, which had the same gap): a tap turns it off, another on.
+- Tests: `picture-layer` (the button off and on again).
+
 ## Cluster Redline 1.3.65 (lead-car headway: is the radar's service offered?)
 
 - On the user's car the headway badge showed "no car ahead" with **received 0**: subscribed, but not even the first read came back, so the radar's service (`de.bmw.dass.GapVehicleAhead`) was not offered to the app on that instance at that moment. The Lead-car headway screen now says whether it is offered and on which instance (Radar service: offered / not offered · instance N).

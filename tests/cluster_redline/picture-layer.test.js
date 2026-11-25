@@ -45,4 +45,10 @@ speed=0;run(cfg,c,7550,8500,0);const big=[...c.layers.values()].filter(l=>l.iw==
  c3.emit('layer',r,'error','image buffer or quad refused');run(cfg,c3,4050,6000,50);assert.strictEqual([...c3.layers.values()].filter(l=>l.target!=='hud'&&l.iw===64).length,0,'not again');assert(c3.last.outputs.cluster.flipbook.failure);}
 // no GIF: the Car layout's car, no layer
 ['drive','stop'].forEach(n=>fs.unlinkSync(path.join(tmp,'my-pictures',n+'.mpic')));MP.scan(20000,true);run(cfg,c,20000,20500,50);assert.strictEqual(c.layers.size,2);
+// the My GIFs screen's toggle: off and on again, its label following (1.3.66: it read the setting wrongly, stuck off)
+{const {SettingsPage}=require(root+'/settings-ui'),{Canvas}=require(root+'/kit/canvas'),spec=require(root+'/kit/app-spec.json'),v={};spec.settings.forEach(x=>{v[x.key]=x.default;});v.clusterDesign='rl-car';
+ const page=new SettingsPage({schema:spec.settings,get:k=>v[k],set:(k,x)=>{v[k]=x;},onChange(){}},()=>{},'t');page.openMyPic();
+ const tap=()=>{const cv=new Canvas(1600,520);page.draw(cv,'',{});const t=cv.targets.find(x=>x.id==='mypic-layer');t.run();return v.myPicLayer;};
+ assert.strictEqual(tap(),'off');assert.strictEqual(page.config().myPicLayer,'off','the screen reads it');assert.strictEqual(tap(),'on','tapped again: on');assert.strictEqual(tap(),'off');
+ v.navProbeLog='on';assert.strictEqual(page.config().navProbeLog,'on','the record button reads it too');}
 console.log('PASS: GIF on its own layer: at its own size, scaled by the renderer, changed pixels only, layout image left alone, new layer for a new size, off / refused / no GIF painted as before');
