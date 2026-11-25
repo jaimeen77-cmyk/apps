@@ -29,7 +29,11 @@ function checkPackage(app) {
     assert.strictEqual(entry.path, 'store/apps/' + app.id);
     assert.ok(entry.title.indexOf('(한국어)') > 0);
     assert.deepStrictEqual(entry.build.args.slice(-4), ['--language', 'ko', '--source', 'apps/' + app.template]);
+    // the GPU renderer, the controller gate and mgu-deploy come from other sources (appsKOR, the Store's own):
+    // only this repository's tools are checked here
+    assert.ok(entry.requires['idrive7-renderd'] && entry.requires['mgu-inputgate'], 'needs the GPU renderer and the controller gate');
     Object.keys(entry.requires).forEach((tool) => {
+        if (['idrive7-renderd', 'mgu-inputgate', 'mgu-deploy'].indexOf(tool) >= 0) return;
         const toolEntry = repo.components.find((c) => c.id === tool && c.kind === 'tool');
         const component = JSON.parse(fs.readFileSync(path.join(root, toolEntry.path, 'component.json'), 'utf8'));
         assert.strictEqual(component.id, tool);

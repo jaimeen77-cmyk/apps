@@ -75,7 +75,8 @@ function decode(buf, opts) {
                 screen[y * w + sx] = base + c;
             }
         }
-        frames.push({ px: screen.slice(), delay: Math.max(100, delay || 100) });
+        // 1.3.58: down to 50 ms a frame (the cluster's 20 frames a second); 0 or 10 ms means 100 ms, as browsers play them
+        frames.push({ px: screen.slice(), delay: delay <= 10 ? 100 : Math.max(50, delay) });
         // what the next frame starts from
         if (disposal === 2) { for (let y = fy; y < Math.min(h, fy + fh); y++) screen.fill(CLEAR, y * w + fx, y * w + Math.min(w, fx + fw)); }
         else if (disposal === 3 && before) screen.set(before);

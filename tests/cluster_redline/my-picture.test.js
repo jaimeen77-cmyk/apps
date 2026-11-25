@@ -11,7 +11,7 @@ const {draw,W,H}=require(root+'/draw'),{demand}=require(root+'/data-demand');
 // the decoder: every pixel of a known pattern (index = (x + 3y + 5f) % 7), its delays, transparency, the limits
 {const g=GIF.decode(fs.readFileSync(path.join(fx,'pattern-64x36.gif')));assert.deepStrictEqual([g.w,g.h,g.frames.length],[64,36,4]);
  let bad=0;g.frames.forEach((fr,f)=>{for(let y=0;y<g.h;y++)for(let x=0;x<g.w;x++)if(fr.px[y*g.w+x]!==(x+3*y+5*f)%7)bad++;});assert.strictEqual(bad,0,'every pixel of every frame');
- assert(g.frames.every(fr=>fr.delay===100),'a 50 ms delay plays at 100 ms (10 a second at most)');
+ assert(g.frames.every(fr=>fr.delay===50),'1.3.58: a 50 ms delay plays at 50 ms (20 a second at most, the cluster frame rate)');
  assert.deepStrictEqual(Array.from(g.colours.slice(3,6)),[255,0,0]);assert.deepStrictEqual(GIF.probe(fs.readFileSync(path.join(fx,'pattern-64x36.gif'))),{w:64,h:36,frames:4});}
 {const t=GIF.decode(fs.readFileSync(path.join(fx,'pattern-transparent.gif')));let clear=0,six=0;t.frames[0].px.forEach(v=>{if(v===GIF.CLEAR)clear++;if(v===6)six++;});assert(clear>0&&six===0,'the transparent colour is clear');assert.strictEqual(t.frames[0].delay,100,'no delay: 100 ms');}
 assert.throws(()=>GIF.decode(fs.readFileSync(path.join(fx,'too-big-401x225.gif')),MP.LIMIT),e=>e.code==='too_big');
@@ -32,8 +32,8 @@ assert.strictEqual(MP.frameAt('drive','cluster',0).state,'cruise');assert.strict
 fs.copyFileSync(path.join(fx,'pattern-64x36.gif'),path.join(dir,'drive.gif'));fs.copyFileSync(path.join(fx,'too-big-401x225.gif'),path.join(dir,'reverse.gif'));fs.writeFileSync(path.join(dir,'stop.gif'),Buffer.alloc(MP.LIMIT.maxBytes+1));
 MP.scan(1000);assert.strictEqual(MP.status()[1].ok,false,'not looked at again before 5 s');
 MP.scan(6000);const st=MP.status();assert.deepStrictEqual(st.map(s=>[s.name,s.ok,s.error]),[['stop',false,'too_large'],['drive',true,null],['reverse',false,'too_big'],['left',false,'missing'],['right',false,'missing']]);assert.deepStrictEqual([st[1].w,st[1].h,st[1].frames],[64,36,4]);
-// your GIF's frames follow its delays (100 ms each here), looping
-{const f0=MP.frameAt('drive','cluster',0),f1=MP.frameAt('drive','cluster',150),f3=MP.frameAt('drive','cluster',390),f4=MP.frameAt('drive','cluster',420);
+// your GIF's frames follow its delays (50 ms each here, 1.3.58), looping
+{const f0=MP.frameAt('drive','cluster',0),f1=MP.frameAt('drive','cluster',60),f3=MP.frameAt('drive','cluster',190),f4=MP.frameAt('drive','cluster',210);
  assert.deepStrictEqual([f0.mine,f0.i,f1.i,f3.i,f4.i],['drive',0,1,3,0]);assert(f0.sig,'the file\'s signature, so a new copy repaints');}
 assert.strictEqual(MP.frameAt('reverse','cluster',0).mine,'drive','no usable reverse GIF: the drive GIF (1.3.51)');assert.deepStrictEqual(MP.status().map(s=>s.uses),['drive','drive','drive','drive','drive']);
 
@@ -118,5 +118,12 @@ if(process.env.MY_PICTURE_PREVIEW){const out=path.resolve(process.env.MY_PICTURE
  }finally{share.stop();}
  // GIF player not running: told so
  const err=await new Promise(res=>MPS.list(e=>res(e)));assert.strictEqual(err&&err.message,'not_running');
+// 1.3.58: the Car layout's picture changes every 50 ms: the second half of each 100 ms frame is it mixed with the next
+{const CM=require(root+'/car-meter');CM.reset();const g={lat:0,long:0},base=1e6;
+ const a=CM.frameOf('cluster',g,'D',base,60),b=CM.frameOf('cluster',g,'D',base+50,60),c=CM.frameOf('cluster',g,'D',base+100,60);
+ assert.strictEqual(a.next,undefined,'first half: the frame alone');assert.strictEqual(b.i,a.i,'same frame');
+ assert.strictEqual(b.next,(a.i+1)%CM.frames('cluster').N,'second half: mixed with the next');assert.strictEqual(c.i,b.next,'then the next frame');
+ const pix=f=>{const cv=new Canvas(160,90);CM.draw(cv,f,0,0,160,90);return Buffer.from(cv.d);};
+ const pa=pix(a),pb=pix(b),pc=pix(c);assert(!pa.equals(pb)&&!pb.equals(pc),'the in-between picture differs from both');CM.reset();}
 console.log('PASS: My design layout: GIF decoder (pixels, delays, transparency, limits), stop / drive / reverse from gear and speed held 300 ms, folder read again on change, fallback to the own picture, drawn letterboxed on the cluster, repaint per GIF frame, settings preview and the PC tool\'s check');
 })().catch(e=>{console.error(e);process.exitCode=1;});

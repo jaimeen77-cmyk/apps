@@ -52,9 +52,12 @@ function pick(display,g,stage,now,speed){
 // has faded in.
 function frameOf(display,g,stage,now,speed){
  const s=look(pick(display,g,stage,now,speed)),set=display==='hud'?'hud':'cluster',n=frames(set).N,m=shown[display];
- const key=s.state+(s.mirror?'<':''),i=Math.floor(now*FPS/1000)%n;
+ const key=s.state+(s.mirror?'<':''),pos=now*FPS/1000,i=Math.floor(pos)%n;
  if(m.lookKey!==key){if(m.lookKey)m.fade={from:m.look,at:now};m.lookKey=key;m.look=s;}
  const out={state:s.state,mirror:s.mirror,i,set};
+ // 1.3.58: the second half of each frame's 100 ms shows it mixed half and half with the next one, so the picture
+ // changes every 50 ms (the cluster's 20 frames a second) instead of jumping every 100 ms; same frames, same speed
+ if(pos-Math.floor(pos)>=0.5)out.next=(i+1)%n;
  if(m.fade&&now-m.fade.at<FADE_MS){
   out.from={state:m.fade.from.state,mirror:m.fade.from.mirror,i,set};
   out.t=Math.max(1,Math.min(FADE_STEPS-1,Math.ceil((now-m.fade.at)/FADE_MS*FADE_STEPS)))/FADE_STEPS;
@@ -86,11 +89,23 @@ function rgba(f,w,h){
  }
  return (list[f.i]=out);
 }
+// Frame f half and half with the next one (f.next), as RGBA at w x h; kept like the frames (one in-between per frame).
+const halfCache=new Map();
+function between(f,w,h){
+ const a=rgba(f,w,h);if(f.next===undefined)return a;
+ const key=(f.set||'cluster')+'|'+f.state+'|'+(f.mirror?1:0)+'|'+w+'|'+h;let list=halfCache.get(key);
+ if(!list){if(halfCache.size>=6)halfCache.clear();list=[];halfCache.set(key,list);}
+ if(list[f.i])return list[f.i];
+ const b=rgba({state:f.state,mirror:f.mirror,i:f.next,set:f.set},w,h),mix=new Uint8ClampedArray(a.length);
+ for(let p=0;p<a.length;p+=4){const wa=a[p+3],wb=b[p+3],al=wa+wb;if(!al)continue;
+  mix[p]=(a[p]*wa+b[p]*wb)/al;mix[p+1]=(a[p+1]*wa+b[p+1]*wb)/al;mix[p+2]=(a[p+2]*wa+b[p+2]*wb)/al;mix[p+3]=al/2;}
+ return (list[f.i]=mix);
+}
 // Draws frame f into r (a kit Canvas, or anything with blit) at x, y (pixels), w x h.
 function draw(r,f,x,y,w,h){
  if(f&&f.mine){require('./my-picture').draw(r,f,x,y,w,h);return;}   // the My picture layout's own GIF
  x=Math.round(x);y=Math.round(y);w=Math.round(w);h=Math.round(h);if(w<2||h<2)return;
- let px=rgba(f,w,h);
+ let px=between(f,w,h);
  // fading from the old picture: the two mixed (colour weighted by each one's cover, so edges stay soft)
  if(f.from&&f.t>0&&f.t<1){const a=rgba(f.from,w,h),b=px,t=f.t,mix=new Uint8ClampedArray(b.length);
   for(let p=0;p<b.length;p+=4){const wa=a[p+3]*(1-t),wb=b[p+3]*t,al=wa+wb;if(!al)continue;

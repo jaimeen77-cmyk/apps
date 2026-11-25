@@ -2,10 +2,10 @@
   "schema": 1,
   "id": "gif_home",
   "language": "ko",
-  "source_version": "0.4.3",
+  "source_version": "0.4.5",
   "ui_sha256": "65e08b69c7af799e147c59d689052d2f58c4d19f99b4b32d4c7bbe0857553224",
-  "size": 1137290,
-  "sha256": "0af3e256c331dbd757ae7aa3e7588f6c0ba16044ac886d3248571e1162b8cd1c",
+  "size": 1137289,
+  "sha256": "cda39710450bb5845a14adf2121a01a874f5db90c9449316b5231e957a22875e",
   "parts": [
     "gif_home.tgz.part-00",
     "gif_home.tgz.part-01",
