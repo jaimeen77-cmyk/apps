@@ -8,6 +8,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The big widget is redrawn only when a sample, the disks, the theme or the language changed (before: every second).
 - Widget texts are kept in `main.js`, so `app.json` is unchanged apart from the version and the SDK-free UI templates stay valid.
 
+## GIF Home 0.4.2 (Korean edition)
+
+- **Full view (전체보기)** on the Animation screen: a new button under the speed shows the GIF alone across the whole screen (aspect kept, black around it), without the tabs, the right-hand panel or the bottom bar (with the GPU renderer the screen is "chrome": false). A tap anywhere, or the controller's press (the whole screen is one target), brings the menu screen back with the tabs for 5 s. Without the GPU renderer the HMI still draws its bottom bar; any of its buttons leaves full view first. Opening the screen again starts on the menu screen.
+- The label is kept in `main.js` (`app.json` only changes its version), so the Store UI template stays valid. `tests/gif-home-fullview.test.js` runs the packaged app and renders both views.
+- Not yet checked on the car.
+
 ## GIF Home 0.4.1 (Korean edition)
 
 - **Animation screen (애니메이션)**: the GIF across the screen at its own speed through the GPU renderer (mgu-renderd: up to one frame per screen refresh; without it a few frames a second, with a notice). Bottom buttons **이전 / 다음 / 애니메이션 설정**; Previous goes back to the GIF played before without changing the playback mode; the settings open over the animation (the kit's sheet: mode, single GIF, group, interval, pause, picture fit, speed), or the Widget settings page where the kit does not run the screen. Opened from page 3.

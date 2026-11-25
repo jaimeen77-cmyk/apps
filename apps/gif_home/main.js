@@ -17,7 +17,7 @@ const { diagnostics } = require('./diagnostics');
 const { area: animArea, History, playbackSettings, frameAt, SPEEDS } = require('./animation');
 const { listSheet } = require('./kit/sheet');
 const { C, backdrop, header, rows, lines, fitText, button } = require('./look');
-const { t } = require('./kit/i18n');
+const { t, getLanguage } = require('./kit/i18n');
 const G = require('./kit/gauges');
 
 const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403, THUMB_IMAGE = 23404;
@@ -499,12 +499,19 @@ mgu.run({
         // Animation screen: the GIF alone, as large as the screen allows, at its own speed with the GPU
         // renderer (the kit calls renderAnim once per screen refresh there); a few frames a second without it.
         let animKey = '', tabsUntil = 0, fullRec = null;
+        // Full view (the panel's 전체보기 button): the GIF alone across the screen, no tabs, panel or bar;
+        // a tap anywhere (or the controller's press) brings the menus back.
+        let fullView = false;
+        // kept here, not in app.json (whose text is part of the Store's UI template)
+        const FULL_VIEW = getLanguage() === 'ko' ? '전체보기' : 'Full view';
+        function enterFull() { fullView = true; tabsUntil = 0; }
+        function leaveFull() { if (!fullView) return false; fullView = false; showTabs(false); return true; }
         // The Animation screen: the GIF on the left (a 3:2 GIF fills its 1080 x 720 of the 1920 x 720 screen), on
         // the right its name, Previous / Next and the animation speed as buttons. The tabs and the bottom bar step
         // aside (with the GPU renderer the screen is "chrome": false, as a game's); a tap on the GIF shows them for
         // a while (tap again: hidden), as do the bottom buttons and opening the screen.
         const TABS_SHOWN_MS = 5000;
-        const tabsShown = () => Date.now() < tabsUntil || !!(ctx.display && ctx.display.sheet);
+        const tabsShown = () => !fullView && (Date.now() < tabsUntil || !!(ctx.display && ctx.display.sheet));
         function showTabs(toggle) {
             tabsUntil = toggle && Date.now() < tabsUntil ? 0 : Date.now() + TABS_SHOWN_MS;
         }
@@ -522,13 +529,12 @@ mgu.run({
                 { key: 'prev', value: 'Previous', arrow: -1, run: () => previousGif() },
                 { key: 'next', value: 'Next', arrow: 1, run: () => apply({ type: 'next' }) },
                 { key: 'speed', title: 'Animation speed', value: optionLabel('animSpeed'), run: () => cycleSetting('animSpeed') },
+                { key: 'full', value: FULL_VIEW, run: enterFull },
             ];
         }
         /** The split screen drawn on r (its own pixels) inside box; returns the buttons' rects, in the same pixels. */
-        function drawSplit(r, box) {
-            const u = box.h / 720;
-            // the GIF's part is 3:2 (1080 x 720 of the 1920 x 720 screen: a 540 x 360 GIF fits it exactly)
-            const gw = Math.min(Math.round(box.w * 0.6), Math.round(box.h * 3 / 2));
+        /** The current GIF, the whole of it, fitted into box (black around it). */
+        function drawGif(r, box) {
             r.fillRect(box.x, box.y, box.w, box.h, '#000000');
             if (player.gif && frame >= 0) {
                 // the GIF the widget plays, at the Animation screen's own speed, the whole of it in the left part
@@ -537,9 +543,15 @@ mgu.run({
                 const key = player.id + ':' + at;
                 // only a new frame is sent to the renderer again
                 if (key !== animKey) { setImage(ANIM_IMAGE, gif.width, gif.height, gif.frames[at].data); animKey = key; }
-                const g = rectFor(gif.width, gif.height, box.x, box.y, gw, box.h, 'contain');
+                const g = rectFor(gif.width, gif.height, box.x, box.y, box.w, box.h, 'contain');
                 r.image(ANIM_IMAGE, g.x, g.y, g.w, g.h);
-            } else r.text(t('No GIF'), box.x + gw / 2, box.y + box.h / 2, 34 * u, '#ffffff', { align: 'center' });
+            } else r.text(t('No GIF'), box.x + box.w / 2, box.y + box.h / 2, 34 * box.h / 720, '#ffffff', { align: 'center' });
+        }
+        function drawSplit(r, box) {
+            const u = box.h / 720;
+            // the GIF's part is 3:2 (1080 x 720 of the 1920 x 720 screen: a 540 x 360 GIF fits it exactly)
+            const gw = Math.min(Math.round(box.w * 0.6), Math.round(box.h * 3 / 2));
+            drawGif(r, { x: box.x, y: box.y, w: gw, h: box.h });
             const px = box.x + gw, pw = box.w - gw, m = Math.round(32 * u), x0 = px + m, w0 = pw - 2 * m;
             r.fillRect(px, box.y, pw, box.h, C.bg);
             r.fillRect(px, box.y, Math.max(1, Math.round(2 * u)), box.h, C.rule);
@@ -564,6 +576,11 @@ mgu.run({
             r.text(fitText(r, sp.title, Math.round(30 * u), w0 - bw - 20 * u), x0, y + rh / 2 + 11 * u, Math.round(30 * u), C.text);
             button(r, x0 + w0 - bw, y + Math.round(10 * u), bw, bhh, sp.value, false, false, Math.round(30 * u));
             rects.push({ b: sp, x: x0 + w0 - bw, y: y + Math.round(10 * u), w: bw, h: bhh });
+            // Full view: the GIF alone across the screen
+            y += rh + Math.round(10 * u);
+            const fv = list[3], fh = Math.round(96 * u);
+            button(r, x0, y, w0, fh, fv.value, false, false, Math.round(32 * u));
+            rects.push({ b: fv, x: x0, y, w: w0, h: fh });
             // which GIFs, in what order: Widget settings (in orange)
             r.text(fitText(r, 'The animation order follows Widget settings', Math.round(24 * u), w0), x0, box.y + box.h - Math.round(34 * u), Math.round(24 * u), C.warn);
             return rects;
@@ -575,6 +592,19 @@ mgu.run({
             const cv = ctx.canvas(W, H).clear('#000000');
             const pl = cv.place, gpuFull = !!(pl && pl.full);
             let rects, toPage = q => q;
+            if (fullView) {
+                // only the GIF: across the whole screen with the GPU renderer, else the whole page image
+                if (gpuFull) {
+                    if (!fullRec || fullRec.w !== pl.w || fullRec.h !== pl.h) fullRec = new Recorder(pl.w, pl.h);
+                    fullRec.reset();
+                    drawGif(fullRec, { x: 0, y: 0, w: pl.w, h: pl.h });
+                    cv.xf(1, 0, 0).append(fullRec).xf();
+                } else drawGif(cv, { x: 0, y: 0, w: W, h: H });
+                // the whole screen is one target: a tap or the controller's press brings the menus back
+                cv.targets = [{ key: 'anim-menu', x: 0, y: 0, w: W, h: H, run: leaveFull }];
+                await ui.image('ANIM_GFX', cv);
+                return;
+            }
             if (gpuFull && !shown) {
                 // the whole screen is ours: drawn in screen pixels (a game's way), the buttons' rects back in page px
                 if (!fullRec || fullRec.w !== pl.w || fullRec.h !== pl.h) fullRec = new Recorder(pl.w, pl.h);
@@ -602,17 +632,19 @@ mgu.run({
         }
         ctx.loop('ANIM', 4, renderAnim);
         // a tap on the animation (where the kit runs the screen) shows or hides the tabs; opening it shows them a moment
-        if (ctx.onTap) ctx.onTap(() => { if (ui.isVisible('ANIM')) showTabs(true); });
-        ui.onVisible((name, visible) => { if (name === 'ANIM' && visible) showTabs(false); });
+        if (ctx.onTap) ctx.onTap(() => { if (ui.isVisible('ANIM') && !leaveFull()) showTabs(true); });
+        // opened again: the split screen with its menus
+        ui.onVisible((name, visible) => { if (name === 'ANIM' && visible) { fullView = false; showTabs(false); } });
         if (ctx.onTab) ctx.onTab(i => { if (i !== ANIMPAGE && i < PAGES) { ui.open('MAIN'); setPanel(i); } });
         const animSettings = playbackSettings({
             state: () => library.state, apply: action => { try { apply(action); } catch (e) { record('Animation setting failed: ' + e.message); } },
             files, modes: MODES, modeNames: MODE_NAMES, settings, spec: ctx.spec,
         });
         // (each bottom button also brings the tabs back a moment: without the GPU renderer there is no tap)
-        ui.onClick('BTN_PREVGIF', () => { showTabs(false); try { previousGif(); } catch (e) { record('Previous failed: ' + e.message); } });
-        ui.onClick('BTN_NEXTGIF', () => { showTabs(false); try { apply({ type: 'next' }); } catch (e) { record('Next failed: ' + e.message); } });
+        ui.onClick('BTN_PREVGIF', () => { if (leaveFull()) return; showTabs(false); try { previousGif(); } catch (e) { record('Previous failed: ' + e.message); } });
+        ui.onClick('BTN_NEXTGIF', () => { if (leaveFull()) return; showTabs(false); try { apply({ type: 'next' }); } catch (e) { record('Next failed: ' + e.message); } });
         ui.onClick('BTN_ANIM_SETTINGS', () => {
+            if (leaveFull()) return;
             showTabs(false);
             // drawn over the animation where the kit runs the screen (GPU renderer); otherwise the Playback page
             if (ctx.sheet && ctx.sheet(listSheet(animSettings, 'Animation settings'))) return;
