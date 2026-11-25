@@ -2,6 +2,10 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.63 (1.3.62's GPU GIFs off)
+
+- **Back to 1.3.61's way of drawing the GIFs.** On the car 1.3.62 made things slower, and the GIF player's page no longer opened on the phone. The GPU flipbook (`flipbook.js`) is off; the picture is painted into the layout's image again, exactly as in 1.3.61. The code stays, off, for a test build.
+
 ## Cluster Redline 1.3.62 (GIFs at their own speed: the GPU flipbook)
 
 - **The Animation layout's GIFs run at their own frame rate, 20 a second and more, on the cluster and the HUD.** Before, each new GIF frame was painted into the layout's image and its changed pixels sent (about 160 KB a frame on the cluster, against at most 1 MB/s shared with the HUD: 3-5 frames a second). Now every frame goes to cluster-render once, when the GIFs are loaded: an atlas of colour numbers (r8, the frames side by side, at most about 1.8 MB a display) and a palette (256 colours a GIF). A small effect layer over the picture draws the frame (fitted, bilinear, edges fading; on the HUD black see-through, the same pixels as before) and the renderer steps through the frames itself at the GIF's delays, so nothing is sent per frame. A change of scene sends the new GIF's steps and fades over 400 ms (smoothly now, not in 8 steps).

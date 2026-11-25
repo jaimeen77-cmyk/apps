@@ -7,6 +7,7 @@
 const assert=require('assert'),fs=require('fs'),os=require('os'),path=require('path'),{EventEmitter}=require('events');
 const root=path.join(path.resolve(process.argv[2]),'source/javascript'),fx=path.join(__dirname,'fixtures');
 const MP=require(root+'/my-picture'),GIF=require(root+'/gif-decode'),FB=require(root+'/flipbook'),{Outputs}=require(root+'/outputs');
+FB.setEnabled(true);   // (off by default since 1.3.63)
 const fit=(f)=>MP.fit(GIF.decode(fs.readFileSync(path.join(fx,f)),Object.assign({box:MP.BOX},MP.SOURCE)));
 
 // the atlas: a whole 30-frame GIF of the picture's box kept; frames side by side; 255 clear; delays as the renderer's steps
@@ -95,4 +96,8 @@ console.log('PASS: GPU flipbook: frames sent once (r8 atlas + palette, thinned t
  for(let t=40050;t<200000;t+=5000)F.update(t,o);assert.strictEqual(c3.of('asset').length,0,'not again');
  fs.writeFileSync(path.join(tmp,'my-pictures','drive.mpic'),MP.encode(fit('pattern-transparent.gif')));MP.scan(200000,true);F.update(200000,o);assert.strictEqual(c3.of('asset').length,2,'a new GIF: tried again');
  assert.strictEqual(F.update(200050,Object.assign({},o,{box:null})),false);assert.strictEqual(c3.of('asset').length,0,'picture hidden: released');}
-console.log('PASS: refused flipbook not retried for the same GIFs');
+// off (the default since 1.3.63): nothing on the GPU, the picture painted
+{FB.setEnabled(false);const c4=new Client(),o4=new Outputs(c4,require(root+'/draw'),require(root+'/hud-compose'));
+ for(let t=50000;t<=53000;t+=50){o4.policy.modeSample(1,t-1000);o4.policy.rpmSample(3000,t);o4.aux={car:{cluster:MP.frameOf('cluster','D',50,t,{}),hud:MP.frameOf('hud','D',50,t,{})}};o4.tick(t,cfg);}
+ assert.strictEqual(c4.of('asset').length+c4.of('effect').length,0,'off: none');}
+console.log('PASS: refused flipbook not retried for the same GIFs; off by default');
