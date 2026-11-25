@@ -25,15 +25,17 @@ const S={
  rings:{kind:'redline',design:'rl-rings',aux:gauges(['boost','oil'])},
  jamPower:{kind:'redline',design:'own',alert:'bar',aux:gauges(['power','torque'])},
  clock:{kind:'redline',design:'own',alert:'bar',aux:gauges(['clock'])},
+ // current media (1.3.56): the Animation layout (the car, or on the cluster your GIFs) with the clock
+ anim:{kind:'redline',design:'rl-car',aux:gauges(['clock'])},
  keep:{kind:'keep'},yield:{kind:'yield'}
 };
 const DEFAULT_PAGES={
  cluster:{
-  ID7:{none:S.yield,efficiency:S.needle,trip:S.trip,torque:S.rings,gmeter:S.jamPower,media:S.clock},
-  ID8:{compact:S.needle,trip:S.trip,assist:S.keep,preview:S.keep,map:S.yield,gmeter:S.jamPower,media:S.clock,ar:S.keep}},
+  ID7:{none:S.yield,efficiency:S.needle,trip:S.trip,torque:S.rings,gmeter:S.jamPower,media:S.anim},
+  ID8:{compact:S.needle,trip:S.trip,assist:S.keep,preview:S.keep,map:S.yield,gmeter:S.jamPower,media:S.anim,ar:S.keep}},
  hud:{
-  ID7:{none:S.keep,efficiency:S.needle,trip:S.tripHud,torque:S.rings,gmeter:S.jamPower,media:S.clock},
-  ID8:{compact:S.needle,trip:S.tripHud,assist:S.keep,preview:S.keep,map:S.keep,gmeter:S.jamPower,media:S.clock,ar:S.keep}}
+  ID7:{none:S.keep,efficiency:S.needle,trip:S.tripHud,torque:S.rings,gmeter:S.jamPower,media:S.anim},
+  ID8:{compact:S.needle,trip:S.tripHud,assist:S.keep,preview:S.keep,map:S.keep,gmeter:S.jamPower,media:S.anim,ar:S.keep}}
 };
 // Waze / the stock map: the cluster only. Left out (skip, until 1.3.47) is gone: the stock cluster still shows such a
 // page, so leaving it out put the count out of step; a saved one counts as No change.

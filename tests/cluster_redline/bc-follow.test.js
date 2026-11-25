@@ -11,9 +11,10 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  // the defaults (1.3.48, the user's list)
  const V=(items)=>JSON.stringify({mode:'values',items}),G=(items)=>JSON.stringify({mode:'gauges',items});
  const want={none:{kind:'yield'},efficiency:{kind:'redline',design:'rl-needle',aux:V(['avgSpeed','outside'])},trip:{kind:'redline',design:'rl-tyres',aux:V(['outside','batteryVoltage','avgSpeed','economy'])},
-  torque:{kind:'redline',design:'rl-rings',aux:G(['boost','oil'])},gmeter:{kind:'redline',design:'own',alert:'bar',aux:G(['power','torque'])},media:{kind:'redline',design:'own',alert:'bar',aux:G(['clock'])}};
+  torque:{kind:'redline',design:'rl-rings',aux:G(['boost','oil'])},gmeter:{kind:'redline',design:'own',alert:'bar',aux:G(['power','torque'])},media:{kind:'redline',design:'rl-car',aux:G(['clock'])}};
  assert.deepStrictEqual(pagesOf('','ID7'),want,'cluster defaults');
  const hud=pagesOf('','ID7','hud');assert.deepStrictEqual(hud.none,{kind:'keep'},'HUD: no display = no change');assert.strictEqual(hud.trip.design,'own','HUD: no Tyres & trip');assert.deepStrictEqual(hud.efficiency,want.efficiency);
+ assert.strictEqual(pagesOf('','ID7','hud').media.design,'rl-car','current media: the Animation layout on the HUD too (1.3.56)');
  assert.deepStrictEqual(KINDS,{cluster:['redline','yield','keep'],hud:['redline','keep']},'Waze on the cluster only; no Left out');
  assert.deepStrictEqual(pagesOf(JSON.stringify({ID7:{torque:{kind:'skip'}}}),'ID7').torque,{kind:'keep'},'a saved Left out counts as No change');
  assert.deepStrictEqual(cycleOf(JSON.stringify({ID7:{torque:{kind:'skip'}}}),'ID7'),['none','efficiency','trip','torque','gmeter','media'],'every page counted');
@@ -29,7 +30,7 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  assert.strictEqual(values.bcCluster,'yield','no display: Waze / the stock map');
  press();assert.strictEqual(f.current(),'efficiency');assert.strictEqual(values.bcCluster,'redline');assert.deepStrictEqual(applied.pop(),{clusterDesign:'rl-needle',clusterAuxConfig:want.efficiency.aux});
  press();assert.strictEqual(f.current(),'trip');assert.deepStrictEqual(applied.pop(),{clusterDesign:'rl-tyres',clusterAuxConfig:want.trip.aux});
- press();press();press();assert.strictEqual(f.current(),'media');assert.deepStrictEqual(applied.pop(),{clusterDesign:'own',clusterAuxConfig:want.media.aux,clusterAlertStyle:'bar'});
+ press();press();press();assert.strictEqual(f.current(),'media');assert.deepStrictEqual(applied.pop(),{clusterDesign:'rl-car',clusterAuxConfig:want.media.aux});
  press();assert.strictEqual(f.current(),'none','round again');assert.strictEqual(values.bcCluster,'yield');
  // held, a bounce, other stalk switches: one step only
  t+=500;feed.IndicatorSteeringColumn({operationColumnStalks:64});feed.IndicatorSteeringColumn({operationColumnStalks:64});t+=50;feed.IndicatorSteeringColumn({operationColumnStalks:0});t+=50;feed.IndicatorSteeringColumn({operationColumnStalks:64});

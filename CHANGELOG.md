@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.56
+
+- BC mode screens (Cluster tab): the button and the page summary say **Waze map** (was Waze / Waze · stock map).
+- BC defaults: **current media** (iDrive 7) and **media · radio** (iDrive 8) show the **Animation** layout with the clock, on the cluster (the car, or your GIFs) and on the HUD (the car). Pages already set up keep their own screen.
+- Tests: `bc-follow`, `korean-ui` (Waze map).
+
 ## Cluster Redline 1.3.55
 
 - **One layout: Animation** (the Car layout and My design merged; 애니메이션 in Korean). The design picker lists it once. On the cluster, choosing it opens its GIF screen (*Animation · My GIFs*): with no GIF the car of the Car layout shows (braking, three steps of drift each way, flames, reverse); with GIFs from the GIF player they show instead (driving required once any is chosen; standing still, reverse, turning left / right). On the HUD it is the car, as before.

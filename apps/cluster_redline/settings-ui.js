@@ -416,7 +416,7 @@ class SettingsPage{
  // its auxiliary values, then its design), Waze / the stock map, no change, or left out; the page in step marked, and
  // "This page now" to put it back in step.
  bcSummary(s){
-  if(s.kind==='yield')return tr('Waze / stock map');if(s.kind==='keep')return tr('No change');if(s.kind==='skip')return tr('Left out');
+  if(s.kind==='yield')return tr('Waze map');if(s.kind==='keep')return tr('No change');if(s.kind==='skip')return tr('Left out');
   let a=null;try{a=JSON.parse(s.aux||'null');}catch(e){}
   const design=s.design&&/^rl-/.test(s.design)?tr(RL.NAMES[s.design.slice(3)]||s.design):s.design==='own'?tr(s.alert==='circle'?JAM['jam-circle']:JAM['jam-bar']):'';
   if(a&&a.mode==='off')return design+' / '+tr('No auxiliary information');
@@ -442,7 +442,7 @@ class SettingsPage{
    cv.text(sum,330,y+rowH*0.68,17,'#91a1b6',{literal:true});
    // Set screen: its design, then its auxiliary values, then its Position / size (1.3.48); Waze: the cluster only
    [['Set screen',()=>{this.bcEdit={hmi,page:key,display:d};this.draft=null;this.open='rlDesign';this.choice=Math.max(0,designList(d).indexOf(designNow(this.config(),d)));this.changed();},s.kind==='redline',170,'edit']]
-    .concat(d==='cluster'?[['Waze',()=>setKind(key,'yield'),s.kind==='yield',120,'yield']]:[])
+    .concat(d==='cluster'?[['Waze map',()=>setKind(key,'yield'),s.kind==='yield',120,'yield']]:[])
     .concat([['No change',()=>setKind(key,'keep'),s.kind==='keep',150,'keep'],['This page now',()=>{if(f)f.here(key);},here,190,'here']])
     .reduce((x,[l,act,on,w,id])=>{this.button(cv,local,tr(l),x,y+2,w,bh,act,on,'bc-'+key+'-'+id,17);return x+w+8;},d==='cluster'?866:994);
   });
