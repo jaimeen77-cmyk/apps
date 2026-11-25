@@ -2,6 +2,14 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.64 (the GIF on a layer of its own: small GIFs run faster)
+
+- **The Animation layout's GIF goes on an image layer of its own, at the GIF's own size, and cluster-render scales it up** (`picture-layer.js`). Before, the GIF was scaled up into the layout's image and that image's changed pixels sent: about 160 KB a frame on the cluster, 2-5 frames a second whatever the GIF's size. Now what goes is the GIF's own changed pixels, so a smaller GIF runs faster. Measured in a simulation of the shared 1 MB/s (cluster and HUD both showing it): 160 x 90 with the whole picture moving 9.5 frames a second on each (2.3 before), with part of it moving 20; 320 x 180 2.3-5.8. With the HUD not showing a GIF, the cluster has it all to itself (about twice as many).
+- The layout's image leaves the picture out while the layer is shown, so it is not repainted or sent for the GIF's frames (less CPU). The same drawing as before (edges fading, HUD black see-through, mirrored turns, fades). Only an image layer, as the layout's own: no assets or shaders (1.3.62's GPU flipbook stays off).
+- My GIFs screen: **Fast GIF layer** On / Off (on by default; off: painted into the layout's image as in 1.3.63), and how fast each size runs.
+- Refused by the renderer, not yet shown, or no GIF: painted into the layout's image as before.
+- Tests: `picture-layer` (new).
+
 ## Cluster Redline 1.3.63 (1.3.62's GPU GIFs off)
 
 - **Back to 1.3.61's way of drawing the GIFs.** On the car 1.3.62 made things slower, and the GIF player's page no longer opened on the phone. The GPU flipbook (`flipbook.js`) is off; the picture is painted into the layout's image again, exactly as in 1.3.61. The code stays, off, for a test build.

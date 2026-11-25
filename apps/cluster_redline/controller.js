@@ -4,7 +4,7 @@ const gear = require('./gear');
 const { Telemetry } = require('./telemetry');
 const { UploadPacer } = require('./upload');
 const { placement } = require('./layout');
-const FB = require('./flipbook'), { Flipbook } = FB;
+const FB = require('./flipbook'), { Flipbook } = FB, { PictureLayer } = require('./picture-layer');
 // Only these exact server contracts describe a lost layer or temporary
 // resource/attachment failure. Malformed frames, unsupported targets, native
 // slot refusals and guard decisions must not become retry loops.
@@ -216,12 +216,18 @@ class Controller {
         }
         return Object.assign(d, { requested: true, layerState: this.layerState });
     }
+    // The Animation layout's GIF on a layer of its own (picture-layer.js, 1.3.64; My GIFs → Fast GIF layer, on by
+    // default), or 1.3.62's GPU flipbook (flipbook.js, off); without either, painted into the layout's image.
     flipbook(now, d, cfg, rect, painter, panel, hud) {
         const display = hud ? 'hud' : 'cluster', car = d.aux && d.aux.car, frame = car && car[display];
-        if (!FB.isEnabled()) { Object.keys(this.flips).forEach((k) => this.flips[k].release()); return; }
-        let flip = this.flips[display];
-        if (!flip) { if (!frame || !frame.mine || typeof this.client.effect !== 'function') return; flip = this.flips[display] = new Flipbook(this.client, display, this.upload); }
-        Object.keys(this.flips).forEach((k) => { if (k !== display) this.flips[k].release(); });
+        const kind = FB.isEnabled() ? 'gpu' : cfg.myPicLayer !== 'off' ? 'layer' : null, id = kind + ':' + display;
+        Object.keys(this.flips).forEach((k) => { if (k !== id) { this.flips[k].release(); delete this.flips[k]; } });
+        if (!kind) return;
+        let flip = this.flips[id];
+        if (!flip) {
+            if (!frame || !frame.mine || (kind === 'gpu' && typeof this.client.effect !== 'function')) return;
+            flip = this.flips[id] = kind === 'gpu' ? new Flipbook(this.client, display, this.upload) : new PictureLayer(this.client, display, this.upload);
+        }
         let box = null;
         if (frame && frame.mine) { try { box = require('./redline-hud').pictureBox(d, display); } catch (e) { box = null; } }
         const on = flip.update(now, { target: cfg.displayTarget, klass: panel ? 'overlay' : 'content', z: 101, rect, iw: painter.W, ih: painter.H, box, frame, sent: !!this.previous });
