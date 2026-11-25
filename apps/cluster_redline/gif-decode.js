@@ -41,6 +41,14 @@ function decode(buf, opts) {
     let gct = -1, gctLen = 0;
     if (flags & 0x80) { gctLen = 2 << (flags & 7); gct = 0; for (let i = 0; i < gctLen * 3; i++) tables.push(buf[p + i] || 0); p += gctLen * 3; }
     const screen = new Uint16Array(w * h).fill(CLEAR), frames = [];
+    // o.box {w, h} (1.3.61): each kept frame scaled down to fit it (nearest colour, shape kept) as it is decoded, so
+    // a big GIF never sits in memory at its full size (a 640 x 360, 90-frame GIF: 41 MB before, 10 MB now)
+    const k = o.box ? Math.min(1, o.box.w / w, o.box.h / h) : 1, ow = Math.max(1, Math.round(w * k)), oh = Math.max(1, Math.round(h * k));
+    const xs = new Uint32Array(ow), ys = new Uint32Array(oh);
+    for (let x = 0; x < ow; x++) xs[x] = Math.min(w - 1, Math.floor((x + 0.5) / k));
+    for (let y = 0; y < oh; y++) ys[y] = Math.min(h - 1, Math.floor((y + 0.5) / k)) * w;
+    const keep = () => { if (k === 1) return screen.slice(); const px = new Uint16Array(ow * oh);
+        for (let y = 0; y < oh; y++) { const row = ys[y], o2 = y * ow; for (let x = 0; x < ow; x++) px[o2 + x] = screen[row + xs[x]]; } return px; };
     let delay = 100, trans = -1, disposal = 0;
     const need = (n) => { if (p + n > buf.length) throw fail('broken', 'GIF ends early'); };
     while (p < buf.length && frames.length < maxFrames) {
@@ -76,14 +84,14 @@ function decode(buf, opts) {
             }
         }
         // 1.3.58: down to 50 ms a frame (the cluster's 20 frames a second); 0 or 10 ms means 100 ms, as browsers play them
-        frames.push({ px: screen.slice(), delay: delay <= 10 ? 100 : Math.max(50, delay) });
+        frames.push({ px: keep(), delay: delay <= 10 ? 100 : Math.max(50, delay) });
         // what the next frame starts from
         if (disposal === 2) { for (let y = fy; y < Math.min(h, fy + fh); y++) screen.fill(CLEAR, y * w + fx, y * w + Math.min(w, fx + fw)); }
         else if (disposal === 3 && before) screen.set(before);
         delay = 100; trans = -1; disposal = 0;
     }
     if (!frames.length) throw fail('no_frames', 'GIF has no frames');
-    return { w, h, colours: Uint8Array.from(tables), frames };
+    return { w: ow, h: oh, colours: Uint8Array.from(tables), frames, source: { w, h, frames: frames.length } };
 }
 
 // Quick facts without decoding the pixels (the PC tool's check): size and frame count.

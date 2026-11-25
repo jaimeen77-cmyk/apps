@@ -50,7 +50,7 @@ function fit(gif) {
             for (let y = 0; y < h; y++) { const row = ys[y] * gif.w; for (let x = 0; x < w; x++) px[y * w + x] = fr.px[row + xs[x]]; }
             return { px, delay: fr.delay }; });
     }
-    return { w, h, colours: gif.colours, frames, source: { w: gif.w, h: gif.h, frames: gif.frames.length } };
+    return { w, h, colours: gif.colours, frames, source: gif.source || { w: gif.w, h: gif.h, frames: gif.frames.length } };
 }
 // <scene>.mpic: 'MPIC', a JSON header's length (u32), the header {w, h, n, delays, colours, source}, then deflated:
 // the colours (rgb) and the frames (u16 little endian colour indices)
@@ -73,7 +73,8 @@ function decodeFile(b) {
 }
 /** A GIF from the GIF player made ready for the cluster: {file: Buffer (.mpic), w, h, frames, source}; throws. */
 function prepare(bytes) {
-    const p = fit(GIF.decode(bytes, SOURCE));
+    // scaled to the box while decoding (1.3.61), then thinned to 30 frames
+    const p = fit(GIF.decode(bytes, Object.assign({ box: BOX }, SOURCE)));
     return { file: encode(p), w: p.w, h: p.h, frames: p.frames.length, source: p.source };
 }
 // Reads the scenes that are new or changed since the last look (size and time), at most every 5 s.
@@ -168,31 +169,59 @@ function frameAt(s, set, now) {
 function reset() { Object.keys(shown).forEach((k) => delete shown[k]); Object.keys(fades).forEach((k) => delete fades[k]); }
 
 // One GIF frame in a w x h box (RGBA): fitted inside (letterboxed), bilinear, its edges fading into the dark; on the
-// HUD black is see-through.
+// HUD black is see-through. 1.3.61 (CPU, memory): the sampling positions, weights and edge fade are worked out once
+// per size (plans), no arrays are made per pixel, and the last few results are kept (the cluster and the HUD paint
+// twenty times a second, the GIF's frames change less often; a fade draws the old one again too).
+const plans = new Map(), results = [], RESULTS = 6;
+function planOf(gw, gh, w, h, mirror) {
+    const key = gw + 'x' + gh + '>' + w + 'x' + h + (mirror ? 'm' : '');
+    let pl = plans.get(key); if (pl) return pl;
+    if (plans.size >= 8) plans.clear();
+    const k = Math.min(w / gw, h / gh), dw = Math.max(2, Math.round(gw * k)), dh = Math.max(2, Math.round(gh * k));
+    const ox = Math.round((w - dw) / 2), oy = Math.round((h - dh) / 2), fade = Math.max(1, Math.round(Math.min(dw, dh) * 0.08));
+    const x0 = new Uint32Array(dw), x1 = new Uint32Array(dw), tx = new Float32Array(dw), y0 = new Uint32Array(dh), y1 = new Uint32Array(dh), ty = new Float32Array(dh);
+    for (let xx = 0; xx < dw; xx++) { const fx = Math.max(0, Math.min(gw - 1, ((mirror ? dw - 1 - xx : xx) + 0.5) / k - 0.5)); x0[xx] = Math.floor(fx); x1[xx] = Math.min(gw - 1, x0[xx] + 1); tx[xx] = fx - x0[xx]; }
+    for (let yy = 0; yy < dh; yy++) { const fy = Math.max(0, Math.min(gh - 1, (yy + 0.5) / k - 0.5)); y0[yy] = Math.floor(fy) * gw; y1[yy] = Math.min(gh - 1, Math.floor(fy) + 1) * gw; ty[yy] = fy - Math.floor(fy); }
+    // the edge fade (0..255) by distance from the nearest edge
+    const edge = new Float32Array(Math.max(dw, dh));
+    for (let e = 0; e < edge.length; e++) edge[e] = e >= fade ? 255 : 255 * Math.pow(e / fade, 1.5);
+    pl = { dw, dh, ox, oy, x0, x1, tx, y0, y1, ty, edge };
+    plans.set(key, pl); return pl;
+}
 function render(ref, w, h) {
     const l = loaded[ref.mine]; if (!l || !l.gif) return null;
-    const g = l.gif, fr = g.frames[Math.min(ref.i, g.frames.length - 1)], col = g.colours, CL = GIF.CLEAR;
-    const k = Math.min(w / g.w, h / g.h), dw = Math.max(2, Math.round(g.w * k)), dh = Math.max(2, Math.round(g.h * k));
-    const ox = Math.round((w - dw) / 2), oy = Math.round((h - dh) / 2), hud = ref.set === 'hud';
-    const px = new Uint8ClampedArray(w * h * 4), fade = Math.max(1, Math.round(Math.min(dw, dh) * 0.08));
+    const key = ref.mine + '|' + l.sig + '|' + ref.i + '|' + (ref.mirror ? 1 : 0) + '|' + ref.set + '|' + w + 'x' + h;
+    for (let q = 0; q < results.length; q++) if (results[q].key === key) return results[q].px;
+    const g = l.gif, fr = g.frames[Math.min(ref.i, g.frames.length - 1)].px, col = g.colours, CL = GIF.CLEAR, hud = ref.set === 'hud';
+    const pl = planOf(g.w, g.h, w, h, !!ref.mirror), { dw, dh, ox, oy, x0, x1, tx, y0, y1, ty, edge } = pl;
+    // a buffer of this size from the oldest kept result, else a new one
+    let slot = null;
+    if (results.length >= RESULTS) { slot = results.shift(); if (slot.px.length !== w * h * 4) slot = null; }
+    const px = slot ? slot.px : new Uint8ClampedArray(w * h * 4); if (slot) px.fill(0);
     for (let yy = 0; yy < dh; yy++) {
-        const fy = Math.max(0, Math.min(g.h - 1, (yy + 0.5) / k - 0.5)), y0 = Math.floor(fy), y1 = Math.min(g.h - 1, y0 + 1), ty = fy - y0;
+        const ra = y0[yy], rb = y1[yy], fy = ty[yy], gy = 1 - fy, ey = Math.min(yy, dh - 1 - yy), rowOut = ((oy + yy) * w + ox) * 4;
         for (let xx = 0; xx < dw; xx++) {
-            const fx = Math.max(0, Math.min(g.w - 1, ((ref.mirror ? dw - 1 - xx : xx) + 0.5) / k - 0.5)), x0 = Math.floor(fx), x1 = Math.min(g.w - 1, x0 + 1), tx = fx - x0;
-            const s = [fr.px[y0 * g.w + x0], fr.px[y0 * g.w + x1], fr.px[y1 * g.w + x0], fr.px[y1 * g.w + x1]], wt = [(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty];
-            let rr = 0, gg = 0, bb = 0, a = 0;
-            for (let q = 0; q < 4; q++) { if (s[q] === CL) continue; const c = s[q] * 3; rr += col[c] * wt[q]; gg += col[c + 1] * wt[q]; bb += col[c + 2] * wt[q]; a += wt[q]; }
+            const a0 = x0[xx], a1 = x1[xx], fx = tx[xx], gx = 1 - fx;
+            const s0 = fr[ra + a0], s1 = fr[ra + a1], s2 = fr[rb + a0], s3 = fr[rb + a1];
+            let rr = 0, gg = 0, bb = 0, a = 0, wt, c;
+            if (s0 !== CL) { wt = gx * gy; c = s0 * 3; rr += col[c] * wt; gg += col[c + 1] * wt; bb += col[c + 2] * wt; a += wt; }
+            if (s1 !== CL) { wt = fx * gy; c = s1 * 3; rr += col[c] * wt; gg += col[c + 1] * wt; bb += col[c + 2] * wt; a += wt; }
+            if (s2 !== CL) { wt = gx * fy; c = s2 * 3; rr += col[c] * wt; gg += col[c + 1] * wt; bb += col[c + 2] * wt; a += wt; }
+            if (s3 !== CL) { wt = fx * fy; c = s3 * 3; rr += col[c] * wt; gg += col[c + 1] * wt; bb += col[c + 2] * wt; a += wt; }
             if (a <= 0) continue;
-            const p = ((oy + yy) * w + ox + xx) * 4;
+            const p = rowOut + xx * 4;
             px[p] = rr / a; px[p + 1] = gg / a; px[p + 2] = bb / a;
-            const e = Math.min(xx, dw - 1 - xx, yy, dh - 1 - yy);
-            let al = a * (e >= fade ? 255 : 255 * Math.pow(e / fade, 1.5));
+            const e = Math.min(xx, dw - 1 - xx, ey);
+            let al = a * edge[e];
             if (hud) al *= Math.min(1, Math.max(px[p], px[p + 1], px[p + 2]) / 64);
             px[p + 3] = Math.round(al);
         }
     }
+    results.push({ key, px });
     return px;
 }
+// the fade's mix buffer, kept per size
+const mixes = new Map();
 // Draws frame f (a GIF's, fading from another one while t < 1) into r (a kit Canvas, the GPU recorder, or anything
 // with blit) in the box x, y, w x h.
 function draw(r, f, x, y, w, h) {
@@ -200,7 +229,7 @@ function draw(r, f, x, y, w, h) {
     let px = render(f, w, h); if (!px) return;
     if (f.from && isNum(f.t) && f.t < 1) {
         const old = render(f.from, w, h);
-        if (old) { const t = Math.max(0, f.t), mix = new Uint8ClampedArray(px.length);
+        if (old) { const t = Math.max(0, f.t); let mix = mixes.get(px.length); if (!mix) { if (mixes.size >= 4) mixes.clear(); mix = new Uint8ClampedArray(px.length); mixes.set(px.length, mix); } else mix.fill(0);
             for (let p = 0; p < px.length; p += 4) { const wa = old[p + 3] * (1 - t), wb = px[p + 3] * t, al = wa + wb; if (!al) continue;
                 mix[p] = (old[p] * wa + px[p] * wb) / al; mix[p + 1] = (old[p + 1] * wa + px[p + 1] * wb) / al; mix[p + 2] = (old[p + 2] * wa + px[p + 2] * wb) / al; mix[p + 3] = al; }
             px = mix; }
