@@ -467,7 +467,7 @@ class SettingsPage{
   // the sizes (1.3.51): another size is fitted when it is copied, so only the GIF player's own limits apply
   cv.text(tr('Recommended')+': '+tr('canvas')+' '+B.w+' × '+B.h+' · '+tr('other sizes are fitted automatically')+' ('+tr('at most')+' '+SRC.maxW+' × '+SRC.maxH+', '+kb(SRC.maxBytes)+') · '+tr('Over N frames: N kept').replace(/N/g,MP.MAX_FRAMES),100,152,19,'#5ee08f',{literal:true});
   const src=st.state==='loading'?tr('GIF player')+': '+tr('waiting'):st.state==='error'?tr('GIF player')+': '+tr(st.error==='not_running'?'not running or older than 0.4.3 (update it and open it once)':'not reachable')+' ('+st.error+')':tr('GIF player')+': GIF '+(st.files||[]).length;
-  cv.text(src,100,180,19,st.state==='error'?'#ffad45':'#c1cddd',{literal:true});
+  cv.text(src+'  ·  '+tr('Smaller GIFs run faster: 160 × 90 10-20 frames a second, 320 × 180 2-6'),100,180,19,st.state==='error'?'#ffad45':'#c1cddd',{literal:true});
   const status=MP.status(),why={missing:'not set',too_large:'file too large',too_big:'canvas too big',not_gif:'not a GIF',no_frames:'no frames',broken:'unreadable',not_running:'GIF player not running',need_drive:'choose the driving GIF first'};
   const res=st.result||{};
   // five scenes (1.3.52: + turning left / right); a turn without its own GIF shows the other one mirrored
@@ -492,6 +492,8 @@ class SettingsPage{
   cv.text(note,100,432,16,res.cleared?'#5ee08f':res.error?'#ff8a8a':'#91a1b6',{literal:true});
   this.button(cv,local,st.busy?tr('Fetching'):tr('Fetch from GIF player'),84,448,380,64,()=>this.myPicFetch(),false,'mypic-fetch',24);
   this.button(cv,local,tr('Refresh'),476,448,200,64,()=>this.myPicList(),false,'mypic-refresh',24);
+  // the GIF on a layer of its own at its own size (picture-layer.js, 1.3.64): a small GIF runs faster (160 x 90: 10-20 a second)
+  {const on=this.config().myPicLayer!=='off';this.button(cv,local,tr('Fast GIF layer')+': '+tr(on?'On':'Off'),1230,96,340,56,()=>{this.settings.set('myPicLayer',on?'off':'on');this.changed();},on,'mypic-layer',22);}
   this.button(cv,local,tr('Next')+': '+tr('Auxiliary information'),688,448,500,64,()=>{const a=D.auxConfig(this.config()[this.display()+'AuxConfig']);this.open='auxMode';this.choice=a.mode==='off'?2:a.mode==='values'?1:0;this.changed();},false,'mypic-next',24);
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }

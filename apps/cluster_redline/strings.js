@@ -37,7 +37,7 @@ const KO={
  'not running or older than 0.4.3 (update it and open it once)':'꺼져 있거나 0.4.3보다 이전 버전 (업데이트 후 한 번 실행하세요)','not reachable':'연결 안 됨',
  'Standing still':'정지','Driving':'주행','Reverse':'후진','Car picture (none)':'차 그림 (GIF 없음)','Built-in':'기본 제공','In use':'사용 중','not kept':'저장 안 됨',
  'not set':'없음','file too large':'파일이 너무 큼','canvas too big':'캔버스가 너무 큼','not a GIF':'GIF 아님','no frames':'프레임 없음',
- 'Fetching':'가져오는 중','Fetch from GIF player':'GIF 플레이어에서 가져오기','Refresh':'새로고침','Next':'다음',
+ 'Fast GIF layer':'빠른 GIF 레이어','Smaller GIFs run faster: 160 × 90 10-20 frames a second, 320 × 180 2-6':'작은 GIF일수록 빠름: 160 × 90 초당 10~20장, 320 × 180 2~6장', 'Fetching':'가져오는 중','Fetch from GIF player':'GIF 플레이어에서 가져오기','Refresh':'새로고침','Next':'다음',
  'other sizes are fitted automatically':'다른 크기는 자동으로 맞춤','Over N frames: N kept':'프레임 N장 넘으면 N장으로 줄임','fitted to':'맞춤',
  'Required: choose a GIF':'필수: GIF를 고르세요','Uses the driving GIF':'주행 GIF 사용','GIF player not running':'GIF 플레이어가 꺼져 있음','choose the driving GIF first':'주행 GIF를 먼저 고르세요',
  'No GIF: the car picture. With GIFs the driving GIF is required; scenes without their own show it (a turn: the other turn mirrored first). A change of scene fades.':'GIF를 넣지 않으면 자동차 그림이 나옵니다. GIF를 넣을 때는 주행 GIF가 꼭 필요하고, GIF가 없는 장면은 주행 GIF가 나옵니다(좌·우회전은 반대쪽을 좌우 반전해 먼저 씀). 장면이 바뀔 때는 부드럽게 넘어갑니다.',
