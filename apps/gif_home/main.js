@@ -20,7 +20,7 @@ const { C, backdrop, header, rows, lines, fitText, button } = require('./look');
 const { t, getLanguage } = require('./kit/i18n');
 const G = require('./kit/gauges');
 
-const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403, THUMB_IMAGE = 23404;
+const W = 1600, H = 520, PIXEL_IMAGE = 23401, ANIM_IMAGE = 23402, BACK_IMAGE = 23403, THUMB_IMAGE = 23404, FADE_IMAGE = 23405;
 const PRESETS = [
     ['demo', 'Animated BMW logo', 'demo.json'],
     ['drift', 'Pixel drift: Night City', 'drift_city.json'],
@@ -544,6 +544,10 @@ mgu.run({
         }
         /** The split screen drawn on r (its own pixels) inside box; returns the buttons' rects, in the same pixels. */
         /** The current GIF, the whole of it, fitted into box (black around it). */
+        // A new GIF fades in over the last picture of the one before (FADE_MS), as a crossfade.
+        const FADE_MS = 600;
+        let lastShown = null, fade = null;
+        const ease = x => x * x * (3 - 2 * x);
         function drawGif(r, box) {
             r.fillRect(box.x, box.y, box.w, box.h, '#000000');
             if (player.gif && frame >= 0) {
@@ -551,10 +555,26 @@ mgu.run({
                 const gif = player.gif, clock = player.pauseAt !== null ? player.pauseAt : Date.now();
                 const at = frameAt(gif, Math.max(0, clock - player.start) * (SPEEDS[settings.get('animSpeed')] || 1));
                 const key = player.id + ':' + at;
+                // another GIF than the one drawn last: its last picture is kept, to fade out
+                if (lastShown && lastShown.id !== player.id) {
+                    const old = lastShown.gif;
+                    setImage(FADE_IMAGE, old.width, old.height, old.frames[lastShown.at].data);
+                    fade = { gif: old, start: Date.now() };
+                }
+                lastShown = { id: player.id, gif, at };
                 // only a new frame is sent to the renderer again
                 if (key !== animKey) { setImage(ANIM_IMAGE, gif.width, gif.height, gif.frames[at].data); animKey = key; }
                 const g = rectFor(gif.width, gif.height, box.x, box.y, box.w, box.h, 'contain');
-                r.image(ANIM_IMAGE, g.x, g.y, g.w, g.h);
+                const k = fade ? Math.min(1, (Date.now() - fade.start) / FADE_MS) : 1;
+                if (k < 1) {
+                    const o = rectFor(fade.gif.width, fade.gif.height, box.x, box.y, box.w, box.h, 'contain');
+                    r.alpha(1 - ease(k)); r.image(FADE_IMAGE, o.x, o.y, o.w, o.h);
+                    r.alpha(ease(k)); r.image(ANIM_IMAGE, g.x, g.y, g.w, g.h);
+                    r.alpha(1);
+                } else {
+                    fade = null;
+                    r.image(ANIM_IMAGE, g.x, g.y, g.w, g.h);
+                }
             } else r.text(t('No GIF'), box.x + box.w / 2, box.y + box.h / 2, 34 * box.h / 720, '#ffffff', { align: 'center' });
         }
         function drawSplit(r, box) {
