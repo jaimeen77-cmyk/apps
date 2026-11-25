@@ -198,7 +198,7 @@ class SettingsPage{
    if(JAM[st]){const values=this.designSwitch('own');values[d+'AlertStyle']=st==='jam-circle'?'circle':'bar';this.setValues(values);}else this.setValues(this.designSwitch('rl-'+st));
    // My design (1.3.50): first its GIFs from the GIF player, then its auxiliary values
    // the Animation layout (1.3.55, with My design merged in): on the cluster its GIFs first
-   if(st==='car'&&d==='cluster'){this.openMyPic();return;}
+   if(st==='car'){this.openMyPic();return;}   // (the HUD too since 1.3.59: the same GIFs)
    // then its auxiliary values
    const a=D.auxConfig(this.config()[d+'AuxConfig']);this.open='auxMode';this.choice=a.mode==='off'?2:a.mode==='values'?1:0;this.changed();return;}
   const list=options(this.item(),this.config());if(!list[index])return;
@@ -230,7 +230,7 @@ class SettingsPage{
  draw(cv,status,liveState){
   this.liveState=liveState||null;
   // My picture's previews read the GIFs from the app's data folder (my-picture.js), once the layout is chosen
-  if(this.dataDir&&!this.myPictureDir&&this.config().clusterDesign==='rl-car'){this.myPictureDir=true;require('./my-picture').setDir(this.dataDir);}
+  if(this.dataDir&&!this.myPictureDir&&(this.config().clusterDesign==='rl-car'||this.config().hudDesign==='rl-car')){this.myPictureDir=true;require('./my-picture').setDir(this.dataDir);}
   const cfg=this.config(),targets=[],theme={bg:'#090b0e',text:'#f3f5f7',dim:'#8d97a4',sel:'#f32b40',accent:'#f32b40'};cv.clear(theme.bg);{const B=require('./settings-bg');B.paint(cv,W,H,B.left(cv),B.top(cv,cv.chrome?0:80));}
   const badges=this.version?[{text:'v'+this.version,color:'#8d97a4'}]:[];
   // 'Favorites' is not in the kit's own catalogue: its Korean comes from strings.js.
@@ -853,7 +853,7 @@ class SettingsPage{
   cv.text(group.length?'X '+cfg[prefix+'OffsetX']+' · Y '+cfg[prefix+'OffsetY']+' · '+width+' × '+height+' px':'',84,500,21,'#ffad45',{literal:true});
   cv.text(nav||uniform?'Width and height scale together.':'Width / height difference limited to 30%.',790,432,18,'#a8b6c8');
   // My picture: whether each of its three GIFs is read (my-picture.js), what is wrong with one that is not
-  if(!nav&&display==='cluster'&&RL.style(cfg,display)==='car'){const MP=require('./my-picture');MP.scan(Date.now());const why={missing:'missing',too_large:'too large',too_big:'too big'};
+  if(!nav&&RL.style(cfg,display)==='car'){const MP=require('./my-picture');MP.scan(Date.now());const why={missing:'missing',too_large:'too large',too_big:'too big'};
    const SC={stop:'Standing still',drive:'Driving',reverse:'Reverse',left:'Turning left',right:'Turning right'},line=MP.status().map(s=>tr(SC[s.name])+' '+(s.ok?s.w+'×'+s.h+' '+s.frames+' '+tr('frames'):s.uses==='drive'?tr('Uses the driving GIF'):tr(why[s.error]||'unreadable'))).join(' · ');
    cv.text(tr('My GIFs')+': '+line,790,500,17,'#ffad45',{literal:true});}
   const hidden=group.length&&group.every(p=>cfg[this.layoutPrefix(p)+'Hidden']);
