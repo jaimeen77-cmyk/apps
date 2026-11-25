@@ -45,6 +45,7 @@ const KO={
  'Turning left':'좌회전','Turning right':'우회전','Uses the right-turn GIF mirrored':'우회전 GIF 좌우 반전','Uses the left-turn GIF mirrored':'좌회전 GIF 좌우 반전',
  'No GIF: the Car layout\'s own car is shown.':'GIF 없음: 자동차 레이아웃의 자동차 그림이 나옵니다.',
  'Animation':'애니메이션',
+ 'Waze map':'Waze map',
 };
 function language(){return getLanguage();}
 function tr(value){return getLanguage()==='ko'&&Object.prototype.hasOwnProperty.call(KO,value)?KO[value]:t(value);}
