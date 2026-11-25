@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.52
+
+- **My design: five scenes** — driving (required), standing still, reverse, and now **turning left** and **turning right**. A turn is the sideways G, as the Car layout reads it (positive to the left; not yet checked on the car): 0.12 G and up starts it, under 0.08 G ends it, a new scene lasts 300 ms and a shown one 400 ms. A turn without its own GIF shows the other turn's GIF mirrored, then the driving GIF. While My design's picture shows, the G is read every 200 ms even with its small G meter hidden.
+- Tests: `my-picture` (turn scenes, hysteresis, mirrored fallback and drawing, G demand).
+
 ## Cluster Redline 1.3.51
 
 - **My design: GIFs of any size.** A GIF is fitted to the picture's box (320 x 180, its shape kept, never made bigger) when it is copied from the GIF player, so any size the GIF player accepts (up to 640 x 360, 6 MB) can be used; more than 30 frames are thinned to 30, each kept one lasting as long as those it stands for (the GIF runs as long). Kept compressed as `my-pictures/<scene>.mpic` (1.3.50's `.gif` copies are still read).
