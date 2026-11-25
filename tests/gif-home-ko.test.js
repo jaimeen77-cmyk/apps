@@ -79,6 +79,7 @@ function checkPackage(app) {
         assert.deepStrictEqual(anim.buttons.map((b) => b[0]), ['BTN_PREVGIF', 'BTN_NEXTGIF', 'BTN_ANIM_SETTINGS']);
         assert.ok(!spec.screens.find((s) => s.name === 'MAIN').buttons.some((b) => b[0] === 'BTN_ANIM'), 'page 3 opens it, no own button');
         assert.ok(fs.readFileSync(path.join(js, 'kit/display.js'), 'utf8').indexOf('canvasScreens.find((s) => s.gpu === true)') > 0, 'display.js patched');
+        checkNativePixmaps(js);
         assert.ok(fs.statSync(path.join(js, 'animation.js')).isFile(), 'animation.js packaged');
         const ui = fs.readFileSync(path.join(pkgDir, 'rhmiData/uiDescriptions/ID7/uiDescription.json'), 'utf8');
         ['ANIM_GFX', 'BTN_PREVGIF', 'BTN_NEXTGIF', 'BTN_ANIM_SETTINGS'].forEach((id) => assert.ok(ui.indexOf('"' + id + '"') > 0, id));
@@ -102,6 +103,38 @@ function checkPackage(app) {
         s.split('').forEach((c) => { if (c.charCodeAt(0) > 126 && !glyphs[c.charCodeAt(0)]) drawn.add(c); });
     });
     assert.deepStrictEqual(Array.from(drawn), [], app.id + ': characters main.js draws that the Korean font lacks');
+}
+
+// The packaged renderer client on mgu-render/1 (the GPU renderer's own dialect): GIF frames go as pixmaps
+// (X_PIXMAP once per size, X_PIXELS per new frame) and op 18 in that dialect's order (x y w h r id), not dropped.
+function checkNativePixmaps(js) {
+    const { RenderClient } = require(path.join(js, 'kit/renderd'));
+    const rec = require(path.join(js, 'kit/record'));
+    const sent = [];
+    const c = Object.create(RenderClient.prototype);
+    Object.assign(c, { native: true, ready: true, placement: {}, info: { pixmaps: true }, fd: 1, sock: null, log: { warn() {}, info() {} },
+        sent: { atlas: new Set(), ramp: new Set(), layer: new Set(), image: new Map() } });
+    c._write = (b) => { sent.push(Buffer.from(b)); return true; };
+    const id = 23999, px = new Uint8Array(4 * 3 * 4).fill(255);
+    rec.setImage(id, 4, 3, px);
+    const r = new rec.Recorder(100, 50);
+    r.fillRect(0, 0, 100, 50, '#000000');
+    r.image(id, 10, 20, 40, 30);
+    c.frame(r);
+    const types = sent.map((b) => b.readUInt32LE(0));
+    assert.deepStrictEqual(types, [0x4d520003, 0x4d520004, 7], 'pixmap, its pixels, then the frame');
+    assert.deepStrictEqual([0, 1, 2, 3, 4].map((k) => sent[0].readUInt32LE(8 + 4 * k)), [id, 4, 3, 2, 0], 'X_PIXMAP id w h RGBA-opaque nearest');
+    assert.strictEqual(sent[1].readUInt32LE(4), 24 + 4 * 3 * 4, 'X_PIXELS: one rect of the whole image');
+    const u = new Uint32Array(sent[2].buffer.slice(sent[2].byteOffset + 8, sent[2].byteOffset + sent[2].length));
+    const f = new Float32Array(u.buffer), at = Array.from(u).lastIndexOf(18);
+    assert.ok(at >= 0 && u[at + 6] === id && f[at + 1] === 10 && f[at + 2] === 20 && f[at + 3] === 40 && f[at + 4] === 30 && f[at + 5] === 0,
+        'op 18 as x y w h r id');
+    assert.strictEqual(r.words()[Array.from(r.words()).lastIndexOf(18) + 1], id, 'the recording itself is left as it was (software path)');
+    // the same version again: nothing uploaded; a new frame of another size: the pixmap made again
+    sent.length = 0; c.frame(r);
+    assert.deepStrictEqual(sent.map((b) => b.readUInt32LE(0)), [7]);
+    rec.setImage(id, 2, 2, new Uint8Array(16)); sent.length = 0; c.frame(r);
+    assert.deepStrictEqual(sent.map((b) => b.readUInt32LE(0)), [11, 0x4d520003, 0x4d520004, 7], 'dropped and made again at the new size');
 }
 
 // ---- phone pages in a minimal DOM -------------------------------------------------------

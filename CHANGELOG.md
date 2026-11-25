@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## GIF 플레이어 0.4.5 (Korean edition)
+
+- **Animation screen black on the car (fixed)**: on the GPU renderer's own dialect (mgu-render/1) the kit's renderer client dropped pixel images ("pixel images need the upstream dialect"), and op 18 went out in the upstream field order, so the GIF never showed and frames could be refused. The Store template's `kit/runtime/renderd.js` now sends them as pixmaps (`X_PIXMAP` once per size, `X_PIXELS` per new frame, RGBA, nearest) when the renderer offers pixmaps, and rewrites op 18 to `x y w h r id` in the frames sent there; the recording kept for the software path is unchanged (`tools/prepare-upstream-apps.py`, `patch_native_pixmaps`).
+- Tests: `tests/gif-home-ko.test.js` drives the packaged client as on a renderer with pixmaps (pixmap, pixels, rewritten op 18, no re-upload of the same frame, a new pixmap at a new size).
+- Not changed: the main pages are the HMI's own image, so their drawn buttons do not take touch; the bottom bar (다음 항목 / 선택) works them.
+
 ## Cluster Redline 1.3.58
 
 - **Smoother Animation layout on the cluster.** The cluster is drawn 20 times a second, but its picture changed only 10 times a second: the Car layout's eight frames a state at 10 a second, and GIFs held to at least 100 ms a frame. Now the Car layout shows, in the second half of each frame's 100 ms, that frame mixed half and half with the next one (the same frames at the same speed, the picture changing every 50 ms); GIFs play at their own delays down to 50 ms a frame (20 a second; 0 or 10 ms still means 100 ms, as browsers play them).
