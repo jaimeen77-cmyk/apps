@@ -1,40 +1,81 @@
-# iDrive 7 Jam Apps
-
-Store listings are visible on ID8 with unspecified catalog compatibility.
-the current install packages and UI resources retain
-their ID7 restrictions. Listing visibility does not enable ID8 installation.
-
-![BMW Coding Study Cafe](screenshots/banner.png)
-
-**Cluster Redline 1.3.67** (now permission required, see License below): the Animation layout (the animated car, or on the cluster your own GIFs from the GIF player for driving, standing still, reverse, turning left and right; any size fitted; scenes fading into each other; the GIF on a layer of its own at its own size, so a small GIF runs faster); a new Car layout for the cluster and the HUD (a big animated car that brakes, drifts, flames and reverses with your car, readouts under it); menus reorganised (HUD lamps / Vehicle preset menus, design then auxiliary values, Jam layouts), BC mode on the HUD too, new BC page defaults, vehicle alerts always on; BC presses counted whenever the app runs, BC mode or not, and a favorite or a driver's settings keep the BC page's screen; the next turn as its own HUD part (Position / size); Received turns (what the navigation sends, raw, on screen and optionally in nav-probe.log); BC mode on the cluster (a Redline screen per stock BC page); lead-car headway on the HUD (time gap, distance, closing speed); the next turn under the HUD arrow when it follows close behind; driver greeting on the cluster too, 5 s, and a goodbye when the engine is switched off; hood and trunk in the door-open warning (the cluster no longer gives way); blind spot warning on the HUD (top view under the turn arrows, its own position / size); door-open warning on the HUD (adjustable position); settings, favourites and layout slots per driver, shown by name, with a HUD greeting at engine start; navigation arrow and text colours (orange / green / blue / white); vehicle alerts on the HUD (speeding and children signs from the camera sign recognition, speed cameras); HUD turn signals work (the light module is now subscribed), in the Redline HUD while it shows, on their own overlay layers over the stock HUD, Position / size preview ends when the screen is left, battery voltage kept through missed replies; all modes RPM display can leave out Sport modes (cluster and HUD), turn signal arrows on the HUD (shape, colour, position); cluster released while guidance shows on the HUD (Waze included), tuned HUD layout defaults, outside temperature fix (1.2.8: Redline layouts element by element, Korean time for the clock). **iDrive Circuit 1.0.5** and **MGU Monitor 1.1.10** (home widget: CPU and memory graphs of the last 30 minutes, fitted to the widget) are also available.
+# Jam's iDrive apps (MGU Store)
 
 [한국어](README.ko.md)
 
-| Documentation | English | 한국어 |
+Apps for BMW iDrive 7 and 8 head units, installed from **MGU Store**. Every app has a Korean edition and most have an English one.
+
+**Made by 잼님 (jaimeen77)**
+
+| | |
+|---|---|
+| MGU Store source | repository **`jaimeen77-cmyk/apps`** · branch **`main`** |
+| Download (GitHub) | [github.com/jaimeen77-cmyk/apps](https://github.com/jaimeen77-cmyk/apps) |
+| Companion source | **`jaimeen77-cmyk/appsKOR`** · `main` — the GPU renderer and controller gate tools, and 15 Korean apps ([appsKOR](https://github.com/jaimeen77-cmyk/appsKOR)) |
+| How to install | **[Installation](docs/INSTALL.md)** |
+
+## The apps
+
+### Cluster Redline 1.3.67 · iDrive 7·8 · English/Korean
+
+![Cluster Redline](screenshots/cluster_redline/manual/face-cluster-gauges-boost-torque-en.jpg)
+
+Draws rpm, shift alerts, the gear and auxiliary information (boost, torque, oil temperature…) on the instrument cluster and the HUD. 20 designs on the cluster and 18 on the HUD, an Animation layout (an animated car or your own GIFs), following the BC button, HUD navigation and vehicle alerts, settings per driver and favourites.
+→ **[User guide](docs/CLUSTER-REDLINE.md)**
+
+### MGU Monitor 1.1.10 · iDrive 7·8 · English/Korean
+
+<img src="apps/storage/screenshots/widget-usage-en.png" width="320" alt="MGU Monitor widget">
+
+The head unit's storage, CPU and memory by app, and 30 days of usage logs. Its home-screen widget draws CPU and memory over the last 30 minutes.
+→ **[Guide](apps/storage/README.md)**
+
+### iDrive Circuit 1.0.5 · iDrive 7·8 · English/Korean
+
+<img src="apps/idrive_circuit/screenshots/start-en.png" width="640" alt="iDrive Circuit">
+
+A circuit puzzle for when the car is parked: rotate tiles to bring power to every device. 30 levels.
+→ **[Guide](apps/idrive_circuit/README.md)**
+
+### 8게임즈 (Parked Games) 0.2.4 · iDrive 7 · Korean
+
+<img src="apps/parked_games/screenshots/games-menu.png" width="640" alt="8게임즈">
+
+Eight games played with the iDrive controller while parked (lane runner, paddle duel, canyon glide, rev keeper, brick breaker, block drop, sketchpad, chess). The Korean edition of Parked Games.
+→ **[Guide (Korean)](apps/parked_games/README.ko.md)**
+
+### GIF 플레이어 (GIF player) 0.4.8 · iDrive 7 · Korean
+
+<img src="apps/gif_home/screenshots/animation-ko.png" width="640" alt="GIF player">
+
+Plays GIFs uploaded from your phone in the home-screen widget and on its Animation screen. Cluster Redline's Animation layout uses the same uploaded GIFs.
+→ **[Guide](apps/gif_home/README.md)**
+
+### Seats Easy Access 0.7.10 · iDrive 7·8 · English/Korean
+
+<img src="apps/seats_easy_access/screenshots/seat-en.png" width="640" alt="Seats Easy Access">
+
+Driver and passenger seat adjustment, memories M1–M3, and Easy Access that moves the seat out of the way to get in and out.
+→ **[Guide](apps/seats_easy_access/README.md)**
+
+## Guides
+
+| App | English | 한국어 |
 |---|---|---|
-| Install | [Installation](docs/INSTALL.md) | [설치 안내](docs/INSTALL.ko.md) |
-| Use Redline | [User guide](docs/CLUSTER-REDLINE.md) | [사용 설명서](docs/CLUSTER-REDLINE.ko.md) |
-| Use MGU Monitor | [MGU Monitor](apps/storage/README.md) | [MGU 모니터](apps/storage/README.ko.md) |
-| Use Circuit | [Circuit](apps/idrive_circuit/README.md) | [회로 퍼즐](apps/idrive_circuit/README.ko.md) |
-| Parked Games (Korean edition) | — | [8게임즈](apps/parked_games/README.ko.md) |
-| GIF Home (Korean edition) | [GIF Home](apps/gif_home/README.md) | [GIF 플레이어](apps/gif_home/README.ko.md) |
+| Installation | [Installation](docs/INSTALL.md) | [설치 안내](docs/INSTALL.ko.md) |
+| Cluster Redline | [User guide](docs/CLUSTER-REDLINE.md) | [설명서](docs/CLUSTER-REDLINE.ko.md) |
+| MGU Monitor | [Guide](apps/storage/README.md) | [설명서](apps/storage/README.ko.md) |
+| iDrive Circuit | [Guide](apps/idrive_circuit/README.md) | [설명서](apps/idrive_circuit/README.ko.md) |
+| 8게임즈 | — | [설명서](apps/parked_games/README.ko.md) |
+| GIF player | [Guide](apps/gif_home/README.md) | [설명서](apps/gif_home/README.ko.md) |
+| Seats Easy Access | [Guide](apps/seats_easy_access/README.md) | [설명서](apps/seats_easy_access/README.ko.md) |
 
-Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh and choose Korean or English. Redline requires **`cluster-render` 0.4.0+**. Update existing installs in Installed and check **v1.3.42** in the app. Stop and disable auto-start in an unused language edition if both are installed.
+[Changelog](CHANGELOG.md)
 
-| HUD circle | HUD bar |
-|---|---|
-| ![HUD circle](screenshots/cluster_redline/hud-circle-en.png) | ![HUD bar](screenshots/cluster_redline/hud-bar-en.png) |
+The pictures in the guides are drawn by the apps' own drawing code from the actual packages, with example data. Colours and positions on the car can differ a little.
 
-| Cluster circle | Cluster bar |
-|---|---|
-| ![Cluster circle](screenshots/cluster_redline/cluster-circle-en.png) | ![Cluster bar](screenshots/cluster_redline/cluster-bar-en.png) |
+## Licenses
 
-[All screenshots: metrics, navigation, settings and red alerts](screenshots/README.md). Images use the actual app renderer with example data; real-vehicle verification of this release remains pending.
-
-[Source integration / 소스 통합](docs/JAM-INTEGRATION.ko.md) · [Changelog / 업데이트 이력](CHANGELOG.md) · [Licenses](NOTICE.cluster-redline.md)
-
-**License**: Cluster Redline 1.3.10 and later is **permission required** ([apps/cluster_redline/LICENSE](apps/cluster_redline/LICENSE)): install and use it in your own vehicle freely; copying, redistributing, modifying or commercial use needs permission. Versions up to 1.3.9 were MIT. Components by others keep their licenses ([NOTICE.cluster-redline.md](NOTICE.cluster-redline.md)).
-
-For the 15 localized upstream iDrive apps, use the separate [appsKOR repository](https://github.com/jaimeen77-cmyk/appsKOR). This repository offers Circuit, Cluster Redline, MGU Monitor and Seats Easy Access in Korean and English.
-
-The 15 general Korean app listings and their latest compiled packages have moved to [appsKOR](https://github.com/jaimeen77-cmyk/appsKOR). Refresh both main sources in MGU Store. This source lists eight app entries: the Korean and English editions of Circuit, Cluster Redline, MGU Monitor and Seats Easy Access. Both MGU Monitor editions are version 1.1.9; they also require the app-name helper tool from this source.
+- **Cluster Redline** 1.3.10 and later: **permission required** ([apps/cluster_redline/LICENSE](apps/cluster_redline/LICENSE)). Installing and using it in your own car is free; copying, redistributing, modifying or commercial use needs permission. Up to 1.3.9: MIT. Components by others keep their own licenses ([NOTICE](NOTICE.cluster-redline.md)).
+- **GIF player**: GPL-3.0, as the original GIF Home (NamelsMissing/mgu-apps) ([NOTICE](NOTICE.gif-home.md)).
+- **8게임즈**: MIT, as the original Parked Games ([NOTICE](apps/parked_games/NOTICE)).
+- The other apps and the runtime kit: MIT ([LICENSE](LICENSE)). MGU Monitor's sources: [NOTICE](apps/storage/NOTICE).

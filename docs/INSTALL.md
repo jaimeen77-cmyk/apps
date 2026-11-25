@@ -1,84 +1,91 @@
-# Installation · MGU Store / iDrive 7
+# Installation · MGU Store
 
-[한국어](INSTALL.ko.md) · [Redline user guide](CLUSTER-REDLINE.md) · [Screenshots](../screenshots/README.md)
+[한국어](INSTALL.ko.md) · [The apps](../README.md)
 
-This repository distributes **Cluster Redline 1.2.0** and **iDrive Circuit 1.0.0**, each in Korean and English. This guide covers app installation; it does not perform head-unit flashing or coding.
+Every app in this repository is installed from the car's **MGU Store**. No PC or USB stick is needed.
+The Store builds the app on the head unit, with that car's own BMW SDK.
 
-## Prerequisites
+## 1. What you need
 
-- iDrive 7 with MGU Store installed and online
-- **Cluster renderer (`cluster-render`) 0.4.0 or newer** for Redline
-- A parked vehicle with stable power through installation
+- A head unit (iDrive 7 or iDrive 8) with MGU Store installed, and an internet connection
+  - To install MGU Store itself, follow the [MGU Store guide](https://github.com/robertnisipeanu/mgu-store).
+- The car parked, with stable power (engine running or a charger), until the install is done
 
-The Store's normal screen renderer and Redline's `cluster-render` are separate components. Circuit alone does not need `cluster-render`. Store resolves requirements when a registered source provides them; otherwise register the appropriate renderer source first.
+## 2. Add the sources
 
-For MGU Store itself, follow [its developer's installation guide](https://github.com/robertnisipeanu/mgu-store).
+In MGU Store open **Settings → Add source** and add the sources below. The branch is **`main`** for all of them (not Releases).
 
-## Install through MGU Store
-
-1. Open **Settings → Add source**.
-2. Enter repository `jaimeen77-cmyk/apps` and branch `main`.
-3. Run **Check now / Refresh**. If Offline, connect the head unit to the internet in Settings first.
-4. Choose the desired language listing below and select **Install**.
-5. Follow the dependency-tool prompts. Restart the head unit after installation only when instructed.
-6. Open the app from the vehicle's app list.
-
-| Listing | Installed ID | Version |
+| Source | Needed | What it offers |
 |---|---|---|
-| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.0 |
-| Cluster Redline (English) | `cluster_redline_en` | 1.2.0 |
-| 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 |
-| iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 |
+| **`jaimeen77-cmyk/apps`** | Yes | This repository's apps: Cluster Redline, MGU Monitor, iDrive Circuit, Seats Easy Access, 8게임즈 (Parked Games), GIF 플레이어 (GIF player) |
+| **`jaimeen77-cmyk/appsKOR`** | For 8게임즈 and the GIF player | The GPU renderer (`idrive7-renderd`), the iDrive controller gate (`mgu-inputgate`), 15 Korean apps |
+| The Store's default source (`robertnisipeanu/idrive-apps`) | For Cluster Redline | The cluster renderer (`cluster-render`), `mgu-deploy` |
+| `IterioDev/car-apps` | For Seats Easy Access | Comfort (`iteriodev-comfort`) |
 
-Select the language in the listing; no PC language flag is needed. Store assembles the SDK-free UI/runtime with current app code and prepares the vehicle SDK through its existing installation process.
+Then press **Check now**. If the Store says Offline, check the internet connection first.
 
-## First Redline setup
+## 3. Install an app
 
-1. Confirm **v1.2.0** at the top of the app.
-2. In **Basic settings**, choose the vehicle preset, units and shift-alert RPM.
-3. In **HUD display setting / CLUSTER display setting**, select **Redline app** for the modes you want. HUD RPM defaults to Stock.
-4. Use **Start app** for current output. Enable **App auto start** if it should run at the next process launch.
-5. For cluster output, use BMW **Instrument cluster → Central display area → Map view or Off**. Assist and other apps may cover it.
-6. Configure NAV and start phone guidance. Supported direction, distance and description appear only when received from the vehicle.
+Choose the app in the list and press **Install**. When a tool it needs is missing or too old, the Store installs that tool first.
+If no registered source offers the tool, the Store blocks the install and says why.
 
-Korean and English are separate apps. If both are installed, use **Stop app** and turn **App auto start Off** in the unused edition to avoid output contention.
+| Store listing | Version | iDrive 7 | iDrive 8 | Tools installed with it |
+|---|---|:-:|:-:|---|
+| Cluster Redline (English) / 계기판 레드라인 (한국어) | 1.3.67 | ✅ | ✅ | `cluster-render` 0.4.0+, `mgu-deploy` 0.7.17+ |
+| MGU Monitor (English) / MGU 모니터 (한국어) | 1.1.10 | ✅ | ✅ | `mgu-monitor-names` 0.1.0 (this source), `mgu-deploy` |
+| iDrive Circuit (English) / 아이드라이브 회로 (한국어) | 1.0.5 | ✅ | ✅ | `mgu-deploy` |
+| Seats Easy Access (English) / 시트 Easy Access (한국어) | 0.7.10 | ✅ | ✅ | `iteriodev-comfort` 0.6.1+, `mgu-deploy` 0.7.11+ |
+| 8게임즈 (Korean only) | 0.2.4 | ✅ | — | `idrive7-renderd`, `mgu-inputgate`, `mgu-deploy` |
+| GIF 플레이어 (한국어) (Korean only) | 0.4.8 | ✅ | — | `idrive7-renderd`, `mgu-inputgate`, `mgu-gif-net` 0.1.0 (this source), `mgu-deploy` |
 
-## Update, stop and remove
+- 8게임즈 and the GIF player are **iDrive 7 only**, like the original apps. On iDrive 8 the Store refuses them.
+- iDrive 8 installs are supported, but not every app has been checked on an iDrive 8 car yet.
+- The English and Korean editions are separate apps. Do not use both editions of the same app; if both are installed, turn off or remove the one you do not use.
+- If the Store asks for a restart after the install, do it (some tools take effect from the next HMI start).
 
-- Refresh the same `main` source, then use **Installed → Update**. Check the visible app version afterward.
-- **Stop app** stops the live worker, subscriptions and rendering connections, keeping settings available for restarting.
-- **App auto start** controls the next process launch, including after an update/restart. Turn it Off if output should remain stopped.
-- Remove an app from **Installed**. Check Store's removal prompt for setting-retention behavior.
+## 4. First start
 
-On its first launch, 1.2.0 applies the new NAV defaults and separates auxiliary placement into left/right controls. An existing 50px cluster adjustment is not applied twice. Subsequent component adjustments persist. Select Stock output or Stop app if an output covers another view.
+Open an installed app from the car's app list. What to do first is in each app's guide.
 
-## Troubleshooting
-
-| Symptom | First checks |
+| App | Guide |
 |---|---|
-| Empty listing | Internet connection, repository spelling, `main`, source refresh |
-| Old settings after update | Visible version, installed language/ID and another edition running |
-| Missing RPM | Start app, output choices for the current mode, renderer version and live vehicle signals |
-| Covered by Assist/another app | BMW central-display choice and competing app output |
-| Battery/voltage/economy shows `--` | Vehicle support and freshness; missing measurements are not estimated |
-| HUD returns to stock guidance | Unsupported or stale guidance yields to stock. Delivery varies with phone/map app/version. |
-| install failed / interface error | Keep the exact error/version; see the [installation diagnostics](REDLINE-INSTALL-FAILED.ko.md) |
+| Cluster Redline | [User guide](CLUSTER-REDLINE.md) — Basic settings → App operation → **Start app** |
+| MGU Monitor | [Guide](../apps/storage/README.md) — place its widget on the home screen |
+| iDrive Circuit | [Guide](../apps/idrive_circuit/README.md) |
+| 8게임즈 | [Korean guide](../apps/parked_games/README.ko.md) |
+| GIF player | [Guide](../apps/gif_home/README.md) — upload GIFs from your phone |
+| Seats Easy Access | [Guide](../apps/seats_easy_access/README.md) |
 
-For persistent issues, collect logs using the [log guide](COLLECT-CLUSTER-REDLINE.ko.md) and include settings screenshots. Gallery images are real app renders with example data, not vehicle captures. Vehicle-specific installation, signal delivery and display recovery still need real-car verification.
+### Placing a widget on the home screen (MGU Monitor, GIF player)
 
-## Advanced: build on a PC
+1. On the iDrive **HOME** screen push the controller **up** to open the top menu.
+2. Choose **Customize main menu**.
+3. Choose a slot and add **MGU Monitor** or **GIF 플레이어** from the list.
+4. A **large tile** gives the large widget with the graphs or the GIF; a narrow tile gives the small widget with text only.
+5. Save.
 
-Merge the source overlay into a full upstream project using the [integration guide](JAM-INTEGRATION.ko.md). Run these commands **from the merged upstream project**, with your own extracted SDK available.
+## 5. Update
 
-```powershell
-python kit/tools/make_kit.py --language ko cluster_redline
-```
+1. In MGU Store press **Check now** for the source.
+2. In **Installed** press **Update** on the app.
+3. Open the app and check the version at the top right.
 
-Korean output is `dist/mgu-custom-apps-ko.tar.gz`. Omit `--language ko` for English (`dist/mgu-custom-apps.tar.gz`). Add `idrive_circuit` to include Circuit.
+Settings are kept through updates.
 
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File ".\deploy\push-to-car.ps1" check -Key "C:\keys\id_rsa" -Ip "HEAD_UNIT_IP" -Kit ".\dist\mgu-custom-apps-ko.tar.gz"
-powershell.exe -ExecutionPolicy Bypass -File ".\deploy\push-to-car.ps1" install -Key "C:\keys\id_rsa" -Ip "HEAD_UNIT_IP" -Kit ".\dist\mgu-custom-apps-ko.tar.gz"
-```
+## 6. Remove
 
-Replace the key/IP and install the required `cluster-render` separately. PC packages can contain the SDK and must not be publicly redistributed.
+MGU Store → **Installed** → the app → remove. The tools (renderers and so on) are shared with other apps; remove them separately only when nothing needs them.
+
+## 7. Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| The app is not in the list | Source spelling `jaimeen77-cmyk/apps`, branch `main`, Check now, internet connection |
+| The install is blocked by a missing tool | Whether a source offering that tool (table in 2.) is registered |
+| "is for iDrive 7" on iDrive 8 | 8게임즈 and the GIF player are iDrive 7 only |
+| Updated but nothing changed | The version at the top right; that the other language edition of the app is not running |
+| The GIF player or 8게임즈 is slow and touch does nothing | Whether the GPU renderer (`idrive7-renderd`) is installed and the appsKOR source registered |
+| Cluster Redline does not show on the cluster | [Troubleshooting in the Redline guide](CLUSTER-REDLINE.md#troubleshooting) |
+
+The apps only **read** vehicle signals (Seats Easy Access moves the seats; Cluster Redline only draws on the cluster and the HUD).
+Do not operate the apps while driving.

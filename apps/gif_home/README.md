@@ -1,154 +1,137 @@
-# GIF Home 0.4.0
+# GIF 플레이어 (GIF player) 0.4.8 guide — Korean edition
 
-GIF Home plays animated GIFs in the large BMW iDrive 7 home widget. Five
-animations are bundled. The local phone page manages uploads, groups and
-playback. App runtime target is BMW MGU with Node.js 8.
+[한국어](README.ko.md) · [Installation](../../docs/INSTALL.md) · [The apps](../../README.md)
 
-## Setup on the MGU
+The GIF player plays animated GIFs in the iDrive 7 **home-screen widget** and on its **Animation screen**.
+You upload the GIFs from your **phone** over the car's Wi-Fi, and choose how they play there too. Five built-in animations are included.
+The GIFs uploaded here are also used by **Cluster Redline's Animation layout** ([below](#using-them-in-cluster-redline)).
 
-1. Install or update **GIF Home** from the MGU Store. The repository catalog
-   declares **GIF Home Network Bridge** (`mgu-gif-net`) as a dependency. For a
-   manual deployment, install that native component as well.
-2. In iDrive HOME, tilt the controller up and select **Customize main menu**.
-   Add **GIF Home**, select the large tile, and save. The narrow tile shows
-   the current animation's name.
-3. Open GIF Home. **Page** cycles through Preview, Library, Playback, Phone
-   Connection and Diagnostics. **Next item / IP** moves the selection or cycles
-   IP addresses. **Select** applies the highlighted action. Preview uses these
-   two buttons for Next GIF and Pause/Resume. **Phone**, **Diagnostics** and
-   **Settings** are shortcuts.
+It is NamelsMissing's **GIF Home** (GPL-3.0), modified: the car screens and the phone page in Korean (the phone page in English on a phone set to another language), and an Animation screen added. The car screens of this edition are in Korean; the guide gives the Korean labels with their meaning, and the settings by their original English names.
 
-## Pair and upload from iPhone
+> The pictures are drawn by the actual package's drawing code; the phone page is the same page opened in a PC browser.
 
-With the iPhone connected to the MGU's local Wi-Fi, open **Phone** and scan the
-QR code with Camera. The advertised URL uses local HTTP on TCP **18883**.
-The phone needs a route to the displayed IPv4 address. Wireless CarPlay can
-run over a link that Safari cannot route through on some MGU/iOS combinations.
+## 1. Install
 
-- **HTTP server Running** means the app owns the listening socket. A port
-  conflict is reported by its error code.
-- **Network bridge Ready** means the helper could verify its own temporary
-  firewall rule on `wlan_bridge`. **Not required** means the selected local
-  interface uses the existing LAN firewall configuration.
-- **QR session Active** means the pairing token is valid. The QR code appears
-  once the selected address and the applicable firewall prerequisites are ready.
-- **Phone connection Connected** requires a successful authenticated page or
-  state request from a mobile browser on the selected subnet. **Last request**
-  shows when the app last processed a successful request.
+1. Add MGU Store sources **`jaimeen77-cmyk/apps`** and **`jaimeen77-cmyk/appsKOR`** (both branch `main`).
+2. Install **GIF 플레이어 (한국어)**. These tools are installed with it:
+   - The **GPU renderer** (`idrive7-renderd`) and the **iDrive controller gate** (`mgu-inputgate`), from appsKOR: they draw the Animation screen fast and give it touch.
+   - **GIF Home Network Bridge** (`mgu-gif-net`), from this source: a helper that opens the car's firewall briefly so the phone can connect.
+3. **iDrive 7 only** (like the original). On iDrive 8 the Store refuses it.
 
-Use **Next item / IP** to search again and try the next address. **Select**
-restarts pairing on the preferred address if a connection is awaiting
-verification. Pairing prefers `wlan_bridge` and includes private Wi-Fi Direct
-and IPv4 link-local candidates. A QR URL expires after 30 minutes. A connected
-phone can extend the session using **Extend session**. Starting a new pairing
-or stopping Phone invalidates the old URL. Use the URL on the trusted car link
-and keep it private.
+If the original GIF Home (English) is installed too, use only one: both use TCP 18883, so run together one cannot open the phone connection.
 
-The helper uses the same deployment model as the Video Hub helper. Its
-loopback-only status endpoint is on TCP **18983**. It checks a GIF Home
-loopback health endpoint and restores its tagged IPv4 input rule every 2.5
-seconds while a Wi-Fi session is eligible. Session end, process exit and
-helper shutdown trigger removal of its rule. The helper only opens TCP 18883
-on `wlan_bridge` for private or link-local source ranges. The application requires the selected destination IP, a
-peer on its private subnet and a valid pairing token for management. No
-outbound service, router forwarding, or public endpoint is required.
+## 2. Placing the widget on the home screen
 
-## Library, groups and playback
+![Widget](screenshots/widget.png)
 
-Choose one or more GIFs using **Upload**. Each upload receives its own internal
-ID, including files with the same name. Use **Preview** to play one gallery
-preview at a time. The card shows the file size, resolution, frame count and
-duration. **Play on Home** activates the GIF in Single mode. The header shows
-what the MGU currently plays. Mark GIFs for batch deletion or group assignment.
-Deletion requires confirmation. Built-in animations are available for playback
-and grouping.
+1. On the iDrive **HOME** screen push the controller **up** to open the top menu.
+2. Choose **Customize main menu**.
+3. Choose a slot and add **GIF 플레이어** from the list.
+4. A **large tile** plays the GIF; a narrow tile shows the name of the GIF playing.
+5. Save.
 
-Create groups in **Groups**. Mark GIFs in the library and use **Add marked** or
-**Remove marked** on the group. A group's deletion leaves its GIFs available.
-**Play group** switches to Random – Group.
+The widget is a picture slot of the home screen, refreshed 1–6 times a second (4 by default). For smooth playback use the Animation screen.
 
-| Mode | Playback |
-| --- | --- |
-| Single GIF | Repeats the chosen GIF. **Next GIF** selects the next item in the library. |
-| Random – Selected GIFs | Shuffles the checked GIFs. |
-| Random – Group | Shuffles the active group's GIFs. |
-| Sequential | Plays the checked GIFs in the displayed order. Use **Move up** to reorder. |
-| Random – All | Shuffles uploads and built-ins. |
+## 3. The car screens
 
-Switch after a full animation pass, after 5, 10, 15 or 30 seconds, or after a
-custom interval of up to an hour. An animation repeats until a fixed interval
-ends. One-pass timing uses GIF frame delays and playback speed. A zero delay
-uses 100 ms. Shuffle avoids repeating an animation until the current cycle has
-covered the available selection, and avoids a repeat at cycle boundaries.
-A missing or failed asset is skipped. An empty or unusable selection falls back
-to the built-in logo. Changes are applied by the MGU before the page confirms
-them. The page refreshes its state every three seconds while visible.
+The bottom buttons: **페이지** (Page: the three pages in turn), **다음 항목 / IP** (Next item / IP), **선택** (Select: press the highlighted row's button), **휴대폰** (Phone), **진단** (Diagnostics), **설정** (Settings).
 
-### Storage and limits
+> The Widget preview and Phone connection pages are drawn by the HMI itself: touch does not work there, use the bottom buttons. Touch works on the Animation screen.
 
-Uploads are GIF87a/89a up to 6 MiB, 640 × 360 pixels, 90 frames and 32 MiB of
-decoded RGBA data per GIF. The library is limited to 64 uploads or 96 MiB and
-64 groups. The app validates an upload before publishing it. GIF files live
-under `ctx.dataDir/gifs/`. `library.json` contains a single atomic snapshot of
-the catalog, groups and playback configuration so references change together.
-Malformed or missing catalog metadata with existing blobs blocks edits and
-preserves the files for recovery. Restore a known-good catalog and its
-corresponding GIF files before restarting. The current playback item is
-checkpointed separately at most once every five seconds during automatic
-playback. A restart begins a newly loaded animation at its first frame.
+### 1 위젯 미리보기 (Widget preview)
 
-An existing 0.3.1 `custom.gif` is imported on first startup. The original file
-is retained as a migration backup. The previous source and pause preferences
-seed the new playback settings. Fit, speed, refresh rate, renderer and widget
-appearance settings carry over.
+![Widget preview](screenshots/preview-ko.png)
 
-## Brightness and widget diagnosis
+The GIF the home widget shows, in the widget's shape. **다음 GIF** (Next GIF), **일시정지 / 다시 재생** (Pause / Resume).
 
-The app feeds an opaque 384 × 256 PNG into `BackgroundImage1` of
-`LT_Table_OnlineApps_DriveRecorderWidget`. It fills the image canvas with a
-uniform background before applying cover or contain scaling. No additional
-alpha mask or edge darkening is applied by the original-colour path. A GIF
-can contain dark edges itself, and **Contain** can expose the uniform bars.
-On the generated PNG, the legacy compensation brightens mainly top and
-bottom and can clip bright colours. The extended mode adds restrained
-horizontal and vertical compensation with shared RGB gain and highlight
-roll-off.
+### 2 애니메이션 (Animation)
 
-Compare these settings with **Fill / crop edges** and a flat-colour GIF.
+![Animation screen](screenshots/animation-ko.png)
 
-1. **Original GIF colours** uses the selected native background setting and
-   performs no colour correction.
-2. **Legacy brightness compensation** reproduces the 0.3.1 correction.
-3. **Extended edge compensation** addresses all four sides.
-4. **Original colours, native background off** also forces the template's
-   `background` cell off. This is the default for new installations. Compare
-   this to Original with the cell on.
+Paging here opens the Animation screen: the GIF on the left, buttons on the right.
 
-The builder and the widget API expose the image asset and named cells. The
-checkout includes no documented mask override or second ID7 layout with a
-verified large-widget image cell. The existing Drive Recorder layout is
-therefore retained. The local preview renders the PNG before the BMW
-compositor. Measuring any remaining HMI shade and determining its direction
-or whether `background` affects it require a head unit. Refresh remains at
-1–6 fps because each displayed frame incurs PNG generation and an RHMI
-resource update. Fast animations can skip sampled frames.
+- **< 이전 / 다음 >** (Previous / Next): the GIF played before / the next GIF (the playback mode stays)
+- **애니메이션 속도** (Animation speed): this screen only (half, normal, 1.5×, 2×)
+- **전체보기** (Full view): the GIF alone, large, in the middle of the screen, without tabs or buttons. A tap or a press of the controller brings the screen back.
+- The order follows the playback settings made on the phone (the same GIFs as the widget).
+- With the GPU renderer the GIF plays at its own speed (up to one frame per screen refresh) and takes taps. Without it, a few frames a second and the bottom buttons (Previous / Next / Animation settings).
 
-## Diagnostics
+![Full view](screenshots/fullview-ko.png)
 
-**Diagnostics** shows a rolling log of the last 140 entries. **Next item / IP**
-pages through the log. Press **Select** twice to clear it. On a verified
-connection, **Select** in the Phone view switches between the pairing code and
-the JSON download code. The phone page also has a diagnostic download link
-for copying error text. Log entries omit pairing tokens. Compare **Last error**
-and **Last request** when the QR code appears but Safari fails to connect.
+### 3 휴대폰 연결 (Phone connection)
 
-## Build
+![Phone connection](screenshots/phone-connection-ko.png)
 
-With the BMW OAP SDK extracted in `oap-sdk/` at the checkout root, run
-`python3 tools/build_gif_home.py gif_home`. The build produces
-`dist/gif_home@0.4.0.mgu` and `dist/gif_home@0.4.0.tgz`. The Store archive
-includes `rhmiDataStartWidget`; the network helper is installed separately
-through the catalog dependency.
+The QR code that connects the phone, and the connection state (see 4).
 
-The bundled QR generator is Kazuhiko Arase's QR Code Generator (MIT, 2009).
-See [LICENSE](LICENSE).
+**진단** (Diagnostics) opens with its own button: the latest log lines; **Next item / IP** pages through them, **Select** twice clears them.
+
+## 4. Uploading GIFs from your phone
+
+1. Connect the phone to the **car's Wi-Fi (hotspot)**.
+2. In the car open **휴대폰** (Phone) and press **선택** (Select): a QR code shows.
+3. Scan the QR with the phone's camera: the GIF player page opens in the phone's browser, in Korean on a Korean phone, in English otherwise.
+
+| Phone page (Korean phone) | Phone page (English) |
+|---|---|
+| <img src="screenshots/phone-page-ko.png" width="300" alt="Phone page, Korean"> | <img src="screenshots/phone-page-en.png" width="300" alt="Phone page, English"> |
+
+On the phone page:
+
+- **GIF library**: **Upload** GIFs, **Preview**, **Play on Home** (play that one alone), delete the marked ones together.
+- **Groups**: make groups, add GIFs to them and take them out.
+- **Playback**: mode, single GIF, group, interval, pause, next GIF, the selected order.
+- **Connection**: **Extend session** (the QR expires after 30 minutes), download the diagnostic log.
+
+| Mode | Plays |
+|---|---|
+| Single GIF | The chosen GIF, over and over |
+| Random – Selected GIFs | The ticked GIFs, shuffled |
+| Random – Group | The group's GIFs, shuffled |
+| Sequential | The ticked GIFs in the order set |
+| Random – All | Every uploaded and built-in GIF, shuffled |
+
+The interval is one full GIF pass, 5, 10, 15 or 30 s (or typed in, up to an hour). After a change the page says the MGU confirmed it.
+
+**GIFs accepted**: up to 6 MB a file, 640 × 360, 90 frames. The library holds 64 GIFs or 96 MiB. A larger GIF is refused, not shrunk; uploaded files are stored exactly as uploaded.
+
+### When the phone does not connect
+
+- **Android**: the car's hotspot has no internet, so the phone may send requests over mobile data; the page opens but the settings never reach the car ("The MGU did not respond"). While managing GIFs **turn mobile data off**, or choose **stay connected** on the "no internet" notice.
+- **iPhone**: over a wireless CarPlay link Safari sometimes cannot reach the car.
+- Check the **HTTP server**, **Network bridge**, **QR session**, **Phone connection** and **Last error** lines of the Phone connection page. **Next item / IP** tries another address.
+- The helper (`mgu-gif-net`) opens only TCP 18883 from private addresses on the car's Wi-Fi (`wlan_bridge`), and only while a session is valid. No outside service or port forwarding is used.
+
+## 5. Settings (the Settings button)
+
+Playback is set on the phone; the widget's picture and the Animation screen are set here.
+
+| Setting | Choices |
+|---|---|
+| Animation screen | GPU renderer (mgu-renderd, smooth) (default) / Without GPU (a few frames a second) |
+| Widget picture fit | Fill / crop edges · Full picture / bars (default) |
+| Widget speed | Half speed / Normal / 1.5x speed |
+| Widget refresh rate | 1–6 a second (default 4) |
+| Native widget background | On / Off (default) |
+| Home widget brightness | Original GIF colours (default) / Legacy brightness compensation / Extended edge compensation / Original colours, native background off |
+
+## Using them in Cluster Redline
+
+The GIFs uploaded to the GIF player are also used by **Cluster Redline**'s **Animation** layout (cluster and HUD). Nothing needs doing in the GIF player.
+
+1. Upload GIFs to the GIF player from your phone and run the GIF player once.
+2. In Cluster Redline → **Cluster display setting → Design → Animation**, choose a GIF for each scene: driving (required), standing still, reverse, turning left, turning right.
+3. Press **Fetch from GIF player**.
+
+- The GIF player lends the originals to Cluster Redline only inside the head unit (127.0.0.1). Cluster Redline keeps its own copy, scaled to the cluster's picture box (within 320 × 180, at most 30 frames).
+- Once fetched, the GIF player may be off. After changing GIFs, press **Fetch** again in Cluster Redline.
+- Smaller GIFs move faster on the cluster (160 × 90 recommended). More in the [Cluster Redline guide](../../docs/CLUSTER-REDLINE.md#6-2-animation-the-animated-car--your-gifs).
+
+## Storage
+
+GIFs are kept in the app's data folder under `gifs/`; the list, groups and playback settings in `library.json`. Updates keep them.
+
+## License and origin
+
+**GPL-3.0**, as the original GIF Home (NamelsMissing/mgu-apps); the complete source is in this repository. See [NOTICE](NOTICE) and [NOTICE.gif-home.md](../../NOTICE.gif-home.md).
+The QR code generator is Kazuhiko Arase's QR Code Generator (MIT, [LICENSE](LICENSE)). The icon is a picture supplied by the repository owner and is not part of the GPL-licensed code.
