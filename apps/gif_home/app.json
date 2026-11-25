@@ -2,7 +2,7 @@
   "id": "gif_home",
   "title": "GIF Home",
   "description": "Animated BMW home widget with a local phone GIF library, groups and playlists.",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "maxDiskUsage": 125829120,
   "vendor": "custom",
   "loggingId": "GFI1",

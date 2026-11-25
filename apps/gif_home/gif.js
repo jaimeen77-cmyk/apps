@@ -51,7 +51,9 @@ function decodeLzw(data, minBits, count) {
     throw new Error('Missing GIF LZW end code');
 }
 
-function decode(buf) {
+// opts.firstOnly (0.4.7): stop after the first picture (the picker's preview needs no more; a whole GIF is up to 32 MB)
+function decode(buf, opts) {
+    const firstOnly = !!(opts && opts.firstOnly);
     if (!Buffer.isBuffer(buf)) buf = Buffer.from(buf);
     if (buf.length > LIMIT.bytes) throw new Error('GIF is too large (max 6 MB)');
     if (buf.length < 13 || !/^GIF8[79]a$/.test(buf.toString('ascii', 0, 6))) throw new Error('Not a GIF87a/GIF89a file');
@@ -129,6 +131,7 @@ function decode(buf) {
         }
         frames.push({ data: rgba.slice(), delay: gce.delay });
         duration += gce.delay;
+        if (firstOnly) break;
         if (gce.disposal === 2) {
             const bc = globalColors && background * 3 + 2 < globalColors.length ? background * 3 : -1;
             for (let y = top; y < top + h; y++) for (let x = left; x < left + w; x++) {

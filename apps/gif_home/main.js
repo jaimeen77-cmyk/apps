@@ -333,12 +333,13 @@ mgu.run({
             });
             return rows;
         }
-        // The picker's preview: the first picture of the GIF the focus is on (decoded once per GIF)
+        // The picker's preview: the first picture of the GIF the focus is on (decoded once per GIF; 0.4.7: only that
+        // picture, not the whole GIF kept beside the one playing)
         let thumb = { id: null, gif: null };
         function thumbFor(id) {
             if (thumb.id !== id) {
                 thumb = { id, gif: null };
-                try { thumb.gif = decode(gifBytes(id)); } catch (_) { record('Preview could not open GIF: ' + id); }
+                try { thumb.gif = decode(gifBytes(id), { firstOnly: true }); } catch (_) { record('Preview could not open GIF: ' + id); }
                 if (thumb.gif) { const g = thumb.gif; setImage(THUMB_IMAGE, g.width, g.height, g.frames[0].data); }
             }
             return thumb.gif;

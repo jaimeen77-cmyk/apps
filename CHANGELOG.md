@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.61 · GIF 플레이어 0.4.7 (memory, CPU)
+
+- **Cluster Redline**: a GIF from the GIF player is scaled down to the picture's box *while it is decoded* (`gif-decode.js` `box`): a 640 x 360, 90-frame GIF took about 41 MB at once when fetched, now about 10 MB. Drawing a GIF frame (the cluster and the HUD, twenty times a second) no longer makes arrays per pixel: sampling positions, weights and the edge fade are worked out once per size, buffers are reused and the last six results kept (the same frame drawn again costs nothing). Measured on the PC: 3.3 → 1.5 ms a frame, the same picture (at most 4 of 255 apart from rounding).
+- **GIF 플레이어 0.4.7**: the playlist picker's preview decoded the whole GIF (up to 32 MB) to show its first picture, kept beside the GIF playing; now only the first picture is decoded (`gif.js` `firstOnly`).
+- Tests: `gif-home-thumb` (new); the Cluster Redline and GIF player tests.
+
 ## Cluster Redline 1.3.60
 
 - **Fix: the cluster's Animation picture stood still while the HUD's moved.** The cluster and the HUD share one upload allowance (at most 1 MB/s, less when cluster-render says so). With an animation the HUD sent its small changes twenty times a second and spent the credit as fast as it came, so the cluster's bigger changes (its picture) never went. Now an output refused for want of credit keeps what builds up for itself (up to 1 s) and the two take turns when both want more than there is (`upload.js`). Simulated: with 600 KB/s the cluster went from 0 to about 3 pictures a second (the HUD about 3 instead of 10); with 1 MB/s about 5 on the cluster and 9 on the HUD.
