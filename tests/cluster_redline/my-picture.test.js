@@ -101,6 +101,9 @@ if(process.env.MY_PICTURE_PREVIEW){const out=path.resolve(process.env.MY_PICTURE
   assert.strictEqual(tf.mine,'right');assert.strictEqual(tf.mirror,true,'drawn mirrored');assert.strictEqual(tf.from&&tf.from.mine,'drive','fading from driving');
   {const {Canvas}=require(root+'/kit/canvas'),a=new Canvas(320,180),b=new Canvas(320,180);MPR.draw(a,{mine:'right',i:0,set:'cluster'},0,0,320,180);MPR.draw(b,{mine:'right',i:0,set:'cluster',mirror:true},0,0,320,180);
    let same=true;for(let y=0;y<180&&same;y++)for(let x=0;x<320;x++){const p=(y*320+x)*4,q=(y*320+319-x)*4;if(Math.abs(a.d[p]-b.d[q])>2){same=false;break;}}assert(same,'mirrored left to right');}
+  // a damaged copy: unreadable ('broken', also a cut one), the drive GIF or the Car picture stands in
+  {const good=fs.readFileSync(path.join(data,'my-pictures','stop.mpic'));fs.writeFileSync(path.join(data,'my-pictures','stop.mpic'),good.slice(0,good.length-20));MPR.scan(0,true);
+   assert.strictEqual(MPR.status()[0].error,'broken');assert.strictEqual(MPR.status()[0].uses,'drive');fs.writeFileSync(path.join(data,'my-pictures','stop.mpic'),good);MPR.scan(0,true);}
   // the share answers only GET from this head unit, only listed GIFs
   const st=await new Promise(res=>require('http').get({host:'127.0.0.1',port:18884,path:'/gif?id=../library.json'},r=>{r.resume();res(r.statusCode);}));assert.strictEqual(st,404);
  }finally{share.stop();}
