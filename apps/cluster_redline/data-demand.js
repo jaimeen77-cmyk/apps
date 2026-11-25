@@ -10,9 +10,7 @@ function demand(cfg,mode){
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-rings'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlGMeterHidden'])aux.add('gforce');});
  // The Car layout: its car picture follows the G (car-meter.js), and its small G meter shows it.
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-car'&&!cfg[d+'RpmGaugeHidden']&&(!cfg[d+'RlCarPicHidden']||!cfg[d+'RlGMeterHidden']))aux.add('gforce');});
- // My design: its scenes follow the gear and speed (and, 1.3.52, the sideways G for its turn scenes)
- // (1.3.52: the left / right turn scenes follow the sideways G, so it is read whenever its picture shows)
- faces.forEach(d=>{if(cfg[d+'Design']==='rl-mypic'&&!cfg[d+'RpmGaugeHidden']&&(!cfg[d+'RlGMeterHidden']||!cfg[d+'RlCarPicHidden']))aux.add('gforce');});
+ // (its GIFs on the cluster, my-picture.js, follow the gear and speed and, for the turns, the same sideways G)
  // the blind spot warning reads the mirror lamps only while the engine runs: it needs the engine speed
  const rpm=faces.some(d=>D.faceRpmNeeded(cfg,d))||aux.has('batteryVoltage')||enabled&&cfg.hudTurnBlindSpot==='on',torque=aux.has('torque')||aux.has('power'),gear=faces.some(d=>!cfg[d+'GearHidden']);
  const navAny=enabled&&(nav.direction||nav.text||nav.lanes),turns=enabled&&(nav.direction||nav.text);

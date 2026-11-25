@@ -1,5 +1,5 @@
 'use strict';
-// My design layout (the cluster): your own GIFs in place of the Car layout's picture, one for each of three scenes:
+// The Animation layout's own GIFs on the cluster (My design until 1.3.54, merged into the Animation / Car layout in 1.3.55): your own GIFs in place of the car picture, one for each scene:
 //   stop      standing still (under 1 km/h, or in P when the speed is not known)
 //   drive     moving forward (required: a scene without its own GIF shows the drive GIF)
 //   reverse   reverse gear

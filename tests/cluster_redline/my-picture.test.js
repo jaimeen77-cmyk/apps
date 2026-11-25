@@ -38,10 +38,11 @@ MP.scan(6000);const st=MP.status();assert.deepStrictEqual(st.map(s=>[s.name,s.ok
 assert.strictEqual(MP.frameAt('reverse','cluster',0).mine,'drive','no usable reverse GIF: the drive GIF (1.3.51)');assert.deepStrictEqual(MP.status().map(s=>s.uses),['drive','drive','drive','drive','drive']);
 
 // the layout (My design, 1.3.50): on the cluster only, the Car layout's elements, G read only for its small G meter
-assert(RL.stylesFor('cluster').includes('mypic')&&!RL.stylesFor('hud').includes('mypic'),'the cluster only');assert.strictEqual(RL.NAMES.mypic,'My design');
-const cfg=o=>settings(Object.assign({clusterDesign:'rl-mypic',clusterAuxConfig:JSON.stringify({mode:'values',items:['power','gforce','boost','torque']})},o||{}));
+// (1.3.55: My design is the Animation layout's GIFs; the old design id reads as the Animation layout)
+assert(!RL.stylesFor('cluster').includes('mypic')&&RL.stylesFor('cluster').includes('car'),'one Animation layout');assert.strictEqual(RL.NAMES.car,'Animation');assert.strictEqual(settings({clusterDesign:'rl-mypic'}).clusterDesign,'rl-car','My design: now the Animation layout');
+const cfg=o=>settings(Object.assign({clusterDesign:'rl-car',clusterAuxConfig:JSON.stringify({mode:'values',items:['power','gforce','boost','torque']})},o||{}));
 assert.deepStrictEqual(RL.elements(cfg(),'cluster').map(e=>e.id),RL.elements(cfg({clusterDesign:'rl-car'}),'cluster').map(e=>e.id),'the Car layout\'s elements');
-assert.deepStrictEqual(D.carMeterFaces(cfg()),['cluster']);assert.strictEqual(settings({hudDesign:'rl-mypic'}).hudDesign,'own','not on the HUD');assert.strictEqual(settings({clusterDesign:'rl-mypic'}).clusterDesign,'rl-mypic');
+assert.deepStrictEqual(D.carMeterFaces(cfg()),['cluster']);assert.strictEqual(settings({hudDesign:'rl-mypic'}).hudDesign,'own','not on the HUD');
 {const on=Object.assign(cfg({clusterAuxConfig:JSON.stringify({mode:'values',items:['boost']})}),{appEnabled:true,allClusterOutput:'redline'});assert(demand(on,'SPORT').aux.has('gforce'),'the small G meter');assert(demand(Object.assign({},on,{clusterRlGMeterHidden:true}),'SPORT').aux.has('gforce'),'the turn scenes read the G (1.3.52)');assert(!demand(Object.assign({},on,{clusterRlGMeterHidden:true,clusterRlCarPicHidden:true}),'SPORT').aux.has('gforce'),'no G meter, no picture: no G');}
 // drawn on the cluster: your GIF in the picture's place (letterboxed, fitted), the own picture without one
 const base={renderRpm:true,rpm:3000,gear:'D3',shift:false,flash:false,torqueNm:300,powerPS:200,mode:'SPORT'};
