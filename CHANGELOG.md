@@ -2,6 +2,13 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.58
+
+- **Smoother Animation layout on the cluster.** The cluster is drawn 20 times a second, but its picture changed only 10 times a second: the Car layout's eight frames a state at 10 a second, and GIFs held to at least 100 ms a frame. Now the Car layout shows, in the second half of each frame's 100 ms, that frame mixed half and half with the next one (the same frames at the same speed, the picture changing every 50 ms); GIFs play at their own delays down to 50 ms a frame (20 a second; 0 or 10 ms still means 100 ms, as browsers play them).
+- GIFs already copied from the GIF player keep their old 100 ms frames: choose **Fetch from GIF player** again to copy them at their own speed. At most 30 frames a GIF, as before (longer ones are thinned, their duration kept).
+- Frame cost on the PC (Node 8.16.2, the car's version): about 3.8 ms a cluster frame in the Animation layout. Not yet checked on the car.
+- Tests: `my-picture` (50 ms delays, the in-between frame).
+
 ## GIF Home 0.4.4 (Korean edition)
 
 - **The GPU renderer is installed with it**: the Store entry now requires `idrive7-renderd` 2.1.18, `mgu-inputgate` 1.1.0 and `mgu-deploy` 0.7.17 (as 8게임즈 does), offered by the appsKOR source. Without the renderer the Animation screen was drawn in the HMI's own image: a few frames a second (4) and no touch, only the bottom buttons. With it the kit draws the screen up to one frame per screen refresh and its buttons take taps.

@@ -10,7 +10,7 @@
 // my-pictures/<scene>.mpic, already fitted (1.3.51): any size up to the GIF player's own limits is scaled down to fit
 // the picture's box (320 x 180), keeping its shape; more than 30 frames are thinned to 30 (their delays added up, so
 // it runs as long). So a GIF of another size needs nothing done to it. (<scene>.gif, 1.3.50, is still read.)
-// Frames play at their own GIF delays, at most 10 a second; a change of scene fades over 400 ms. The folder is
+// Frames play at their own GIF delays, at most 20 a second (the cluster's frame rate, 1.3.58; was 10); a change of scene fades over 400 ms. The folder is
 // looked at again every 5 s, so new copies show without a restart.
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), GIF = require('./gif-decode');
 const NAMES = ['stop', 'drive', 'reverse', 'left', 'right'];
