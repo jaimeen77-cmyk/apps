@@ -33,6 +33,19 @@ These examples use the installed package's renderer and demo values:
 ![Disks, example data](screenshots/disks-ok-en.png)
 ![Widget, example 95% usage](screenshots/widget-crit-en.png)
 
+## Home widget: CPU and memory graphs (1.1.8)
+
+The big home widget draws the whole head unit's **CPU** and **memory (RAM)** use as
+**graphs of the last 30 minutes** (0 to 100%, now on the right). It uses the same
+10-second samples as the app screen, so the graphs continue while MGU Monitor runs,
+even with its screen closed; the widget is redrawn only when a new sample arrives.
+A CPU / memory rise or a suspected leak turns that number orange. The bottom line keeps
+the app storage use and free space, red above the warning threshold. The small widget
+shows `CPU 23% · RAM 66%` with a memory bar; during a storage warning it shows the
+storage text and bar as before. Settings and UI templates are unchanged.
+
+![CPU / memory widget, demo data](screenshots/widget-usage-en.png)
+
 ## Log history (1.1.6)
 
 The **Log history** tab reads the saved 30-day usage logs: on the left the

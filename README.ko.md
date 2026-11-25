@@ -27,7 +27,7 @@ ID8에서도 Store 목록을 숨기지 않도록 카탈로그의 HMI 필터를 �
 
 ---
 
-**계기판 레드라인 1.2.58** · HUD에 길안내가 뜨면 클러스터 양보(웨이즈 포함), HUD 레이아웃 기본 위치·크기 조정, 외기 온도 수정 (1.2.8: Redline 레이아웃 요소별 조절, 시계 한국 시간). **아이드라이브 회로 1.0.0**, **MGU 모니터 1.1.1**도 함께 제공합니다.
+**계기판 레드라인 1.2.58** · HUD에 길안내가 뜨면 클러스터 양보(웨이즈 포함), HUD 레이아웃 기본 위치·크기 조정, 외기 온도 수정 (1.2.8: Redline 레이아웃 요소별 조절, 시계 한국 시간). **아이드라이브 회로 1.0.0**, **MGU 모니터 1.1.8**(홈 위젯에 최근 30분 CPU·메모리 그래프)도 함께 제공합니다.
 
 [English](README.md)
 
@@ -38,6 +38,7 @@ ID8에서도 Store 목록을 숨기지 않도록 카탈로그의 HMI 필터를 �
 | MGU 모니터 사용 | [MGU 모니터](apps/storage/README.ko.md) | [MGU Monitor](apps/storage/README.md) |
 | Circuit 사용 | [회로 퍼즐](apps/idrive_circuit/README.ko.md) | [Circuit](apps/idrive_circuit/README.md) |
 | 8게임즈 | [8게임즈](apps/parked_games/README.ko.md) | — |
+| GIF 플레이어 (휴대폰으로 GIF 올리기) | [GIF 플레이어](apps/gif_home/README.ko.md) | [GIF Home](apps/gif_home/README.md) |
 
 MGU Store에서 소스 **`jaimeen77-cmyk/apps`**, 브랜치 **`main`**을 추가하고 새로고침한 뒤 한국어 또는 English판을 설치하세요. 레드라인은 `cluster-render` **0.4.0 이상**이 필요합니다. 기존 설치는 Installed에서 업데이트하고 앱 상단 **v1.2.5**을 확인하세요. 한국어·영어판을 함께 설치했다면 사용하지 않는 판의 앱 실행과 자동 시작을 끕니다.
 

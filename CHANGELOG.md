@@ -2,6 +2,43 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## MGU Monitor 1.1.8
+
+- **Home widget: CPU and memory graphs.** The big widget now draws the whole head unit's CPU and memory (RAM) use over the last 30 minutes (the app's 10-second samples, 0 to 100 %), the current values on the right, orange on a CPU / memory rise or a suspected leak. The app storage line stays at the bottom (red at the warning threshold). The small widget shows `CPU · RAM` with a memory bar, and the storage text and bar during a storage warning.
+- The big widget is redrawn only when a sample, the disks, the theme or the language changed (before: every second).
+- Widget texts are kept in `main.js`, so `app.json` is unchanged apart from the version and the SDK-free UI templates stay valid.
+
+## GIF Home 0.4.2 (Korean edition)
+
+- **Full view (전체보기)** on the Animation screen: a new button under the speed shows the GIF alone across the whole screen, in the middle of the screen (aspect kept, black around it; without the GPU renderer in the largest part of the HMI's image centred on the 1920 x 720 screen, as that image sits 36 px left of and 18 px above the middle), without the tabs, the right-hand panel or the bottom bar (with the GPU renderer the screen is "chrome": false). A tap anywhere, or the controller's press (the whole screen is one target), brings the menu screen back with the tabs for 5 s. Without the GPU renderer the HMI still draws its bottom bar; any of its buttons leaves full view first. Opening the screen again starts on the menu screen.
+- The label is kept in `main.js` (`app.json` only changes its version), so the Store UI template stays valid. `tests/gif-home-fullview.test.js` runs the packaged app and renders both views.
+- Not yet checked on the car.
+
+## GIF Home 0.4.1 (Korean edition)
+
+- **Animation screen (애니메이션)**: the GIF across the screen at its own speed through the GPU renderer (mgu-renderd: up to one frame per screen refresh; without it a few frames a second, with a notice). Bottom buttons **이전 / 다음 / 애니메이션 설정**; Previous goes back to the GIF played before without changing the playback mode; the settings open over the animation (the kit's sheet: mode, single GIF, group, interval, pause, picture fit, speed), or the Widget settings page where the kit does not run the screen. Opened from page 3.
+- **Five pages**: 위젯 미리보기 → 위젯 설정 (the phone page's playback settings, and each GIF in or out of the selected list; the Library page is merged into it) → 애니메이션 → 애니메이션 설정 (picture fit, speed, GPU renderer / without) → 휴대폰 연결. Diagnostics left the page cycle and opens with its button. Widget and animation share one playback setting.
+- The **renderer** setting is now the Animation screen's (default GPU renderer); the main pages stay on the HMI's own drawing. The template's kit `display.js` serves the screen marked `"gpu": true` (`tools/prepare-upstream-apps.py`).
+- The bullet before "재생 중" was a character the Korean font lacks (drawn as "?"): now `·`. `tests/gif-home-ko.test.js` checks every non-ASCII character `main.js` draws against the font; `tests/gif-home-animation.test.js` is new.
+- **Playlist picker** (Widget settings → 재생 목록 · 목록 만들기): a window with every GIF; pressing GIFs numbers them in that order (again: out, the rest close up), with a preview of the GIF the focus is on; **확인** plays just those, in that order (Sequential), so two picked means two in turn; **페이지** jumps 6 rows. It replaces the long in-page order and add / remove lists.
+- **Animation screen split, no Animation settings tab**: the GIF on the left (a 3:2 GIF, e.g. 540 x 360, fills its 1080 x 720 of the 1920 x 720 screen; others are fitted whole), on the right its name, big **< 이전 / 다음 >** buttons, **애니메이션 속도** (the Animation screen's own) and, in orange, that the order follows Widget settings. The buttons are page targets: a tap, or the iDrive controller's knob through them, with the GPU renderer. The tabs and the bottom bar are hidden (the screen switched to "chrome": false and placed again, as on a layout change); a tap on the GIF shows them for 5 s, as do the bottom buttons and opening the screen. Four pages; the GPU renderer choice is on the Animation page. Which GIFs play follows Widget settings; the widget's fit and speed are on Widget settings (위젯 그림 맞춤, 위젯 속도).
+- **Page 3 is the Animation screen**: paging onto it opens the screen, with the page tabs still on top (Animation selected; in the kit's header with the GPU renderer, where a tapped tab goes to that page). BACK returns to page 3, Page goes on to 4. The **애니메이션** bar button is gone (six buttons again).
+- **Renamed GIF 플레이어** (car menu, widget, phone page, Store listing).
+- **New look for the pages** (`look.js`, GIF Home's own drawing code in the style of the owner's other apps' settings): the five pages as tabs on top with the version, rows as cards with a value button on the right, the row the controller is on lit with a red bar, the current GIF dimmed behind. **다음 항목** moves between the rows on every page but Phone connection and Diagnostics; **선택** presses the row's button.
+- Not yet checked on the car: the GPU drawing of the Animation screen, its sheet and buttons.
+
+## Phone Terminal removed
+
+- **폰 터미널 (한국어)** (`mgu_phone_terminal_ko`) and its bridge (`mgu-phone-bridge` 0.1.7) are no longer offered by this source: the app, the bridge, their templates, tests and catalog entries are removed. GIF 홈 (한국어) and `mgu-gif-net` stay. A copy already installed on the car stays installed; uninstall it there if it is not wanted. Phone Terminal is still offered by its original source, NamelsMissing/mgu-apps.
+- The license note is now `NOTICE.gif-home.md`; the test is `tests/gif-home-ko.test.js`.
+
+## GIF Home 0.4.0 and Phone Terminal 0.1.7 (Korean editions, new)
+
+- **GIF 홈 (한국어)** (`gif_home_ko`) and **폰 터미널 (한국어)** (`mgu_phone_terminal_ko`) added: GIF Home and Phone Terminal from NamelsMissing/mgu-apps @ `58d26d3` (GPL-3.0; see `NOTICE.gif-home-phone-terminal.md`). Every text on the car is Korean (`apps/<id>/app.json` `translations.ko`, through the kit's translation), and the phone pages are Korean when the phone's language is Korean (English otherwise). iDrive 7 only, as the originals. GIF 홈 has its own icon (a picture supplied by the repository owner), also as the home widget's preview image.
+- Their native helpers come along under their upstream ids: **`mgu-gif-net` 0.1.0** (unchanged) and **`mgu-phone-bridge` 0.1.7** (serves the Korean app id `mgu_phone_terminal_ko` first, then `mgu_phone_terminal`; Korean phone page). Install one Phone Terminal edition at a time.
+- The Korean templates are prepared with `tools/prepare-upstream-apps.py` from the appsKOR kit at `87d450d2` (the same kit as MGU Monitor), SDK-free. The tool refuses a CRLF `localization/ko-additions.tsv` (a Windows checkout), whose fingerprint the car would not match.
+- Tests: upstream's GIF Home and Phone Terminal tests, and `tests/gif-home-phone-terminal-ko.test.js` (both Store packages built and unpacked, Korean text and font coverage, both phone pages as a Korean and an English phone, the bridge's app id).
+
 ## Parked Games 0.2.4 (Korean edition)
 
 - Renamed **8게임즈** (it has eight games).
