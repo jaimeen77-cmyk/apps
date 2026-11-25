@@ -216,11 +216,10 @@ class Controller {
         }
         return Object.assign(d, { requested: true, layerState: this.layerState });
     }
-    // The Animation layout's GIF on a layer of its own (picture-layer.js, 1.3.64; My GIFs → Fast GIF layer, on by
-    // default), or 1.3.62's GPU flipbook (flipbook.js, off); without either, painted into the layout's image.
+    // The Animation layout's GIF on a layer of its own (picture-layer.js, 1.3.64; always, since 1.3.66), or 1.3.62's GPU flipbook (flipbook.js, off); without either, painted into the layout's image.
     flipbook(now, d, cfg, rect, painter, panel, hud) {
         const display = hud ? 'hud' : 'cluster', car = d.aux && d.aux.car, frame = car && car[display];
-        const kind = FB.isEnabled() ? 'gpu' : cfg.myPicLayer !== 'off' ? 'layer' : null, id = kind + ':' + display;
+        const kind = FB.isEnabled() ? 'gpu' : 'layer', id = kind + ':' + display;
         Object.keys(this.flips).forEach((k) => { if (k !== id) { this.flips[k].release(); delete this.flips[k]; } });
         if (!kind) return;
         let flip = this.flips[id];

@@ -63,13 +63,17 @@ class NavProbe {
  route(provider,reply,drawn){
   const views=reply&&Array.isArray(reply.viewContent)?reply.viewContent:null,events=views&&views[0]&&Array.isArray(views[0].eventsInView)?views[0].eventsInView:null;
   if(!events||!events.length)return;
+  // how many turns the list holds (1.3.67): one only, and no next turn can ever show; shown on the screen, no file needed
+  const r=this.routeInfo||(this.routeInfo={count:0,last:0,max:0,provider:'',gap:null,time:''});r.count++;r.last=events.length;r.max=Math.max(r.max,events.length);r.provider=provider||'';r.time=clockText(this.wall());
+  {const a=turnOf(events[0]),b=events[1]?turnOf(events[1]):null,da=a&&object(a.item)?a.item.distanceToDestination:null,db=b&&object(b.item)?b.item.distanceToDestination:null;
+   r.gap=typeof da==='number'&&typeof db==='number'&&da>db?Math.round(da-db):null;}
   const first=turnOf(events[0]),key=first?first.kind+'|'+fields(first.item).join(',')+'|'+textOf(first.item):'';
   const fresh=key!==this.lastRoute;this.lastRoute=key;
   const was=this.recording;if(!fresh)this.recording=false;   // the whole list only when its first turn changes
   try{this.turn('route',provider,events[0],drawn,{events:events.slice(0,6)});}finally{this.recording=was;}
  }
  list(){return this.entries.map(e=>({source:e.source,time:e.time,provider:e.provider,kind:e.kind,fields:e.fields,dist:e.dist,text:e.text,drawn:e.drawn,count:e.count}));}
- status(){return {recording:this.recording,written:this.written,error:this.error,turns:this.list()};}
+ status(){return {recording:this.recording,written:this.written,error:this.error,turns:this.list(),route:this.routeInfo?Object.assign({},this.routeInfo):null};}
 }
 /** What the HUD draws for a decoded turn (nav-draw): 'highway', 'branch', 'roundabout', 'road', 'arrow' or 'none'. */
 function drawnOf(decoded){if(!decoded||!decoded.maneuver)return 'none';let k=null;try{k=require('./nav-draw').diagramKind(Object.assign({visible:true},decoded));}catch(e){return 'arrow';}return k||'arrow';}
