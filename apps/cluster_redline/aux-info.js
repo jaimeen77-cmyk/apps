@@ -41,6 +41,8 @@ SOURCES.forEach(source=>{
  const ids=Object.keys(source.members),slow=ids.some(k=>['oil','oilFallback','outside','batteryCharge','economy','avgSpeed','tripTime'].includes(k)||/^[tp](FL|FR|RL|RR)$/.test(k));
  source.pollMs=ids.includes('outside')?10000:slow?5000:1000;
  source.ttlMs=slow?source.pollMs*3:2500;
+ // the G-force meter's Car picture reads the G five times a second (worker.js)
+ if(ids.includes('gLat')||ids.includes('gLong'))source.carPollMs=200;
 });
 class AuxInfo {
  constructor(){this.samples={};this.diag={};}
