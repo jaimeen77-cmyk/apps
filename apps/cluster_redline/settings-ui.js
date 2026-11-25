@@ -565,6 +565,9 @@ class SettingsPage{
   turns.slice(0,6).forEach((e,i)=>{let line=navLogLine(e),size=18;while(size>13&&cv.textWidth(line,size,{literal:true})>1440)size--;
    while(cv.textWidth(line,size,{literal:true})>1440&&line.length>8)line=line.slice(0,-2);
    cv.text(line,96,262+i*31,size,i?'#c1cddd':'#f3f5f7',{literal:true});});
+  // the route's turn list (1.3.67): how many turns it holds; one only (a phone sending just the next turn): no next turn
+  {const r=p&&p.route,txt=r?tr('Route turn list')+': '+tr('last')+' '+r.last+' · '+tr('most')+' '+r.max+' · '+r.count+' '+tr('times')+(r.provider?' · '+r.provider:'')+(r.gap!==null?' · '+tr('1st to 2nd')+' '+r.gap+' m':'')+' · '+r.time+' → '+tr(r.max>=2?'next turns arrive':'only one turn: no next turn'):tr('Route turn list')+': '+tr('none received yet');
+   cv.text(txt,100,452,18,r?(r.max>=2?'#5ee08f':'#ffad45'):'#91a1b6',{literal:true});}
   const status=tr('Newest first · the same turn again only updates its distance')+(p&&p.recording?' · nav-probe.log '+p.written+' '+tr('lines saved'):'')+(p&&p.error?' · '+p.error:'');
   cv.text(status,100,482,18,'#91a1b6',{literal:true});
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);

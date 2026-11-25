@@ -30,6 +30,11 @@ p.turn('dart','ANDROID_AUTO',exit(700),'highway');assert.strictEqual(files['/d/n
 const r=(d)=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInView:[exit(d),{intersection:{direction:2}}]}]});
 p.route('ANDROID_AUTO',r(600),'highway');p.route('ANDROID_AUTO',r(500),'highway');
 lines=files['/d/nav-probe.log'].trim().split('\n').map(JSON.parse);assert.strictEqual(lines.length,3,'the route list once per first turn');assert.strictEqual(lines[2].events.length,2);assert.strictEqual(lines[2].source,'route');
+// the route's turn list on the screen (1.3.67): how many turns, the gap between the first two, without the file
+{const st=p.status().route;assert.deepStrictEqual([st.last,st.max,st.count,st.provider],[2,2,2,'ANDROID_AUTO']);assert.strictEqual(st.gap,null,'the second turn without its distance to the destination');
+ const q=new NavProbe({wall:()=>clock});q.route('CAR_PLAY',{GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInView:[exit(600)]}]},'highway');assert.deepStrictEqual([q.status().route.last,q.status().route.max],[1,1],'one turn only');
+ q.route('CAR_PLAY',{GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInView:[exit(600),{intersection:{direction:2,distanceToDestination:8200}}]}]},'highway');assert.strictEqual(q.status().route.gap,200,'1st to 2nd: 200 m');
+ assert.strictEqual(new NavProbe({}).status().route,null);}
 // at most 1 MB, then one older file
 files['/d/nav-probe.log']+='x'.repeat(FILE_MAX);p.turn('dart','ANDROID_AUTO',{roundabout:{exitNumber:3}},'roundabout');
 assert(files['/d/nav-probe.log.1'].length>FILE_MAX);assert(files['/d/nav-probe.log'].length<2000);

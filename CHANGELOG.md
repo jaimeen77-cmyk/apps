@@ -8,7 +8,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
-## Cluster Redline 1.3.66 (the GIF always on its own layer)
+## Cluster Redline 1.3.67 (the GIF switch gone; the route's turn list on screen)
+
+- **The Fast GIF layer switch is gone**: the GIF is always on its own layer, an Off stored by 1.3.64-1.3.66 included (1.3.66 only fixed the button; this was meant to go with it). A refused layer still falls back.
+- **Received turns: the route's turn list** (why the next turn shows or not, without a log file): how many turns the last list held and the most so far, how many lists came, from which phone navigation, and the distance from its first turn to the second. "Only one turn: no next turn": the navigation sends just the next turn, so the HUD's next turn cannot show.
+- Tests: `nav-probe` (the turn list), `picture-layer` (always on).
+
+the GIF always on its own layer)
 
 - **Fix: the GIF went back to the slow way and stayed there.** The My GIFs screen's Fast GIF layer button did not read its setting, so it always said On and each tap wrote Off. The button is gone: the GIF is always on its own layer (1.3.64's fast way), an Off stored by 1.3.64-1.3.65 included. A refused layer still falls back to painting it as before.
 - Navigation display's Record to a file had the same gap (the screen did not read the setting): fixed.
