@@ -14,6 +14,11 @@
 // Until the renderer shows the effect layer (the atlas written), or if it refuses any of it (an older renderer, its
 // pixel memory full), the picture is painted into the image as before.
 const MP = require('./my-picture');
+// Off since 1.3.63: on the car 1.3.62 made things slower (the cluster, and the head unit: the GIF player's page no
+// longer opened on the phone). Kept for a test build; the picture is painted as in 1.3.61.
+let enabled = false;
+const setEnabled = (on) => { enabled = !!on; };
+const isEnabled = () => enabled;
 const CLEAR = 255, MAX_SIDE = 2048;
 // the atlas's bytes at most, per display: a whole 30-frame GIF of the picture's box (320 x 180) fits; more frames are
 // thinned. The renderer keeps two copies; its pixel memory full, half as much is tried, then a quarter.
@@ -253,4 +258,4 @@ class Flipbook {
         return this.active();
     }
 }
-module.exports = { Flipbook, build, keysOf, palette, thin, FS, CAP_BYTES, CLEAR };
+module.exports = { setEnabled, isEnabled, Flipbook, build, keysOf, palette, thin, FS, CAP_BYTES, CLEAR };

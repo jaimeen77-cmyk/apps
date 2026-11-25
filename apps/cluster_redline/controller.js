@@ -4,7 +4,7 @@ const gear = require('./gear');
 const { Telemetry } = require('./telemetry');
 const { UploadPacer } = require('./upload');
 const { placement } = require('./layout');
-const { Flipbook } = require('./flipbook');
+const FB = require('./flipbook'), { Flipbook } = FB;
 // Only these exact server contracts describe a lost layer or temporary
 // resource/attachment failure. Malformed frames, unsupported targets, native
 // slot refusals and guard decisions must not become retry loops.
@@ -218,6 +218,7 @@ class Controller {
     }
     flipbook(now, d, cfg, rect, painter, panel, hud) {
         const display = hud ? 'hud' : 'cluster', car = d.aux && d.aux.car, frame = car && car[display];
+        if (!FB.isEnabled()) { Object.keys(this.flips).forEach((k) => this.flips[k].release()); return; }
         let flip = this.flips[display];
         if (!flip) { if (!frame || !frame.mine || typeof this.client.effect !== 'function') return; flip = this.flips[display] = new Flipbook(this.client, display, this.upload); }
         Object.keys(this.flips).forEach((k) => { if (k !== display) this.flips[k].release(); });
