@@ -53,7 +53,7 @@ BMW iDrive 7·8 헤드유닛의 **MGU Store**에서 설치하는 앱 모음입�
 
 ### 시트 Easy Access 0.7.10 · iDrive 7·8 · 한국어/English
 
-<img src="apps/seats_easy_access/screenshots/seat-ko.png" width="640" alt="시트 Easy Access">
+<img src="apps/seats_easy_access/screenshots/driver-ko.jpg" width="640" alt="시트 Easy Access">
 
 운전석·조수석 시트 조절, 메모리 M1~M3, 타고 내릴 때 시트를 비켜 주는 Easy Access.
 → **[설명서](apps/seats_easy_access/README.ko.md)**

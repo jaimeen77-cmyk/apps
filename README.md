@@ -52,7 +52,7 @@ Plays GIFs uploaded from your phone in the home-screen widget and on its Animati
 
 ### Seats Easy Access 0.7.10 · iDrive 7·8 · English/Korean
 
-<img src="apps/seats_easy_access/screenshots/seat-en.png" width="640" alt="Seats Easy Access">
+<img src="apps/seats_easy_access/screenshots/driver-en.jpg" width="640" alt="Seats Easy Access">
 
 Driver and passenger seat adjustment, memories M1–M3, and Easy Access that moves the seat out of the way to get in and out.
 → **[Guide](apps/seats_easy_access/README.md)**

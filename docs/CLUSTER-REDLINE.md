@@ -189,22 +189,55 @@ The cluster has **20 designs**: Jam top alert bar, Jam circle alert and 18 Redli
 |---|---|
 | ![Four values](../screenshots/cluster_redline/manual/face-cluster-values-four-en.jpg) | ![Gauges](../screenshots/cluster_redline/manual/face-cluster-circle-en.jpg) |
 
-### 6-2. Animation (the animated car / your GIFs)
+### 6-2. Animation (the animated car / adding your own pictures)
 
-![Animation · My GIFs](../screenshots/cluster_redline/manual/t2-cluster-animation-en.jpg)
+Choosing **Animation** in the design list opens the My GIFs screen.
 
-Choosing **Animation** in the design list opens this screen.
+| No GIF: the animated car | With your GIF |
+|---|---|
+| ![Animated car](../screenshots/cluster_redline/manual/face-cluster-animation-car-en.jpg) | ![Your GIF](../screenshots/cluster_redline/manual/face-cluster-animation-gif-en.jpg) |
 
-- Without GIFs it shows the **animated car**: brake lights, a three-step drift left and right, flames when accelerating, reversing lamps and standing still, from the car's G and gear.
-- **Your GIFs** come from the [GIF player](../apps/gif_home/README.md): the GIFs you uploaded to it from your phone. Nothing needs setting up in the GIF player.
-  1. Install the GIF player (0.4.3 or later), upload GIFs from your phone and run the GIF player once.
-  2. On this screen choose with − / + the GIFs for **driving (required)**, standing still, reverse, turning left and turning right. Each GIF's size and state show on the right.
-  3. Press **Fetch from GIF player**, then **Next: Auxiliary information**.
-- A scene without its own GIF shows the driving GIF. With only one turn chosen, the other turn uses it mirrored. Scene changes fade.
-- Recommended size **320 × 180**. Larger GIFs (up to 640 × 360, 6 MB) are scaled down when fetched; more than 30 frames are thinned to 30 (the duration is kept).
+- **The animated car** shows when no GIF is added: brake lights, a three-step drift left and right, flames when accelerating, reversing lamps and standing still, from the car's G and gear.
+- **Your pictures (your GIFs)** come from the [GIF player](../apps/gif_home/README.md): the GIFs you uploaded to it from your phone, a different one for driving, standing still, reverse, turning left and turning right. The GIF takes the picture's place; the gear, rpm, auxiliary information and G-meter stay.
+
+#### Adding your pictures
+
+**Before**: install the GIF player (0.4.3 or later), upload the GIFs you want from your phone, and run the GIF player once. Nothing needs setting up in the GIF player. ([How to upload](../apps/gif_home/README.md#4-uploading-gifs-from-your-phone))
+
+**1. Open the Animation screen**: Cluster display setting → **Design** → **Animation**.
+
+![1. My GIFs screen](../screenshots/cluster_redline/manual/mypic-1-list-en.jpg)
+
+The top line shows how many GIFs came from the GIF player, e.g. `GIF player: GIF 5`. If it says waiting or an error, run the GIF player once and press **Refresh**.
+
+**2. Choose a GIF per scene**: use **− / +** on each row. The GIF's name, size and file size show in the middle.
+
+![2. Choosing GIFs](../screenshots/cluster_redline/manual/mypic-2-chosen-en.jpg)
+
+| Scene | When it shows |
+|---|---|
+| **Driving \*** (required) | Moving forward. A scene without its own GIF shows this one |
+| Standing still | Under 1 km/h (P when the speed is unknown) |
+| Reverse | R gear |
+| Turning left / right | Lateral G above 0.12 G (ends below 0.08 G). With only one chosen, the other turn uses it mirrored |
+
+**3. Fetch**: press **Fetch from GIF player**. When the right side says `In use: 192 × 128 · 18 frames`, it is on the cluster.
+
+![3. Fetched](../screenshots/cluster_redline/manual/mypic-3-fetched-en.jpg)
+
+**4. Auxiliary information**: press **Next: Auxiliary information** and choose what shows under the picture (gauges / text / none). Position / size moves or hides the gear, rpm, auxiliary information and the rest one by one.
+
+The HUD's Animation design shows the same GIFs (black is see-through).
+
+![HUD Animation](../screenshots/cluster_redline/manual/face-hud-animation-gif-en.jpg)
+
+**Good to know**
+
+- Recommended size **320 × 180**. Larger GIFs (up to 640 × 360, 6 MB) are scaled down, keeping their shape, when fetched; more than 30 frames are thinned to 30 (the duration is kept).
 - **Smaller GIFs run faster**: 160 × 90 at about 10–20 frames a second, 320 × 180 at about 2–6 (depending on the car).
-- Once fetched, the GIF player may be off. After changing GIFs, press **Fetch** again. Fetching with all five slots empty brings the animated car back.
-- The HUD's Animation design shows the same GIFs (black is see-through on the HUD).
+- Scene changes fade over 0.4 s.
+- Once fetched, the GIF player may be off. After changing the GIFs in the GIF player, or choosing others, press **Fetch** again.
+- To go back to the animated car, set all five rows to none and press **Fetch**.
 
 ### 6-3. Position / size
 

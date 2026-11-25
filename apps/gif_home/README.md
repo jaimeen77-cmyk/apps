@@ -125,7 +125,7 @@ The GIFs uploaded to the GIF player are also used by **Cluster Redline**'s **Ani
 
 - The GIF player lends the originals to Cluster Redline only inside the head unit (127.0.0.1). Cluster Redline keeps its own copy, scaled to the cluster's picture box (within 320 × 180, at most 30 frames).
 - Once fetched, the GIF player may be off. After changing GIFs, press **Fetch** again in Cluster Redline.
-- Smaller GIFs move faster on the cluster (160 × 90 recommended). More in the [Cluster Redline guide](../../docs/CLUSTER-REDLINE.md#6-2-animation-the-animated-car--your-gifs).
+- Smaller GIFs move faster on the cluster (160 × 90 recommended). More in the [Cluster Redline guide](../../docs/CLUSTER-REDLINE.md#6-2-animation-the-animated-car--adding-your-own-pictures).
 
 ## Storage
 
