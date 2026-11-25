@@ -460,27 +460,31 @@ class SettingsPage{
  myPicFetch(){const st=this.myPic;if(!st||st.busy||!this.dataDir)return;st.busy=true;st.result=null;this.changed();
   require('./my-picture-source').fetchChosen(this.dataDir,this.myPicChoice(),(out)=>{st.busy=false;st.result=out;this.changed();});}
  drawMyPic(cv,cfg,targets){
-  const local=[],MPS=require('./my-picture-source'),MP=require('./my-picture'),st=this.myPic||{},L=MP.LIMIT,R=MPS.RECOMMENDED,choice=this.myPicChoice();
+  const local=[],MPS=require('./my-picture-source'),MP=require('./my-picture'),st=this.myPic||{},B=MP.BOX,SRC=MP.SOURCE,choice=this.myPicChoice();
   const kb=b=>b>=1024*1024?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';
   cv.text(tr('My design'),100,118,32,'#ef4050',{literal:true});
-  cv.text(tr('Recommended')+': '+tr('canvas')+' '+R.w+' × '+R.h+' ('+tr('at most')+' '+L.maxW+' × '+L.maxH+') · '+tr('at most')+' '+L.maxFrames+' '+tr('frames')+' · '+tr('file')+' '+kb(L.maxBytes)+' '+tr('or less'),100,152,20,'#5ee08f',{literal:true});
+  // the sizes (1.3.51): another size is fitted when it is copied, so only the GIF player's own limits apply
+  cv.text(tr('Recommended')+': '+tr('canvas')+' '+B.w+' × '+B.h+' · '+tr('other sizes are fitted automatically')+' ('+tr('at most')+' '+SRC.maxW+' × '+SRC.maxH+', '+kb(SRC.maxBytes)+') · '+tr('Over N frames: N kept').replace(/N/g,MP.MAX_FRAMES),100,152,19,'#5ee08f',{literal:true});
   const src=st.state==='loading'?tr('GIF player')+': '+tr('waiting'):st.state==='error'?tr('GIF player')+': '+tr(st.error==='not_running'?'not running or older than 0.4.3 (update it and open it once)':'not reachable')+' ('+st.error+')':tr('GIF player')+': GIF '+(st.files||[]).length;
   cv.text(src,100,180,19,st.state==='error'?'#ffad45':'#c1cddd',{literal:true});
-  const status=MP.status(),why={missing:'not set',too_large:'file too large',too_big:'canvas too big',not_gif:'not a GIF',no_frames:'no frames',broken:'unreadable'};
-  [['stop','Standing still'],['drive','Driving'],['reverse','Reverse']].forEach(([slot,label],i)=>{
-   const y=198+i*62,id=choice[slot]||'',f=(st.files||[]).find(x=>x.id===id);
-   cv.text(tr(label),100,y+36,24,'#f3f5f7',{literal:true});
+  const status=MP.status(),why={missing:'not set',too_large:'file too large',too_big:'canvas too big',not_gif:'not a GIF',no_frames:'no frames',broken:'unreadable',not_running:'GIF player not running',need_drive:'choose the driving GIF first'};
+  const res=st.result||{};
+  [['drive','Driving'],['stop','Standing still'],['reverse','Reverse']].forEach(([slot,label],i)=>{
+   const y=198+i*62,id=choice[slot]||'',f=(st.files||[]).find(x=>x.id===id),must=slot==='drive';
+   cv.text(tr(label)+(must?' *':''),100,y+36,24,'#f3f5f7',{literal:true});
    this.button(cv,local,'−',290,y,70,50,()=>this.myPicStep(slot,-1),false,'mypic-'+slot+'-prev');
-   let name=!id?tr('Car picture (none)'):f?(f.preset?tr('Built-in')+' · ':'')+f.name:id;const fit=f?MPS.fits(f):'ok';
-   const info=f&&f.width?' · '+f.width+' × '+f.height:'';const size=f&&f.bytes?' · '+kb(f.bytes):'';
-   let line=name+info+size+(fit!=='ok'?' · '+tr(why[fit]):'');while(line.length>4&&cv.textWidth(line,20,{literal:true})>560)line=line.slice(0,-2);
-   cv.roundRect(372,y,580,50,6,'#1b2027');cv.text(line,386,y+33,20,fit!=='ok'?'#ff8a8a':'#f3f5f7',{literal:true});
+   const fit=f?MPS.fits(f):'ok';
+   let line=!id?tr(must?'Required: choose a GIF':'Uses the driving GIF'):(f?(f.preset?tr('Built-in')+' · ':'')+f.name:id)+(f&&f.width?' · '+f.width+' × '+f.height+(MPS.resized(f)&&fit==='ok'?' → '+tr('fitted to')+' '+B.w+' × '+B.h:''):'')+(f&&f.bytes?' · '+kb(f.bytes):'')+(fit!=='ok'?' · '+tr(why[fit]):'');
+   while(line.length>4&&cv.textWidth(line,20,{literal:true})>560)line=line.slice(0,-2);
+   cv.roundRect(372,y,580,50,6,'#1b2027');cv.text(line,386,y+33,20,fit!=='ok'||must&&!id?'#ff8a8a':!id?'#91a1b6':'#f3f5f7',{literal:true});
    this.button(cv,local,'+',964,y,70,50,()=>this.myPicStep(slot,1),false,'mypic-'+slot+'-next');
-   const s=status.find(x=>x.name===slot)||{},res=st.result&&st.result[slot];
-   const now=s.ok?tr('In use')+': '+s.w+' × '+s.h+' · '+s.frames+' '+tr('frames'):tr(why[s.error]||'not set');
-   cv.text(now+(res&&res!=='ok'&&res!=='none'?' · '+tr('not kept')+' ('+(why[res]?tr(why[res]):res)+')':''),1050,y+33,18,s.ok?'#5ee08f':'#91a1b6',{literal:true});
+   const s=status.find(x=>x.name===slot)||{},r=res[slot];
+   let now=s.ok?tr('In use')+': '+s.w+' × '+s.h+' · '+s.frames+' '+tr('frames'):s.uses==='drive'?tr('Uses the driving GIF'):tr('Car picture (none)');
+   if(r&&r.error)now+=' · '+tr('not kept')+' ('+(why[r.error]?tr(why[r.error]):r.error)+')';
+   cv.text(now,1050,y+33,18,s.ok||s.uses?'#5ee08f':'#91a1b6',{literal:true});
   });
-  cv.text(tr('Each scene shows its GIF: standing still, driving, reverse. A scene without one shows the Car picture.'),100,420,18,'#91a1b6',{literal:true});
+  const note=res.error?tr(why[res.error]||res.error):tr('The driving GIF is required; standing still and reverse show it when they have none. A change of scene fades.');
+  cv.text(note,100,420,18,res.error?'#ff8a8a':'#91a1b6',{literal:true});
   this.button(cv,local,st.busy?tr('Fetching'):tr('Fetch from GIF player'),84,448,380,64,()=>this.myPicFetch(),false,'mypic-fetch',24);
   this.button(cv,local,tr('Refresh'),476,448,200,64,()=>this.myPicList(),false,'mypic-refresh',24);
   this.button(cv,local,tr('Next')+': '+tr('Auxiliary information'),688,448,500,64,()=>{const a=D.auxConfig(this.config()[this.display()+'AuxConfig']);this.open='auxMode';this.choice=a.mode==='off'?2:a.mode==='values'?1:0;this.changed();},false,'mypic-next',24);
@@ -845,7 +849,7 @@ class SettingsPage{
   cv.text(nav||uniform?'Width and height scale together.':'Width / height difference limited to 30%.',790,432,18,'#a8b6c8');
   // My picture: whether each of its three GIFs is read (my-picture.js), what is wrong with one that is not
   if(!nav&&RL.style(cfg,display)==='mypic'){const MP=require('./my-picture');MP.scan(Date.now());const why={missing:'missing',too_large:'too large',too_big:'too big'};
-   const line=MP.status().map(s=>s.name+'.gif '+(s.ok?s.w+'×'+s.h+' '+s.frames+' '+tr('frames'):tr(why[s.error]||'unreadable'))).join(' · ');
+   const SC={stop:'Standing still',drive:'Driving',reverse:'Reverse'},line=MP.status().map(s=>tr(SC[s.name])+' '+(s.ok?s.w+'×'+s.h+' '+s.frames+' '+tr('frames'):s.uses==='drive'?tr('Uses the driving GIF'):tr(why[s.error]||'unreadable'))).join(' · ');
    cv.text(tr('My GIFs')+': '+line,790,500,17,'#ffad45',{literal:true});}
   const hidden=group.length&&group.every(p=>cfg[this.layoutPrefix(p)+'Hidden']);
   const marks=!nav&&group.some(p=>/^Mark/.test(p.key));

@@ -2,6 +2,13 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.51
+
+- **My design: GIFs of any size.** A GIF is fitted to the picture's box (320 x 180, its shape kept, never made bigger) when it is copied from the GIF player, so any size the GIF player accepts (up to 640 x 360, 6 MB) can be used; more than 30 frames are thinned to 30, each kept one lasting as long as those it stands for (the GIF runs as long). Kept compressed as `my-pictures/<scene>.mpic` (1.3.50's `.gif` copies are still read).
+- **The driving GIF is required**: *Fetch* does nothing without it ("choose the driving GIF first"); standing still and reverse without their own GIF show the driving GIF (no longer the Car picture). The rows list Driving first.
+- **A change of scene fades** over 400 ms (8 steps), the old GIF still moving; when the scene shows the same GIF (the driving GIF standing in), nothing fades.
+- Tests: `my-picture` (fitting a 640 x 360, 60-frame GIF, durations kept, drive required, fallback, fade).
+
 ## Cluster Redline 1.3.50 · GIF 플레이어 0.4.3
 
 - **New cluster layout: My design** (계기판 표시 설정 → 디자인 변경 → 나의 디자인; the cluster only). The Car layout with your own GIFs in the picture's place, one for each scene: standing still, driving, reverse (from the gear and the speed, held 300 ms; reverse at once). A scene without a GIF shows the Car layout's own picture. Frames play at their own GIF delays, at most 10 a second.
