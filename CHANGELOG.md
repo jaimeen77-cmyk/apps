@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## MGU 모니터 1.1.10
+
+- **Big home widget fitted**: on the car the graphs' labels and numbers were cut at the sides and the HMI's own text line and progress bar lay over them. Everything is now drawn inside the layout's safe area (`startWidget.safe`: 9 % each side, 10 % top and bottom; x 40..344 of 384), below the HMI's title row, a little smaller (labels 16, values 22, graphs 34 high); the app storage line shrinks to fit. The big widget turns the HMI's second text line and progress bar off (the small widget keeps them: "CPU · 메모리" and the memory bar).
+- Tests: `storage` (big widget: text line and bar off; small widget: the text line).
+
 ## Cluster Redline 1.3.59
 
 - **Your GIFs on the HUD too**: the Animation layout shows the same GIFs on the HUD as on the cluster (one copy in `my-pictures/`, so GIFs put in from either display show on both; on the HUD black is see-through). Choosing Animation on the HUD opens the same *Animation · My GIFs* screen. No GIF: the car, as before.
