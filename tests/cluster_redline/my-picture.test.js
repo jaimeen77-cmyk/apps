@@ -35,7 +35,7 @@ MP.scan(6000);const st=MP.status();assert.deepStrictEqual(st.map(s=>[s.name,s.ok
 // your GIF's frames follow its delays (100 ms each here), looping
 {const f0=MP.frameAt('drive','cluster',0),f1=MP.frameAt('drive','cluster',150),f3=MP.frameAt('drive','cluster',390),f4=MP.frameAt('drive','cluster',420);
  assert.deepStrictEqual([f0.mine,f0.i,f1.i,f3.i,f4.i],['drive',0,1,3,0]);assert(f0.sig,'the file\'s signature, so a new copy repaints');}
-assert.strictEqual(MP.frameAt('reverse','cluster',0).state,'reverse','too big: the own picture');
+assert.strictEqual(MP.frameAt('reverse','cluster',0).mine,'drive','no usable reverse GIF: the drive GIF (1.3.51)');assert.deepStrictEqual(MP.status().map(s=>s.uses),['drive','drive','drive']);
 
 // the layout (My design, 1.3.50): on the cluster only, the Car layout's elements, G read only for its small G meter
 assert(RL.stylesFor('cluster').includes('mypic')&&!RL.stylesFor('hud').includes('mypic'),'the cluster only');assert.strictEqual(RL.NAMES.mypic,'My design');
@@ -49,31 +49,46 @@ const s=(car,o)=>Object.assign({},base,{config:cfg(o),aux:{gLat:0,gLong:0,gforce
 const face={x:0,y:0,w:W,h:H},pic=RL.placed(s(null),RL.rect(s(null).config,face,'cluster'),'cluster',face).find(e=>e.id==='carpic').r;
 // (the test pattern is strongly coloured everywhere; the own night picture hardly at all)
 const red=(im,r)=>{let n=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++){const i=(y*im.w+x)*4;if(im.d[i+3]>200&&Math.max(im.d[i],im.d[i+1],im.d[i+2])-Math.min(im.d[i],im.d[i+1],im.d[i+2])>90)n++;}return n;};
-const mine=draw(s(MP.frameAt('drive','cluster',0))),own=draw(s(MP.frameAt('stop','cluster',0)));
+const mine=draw(s(MP.frameAt('drive','cluster',0))),own=draw(s({state:'stop',mirror:false,i:0,set:'cluster'}));
 assert(red(mine,pic)>pic.w*pic.h*0.05,'your GIF\'s colours show');assert(red(own,pic)<red(mine,pic)/3,'the own picture is not your GIF');
 // the layout picker on the car records for the GPU renderer: your GIF goes there as a pixel image
 {const rec=require(path.join(root,'kit/record')),r=new rec.Recorder(1600,520);assert.doesNotThrow(()=>MP.draw(r,MP.frameAt('drive','cluster',0),10,10,320,180));assert.strictEqual(r.images.size,1);}
 assert.notStrictEqual(RL.keys(s(MP.frameAt('drive','cluster',0)),'cluster')('carpic'),RL.keys(s(MP.frameAt('drive','cluster',150)),'cluster')('carpic'),'the next GIF frame repaints');
 // the settings preview (no worker frame): the scene the gear shows, first frame
 assert.strictEqual(RL.frame(Object.assign({},base,{gear:'D3',config:cfg(),aux:{}}),0,'cluster').car.mine,'drive');
-assert.strictEqual(RL.frame(Object.assign({},base,{gear:'P',config:cfg(),aux:{}}),0,'cluster').car.state,'stop','P: standing still (its GIF too large: the own picture)');
+assert.strictEqual(RL.frame(Object.assign({},base,{gear:'P',config:cfg(),aux:{}}),0,'cluster').car.mine,'drive','P: standing still (its GIF too large: the drive GIF)');
 if(process.env.MY_PICTURE_PREVIEW){const out=path.resolve(process.env.MY_PICTURE_PREVIEW);fs.mkdirSync(out,{recursive:true});[['mine',mine],['own',own]].forEach(([n,im])=>{const p=new Canvas(im.w,im.h);p.clear('#05070b');p.blit(im,0,0);fs.writeFileSync(path.join(out,'mypic-'+n+'.png'),p.png());});}
 
-// from the GIF player (1.3.50): its share on 127.0.0.1 (gif_home redline-share.js) lists the GIFs; the chosen ones
-// are copied into my-pictures/ after a check; one too big is not kept; no choice: the scene's file removed
+// from the GIF player (1.3.50; fitted, drive required, 1.3.51): its share on 127.0.0.1 (gif_home redline-share.js)
+// lists the GIFs; the chosen ones are fitted to the picture's box (320 x 180, at most 30 frames) and kept as .mpic;
+// without a drive GIF nothing is fetched; no choice for a scene: its file removed (the drive GIF shows there)
 (async()=>{
- const {RedlineShare}=require(path.join(repo,'apps/gif_home/redline-share')),MPS=require(path.join(repo,'apps/cluster_redline/my-picture-source'));
- const bytes={a:fs.readFileSync(path.join(fx,'pattern-64x36.gif')),c:fs.readFileSync(path.join(fx,'too-big-401x225.gif'))};
- const share=new RedlineShare({list:()=>[{id:'a',name:'A',bytes:bytes.a.length,width:64,height:36},{id:'c',name:'C',bytes:bytes.c.length,width:401,height:225}],read:id=>bytes[id]}).start();
+ const {RedlineShare}=require(path.join(repo,'apps/gif_home/redline-share')),MPS=require(path.join(repo,'apps/cluster_redline/my-picture-source')),MPR=require(path.join(repo,'apps/cluster_redline/my-picture'));
+ const bytes={a:fs.readFileSync(path.join(fx,'pattern-64x36.gif')),c:fs.readFileSync(path.join(fx,'too-big-401x225.gif')),b:fs.readFileSync(path.join(fx,'big-640x360-60f.gif'))};
+ const share=new RedlineShare({list:()=>[{id:'a',name:'A',bytes:bytes.a.length,width:64,height:36},{id:'c',name:'C',bytes:bytes.c.length,width:401,height:225},{id:'b',name:'B',bytes:bytes.b.length,width:640,height:360}],read:id=>bytes[id]}).start();
  await new Promise(r=>setTimeout(r,100));
  try{
-  const files=await new Promise((res,rej)=>MPS.list((e,f)=>e?rej(e):res(f)));assert.deepStrictEqual(files.map(f=>f.id),['a','c']);
-  assert.strictEqual(MPS.fits(files[0]),'ok');assert.strictEqual(MPS.fits(files[1]),'too_big','shown as too big before fetching');assert.strictEqual(MPS.fits({bytes:2e6}),'too_large');
+  const files=await new Promise((res,rej)=>MPS.list((e,f)=>e?rej(e):res(f)));assert.deepStrictEqual(files.map(f=>f.id),['a','c','b']);
+  assert.strictEqual(MPS.fits(files[1]),'ok','another size: fitted, not refused');assert(MPS.resized(files[2])&&!MPS.resized(files[0]));
+  assert.strictEqual(MPS.fits({width:641,height:360}),'too_big','past the GIF player\'s own limits');assert.strictEqual(MPS.fits({bytes:7e6}),'too_large');
   const data=fs.mkdtempSync(path.join(os.tmpdir(),'mypic-fetch-'));fs.mkdirSync(path.join(data,'my-pictures'));fs.writeFileSync(path.join(data,'my-pictures','reverse.gif'),bytes.a);
-  const out=await new Promise(res=>MPS.fetchChosen(data,{stop:'a',drive:'c',reverse:''},res));
-  assert.deepStrictEqual(out,{stop:'ok',drive:'too_big',reverse:'none'});
-  assert.deepStrictEqual(fs.readFileSync(path.join(data,'my-pictures','stop.gif')),bytes.a,'copied as it is');
-  assert(!fs.existsSync(path.join(data,'my-pictures','drive.gif')),'too big: not kept');assert(!fs.existsSync(path.join(data,'my-pictures','reverse.gif')),'no choice: removed');
+  assert.deepStrictEqual(await new Promise(res=>MPS.fetchChosen(data,{stop:'a',drive:'',reverse:''},res)),{error:'need_drive'},'the drive GIF is required');
+  const out=await new Promise(res=>MPS.fetchChosen(data,{stop:'c',drive:'b',reverse:''},res));
+  assert.deepStrictEqual(out.drive,{ok:true,w:320,h:180,frames:30,source:{w:640,h:360,frames:60}},'640 x 360, 60 frames: 320 x 180, 30 frames');
+  assert.deepStrictEqual([out.stop.w,out.stop.h],[320,180],'401 x 225: fitted (shape kept)');assert.deepStrictEqual(out.reverse,{none:true});
+  assert(!fs.existsSync(path.join(data,'my-pictures','reverse.gif'))&&!fs.existsSync(path.join(data,'my-pictures','reverse.mpic')),'no choice: removed');
+  // read back on the cluster: its frames last as long as before (the thinned ones add up their delays); reverse shows the drive GIF
+  MPR.setDir(data);MPR.scan(0,true);const stt=MPR.status();assert.deepStrictEqual(stt.map(x=>[x.name,x.ok,x.uses]),[['stop',true,'stop'],['drive',true,'drive'],['reverse',false,'drive']]);
+  const d=MPR.decodeFile(fs.readFileSync(path.join(data,'my-pictures','drive.mpic'))),g=GIF.decode(bytes.b,MPR.SOURCE);
+  assert.strictEqual(d.frames.reduce((a,f)=>a+f.delay,0),g.frames.reduce((a,f)=>a+f.delay,0),'as long as the original');
+  assert(fs.statSync(path.join(data,'my-pictures','drive.mpic')).size<200*1024,'kept compressed');
+  // a change of scene fades over 400 ms; the drive GIF standing in for a scene does not fade
+  MPR.reset();let f=MPR.frameOf('c','D',30,10000);assert.strictEqual(f.mine,'drive');assert(!f.from);
+  f=MPR.frameOf('c','R',0,10100);assert.strictEqual(f.mine,'drive','reverse without its own GIF: the drive GIF');assert(!f.from,'the same GIF: no fade');
+  MPR.frameOf('c','D',30,11000);f=MPR.frameOf('c','D',0,11000);f=MPR.frameOf('c','D',0,11400);assert.strictEqual(f.mine,'stop');assert.strictEqual(f.from&&f.from.mine,'drive','fading from the drive GIF');
+  f=MPR.frameOf('c','D',0,11600);assert(f.t>0&&f.t<1,'part way');f=MPR.frameOf('c','D',0,11900);assert(!f.from,'done after 400 ms');
+  {const {Canvas}=require(root+'/kit/canvas'),cv=new Canvas(320,180);MPR.reset();MPR.frameOf('c','D',30,20000);MPR.frameOf('c','D',0,21000);const mid=MPR.frameOf('c','D',0,21500);
+   assert.doesNotThrow(()=>MPR.draw(cv,mid,0,0,320,180));assert(cv.d.some(v=>v>0),'the fade drawn');}
   // the share answers only GET from this head unit, only listed GIFs
   const st=await new Promise(res=>require('http').get({host:'127.0.0.1',port:18884,path:'/gif?id=../library.json'},r=>{r.resume();res(r.statusCode);}));assert.strictEqual(st,404);
  }finally{share.stop();}
