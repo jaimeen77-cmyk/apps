@@ -3,6 +3,9 @@
 //   stop      standing still (under 1 km/h, or in P when the speed is not known)
 //   drive     moving forward (required: a scene without its own GIF shows the drive GIF)
 //   reverse   reverse gear
+//   left      turning left, right  turning right (1.3.52): from the sideways G, as the Car layout (0.12 G and
+//             up; positive to the left), held 400 ms; one turn without its own GIF shows the other one mirrored,
+//             then the drive GIF
 // They come from the GIF player (my-picture-source.js), which copies each one here, into the app's data folder,
 // my-pictures/<scene>.mpic, already fitted (1.3.51): any size up to the GIF player's own limits is scaled down to fit
 // the picture's box (320 x 180), keeping its shape; more than 30 frames are thinned to 30 (their delays added up, so
@@ -10,14 +13,14 @@
 // Frames play at their own GIF delays, at most 10 a second; a change of scene fades over 400 ms. The folder is
 // looked at again every 5 s, so new copies show without a restart.
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), GIF = require('./gif-decode');
-const NAMES = ['stop', 'drive', 'reverse'];
+const NAMES = ['stop', 'drive', 'reverse', 'left', 'right'];
 // the picture's box on the cluster (the Car layout's: 320 x 180) and the frames kept: about 3.5 MB a scene at most
 const BOX = { w: 320, h: 180 }, MAX_FRAMES = 30;
 // what the GIF player accepts (its gif.js LIMIT), so every GIF it has can be fitted
 const SOURCE = { maxW: 640, maxH: 360, maxFrames: 90, maxBytes: 6 * 1024 * 1024 };
 // (1.3.50's limits, for its .gif copies)
 const LIMIT = { maxW: 400, maxH: 225, maxFrames: 20, maxBytes: 1024 * 1024 };
-const SCAN_MS = 5000, CONFIRM_MS = 300, FADE_MS = 400, FADE_STEPS = 8;
+const SCAN_MS = 5000, CONFIRM_MS = 300, HOLD_MS = 400, FADE_MS = 400, FADE_STEPS = 8, TURN_G = 0.12, TURN_OFF_G = 0.08;
 const isNum = (x) => typeof x === 'number' && isFinite(x);
 let dir = null, lastScan = -Infinity;
 const loaded = {};   // name -> {sig, gif, starts, total, error, source: {w, h, frames}}
@@ -92,51 +95,69 @@ function scan(now, force) {
     });
 }
 const usable = (n) => !!(loaded[n] && loaded[n].gif);
-/** The GIF a scene shows: its own, else the drive GIF, else null (the Car layout's own picture). */
-function resolve(s) { return usable(s) ? s : usable('drive') ? 'drive' : null; }
+const OTHER = { left: 'right', right: 'left' };
+/** The GIF a scene shows: {src, mirror}: its own, a turn without one the other turn's mirrored, else the drive GIF;
+ *  null: none (the Car layout's own picture). */
+function show(s) {
+    if (usable(s)) return { src: s, mirror: false };
+    if (OTHER[s] && usable(OTHER[s])) return { src: OTHER[s], mirror: true };
+    return usable('drive') ? { src: 'drive', mirror: false } : null;
+}
+function resolve(s) { const v = show(s); return v ? v.src : null; }
 // What each scene shows now, for the settings screen: [{name, ok, w, h, frames, error, uses, source}]
 // (uses: the GIF it shows, 'drive' for one without its own).
 function status() {
     return NAMES.map((n) => { const l = loaded[n] || {}, u = resolve(n);
         return { name: n, ok: !!l.gif, w: l.gif ? l.gif.w : null, h: l.gif ? l.gif.h : null, frames: l.gif ? l.gif.frames.length : 0,
-            error: l.error || (l.sig ? null : 'missing'), uses: u, source: l.source || null }; });
+            error: l.error || (l.sig ? null : 'missing'), uses: u, mirrored: !!(show(n) && show(n).mirror), source: l.source || null }; });
 }
 
-function want(stage, speed) { return stage === 'R' ? 'reverse' : (isNum(speed) ? speed < 1 : stage === 'P') ? 'stop' : 'drive'; }
-// A new scene must last 300 ms (reverse at once), so a speed hovering at 1 km/h does not flicker it.
+// The scene: reverse, standing still, turning (sideways G past 0.12, out again under 0.08: cur, the scene shown
+// now, keeps a turn going through a wobble) or driving.
+function want(stage, speed, g, cur) {
+    if (stage === 'R') return 'reverse';
+    if (isNum(speed) ? speed < 1 : stage === 'P') return 'stop';
+    const lat = g && isNum(g.lat) ? g.lat : 0, side = lat > 0 ? 'left' : 'right', a = Math.abs(lat);
+    if (a >= TURN_G || (cur === side && a >= TURN_OFF_G)) return side;
+    return 'drive';
+}
+// A new scene must last 300 ms and the shown one 400 ms (reverse at once), so a speed hovering at 1 km/h or a G
+// wobbling at the threshold does not flicker it.
 const shown = {};
-function pick(display, stage, speed, now) {
-    const m = shown[display] || (shown[display] = { cur: 'drive', cand: null, at: 0 }), w = want(stage, speed);
+function pick(display, stage, speed, now, g) {
+    const m = shown[display] || (shown[display] = { cur: 'drive', since: -Infinity, cand: null, at: 0 }), w = want(stage, speed, g, m.cur);
     if (w === m.cur) { m.cand = null; return m.cur; }
-    if (w === 'reverse' || m.cur === 'reverse') { m.cur = w; m.cand = null; return w; }
+    if (w === 'reverse' || m.cur === 'reverse') { m.cur = w; m.since = now; m.cand = null; return w; }
     if (m.cand !== w) { m.cand = w; m.at = now; }
-    if (now - m.at >= CONFIRM_MS) { m.cur = w; m.cand = null; }
+    if (now - m.at >= CONFIRM_MS && now - m.since >= HOLD_MS) { m.cur = w; m.since = now; m.cand = null; }
     return m.cur;
 }
-const OWN = { stop: 'stop', drive: 'cruise', reverse: 'reverse' };
+const OWN = { stop: 'stop', drive: 'cruise', reverse: 'reverse', left: 'cruise', right: 'cruise' };
 // The frame of GIF src at time now (it keeps running while it fades out).
-function frameRef(src, set, now) {
+function frameRef(src, set, now, mirror) {
     const l = loaded[src], t = now % l.total; let i = 0;
     while (i + 1 < l.starts.length && l.starts[i + 1] <= t) i++;
-    return { mine: src, i, sig: l.sig, set };
+    const f = { mine: src, i, sig: l.sig, set }; if (mirror) f.mirror = true;
+    return f;
 }
 // The frame to show on a display: your GIF's ({mine, i, sig, set}, while a change fades in also from: the GIF it
 // leaves, and t: 0..1 in FADE_STEPS steps) or, without any, the Car layout's own picture. A scene that shows the same
 // GIF as the last one (the drive GIF standing in) does not fade.
 const fades = {};
-function frameOf(display, stage, speed, now) {
-    const set = display === 'hud' ? 'hud' : 'cluster', src = resolve(pick(display, stage, speed, now)), m = fades[display] || (fades[display] = { src: null, from: null, at: 0 });
-    if (src !== m.src) { if (m.src && usable(m.src) && src) { m.from = m.src; m.at = now; } else m.from = null; m.src = src; }
-    if (!src) return frameAt(pick(display, stage, speed, now), set, now);
-    const f = frameRef(src, set, now);
-    if (m.from && usable(m.from) && now - m.at < FADE_MS) { f.from = frameRef(m.from, set, now); f.t = Math.ceil((now - m.at) / FADE_MS * FADE_STEPS) / FADE_STEPS; }
+function frameOf(display, stage, speed, now, g) {
+    const set = display === 'hud' ? 'hud' : 'cluster', scene = pick(display, stage, speed, now, g), v = show(scene), m = fades[display] || (fades[display] = { key: null, v: null, from: null, at: 0 });
+    const key = v ? v.src + (v.mirror ? '~' : '') : null;
+    if (key !== m.key) { if (m.v && usable(m.v.src) && v) { m.from = m.v; m.at = now; } else m.from = null; m.key = key; m.v = v; }
+    if (!v) return frameAt(scene, set, now);
+    const f = frameRef(v.src, set, now, v.mirror);
+    if (m.from && usable(m.from.src) && now - m.at < FADE_MS) { f.from = frameRef(m.from.src, set, now, m.from.mirror); f.t = Math.ceil((now - m.at) / FADE_MS * FADE_STEPS) / FADE_STEPS; }
     else m.from = null;
     return f;
 }
 // Scene s's frame at time now (no holding, no fade: the settings preview's first frame).
 function frameAt(s, set, now) {
-    const src = resolve(s);
-    if (src) return frameRef(src, set, now);
+    const v = show(s);
+    if (v) return frameRef(v.src, set, now, v.mirror);
     const n = require('./car-meter').frames(set).N;
     return { state: OWN[s], mirror: false, i: Math.floor(now * 10 / 1000) % n, set };
 }
@@ -153,7 +174,7 @@ function render(ref, w, h) {
     for (let yy = 0; yy < dh; yy++) {
         const fy = Math.max(0, Math.min(g.h - 1, (yy + 0.5) / k - 0.5)), y0 = Math.floor(fy), y1 = Math.min(g.h - 1, y0 + 1), ty = fy - y0;
         for (let xx = 0; xx < dw; xx++) {
-            const fx = Math.max(0, Math.min(g.w - 1, (xx + 0.5) / k - 0.5)), x0 = Math.floor(fx), x1 = Math.min(g.w - 1, x0 + 1), tx = fx - x0;
+            const fx = Math.max(0, Math.min(g.w - 1, ((ref.mirror ? dw - 1 - xx : xx) + 0.5) / k - 0.5)), x0 = Math.floor(fx), x1 = Math.min(g.w - 1, x0 + 1), tx = fx - x0;
             const s = [fr.px[y0 * g.w + x0], fr.px[y0 * g.w + x1], fr.px[y1 * g.w + x0], fr.px[y1 * g.w + x1]], wt = [(1 - tx) * (1 - ty), tx * (1 - ty), (1 - tx) * ty, tx * ty];
             let rr = 0, gg = 0, bb = 0, a = 0;
             for (let q = 0; q < 4; q++) { if (s[q] === CL) continue; const c = s[q] * 3; rr += col[c] * wt[q]; gg += col[c + 1] * wt[q]; bb += col[c + 2] * wt[q]; a += wt[q]; }
@@ -195,4 +216,4 @@ function draw(r, f, x, y, w, h) {
         if (rec && typeof rec.setImage === 'function') { const id = (0x43A30000 + ((w * 131 + h) & 0xffff)) >>> 0; rec.setImage(id, w, h, Buffer.from(px)); r.image(id, x, y, w, h); return; } }
     if (typeof r.blit === 'function') { const { Canvas } = require('./kit/canvas'), c = new Canvas(w, h); c.d.set(px); r.blit(c, x, y); }
 }
-module.exports = { NAMES, BOX, MAX_FRAMES, SOURCE, LIMIT, FADE_MS, setDir, scan, status, resolve, want, pick, frameOf, frameAt, reset, draw, folder, fit, encode, decodeFile, prepare, OWN };
+module.exports = { TURN_G, show, NAMES, BOX, MAX_FRAMES, SOURCE, LIMIT, FADE_MS, setDir, scan, status, resolve, want, pick, frameOf, frameAt, reset, draw, folder, fit, encode, decodeFile, prepare, OWN };

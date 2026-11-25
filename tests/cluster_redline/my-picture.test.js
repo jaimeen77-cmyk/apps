@@ -26,23 +26,23 @@ MP.reset();assert.strictEqual(MP.pick('c','D',40,0),'drive');assert.strictEqual(
 
 // the folder: made at start, read again when a file changes; a missing or unusable GIF falls back
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'mypic-')),dir=path.join(tmp,'my-pictures');MP.setDir(tmp);assert(fs.existsSync(dir),'my-pictures/ made');
-MP.scan(0,true);assert.deepStrictEqual(MP.status().map(s=>[s.name,s.ok,s.error]),[['stop',false,'missing'],['drive',false,'missing'],['reverse',false,'missing']]);
+MP.scan(0,true);assert.deepStrictEqual(MP.status().map(s=>[s.name,s.ok,s.error]),[['stop',false,'missing'],['drive',false,'missing'],['reverse',false,'missing'],['left',false,'missing'],['right',false,'missing']]);
 assert.deepStrictEqual(MP.frameAt('stop','cluster',0),{state:'stop',mirror:false,i:0,set:'cluster'},'no GIF: the layout\'s own standing-still picture');
 assert.strictEqual(MP.frameAt('drive','cluster',0).state,'cruise');assert.strictEqual(MP.frameAt('reverse','hud',0).set,'hud');
 fs.copyFileSync(path.join(fx,'pattern-64x36.gif'),path.join(dir,'drive.gif'));fs.copyFileSync(path.join(fx,'too-big-401x225.gif'),path.join(dir,'reverse.gif'));fs.writeFileSync(path.join(dir,'stop.gif'),Buffer.alloc(MP.LIMIT.maxBytes+1));
 MP.scan(1000);assert.strictEqual(MP.status()[1].ok,false,'not looked at again before 5 s');
-MP.scan(6000);const st=MP.status();assert.deepStrictEqual(st.map(s=>[s.name,s.ok,s.error]),[['stop',false,'too_large'],['drive',true,null],['reverse',false,'too_big']]);assert.deepStrictEqual([st[1].w,st[1].h,st[1].frames],[64,36,4]);
+MP.scan(6000);const st=MP.status();assert.deepStrictEqual(st.map(s=>[s.name,s.ok,s.error]),[['stop',false,'too_large'],['drive',true,null],['reverse',false,'too_big'],['left',false,'missing'],['right',false,'missing']]);assert.deepStrictEqual([st[1].w,st[1].h,st[1].frames],[64,36,4]);
 // your GIF's frames follow its delays (100 ms each here), looping
 {const f0=MP.frameAt('drive','cluster',0),f1=MP.frameAt('drive','cluster',150),f3=MP.frameAt('drive','cluster',390),f4=MP.frameAt('drive','cluster',420);
  assert.deepStrictEqual([f0.mine,f0.i,f1.i,f3.i,f4.i],['drive',0,1,3,0]);assert(f0.sig,'the file\'s signature, so a new copy repaints');}
-assert.strictEqual(MP.frameAt('reverse','cluster',0).mine,'drive','no usable reverse GIF: the drive GIF (1.3.51)');assert.deepStrictEqual(MP.status().map(s=>s.uses),['drive','drive','drive']);
+assert.strictEqual(MP.frameAt('reverse','cluster',0).mine,'drive','no usable reverse GIF: the drive GIF (1.3.51)');assert.deepStrictEqual(MP.status().map(s=>s.uses),['drive','drive','drive','drive','drive']);
 
 // the layout (My design, 1.3.50): on the cluster only, the Car layout's elements, G read only for its small G meter
 assert(RL.stylesFor('cluster').includes('mypic')&&!RL.stylesFor('hud').includes('mypic'),'the cluster only');assert.strictEqual(RL.NAMES.mypic,'My design');
 const cfg=o=>settings(Object.assign({clusterDesign:'rl-mypic',clusterAuxConfig:JSON.stringify({mode:'values',items:['power','gforce','boost','torque']})},o||{}));
 assert.deepStrictEqual(RL.elements(cfg(),'cluster').map(e=>e.id),RL.elements(cfg({clusterDesign:'rl-car'}),'cluster').map(e=>e.id),'the Car layout\'s elements');
 assert.deepStrictEqual(D.carMeterFaces(cfg()),['cluster']);assert.strictEqual(settings({hudDesign:'rl-mypic'}).hudDesign,'own','not on the HUD');assert.strictEqual(settings({clusterDesign:'rl-mypic'}).clusterDesign,'rl-mypic');
-{const on=Object.assign(cfg({clusterAuxConfig:JSON.stringify({mode:'values',items:['boost']})}),{appEnabled:true,allClusterOutput:'redline'});assert(demand(on,'SPORT').aux.has('gforce'),'the small G meter');assert(!demand(Object.assign({},on,{clusterRlGMeterHidden:true}),'SPORT').aux.has('gforce'),'no G meter: no G');}
+{const on=Object.assign(cfg({clusterAuxConfig:JSON.stringify({mode:'values',items:['boost']})}),{appEnabled:true,allClusterOutput:'redline'});assert(demand(on,'SPORT').aux.has('gforce'),'the small G meter');assert(demand(Object.assign({},on,{clusterRlGMeterHidden:true}),'SPORT').aux.has('gforce'),'the turn scenes read the G (1.3.52)');assert(!demand(Object.assign({},on,{clusterRlGMeterHidden:true,clusterRlCarPicHidden:true}),'SPORT').aux.has('gforce'),'no G meter, no picture: no G');}
 // drawn on the cluster: your GIF in the picture's place (letterboxed, fitted), the own picture without one
 const base={renderRpm:true,rpm:3000,gear:'D3',shift:false,flash:false,torqueNm:300,powerPS:200,mode:'SPORT'};
 const s=(car,o)=>Object.assign({},base,{config:cfg(o),aux:{gLat:0,gLong:0,gforce:0,boost:0.5,car:{cluster:car}}});
@@ -78,7 +78,7 @@ if(process.env.MY_PICTURE_PREVIEW){const out=path.resolve(process.env.MY_PICTURE
   assert.deepStrictEqual([out.stop.w,out.stop.h],[320,180],'401 x 225: fitted (shape kept)');assert.deepStrictEqual(out.reverse,{none:true});
   assert(!fs.existsSync(path.join(data,'my-pictures','reverse.gif'))&&!fs.existsSync(path.join(data,'my-pictures','reverse.mpic')),'no choice: removed');
   // read back on the cluster: its frames last as long as before (the thinned ones add up their delays); reverse shows the drive GIF
-  MPR.setDir(data);MPR.scan(0,true);const stt=MPR.status();assert.deepStrictEqual(stt.map(x=>[x.name,x.ok,x.uses]),[['stop',true,'stop'],['drive',true,'drive'],['reverse',false,'drive']]);
+  MPR.setDir(data);MPR.scan(0,true);const stt=MPR.status();assert.deepStrictEqual(stt.map(x=>[x.name,x.ok,x.uses]),[['stop',true,'stop'],['drive',true,'drive'],['reverse',false,'drive'],['left',false,'drive'],['right',false,'drive']]);
   const d=MPR.decodeFile(fs.readFileSync(path.join(data,'my-pictures','drive.mpic'))),g=GIF.decode(bytes.b,MPR.SOURCE);
   assert.strictEqual(d.frames.reduce((a,f)=>a+f.delay,0),g.frames.reduce((a,f)=>a+f.delay,0),'as long as the original');
   assert(fs.statSync(path.join(data,'my-pictures','drive.mpic')).size<200*1024,'kept compressed');
@@ -89,6 +89,18 @@ if(process.env.MY_PICTURE_PREVIEW){const out=path.resolve(process.env.MY_PICTURE
   f=MPR.frameOf('c','D',0,11600);assert(f.t>0&&f.t<1,'part way');f=MPR.frameOf('c','D',0,11900);assert(!f.from,'done after 400 ms');
   {const {Canvas}=require(root+'/kit/canvas'),cv=new Canvas(320,180);MPR.reset();MPR.frameOf('c','D',30,20000);MPR.frameOf('c','D',0,21000);const mid=MPR.frameOf('c','D',0,21500);
    assert.doesNotThrow(()=>MPR.draw(cv,mid,0,0,320,180));assert(cv.d.some(v=>v>0),'the fade drawn');}
+  // the turn scenes (1.3.52): sideways G past 0.12 (positive: left), out under 0.08, held 400 ms; a turn without its
+  // own GIF shows the other turn's mirrored, then the drive GIF
+  assert.strictEqual(MPR.want('D',40,{lat:0.2}),'left');assert.strictEqual(MPR.want('D',40,{lat:-0.2}),'right');assert.strictEqual(MPR.want('D',40,{lat:0.1}),'drive');
+  assert.strictEqual(MPR.want('D',40,{lat:0.1},'left'),'left','a turn going stays through a wobble');assert.strictEqual(MPR.want('D',0,{lat:0.5}),'stop');assert.strictEqual(MPR.want('R',5,{lat:0.5}),'reverse');
+  assert.deepStrictEqual(MPR.show('left'),{src:'drive',mirror:false},'no turn GIFs: the drive GIF');
+  fs.copyFileSync(path.join(data,'my-pictures','stop.mpic'),path.join(data,'my-pictures','right.mpic'));MPR.scan(0,true);
+  assert.deepStrictEqual(MPR.show('right'),{src:'right',mirror:false});assert.deepStrictEqual(MPR.show('left'),{src:'right',mirror:true},'left: the right turn mirrored');
+  assert.deepStrictEqual(MPR.status().find(x=>x.name==='left'),Object.assign(MPR.status().find(x=>x.name==='left'),{uses:'right',mirrored:true}));
+  MPR.reset();MPR.frameOf('c','D',40,30000,{lat:0});MPR.frameOf('c','D',40,31000,{lat:0.3});let tf=MPR.frameOf('c','D',40,31400,{lat:0.3});
+  assert.strictEqual(tf.mine,'right');assert.strictEqual(tf.mirror,true,'drawn mirrored');assert.strictEqual(tf.from&&tf.from.mine,'drive','fading from driving');
+  {const {Canvas}=require(root+'/kit/canvas'),a=new Canvas(320,180),b=new Canvas(320,180);MPR.draw(a,{mine:'right',i:0,set:'cluster'},0,0,320,180);MPR.draw(b,{mine:'right',i:0,set:'cluster',mirror:true},0,0,320,180);
+   let same=true;for(let y=0;y<180&&same;y++)for(let x=0;x<320;x++){const p=(y*320+x)*4,q=(y*320+319-x)*4;if(Math.abs(a.d[p]-b.d[q])>2){same=false;break;}}assert(same,'mirrored left to right');}
   // the share answers only GET from this head unit, only listed GIFs
   const st=await new Promise(res=>require('http').get({host:'127.0.0.1',port:18884,path:'/gif?id=../library.json'},r=>{r.resume();res(r.statusCode);}));assert.strictEqual(st,404);
  }finally{share.stop();}

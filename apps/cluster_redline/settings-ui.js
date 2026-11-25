@@ -469,22 +469,24 @@ class SettingsPage{
   cv.text(src,100,180,19,st.state==='error'?'#ffad45':'#c1cddd',{literal:true});
   const status=MP.status(),why={missing:'not set',too_large:'file too large',too_big:'canvas too big',not_gif:'not a GIF',no_frames:'no frames',broken:'unreadable',not_running:'GIF player not running',need_drive:'choose the driving GIF first'};
   const res=st.result||{};
-  [['drive','Driving'],['stop','Standing still'],['reverse','Reverse']].forEach(([slot,label],i)=>{
-   const y=198+i*62,id=choice[slot]||'',f=(st.files||[]).find(x=>x.id===id),must=slot==='drive';
-   cv.text(tr(label)+(must?' *':''),100,y+36,24,'#f3f5f7',{literal:true});
-   this.button(cv,local,'−',290,y,70,50,()=>this.myPicStep(slot,-1),false,'mypic-'+slot+'-prev');
+  // five scenes (1.3.52: + turning left / right); a turn without its own GIF shows the other one mirrored
+  const other={left:'right',right:'left'},stand=slot=>other[slot]&&choice[other[slot]]?tr(other[slot]==='right'?'Uses the right-turn GIF mirrored':'Uses the left-turn GIF mirrored'):tr('Uses the driving GIF');
+  [['drive','Driving'],['stop','Standing still'],['reverse','Reverse'],['left','Turning left'],['right','Turning right']].forEach(([slot,label],i)=>{
+   const y=190+i*46,id=choice[slot]||'',f=(st.files||[]).find(x=>x.id===id),must=slot==='drive';
+   cv.text(tr(label)+(must?' *':''),100,y+29,22,'#f3f5f7',{literal:true});
+   this.button(cv,local,'−',290,y,70,40,()=>this.myPicStep(slot,-1),false,'mypic-'+slot+'-prev');
    const fit=f?MPS.fits(f):'ok';
-   let line=!id?tr(must?'Required: choose a GIF':'Uses the driving GIF'):(f?(f.preset?tr('Built-in')+' · ':'')+f.name:id)+(f&&f.width?' · '+f.width+' × '+f.height+(MPS.resized(f)&&fit==='ok'?' → '+tr('fitted to')+' '+B.w+' × '+B.h:''):'')+(f&&f.bytes?' · '+kb(f.bytes):'')+(fit!=='ok'?' · '+tr(why[fit]):'');
+   let line=!id?(must?tr('Required: choose a GIF'):stand(slot)):(f?(f.preset?tr('Built-in')+' · ':'')+f.name:id)+(f&&f.width?' · '+f.width+' × '+f.height+(MPS.resized(f)&&fit==='ok'?' → '+tr('fitted to')+' '+B.w+' × '+B.h:''):'')+(f&&f.bytes?' · '+kb(f.bytes):'')+(fit!=='ok'?' · '+tr(why[fit]):'');
    while(line.length>4&&cv.textWidth(line,20,{literal:true})>560)line=line.slice(0,-2);
-   cv.roundRect(372,y,580,50,6,'#1b2027');cv.text(line,386,y+33,20,fit!=='ok'||must&&!id?'#ff8a8a':!id?'#91a1b6':'#f3f5f7',{literal:true});
-   this.button(cv,local,'+',964,y,70,50,()=>this.myPicStep(slot,1),false,'mypic-'+slot+'-next');
+   cv.roundRect(372,y,580,40,6,'#1b2027');cv.text(line,386,y+28,19,fit!=='ok'||must&&!id?'#ff8a8a':!id?'#91a1b6':'#f3f5f7',{literal:true});
+   this.button(cv,local,'+',964,y,70,40,()=>this.myPicStep(slot,1),false,'mypic-'+slot+'-next');
    const s=status.find(x=>x.name===slot)||{},r=res[slot];
-   let now=s.ok?tr('In use')+': '+s.w+' × '+s.h+' · '+s.frames+' '+tr('frames'):s.uses==='drive'?tr('Uses the driving GIF'):tr('Car picture (none)');
+   let now=s.ok?tr('In use')+': '+s.w+' × '+s.h+' · '+s.frames+' '+tr('frames'):s.mirrored?tr(s.uses==='right'?'Uses the right-turn GIF mirrored':'Uses the left-turn GIF mirrored'):s.uses==='drive'?tr('Uses the driving GIF'):tr('Car picture (none)');
    if(r&&r.error)now+=' · '+tr('not kept')+' ('+(why[r.error]?tr(why[r.error]):r.error)+')';
-   cv.text(now,1050,y+33,18,s.ok||s.uses?'#5ee08f':'#91a1b6',{literal:true});
+   cv.text(now,1050,y+28,17,s.ok||s.uses?'#5ee08f':'#91a1b6',{literal:true});
   });
-  const note=res.error?tr(why[res.error]||res.error):tr('The driving GIF is required; standing still and reverse show it when they have none. A change of scene fades.');
-  cv.text(note,100,420,18,res.error?'#ff8a8a':'#91a1b6',{literal:true});
+  const note=res.error?tr(why[res.error]||res.error):tr('The driving GIF is required; scenes without their own show it (a turn: the other turn mirrored first). A change of scene fades.');
+  cv.text(note,100,432,16,res.error?'#ff8a8a':'#91a1b6',{literal:true});
   this.button(cv,local,st.busy?tr('Fetching'):tr('Fetch from GIF player'),84,448,380,64,()=>this.myPicFetch(),false,'mypic-fetch',24);
   this.button(cv,local,tr('Refresh'),476,448,200,64,()=>this.myPicList(),false,'mypic-refresh',24);
   this.button(cv,local,tr('Next')+': '+tr('Auxiliary information'),688,448,500,64,()=>{const a=D.auxConfig(this.config()[this.display()+'AuxConfig']);this.open='auxMode';this.choice=a.mode==='off'?2:a.mode==='values'?1:0;this.changed();},false,'mypic-next',24);
@@ -849,7 +851,7 @@ class SettingsPage{
   cv.text(nav||uniform?'Width and height scale together.':'Width / height difference limited to 30%.',790,432,18,'#a8b6c8');
   // My picture: whether each of its three GIFs is read (my-picture.js), what is wrong with one that is not
   if(!nav&&RL.style(cfg,display)==='mypic'){const MP=require('./my-picture');MP.scan(Date.now());const why={missing:'missing',too_large:'too large',too_big:'too big'};
-   const SC={stop:'Standing still',drive:'Driving',reverse:'Reverse'},line=MP.status().map(s=>tr(SC[s.name])+' '+(s.ok?s.w+'×'+s.h+' '+s.frames+' '+tr('frames'):s.uses==='drive'?tr('Uses the driving GIF'):tr(why[s.error]||'unreadable'))).join(' · ');
+   const SC={stop:'Standing still',drive:'Driving',reverse:'Reverse',left:'Turning left',right:'Turning right'},line=MP.status().map(s=>tr(SC[s.name])+' '+(s.ok?s.w+'×'+s.h+' '+s.frames+' '+tr('frames'):s.uses==='drive'?tr('Uses the driving GIF'):tr(why[s.error]||'unreadable'))).join(' · ');
    cv.text(tr('My GIFs')+': '+line,790,500,17,'#ffad45',{literal:true});}
   const hidden=group.length&&group.every(p=>cfg[this.layoutPrefix(p)+'Hidden']);
   const marks=!nav&&group.some(p=>/^Mark/.test(p.key));

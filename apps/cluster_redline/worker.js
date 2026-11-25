@@ -330,7 +330,7 @@ function start(ctx) {
                 if(!available){if(!entry.notifyOnly)auxInfo.clearSource(source,'unavailable');return;}
                 if(!wanted&&!entry.notifyOnly){auxInfo.clearSource(source);return;}
                 // the Car picture follows the G: its two sources are read more often while it is shown
-                const pollMs=source.carPollMs&&carMeterFaces(config).some(d=>config[d+'Design']==='rl-car')?source.carPollMs:source.pollMs;
+                const pollMs=source.carPollMs&&carMeterFaces(config).length?source.carPollMs:source.pollMs;
                 if(entry.notifyOnly||!wanted||!sub.proxy||typeof sub.proxy.getValue!=='function'||entry.pending||at-entry.lastPoll<pollMs)return;
                 entry.pending=true;entry.lastPoll=at;const epoch=entry.epoch,revision=entry.revision;
                 Promise.resolve().then(()=>sub.proxy.getValue(source.field,1000)).then(value=>{
@@ -345,7 +345,7 @@ function start(ctx) {
             if(carFaces.length){const CM=require('./car-meter'),MP=require('./my-picture'),stage=require('./redline-hud').gearOf(gearbox.gear).stage,g={lat:controller.aux.gLat,long:controller.aux.gLong};
                 const speed=carSpeed.at!==null&&at-carSpeed.at<=2000?carSpeed.v:null;   // (a speed older than 2 s is not known)
                 if(carFaces.some(d=>config[d+'Design']==='rl-mypic')){if(!MP.folder()&&ctx.dataDir)MP.setDir(ctx.dataDir);MP.scan(at);}
-                controller.aux.car={};carFaces.forEach(d=>{controller.aux.car[d]=config[d+'Design']==='rl-mypic'?MP.frameOf(d,stage,speed,at):CM.frameOf(d,g,stage,at,speed);});}
+                controller.aux.car={};carFaces.forEach(d=>{controller.aux.car[d]=config[d+'Design']==='rl-mypic'?MP.frameOf(d,stage,speed,at,g):CM.frameOf(d,g,stage,at,speed);});}
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
             if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
             Object.keys(PROJECTED).forEach((provider)=>{
