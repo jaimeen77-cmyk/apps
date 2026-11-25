@@ -504,6 +504,16 @@ mgu.run({
         let fullView = false;
         // kept here, not in app.json (whose text is part of the Store's UI template)
         const FULL_VIEW = getLanguage() === 'ko' ? '전체보기' : 'Full view';
+        // Without the GPU renderer the page is the HMI's image component, not centred on the iDrive 7 screen
+        // (1920 x 720; the image at x 124, y 82, 1600 x 520: its middle 36 px left of and 18 px above the screen's).
+        // The GIF goes in the largest box of the page whose middle is the screen's, so it sits in the screen's centre.
+        const HMI7_SCREEN = { w: 1920, h: 720 }, HMI7_IMAGE = { x: 124, y: 82 };
+        function softwareFullBox() {
+            if (ui.id8) return { x: 0, y: 0, w: W, h: H };
+            const cx = HMI7_SCREEN.w / 2 - HMI7_IMAGE.x, cy = HMI7_SCREEN.h / 2 - HMI7_IMAGE.y;   // in page px
+            const hw = Math.min(cx, W - cx), hh = Math.min(cy, H - cy);
+            return { x: cx - hw, y: cy - hh, w: 2 * hw, h: 2 * hh };
+        }
         function enterFull() { fullView = true; tabsUntil = 0; }
         function leaveFull() { if (!fullView) return false; fullView = false; showTabs(false); return true; }
         // The Animation screen: the GIF on the left (a 3:2 GIF fills its 1080 x 720 of the 1920 x 720 screen), on
@@ -599,7 +609,7 @@ mgu.run({
                     fullRec.reset();
                     drawGif(fullRec, { x: 0, y: 0, w: pl.w, h: pl.h });
                     cv.xf(1, 0, 0).append(fullRec).xf();
-                } else drawGif(cv, { x: 0, y: 0, w: W, h: H });
+                } else drawGif(cv, softwareFullBox());
                 // the whole screen is one target: a tap or the controller's press brings the menus back
                 cv.targets = [{ key: 'anim-menu', x: 0, y: 0, w: W, h: H, run: leaveFull }];
                 await ui.image('ANIM_GFX', cv);

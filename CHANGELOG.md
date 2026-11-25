@@ -10,7 +10,7 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 ## GIF Home 0.4.2 (Korean edition)
 
-- **Full view (전체보기)** on the Animation screen: a new button under the speed shows the GIF alone across the whole screen (aspect kept, black around it), without the tabs, the right-hand panel or the bottom bar (with the GPU renderer the screen is "chrome": false). A tap anywhere, or the controller's press (the whole screen is one target), brings the menu screen back with the tabs for 5 s. Without the GPU renderer the HMI still draws its bottom bar; any of its buttons leaves full view first. Opening the screen again starts on the menu screen.
+- **Full view (전체보기)** on the Animation screen: a new button under the speed shows the GIF alone across the whole screen, in the middle of the screen (aspect kept, black around it; without the GPU renderer in the largest part of the HMI's image centred on the 1920 x 720 screen, as that image sits 36 px left of and 18 px above the middle), without the tabs, the right-hand panel or the bottom bar (with the GPU renderer the screen is "chrome": false). A tap anywhere, or the controller's press (the whole screen is one target), brings the menu screen back with the tabs for 5 s. Without the GPU renderer the HMI still draws its bottom bar; any of its buttons leaves full view first. Opening the screen again starts on the menu screen.
 - The label is kept in `main.js` (`app.json` only changes its version), so the Store UI template stays valid. `tests/gif-home-fullview.test.js` runs the packaged app and renders both views.
 - Not yet checked on the car.
 
