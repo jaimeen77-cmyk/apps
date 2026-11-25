@@ -105,6 +105,13 @@ function draw(r,f,x,y,w,h){
   }
   return;
  }
+ // the GPU renderer's recorder (the settings screen's layout picker on the car): a pixel image by id, not a canvas
+ // (its blit takes only cached layers: 'Recorder.blit: not a layer')
+ if(typeof r.image==='function'&&!r.d){let rec=null;try{rec=require('./kit/record');}catch(e){}
+  if(rec&&typeof rec.setImage==='function'){const id=(IMAGE_ID+((w*131+h)&0xffff))>>>0,data=Buffer.from(px);
+   rec.setImage(id,w,h,data);r.image(id,x,y,w,h);return;}}
  if(typeof r.blit==='function'){const {Canvas}=require('./kit/canvas'),c=new Canvas(w,h);c.d.set(px);r.blit(c,x,y);}
 }
+// pixel image ids for the recorder path (one per picture size)
+const IMAGE_ID=0x43A20000;
 module.exports={TH,TURN,want,look,pick,frameOf,reset,draw,frames,FPS,FADE_MS};

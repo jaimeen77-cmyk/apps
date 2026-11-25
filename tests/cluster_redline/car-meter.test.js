@@ -116,4 +116,9 @@ if(process.env.CAR_METER_PREVIEW){const out=path.resolve(process.env.CAR_METER_P
  [['stop',false],['cruise',false],['accel',false],['brake',false],['reverse',false],['turn1',false],['turn2',false],['turn3',false],['turn3',true]].forEach(([s,m])=>{const im=draw(st(car(s,2,m))),p=new Canvas(im.w,im.h);p.clear('#05070b');p.blit(im,0,0);
   fs.writeFileSync(path.join(out,'layout-'+s+(m?'-left':'')+'.png'),p.png());});
  ['SPORT','COMFORT','ECO_PRO'].forEach(mode=>{const im=draw(Object.assign(st(car('turn3',2)),{mode})),p=new Canvas(im.w,im.h);p.clear('#05070b');p.blit(im,0,0);fs.writeFileSync(path.join(out,'mode-'+mode.toLowerCase()+'.png'),p.png());});}
+// the settings screen's layout picker on the car records for the GPU renderer: the picture goes as a pixel image
+// (the recorder's blit takes only cached layers: 'Recorder.blit: not a layer', 1.3.49 merge)
+{const rec=require(root+'/kit/record'),CM=require(root+'/car-meter'),r=new rec.Recorder(1600,520);
+ assert.doesNotThrow(()=>CM.draw(r,{state:'cruise',mirror:false,i:0,set:'cluster'},40,40,320,180));
+ assert(r.images.size===1,'the picture as one pixel image');const id=[...r.images][0],im=rec.imageById.get(id);assert(im&&im.w>0&&im.h>0&&im.data.length===im.w*im.h*4);}
 console.log('PASS: Car layout: big car picture following the G and gear (held against noise, reverse at once, 10 frames a second, mirrored left turn), rpm bar, gear, rpm, small G meter and readouts on the cluster; drive mode colours; on the HUD the car alone, its black clear; repaint keys; Position / size; faster G reads');

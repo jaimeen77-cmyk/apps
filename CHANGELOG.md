@@ -9,6 +9,7 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The pictures are original low-poly 3D renders (a generic white-over-black 1980s hatchback, no logos or lettering), so the body really turns in a drift: 8 states (standing still, driving on, flames, braking, reverse, three cornering steps) x 8 frames at 320 x 180 in one 256-colour palette (`car-meter-frames.js`, 610 KB; the HUD's set 240 x 135, `car-meter-hud-frames.js`, 155 KB), scaled to the element's size once per state; the left drift is the right one mirrored. Made by `tools/car-meter/render3d.py` (Python 3, no packages; see its README).
 - Not yet checked on the car: which way round the lateral G is (taken as positive to the left, ISO 8855).
 - Tests: `car-meter` (new); `redline-layouts`, `redline-layout-parts` (19 layouts, 16 on the HUD).
+- Merged with 1.3.48's menus: the Car layout is in the design picker after the two Jam layouts (the picker's rows fit above Back). Fix: in the layout picker on the car (the settings screen recorded for the GPU renderer) the Car preview stopped the screen (`Recorder.blit: not a layer`); the picture now goes there as a pixel image. `redline-layout-parts`: the Car layout's parts overlap a little where they meet, so it allows up to 40 differing pixels there.
 
 ## MGU Monitor 1.1.8
 

@@ -375,7 +375,7 @@ class SettingsPage{
   const d=this.display(),current=RL.style(cfg,d),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,outside:18,clock:'23:00'}};
   // Four columns: the Redline app's nine, then Cluster Redline's five; each preview fitted to its cell.
   // Rows shrink when the list needs a fifth row (the cluster's seventeen layouts).
-  const list=designList(d),rows=Math.ceil(list.length/4),pitch=Math.min(80,Math.floor(332/rows)),bh=pitch-4;
+  const list=designList(d),rows=Math.ceil(list.length/4),pitch=Math.min(80,Math.floor(304/rows)),bh=pitch-4;
   const now=designNow(cfg,d);
   list.forEach((st,i)=>{const x=84+(i%4)*366,y=138+Math.floor(i/4)*pitch,on=st===now;
    if(JAM[st]){this.button(cv,targets,'',x,y,354,bh,()=>this.choose(i),on,'rl-'+st);
