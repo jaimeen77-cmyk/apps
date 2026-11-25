@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.53
+
+- Final check (performance, errors): a damaged My design copy cut short reported zlib's own error code; it now reads as unreadable like any other damaged one (the driving GIF or the Car picture stands in). No other change.
+- Checked: all 75 Cluster Redline tests, the Store builds; every app file parses as Node 8 code (ES2017) with no newer APIs; cluster frame cost (PC): default design 5.8 ms, Car layout 4.6 ms, My design 3.6 ms, My design while fading 6.9 ms a frame; error cases (GIF player off, its port taken, a read error, not a GIF, a GIF gone, damaged copies, no data folder, POST to the share) handled without a crash.
+
 ## Cluster Redline 1.3.52
 
 - **My design: five scenes** — driving (required), standing still, reverse, and now **turning left** and **turning right**. A turn is the sideways G, as the Car layout reads it (positive to the left; not yet checked on the car): 0.12 G and up starts it, under 0.08 G ends it, a new scene lasts 300 ms and a shown one 400 ms. A turn without its own GIF shows the other turn's GIF mirrored, then the driving GIF. While My design's picture shows, the G is read every 200 ms even with its small G meter hidden.

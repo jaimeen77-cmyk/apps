@@ -91,7 +91,7 @@ function scan(now, force) {
             const gif = old ? fit(GIF.decode(fs.readFileSync(file), LIMIT)) : decodeFile(fs.readFileSync(file)), starts = []; let t = 0;
             gif.frames.forEach((fr) => { starts.push(t); t += fr.delay; });
             loaded[n] = { sig, gif, starts, total: Math.max(1, t), error: null, bytes: st.size, source: gif.source };
-        } catch (e) { loaded[n] = { sig, gif: null, error: e.code || 'broken', bytes: st.size }; }
+        } catch (e) { loaded[n] = { sig, gif: null, error: ['not_gif', 'too_big', 'no_frames', 'too_large'].indexOf(e.code) >= 0 ? e.code : 'broken', bytes: st.size }; }   // (a cut file: zlib's own code)
     });
 }
 const usable = (n) => !!(loaded[n] && loaded[n].gif);
