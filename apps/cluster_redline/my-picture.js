@@ -249,4 +249,6 @@ function draw(r, f, x, y, w, h) {
         if (rec && typeof rec.setImage === 'function') { const id = (0x43A30000 + ((w * 131 + h) & 0xffff)) >>> 0; rec.setImage(id, w, h, Buffer.from(px)); r.image(id, x, y, w, h); return; } }
     if (typeof r.blit === 'function') { const { Canvas } = require('./kit/canvas'), c = new Canvas(w, h); c.d.set(px); r.blit(c, x, y); }
 }
-module.exports = { TURN_G, show, NAMES, BOX, MAX_FRAMES, SOURCE, LIMIT, FADE_MS, setDir, scan, status, resolve, want, pick, frameOf, frameAt, reset, draw, folder, fit, encode, decodeFile, prepare, OWN };
+// The GIFs loaded now, for the GPU flipbook (flipbook.js): [{name, sig, gif}] of each scene that has its own.
+function gifs() { return NAMES.filter(usable).map((n) => ({ name: n, sig: loaded[n].sig, gif: loaded[n].gif })); }
+module.exports = { gifs, TURN_G, show, NAMES, BOX, MAX_FRAMES, SOURCE, LIMIT, FADE_MS, setDir, scan, status, resolve, want, pick, frameOf, frameAt, reset, draw, folder, fit, encode, decodeFile, prepare, OWN };
