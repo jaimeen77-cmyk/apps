@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.48 and MGU Monitor 1.1.9
+
+- **Cluster Redline**: the settings watermark no longer shows the cafe name "BMW Coding 배움터" or the blog address. The Korean edition keeps the profile picture and 서울II잼님; the English edition shows no watermark. The background photo is unchanged.
+- **MGU Monitor**: the mark on the Disks and Apps pages no longer shows "코딩나눔터" or the blog address. The Korean edition keeps "동이/카자미/잼님"; the English edition shows no mark. The background photo is unchanged.
+- App code only (`settings-bg.js`, `bg.js`); the Store UI templates are unchanged.
+
 ## MGU Monitor 1.1.8
 
 - **Home widget: CPU and memory graphs.** The big widget now draws the whole head unit's CPU and memory (RAM) use over the last 30 minutes (the app's 10-second samples, 0 to 100 %), the current values on the right, orange on a CPU / memory rise or a suspected leak. The app storage line stays at the bottom (red at the warning threshold). The small widget shows `CPU · RAM` with a memory bar, and the storage text and bar during a storage warning.

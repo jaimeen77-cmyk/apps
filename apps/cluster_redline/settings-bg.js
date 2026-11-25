@@ -1,6 +1,6 @@
 'use strict';
 // Settings screen background: the BMW Coding Study Cafe photo (sky and car), darkened so the menus stay
-// readable; the cafe profile (서울II잼님), its address and "BMW Coding 배움터" go where no setting is.
+// readable; the cafe profile (picture and 서울II잼님) goes where no setting is (Korean edition only).
 // The car's renderer takes no pixel images, so on it the photo is drawn once into a cached layer as thin
 // vertical gradient columns (a soft, slightly blurred copy) and the words as text; the PC / HMI-image
 // canvas gets the photo enlarged directly.
@@ -30,19 +30,17 @@ function korean(){
  if(!ko)return false;
  try{const F=require('./kit/fonts');if(typeof F.has==='function')return F.has('korean');const f=F.get('korean',20,'잼');return !!(f&&f.glyphs&&f.glyphs['잼'.codePointAt(0)]);}catch(e){return true;}
 }
-// Watermark: profile picture, cafe address and name, in the free space at the bottom right of the HUD,
-// cluster and navigation tabs (under their last row, right of their notes), never over a setting.
+// Watermark: profile picture and 서울II잼님 in the free space at the bottom right of the HUD, cluster and
+// navigation tabs (under their last row, right of their notes), never over a setting. The English edition has none.
+// (1.3.48: the cafe name "BMW Coding 배움터" and the blog address are no longer shown.)
 function watermark(cv,w,h){
- const R=w-14,ko=korean(),a=170;
- // English edition: "BMW Coding" and the Naver address only (no Korean cafe name or profile picture).
- if(!ko){cv.text('Http://blog.naver.com/codingbmw',R,h-50,19,[230,236,242,a],{align:'right',literal:true});cv.text('BMW Coding',R,h-14,30,[255,255,255,a+30],{align:'right',literal:true});return;}
- const brand='BMW Coding 배움터',top='서울II잼님  ·  Http://blog.naver.com/codingbmw';
- const w1=cv.textWidth?cv.textWidth(top,19,{literal:true}):430,w2=cv.textWidth?cv.textWidth(brand,30,{literal:true}):280;
+ const R=w-14;
+ if(!korean())return;
+ const name='서울II잼님',nw=cv.textWidth?cv.textWidth(name,24,{literal:true}):130;
  if(!avatar)avatar=inflate(AVATAR);
- if(avatar){const S=2,ax=Math.round(R-Math.max(w1,w2)-12-AW*S),ay=h-70;
+ if(avatar){const S=2,ax=Math.round(R-nw-12-AW*S),ay=h-62;
   for(let y=0;y<AW;y++)for(let x=0;x<AW;x++){const dx=x-AW/2+0.5,dy=y-AW/2+0.5;if(dx*dx+dy*dy>(AW/2)*(AW/2))continue;const o=(y*AW+x)*3;cv.fillRect(ax+x*S,ay+y*S,S,S,[avatar[o],avatar[o+1],avatar[o+2],210]);}}
- cv.text(top,R,h-50,19,[230,236,242,a],{align:'right',literal:true});
- cv.text(brand,R,h-14,30,[255,255,255,a+30],{align:'right',literal:true});
+ cv.text(name,R,h-30,24,[255,255,255,200],{align:'right',literal:true});
 }
 // Paint the photo behind everything (after clear, before the menus), into x0..w, y0..h: the part the page shows.
 // On the car's full-screen layout the page's left edge lies under the HMI's back arrow column, which only reaches
