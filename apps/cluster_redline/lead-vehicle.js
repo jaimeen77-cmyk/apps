@@ -19,13 +19,14 @@ class LeadVehicle {
     // clock: the worker's monotonic ms (the same as read()'s now)
     constructor(signals,log,instanceOf,clock) {
         this.clock=clock||Date.now;this.signals=signals;this.log=log||{warn(){},info(){}};this.instanceOf=instanceOf||(()=>'1');
-        this.sub=null;this.state='off';this.error=null;this.token=0;this.speed=null;this.speedAt=null;
+        this.sub=null;this.state='off';this.error=null;this.token=0;this.instance=null;this.altInstance=null;this.subscribedAt=0;this.speed=null;this.speedAt=null;
         this.raw={status:null,gap:null,gapX:null,object:null,qualifier:null,kind:null};this.received=0;this.reset();
     }
     reset(){this.gap=null;this.at=null;this.fineAt=null;this.object=null;this.closing=null;this.ref=null;}
     // on: the badge wanted (on, the app running, the car's signals there). Subscribes or lets go.
     sync(on) {
         if(!on){if(this.sub||this.state==='subscribing'){this.token++;if(this.sub)try{this.sub.shutdown();}catch(e){}this.sub=null;}this.state='off';this.reset();return;}
+        if(this.sub)this.check(this.clock());
         if(this.sub||this.state==='subscribing'||this.state==='not_installed'||this.state==='error')return;
         let cfg=null;try{cfg=this.signals.loadConfig(IFACE);}catch(e){}
         const fields=cfg&&cfg.fields?FIELDS.filter(f=>cfg.fields[f]):[];
@@ -36,10 +37,18 @@ class LeadVehicle {
         handlers.DataFrontVehicleExtended=(v)=>{if(token===this.token&&v&&typeof v==='object'){const k=v.frontVehicleExtendedObjectType;if(k!==undefined&&k!==null)this.raw.kind=String(k);}};
         const wanted={};fields.forEach(f=>{wanted[f]=handlers[f];});
         this.state='subscribing';
-        Promise.resolve().then(()=>this.signals.watch(IFACE,this.instanceOf(IFACE),wanted,this.log,{})).then((s)=>{
+        // the instance the manifest names; after 20 s offered nothing there, instance 1 (as cluster-metrics subscribes it), once
+        const inst=this.altInstance||String(this.instanceOf(IFACE)||'1');this.instance=inst;this.subscribedAt=this.clock();
+        Promise.resolve().then(()=>this.signals.watch(IFACE,inst,wanted,this.log,{})).then((s)=>{
             if(token!==this.token){try{s.shutdown();}catch(e){}return;}
             this.sub=s;this.error=s&&s.error?String(s.error):null;this.state=this.error?'error':'subscribed';
         },(e)=>{if(token===this.token){this.error=String(e&&e.message||e).slice(0,120);this.state='error';}});
+    }
+    // nothing received for 20 s on another instance than 1, the service not offered there: subscribed again on 1 (1.3.65)
+    check(now){
+        if(this.state!=='subscribed'||this.received||this.altInstance||this.instance==='1'||now-this.subscribedAt<20000)return;
+        if(this.sub&&this.sub.available)return;
+        this.altInstance='1';this.token++;try{this.sub.shutdown();}catch(e){}this.sub=null;this.state='off';this.sync(true);
     }
     /** Our speed (Vehicle2.statusCarSpeed2, km/h x 64), as the vehicle alerts read it. */
     sampleSpeed(v,now){const r=v&&num(v.speedVehicleCentreOfGravity);this.speed=r!==null&&r>=0&&r<=400*64?r/64:null;this.speedAt=this.speed===null?null:now;}
@@ -81,6 +90,6 @@ class LeadVehicle {
         const headway=speed!==null&&speed>=SLOW_KMH?Math.max(0.1,Math.min(9.9,this.gap/(speed/3.6))):null;
         return {gap:this.gap,headway,closing:this.closing,level:level(headway)};
     }
-    status(now){return {state:this.state,error:this.error,received:this.received,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
+    status(now){return {state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
 }
 module.exports={LeadVehicle,level,IFACE,FIELDS,STALE_MS,SLOW_KMH,RED_S,AMBER_S};

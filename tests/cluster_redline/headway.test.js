@@ -55,5 +55,15 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  assert.deepStrictEqual(content({gap:6,headway:null,closing:null,level:'ok'},'detail'),{big:'6 m',dist:null,closing:null,color:'#3ec8f5'},'slow: the distance big');
  if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),O=require(path.join(dir,'headway-overlay'));
   const cv=O.draw({gap:36,headway:0.8,closing:-6,level:'red'},'detail',112,60);let red=0;for(let i=0;i<cv.d.length;i+=4)if(cv.d[i]>200&&cv.d[i+1]<80&&cv.d[i+3]>200)red++;assert(red>80,'drawn red');}
+ // 1.3.65: nothing offered on the manifest's instance for 20 s: subscribed again on instance 1 (as cluster-metrics), once;
+ // the screen shows whether the radar's service is offered and on which instance
+ {let t2=0;const seen=[];const sig={loadConfig:()=>({fields:{GapVehicleDrivingAhead:{},DataFrontVehicle:{}}}),watch:(i,inst)=>{seen.push(inst);return Promise.resolve({available:false,shutdown(){}});}};
+  const L2=new LeadVehicle(sig,null,()=>'Main_Instance',()=>t2);L2.sync(true);await flush();
+  assert.deepStrictEqual([L2.status(0).instance,L2.status(0).available],['Main_Instance',false]);
+  t2=10000;L2.sync(true);await flush();assert.deepStrictEqual(seen,['Main_Instance'],'not before 20 s');
+  t2=21000;L2.sync(true);await flush();assert.deepStrictEqual(seen,['Main_Instance','1'],'then instance 1');assert.strictEqual(L2.status(t2).instance,'1');
+  t2=60000;L2.sync(true);await flush();assert.strictEqual(seen.length,2,'once');
+  const seen3=[];const L3=new LeadVehicle({loadConfig:sig.loadConfig,watch:(i,inst)=>{seen3.push(inst);return Promise.resolve({available:false,shutdown(){}});}},null,()=>'1',()=>t2);
+  L3.sync(true);await flush();t2=200000;L3.sync(true);await flush();assert.deepStrictEqual(seen3,['1'],'already instance 1: nothing else to try');}
  console.log('PASS: HUD headway badge: GapVehicleAhead read only while on, fine distance first, time gap from our speed (none below 12 km/h), closing speed, colour steps, install-time input, settings, overlay'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

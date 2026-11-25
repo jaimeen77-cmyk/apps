@@ -8,6 +8,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.65 (lead-car headway: is the radar's service offered?)
+
+- On the user's car the headway badge showed "no car ahead" with **received 0**: subscribed, but not even the first read came back, so the radar's service (`de.bmw.dass.GapVehicleAhead`) was not offered to the app on that instance at that moment. The Lead-car headway screen now says whether it is offered and on which instance (Radar service: offered / not offered · instance N).
+- Nothing received for 20 s on an instance other than 1: subscribed again on instance 1, the one cluster-metrics subscribes (once).
+- Tests: `headway` (the instance fallback).
+
 ## Cluster Redline 1.3.64 (the GIF on a layer of its own: small GIFs run faster)
 
 - **The Animation layout's GIF goes on an image layer of its own, at the GIF's own size, and cluster-render scales it up** (`picture-layer.js`). Before, the GIF was scaled up into the layout's image and that image's changed pixels sent: about 160 KB a frame on the cluster, 2-5 frames a second whatever the GIF's size. Now what goes is the GIF's own changed pixels, so a smaller GIF runs faster. Measured in a simulation of the shared 1 MB/s (cluster and HUD both showing it): 160 x 90 with the whole picture moving 9.5 frames a second on each (2.3 before), with part of it moving 20; 320 x 180 2.3-5.8. With the HUD not showing a GIF, the cluster has it all to itself (about twice as many).

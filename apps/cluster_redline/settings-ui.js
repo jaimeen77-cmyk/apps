@@ -535,6 +535,8 @@ class SettingsPage{
   // what arrives: the raw values, to check the signal on this car
   const h=this.liveState&&this.liveState.headway,r=h&&h.raw||{},f=v=>v===null||v===undefined?'-':String(v);
   cv.text(this.headwayValue(cfg),100,330,21,'#c1cddd',{literal:true});
+  // whether the car offers the radar's service to the app at all, and on which instance (1.3.65)
+  if(h&&cfg.hudHeadway!=='off'&&h.state==='subscribed')cv.text(tr('Radar service')+': '+(h.available===true?tr('offered'):h.available===false?tr('not offered (the car does not send it now)'):'-')+(h.instance?' · '+tr('instance')+' '+h.instance:''),100,392,17,h.available?'#5ee08f':'#ffad45',{literal:true});
   if(h&&cfg.hudHeadway!=='off')cv.text(tr('From the car')+': '+tr('received')+' '+(h.received||0)+' · status '+f(r.status)+' · gap '+f(r.gap)+' · gapX '+f(r.gapX)+' · object '+f(r.object)+' · qualifier '+f(r.qualifier)+(r.kind?' · '+r.kind:''),100,362,17,'#7f8b9a',{literal:true});
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='headway';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Headway']);this.setPreview(true);this.changed();},false,'headway-layout');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
