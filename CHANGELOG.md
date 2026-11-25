@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## GIF 플레이어 0.4.6 (Korean edition)
+
+- **Smooth change on the Animation screen**: when the next (or previous) GIF comes, it fades in over the last picture of the one before, eased, in 0.6 s (op 16 opacity with the GPU renderer: about 36 frames). Without the GPU renderer the new GIF simply replaces the old one.
+- Checked in the preview's renderer stream: the old picture's opacity goes 1 to 0 as the new one's goes 0 to 1, then only the new GIF is drawn. Not yet seen on the car.
+
 ## GIF 플레이어 0.4.5 (Korean edition)
 
 - **Animation screen black on the car (fixed)**: on the GPU renderer's own dialect (mgu-render/1) the kit's renderer client dropped pixel images ("pixel images need the upstream dialect"), and op 18 went out in the upstream field order, so the GIF never showed and frames could be refused. The Store template's `kit/runtime/renderd.js` now sends them as pixmaps (`X_PIXMAP` once per size, `X_PIXELS` per new frame, RGBA, nearest) when the renderer offers pixmaps, and rewrites op 18 to `x y w h r id` in the frames sent there; the recording kept for the software path is unchanged (`tools/prepare-upstream-apps.py`, `patch_native_pixmaps`).
