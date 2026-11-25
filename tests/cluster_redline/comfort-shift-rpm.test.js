@@ -19,7 +19,7 @@ assert(!spec.settings.some(s=>s.key==='comfortShiftRpm'),'kept outside app.json:
 
 const values={};spec.settings.forEach(s=>{values[s.key]=s.default;});
 const page=new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>{values[k]=v;},setMany(c){Object.assign(values,c);}},null,'1.2.9');
-page.selectTab(0);const at=page.keys().indexOf('comfortShiftRpm');
+page.selectTab(0);page.activate(page.keys().indexOf('vehiclePreset'));const at=page.keys().indexOf('comfortShiftRpm');
 assert.strictEqual(at,page.keys().indexOf('shiftRpm')+1,'right under Shift alert RPM');
 page.focus=at;assert(/5000 rpm/.test(page.value(page.item(),page.config())),'automatic shows its RPM');
 page.activate(at);assert.strictEqual(page.open,'comfortShiftRpm');page.choose(3);assert.strictEqual(values.comfortShiftRpm,2500);

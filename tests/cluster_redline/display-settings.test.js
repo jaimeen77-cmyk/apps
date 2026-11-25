@@ -11,14 +11,15 @@ assert.strictEqual(TABS.length,5);assert.strictEqual(TABS[4],'Favorites');assert
 for(const tab of [1,2]){
  const s=store(),page=new SettingsPage(s,null,'test');page.selectTab(tab);const disp=tab===1?'hud':'cluster';draw(page);
  assert.deepStrictEqual(D.auxConfig(s.get(disp+'AuxConfig')),{mode:'gauges',items:['boost','torque']});
- page.activate(2);page.choose(1);assert.strictEqual(page.draft.items.length,0);const old=s.get(disp+'AuxConfig');
+ const aux=()=>{page.activate(2);page.choose(0);assert.strictEqual(page.open,'auxMode','a design, then its auxiliary values (1.3.48)');};
+ aux();page.choose(1);assert.strictEqual(page.draft.items.length,0);const old=s.get(disp+'AuxConfig');
  page.toggleMetric('oil');page.toggleMetric('boost');page.back();assert.strictEqual(s.get(disp+'AuxConfig'),old,'Back must not commit a draft');
  page.choose(1);['outside','power','boost','oil','torque'].forEach(id=>page.toggleMetric(id));assert.deepStrictEqual(page.draft.items,['outside','power','boost','oil']);draw(page);
  const count=s.writes.length;page.commitAux();assert.strictEqual(s.writes.length-count,1,'mode plus ordered selection is one atomic setting');assert.deepStrictEqual(D.auxConfig(s.get(disp+'AuxConfig')).items,['outside','power','boost','oil']);
- page.activate(2);page.choose(0);['oil','boost','power'].forEach(id=>page.toggleMetric(id));assert.deepStrictEqual(page.draft.items,['oil','boost']);page.commitAux();
- page.activate(2);page.choose(1);page.toggleMetric('torque');page.selectTab(0);assert.deepStrictEqual(D.auxConfig(s.get(disp+'AuxConfig')).items,['oil','boost'],'changing tab discards draft');
- page.selectTab(tab);page.activate(3);draw(page);page.choose(0);assert.strictEqual(s.get(disp+'AlertStyle'),'bar');page.activate(3);page.choose(1);assert.strictEqual(s.get(disp+'AlertStyle'),'circle');
- page.activate(4);draw(page);page.selectLayoutPart(0,true);for(let n=0;n<50;n++)page.adjust(2,1);let cfg=page.config();assert(cfg[disp+'RpmGaugeWidthScale']/cfg[disp+'RpmGaugeHeightScale']<=1.3);
+ aux();page.choose(0);['oil','boost','power'].forEach(id=>page.toggleMetric(id));assert.deepStrictEqual(page.draft.items,['oil','boost']);page.commitAux();
+ aux();page.choose(1);page.toggleMetric('torque');page.selectTab(0);assert.deepStrictEqual(D.auxConfig(s.get(disp+'AuxConfig')).items,['oil','boost'],'changing tab discards draft');
+ page.selectTab(tab);page.activate(2);draw(page);page.choose(0);assert.strictEqual(s.get(disp+'AlertStyle'),'bar');page.activate(2);page.choose(1);assert.strictEqual(s.get(disp+'AlertStyle'),'circle');page.choose(2);assert.strictEqual(D.auxConfig(s.get(disp+'AuxConfig')).mode,'off','no auxiliary information');
+ page.activate(3);draw(page);page.selectLayoutPart(0,true);for(let n=0;n<50;n++)page.adjust(2,1);let cfg=page.config();assert(cfg[disp+'RpmGaugeWidthScale']/cfg[disp+'RpmGaugeHeightScale']<=1.3);
  for(let n=0;n<50;n++)page.adjust(3,-1);cfg=page.config();assert(cfg[disp+'RpmGaugeWidthScale']/cfg[disp+'RpmGaugeHeightScale']<=1.3);
  const gear=s.get(disp+'GearOffsetX');page.selectLayoutPart(D.partsFor(disp,page.config()).findIndex(p=>p.key==='RpmValue'),true);page.adjust(0,1);assert.strictEqual(s.get(disp+'GearOffsetX'),gear,'editing RPM number must leave gear placement unchanged');
 }
@@ -67,7 +68,7 @@ console.log('PASS: four tabs, transactional ordered aux choices, defaults and mi
 
 // Placement sizes describe actual transformed display areas; migration runs once.
 {
- const s=store(),page=new SettingsPage(s);page.selectTab(1);page.activate(4);
+ const s=store(),page=new SettingsPage(s);page.selectTab(1);page.activate(page.keys().indexOf('layout'));
  const labels=[],cv=new Canvas(1600,520),text=cv.text;cv.text=function(v){labels.push(v);return text.apply(this,arguments);};page.draw(cv);
  assert(labels.some(v=>String(v).includes('435 × 59 px')),'HUD RPM region dimensions include global scaling');
  const saved=store({_outputsV:1,_displaySettingsV:2,hudNavOffsetX:0,hudTextOffsetX:0});migrate(saved,saved.values);

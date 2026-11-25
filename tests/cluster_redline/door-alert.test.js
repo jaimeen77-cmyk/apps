@@ -42,7 +42,7 @@ assert.deepStrictEqual(m['de.bmw.body.DoorsWindowsRoofMirrors'],{instances:'1',a
  out.doorYield=true;let o=t(1200);assert(!o.cluster.requested,'a door open: the cluster gives way');assert.strictEqual(o.cluster.reason,'door_yield');assert(o.hud.requested,'the HUD stays');
  out.doorYield=false;assert(t(1400).cluster.requested,'closed again: back');out.close();}
 if(process.argv[2]){const pg=path.join(path.resolve(process.argv[2]),'source/javascript'),{SettingsPage}=require(pg+'/settings-ui'),{Canvas}=require(pg+'/kit/canvas'),spec=require(pg+'/kit/app-spec.json'),vals={};spec.settings.forEach(x=>{vals[x.key]=x.default;});
- const page=new SettingsPage({schema:spec.settings,get:k=>vals[k],set:(k,v)=>{vals[k]=v;},onChange(){}},()=>{},'t');page.selectTab(0);page.focus=page.keys().indexOf('hudDoorAlert');page.activate();assert.strictEqual(page.open,'door');
+ const page=new SettingsPage({schema:spec.settings,get:k=>vals[k],set:(k,v)=>{vals[k]=v;},onChange(){}},()=>{},'t');page.selectTab(0);page.activate(page.keys().indexOf('hudLamps'));page.focus=page.keys().indexOf('hudDoorAlert');page.activate();assert.strictEqual(page.open,'door');
  const scr=()=>{const cv=new Canvas(1600,520);page.draw(cv,'',{});return cv.targets;};scr().find(t=>t.id==='door-off').run();assert.strictEqual(vals.hudDoorAlert,'off');scr().find(t=>t.id==='door-on').run();
  scr().find(t=>t.id==='door-layout').run();assert.strictEqual(page.open,'layout');assert(/^hud:Door@/.test(vals.layoutPreview));page.adjust(0,1);page.adjust(2,1);assert.deepStrictEqual([vals.hudDoorOffsetX,vals.hudDoorScale],[10,80]);
  page.back();assert.strictEqual(page.open,'door');assert.strictEqual(vals.layoutPreview,'');}

@@ -32,7 +32,7 @@ function korean(){
 }
 // Watermark: profile picture and 서울II잼님 in the free space at the bottom right of the HUD, cluster and
 // navigation tabs (under their last row, right of their notes), never over a setting. The English edition has none.
-// (1.3.48: the cafe name "BMW Coding 배움터" and the blog address are no longer shown.)
+// (1.3.57: the cafe name "BMW Coding 배움터" and the blog address are no longer shown.)
 function watermark(cv,w,h){
  const R=w-14;
  if(!korean())return;

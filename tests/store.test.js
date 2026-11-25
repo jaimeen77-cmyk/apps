@@ -19,8 +19,11 @@ function checkPackage(file, id, version, start, language) {
     assert(!names.some((n) => /(^|\/)node_modules\//.test(n) || /(^|\/)oap-sdk\//.test(n)), 'published/build output must contain no SDK');
     const p = json(file, 'package.json');
     assert.strictEqual(p.name, id); assert.strictEqual(p.version, version);
-    // Parked Games names its own head units (storeMguHmi: iDrive 7 only, as the original); the others take both
-    assert.deepStrictEqual(p.mguHmi, id.indexOf('parked_games') === 0 ? ['ID7'] : ['ID7', 'ID8']); assert.strictEqual(p.mguLocalOnly, true);
+    // The package's head units are the listing's (mgu-repo.json mguHmi): an app that names its own (storeMguHmi:
+    // Parked Games, the GIF player: iDrive 7 only) or both; a copy built under another id (a test's alias) as its source
+    const listing = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'mgu-repo.json'), 'utf8')).components;
+    const own = listing.find((c) => c.id === id) || listing.filter((c) => id.indexOf(c.id) === 0).sort((a, b) => b.id.length - a.id.length)[0];
+    assert.deepStrictEqual(p.mguHmi, own && Array.isArray(own.mguHmi) ? own.mguHmi : ['ID7', 'ID8'], id + ': head units as listed'); assert.strictEqual(p.mguLocalOnly, true);
     assert.strictEqual(p.mguAppStartType || 'manually', start);
     assert.strictEqual(json(file, 'javascript/kit/locale.json').language, language);
     const title = json(file, 'rhmiData/variantGroups/Common/texts/en_GB.json')['SID_' + id.toUpperCase() + '_TITLE'];
@@ -82,7 +85,7 @@ async function checkSettingsEntry(file, id, version) {
         await start;
         assert(frames > 0, 'installed entry must show the new settings immediately');
         assert.strictEqual(spec.version, version);
-        for (const text of ['Basic settings', 'HUD display setting', 'CLUSTER display setting', 'NAV display setting', 'App auto start', 'Vehicle preset']) assert(labels.some((label) => label.toLowerCase() === t(text).toLowerCase()), text);
+        for (const text of ['Basic settings', 'HUD display setting', 'CLUSTER display setting', 'NAV display setting', 'App operation', 'Vehicle preset']) assert(labels.some((label) => label.toLowerCase() === t(text).toLowerCase()), text);
         assert(labels.includes('v' + version), 'visible version must match the installed package');
         assert(!handlers.BTN_SETTINGS, 'entry must not show the old status page and Settings button');
         labels.length = 0; const before=frames;handlers.BTN_HUD();

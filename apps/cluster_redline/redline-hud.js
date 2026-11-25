@@ -9,11 +9,11 @@ let drawing=null;const kit=()=>drawing||(drawing={DRAW:require('./rl-hud-draw'),
 const {shiftSpec}=require('./shift-alert'),{auxConfig}=require('./display-config'),{gauges}=require('./units'),{language}=require('./strings');
 // The Redline app's layouts (Minimal and Split wings not offered: Standard with parts hidden covers them),
 // then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
-const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres'];
-const NAMES={standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
+const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','car'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','car','mypic'];
+const NAMES={car:'Animation',mypic:'Animation',standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
 // Layouts made for the cluster only (too detailed for the HUD's glass): not offered on the HUD.
 // Layouts that draw the auxiliary items as bar gauges in gauge mode (the others show them as text).
-const GAUGE_LAYOUTS=['standard','digital','vfd','vector','ramp','shift','logger','ribbon','hexagon','classic','sporthud','sportdial','tyres'];
+const GAUGE_LAYOUTS=['standard','digital','vfd','vector','ramp','shift','logger','ribbon','hexagon','classic','sporthud','sportdial','tyres','car'];
 // Layouts whose gauges stand upright: the clock (a horizontal gauge only) is left out of them.
 const VERTICAL_GAUGES=['hexagon','classic'];
 const CLUSTER_ONLY=['sportdial','classic','tyres'],HUD_ONLY=['sporthud'],stylesFor=d=>STYLES.filter(s=>!(d==='hud'?CLUSTER_ONLY:HUD_ONLY).includes(s));
@@ -54,11 +54,21 @@ function readouts(state,d){
 // point (Redline's plain span) and flash at it, with the comfort/sport shift point of the drive mode.
 // Korean time (UTC+9) for the Classic dial, which is a clock: hours (0-11), minutes, seconds.
 function kst(state){const t=new Date((isNum(state.now)?state.now:Date.now())+9*3600000);return {h:t.getUTCHours()%12,m:t.getUTCMinutes(),s:t.getUTCSeconds()};}
+// The Car layout's picture (car-meter.js): the frame the worker picked this tick (aux.car), or, without one
+// (settings previews), the state the G and gear show now, first frame.
+function carOf(state,d){
+ const cfg=state.config,p=d||'hud',st=style(cfg,p);if(st!=='car'&&st!=='mypic')return null;
+ const a=state.aux||{},live=a.car&&a.car[p];if(live)return live;
+ // the Animation layout on the cluster with your GIFs (my-picture.js) and no worker: the scene the gear shows now
+ if(p==='cluster'){const MP=require('./my-picture');MP.scan(Date.now());if(MP.resolve('drive'))return MP.frameAt(MP.want(gearOf(state.gear).stage,null),'cluster',0);}
+ const CM=require('./car-meter'),s=CM.look(CM.want({lat:a.gLat,long:a.gLong},gearOf(state.gear).stage));
+ return {state:s.state,mirror:s.mirror,i:0,set:p==='hud'?'hud':'cluster'};
+}
 function frame(state,now,d){
  const cfg=state.config,rpm=isNum(state.rpm)?state.rpm:null,spec=shiftSpec(cfg,state.mode),g=gearOf(state.gear);
  const limiter=rpm!==null&&rpm>=cfg.maxRpm-50,flash=!!state.shift||limiter,blink=flash?state.flash!==false:true;
  return {d:{rpm,gear:g.gear,stage:g.stage},shift:spec.shift,redline:cfg.redlineRpm,max:cfg.maxRpm,blink,
-  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,tyres:{temp:(state.aux||{}).tyreTemp||null,bar:(state.aux||{}).tyrePressure||null},g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,clock:style(cfg,d)==='classic'?kst(state):null,
+  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,tyres:{temp:(state.aux||{}).tyreTemp||null,bar:(state.aux||{}).tyrePressure||null},g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},car:carOf(state,d),down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,clock:style(cfg,d)==='classic'?kst(state):null,
   opts:{style:style(cfg,d)||'standard',palette:'colour',gear:true,rpm:true,bar:true,lights:true,gt3:true,dim:true,lightStyle:'gt3',clearLabels:false}};
 }
 function paint(target,state,k,ox,oy,now,d){const {DRAW}=kit();DRAW.drawLayer(DRAW.scaled(target,k,ox||0,oy||0),frame(state,now,d));}
@@ -115,10 +125,12 @@ const ELEMENTS={
  classic:['gauge','alert','readA','readB','readC','readD','mark'],
  luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],
  sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark'],
- tyres:['car','gear','mode','readA','readB','readC','readD']};
-const PART={gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',car:'RlCar',mark:'RlMark'};
+ tyres:['car','gear','mode','readA','readB','readC','readD'],
+ car:['carpic','gauge','gear','mode','rpm','gmeter','readA','readB','readC','readD','mark'],
+ mypic:['carpic','gauge','gear','mode','rpm','gmeter','readA','readB','readC','readD','mark']};   // (My picture: the Car layout with your own GIFs)
+const PART={carpic:'RlCarPic',gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',car:'RlCar',mark:'RlMark'};
 const PART_NAMES=Object.keys(PART).map(k=>PART[k]);
-const LABELS={RlCar:'Car and tyres',RlTemp:'Temperature gauge',RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
+const LABELS={RlCarPic:'Car picture',RlCar:'Car and tyres',RlTemp:'Temperature gauge',RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
 function readoutCount(cfg,d){const a=auxConfig(cfg[(d||'hud')+'AuxConfig']);return a.mode==='off'?0:Math.min(4,a.items.length);}
 // The elements the chosen layout draws with the chosen readouts: [{id, key}].
 function elements(cfg,d){
@@ -142,6 +154,7 @@ function bboxCanvas(){
   line:(xa,ya,xb,yb,w)=>{box(xa-w/2,ya-w/2,w,w);box(xb-w/2,yb-w/2,w,w);},
   text:(t,x,y,size,c,o)=>{const w=width(t,size,o),al=o&&o.align;box(al==='center'?x-w/2:al==='right'?x-w:x,y-size*0.8,w,size*1.05);},
   textWidth:(t,size,o)=>width(t,size,o),
+  picture:(f,x,y,w,h)=>box(x,y,w,h),reserve:(x,y,w,h)=>box(x,y,w,h),
  };
 }
 const boundsCache=new Map();
@@ -155,7 +168,7 @@ function bounds(state,id,d){
  const cfg=state.config,f=frame(Object.assign({},state,{rpm:cfg.maxRpm,gear:'M8',flash:true}),0,d);
  f.d=Object.assign({},f.d,{rpm:f.max,gear:8,stage:'D'});f.mode='M';f.blink=true;f.cue=Object.assign({},f.cue,{shift:true});
  f.readouts=(f.readouts||[]).map(r=>Object.assign({},r,{value:'88.88'},r.gauge?{frac:1,lo:888,hi:888}:{}));f.tyres={temp:{FL:-40,FR:-40,RL:-40,RR:-40},bar:{FL:9.9,FR:9.9,RL:9.9,RR:9.9}};f.drive='COMFORT';f.only=id;   // the longest drive-mode name
- const k=JSON.stringify([id,f.opts.style,f.max,f.redline,f.readouts.map(r=>r.label+(r.gauge?'|g':''))]);
+ const k=JSON.stringify([id,f.opts.style,f.max,f.redline,f.readouts.map(r=>r.label+(r.gauge?'|g':'')),!!f.car]);
  if(boundsCache.has(k))return boundsCache.get(k);
  const cv=bboxCanvas();kit().DRAW.drawLayer(cv,f);
  const b=cv.b,r=b.x1>b.x0?{x:Math.floor(b.x0)-2,y:Math.floor(b.y0)-2,w:Math.ceil(b.x1-b.x0)+4,h:Math.ceil(b.y1-b.y0)+4}:null;
@@ -207,7 +220,7 @@ function placed(state,layout,d,face0){
  return list.map(({e,b})=>{const L=Array.isArray(lift[e.key])?lift[e.key]:[0,lift[e.key]||0],spread=f!==1&&/^RlRead/.test(e.key)?{x:(b.x+b.w/2-C.x)*(f-1)+L[0],y:(b.y+b.h/2-C.y)*(f-1)+L[1]}:L[0]||L[1]?{x:L[0],y:L[1]}:null;
   return Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d,spread),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);});
 }
-function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode,f.clock]);}   // (clock: the Classic dial's hands)
+function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode,f.clock,f.car]);}   // (clock: the Classic dial's hands; car: the G-force meter's Car picture frame)
 // Each element's own key, so a tile repaints only when what it shows changes (the mode, readouts, M mark,
 // temperature and G-meter do not follow the revs; the gear does on the layouts that light it towards the
 // shift point, and on the others flashes at the limiter). One frame is read for all of them.
@@ -222,6 +235,7 @@ function keys(state,d){
   else if(id==='read')v=JSON.stringify(base.concat([f.readouts]));
   else if(/^read[A-D]$/.test(id))v=JSON.stringify(base.concat([f.readouts['ABCD'.indexOf(id[4])]||null]));
   else if(id==='gmeter')v=JSON.stringify(base.concat([f.g]));
+  else if(id==='carpic')v=JSON.stringify(base.concat([f.car]));   // (the Car layout's picture: its state and frame)
   else if(id==='temp')v=JSON.stringify(base.concat([f.oil]));
   else v=JSON.stringify(base.concat([id]));
   return (memo[id]=v);};

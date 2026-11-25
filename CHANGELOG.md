@@ -2,12 +2,65 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## Cluster Redline 1.3.48, MGU Monitor 1.1.9 and Seats Easy Access 0.7.10
+## Cluster Redline 1.3.57, MGU Monitor 1.1.9 and Seats Easy Access 0.7.10
 
 - **Cluster Redline**: the settings watermark no longer shows the cafe name "BMW Coding 배움터" or the blog address. The Korean edition keeps the profile picture and 서울II잼님; the English edition shows no watermark. The background photo is unchanged.
 - **MGU Monitor**: the mark on the Disks and Apps pages no longer shows "코딩나눔터" or the blog address. The Korean edition keeps "동이/카자미/잼님"; the English edition shows no mark. The background photo is unchanged.
 - **Seats Easy Access**: the mark beside the seat no longer shows "BMW Coding 배움터" or the blog address. The Korean edition keeps the profile picture and 서울II잼님; the English edition shows no mark. The background photo is unchanged.
 - App code only (`settings-bg.js`, `bg.js`); the Store UI templates are unchanged.
+
+## Cluster Redline 1.3.56
+
+- BC mode screens (Cluster tab): the button and the page summary say **Waze map** (was Waze / Waze · stock map).
+- BC defaults: **current media** (iDrive 7) and **media · radio** (iDrive 8) show the **Animation** layout with the clock, on the cluster (the car, or your GIFs) and on the HUD (the car). Pages already set up keep their own screen.
+- Tests: `bc-follow`, `korean-ui` (Waze map).
+
+## Cluster Redline 1.3.55
+
+- **One layout: Animation** (the Car layout and My design merged; 애니메이션 in Korean). The design picker lists it once. On the cluster, choosing it opens its GIF screen (*Animation · My GIFs*): with no GIF the car of the Car layout shows (braking, three steps of drift each way, flames, reverse); with GIFs from the GIF player they show instead (driving required once any is chosen; standing still, reverse, turning left / right). On the HUD it is the car, as before.
+- A cluster set to My design (`rl-mypic`) reads as the Animation layout, its GIFs kept.
+- Tests: `my-picture`, `redline-layouts` (19 layouts, 16 on the HUD).
+
+## Cluster Redline 1.3.54
+
+- **My design without any GIF is the Car layout itself**: with no GIF fetched (or none usable) the picture is the Car layout's own car, braking, drifting, flaming and reversing with the car's G and gear, not one still picture per scene.
+- **Back to the Car picture**: *Fetch from GIF player* with every scene left empty removes the copies ("No GIF: the Car layout's own car is shown."). With only some scenes chosen, the driving GIF is still required.
+- Tests: `my-picture` (no GIF: the Car layout's states; clearing).
+
+## Cluster Redline 1.3.53
+
+- Final check (performance, errors): a damaged My design copy cut short reported zlib's own error code; it now reads as unreadable like any other damaged one (the driving GIF or the Car picture stands in). No other change.
+- Checked: all 75 Cluster Redline tests, the Store builds; every app file parses as Node 8 code (ES2017) with no newer APIs; cluster frame cost (PC): default design 5.8 ms, Car layout 4.6 ms, My design 3.6 ms, My design while fading 6.9 ms a frame; error cases (GIF player off, its port taken, a read error, not a GIF, a GIF gone, damaged copies, no data folder, POST to the share) handled without a crash.
+
+## Cluster Redline 1.3.52
+
+- **My design: five scenes** — driving (required), standing still, reverse, and now **turning left** and **turning right**. A turn is the sideways G, as the Car layout reads it (positive to the left; not yet checked on the car): 0.12 G and up starts it, under 0.08 G ends it, a new scene lasts 300 ms and a shown one 400 ms. A turn without its own GIF shows the other turn's GIF mirrored, then the driving GIF. While My design's picture shows, the G is read every 200 ms even with its small G meter hidden.
+- Tests: `my-picture` (turn scenes, hysteresis, mirrored fallback and drawing, G demand).
+
+## Cluster Redline 1.3.51
+
+- **My design: GIFs of any size.** A GIF is fitted to the picture's box (320 x 180, its shape kept, never made bigger) when it is copied from the GIF player, so any size the GIF player accepts (up to 640 x 360, 6 MB) can be used; more than 30 frames are thinned to 30, each kept one lasting as long as those it stands for (the GIF runs as long). Kept compressed as `my-pictures/<scene>.mpic` (1.3.50's `.gif` copies are still read).
+- **The driving GIF is required**: *Fetch* does nothing without it ("choose the driving GIF first"); standing still and reverse without their own GIF show the driving GIF (no longer the Car picture). The rows list Driving first.
+- **A change of scene fades** over 400 ms (8 steps), the old GIF still moving; when the scene shows the same GIF (the driving GIF standing in), nothing fades.
+- Tests: `my-picture` (fitting a 640 x 360, 60-frame GIF, durations kept, drive required, fallback, fade).
+
+## Cluster Redline 1.3.50 · GIF 플레이어 0.4.3
+
+- **New cluster layout: My design** (계기판 표시 설정 → 디자인 변경 → 나의 디자인; the cluster only). The Car layout with your own GIFs in the picture's place, one for each scene: standing still, driving, reverse (from the gear and the speed, held 300 ms; reverse at once). A scene without a GIF shows the Car layout's own picture. Frames play at their own GIF delays, at most 10 a second.
+- **The GIFs come from the GIF player.** Choosing My design opens its screen: the GIF player's GIFs (uploaded ones first, then the built-in ones), one picked for each scene with − / +, each shown with its canvas size and file size, red when it does not fit. *Fetch from GIF player* copies the chosen ones into this app's data folder (`my-pictures/`), each checked first (one that does not fit is not kept); then *Next: auxiliary information*. The GIF player is needed only while choosing.
+- **The sizes shown on that screen**: recommended canvas 320 × 180 (the picture's box on the cluster), at most 400 × 225, at most 20 frames, at most 1 MB a file (three GIFs at most about 11 MB in memory).
+- **GIF 플레이어 0.4.3**: lends its GIFs on this head unit only (`redline-share.js`: an HTTP server on 127.0.0.1:18884, GET `/list` and `/gif?id=`; nothing outside the head unit reaches it). Apps keep their data folders to themselves, hence this instead of reading its files. Update the GIF player and open it once before choosing.
+- The layout and its GIF decoder are the parked My picture work (redline-my-picture branch: `gif-decode.js`, `my-picture.js`), now cluster only and fed by the GIF player; its PC copy tool is not used. In the layout picker on the car (the GPU recorder) the GIF goes as a pixel image.
+- Tests: `my-picture` (the GIF player's share, fetch and checks, recorder path), `redline-layouts`.
+
+## Cluster Redline 1.3.49
+
+- **New layout: Car** (Redline app layouts, cluster and HUD; on the HUD the car is drawn alone on black, which is clear on the glass: no road, no frame round it, the lamps, flames, smoke and light trails still show). A big animated picture of a car seen from slightly above and behind at night fills the middle and does what your car does, from its own G and gear: reversing lamps in reverse; standing still (under 1 km/h from the car's speed, or in P when the speed is not known) the road stops and the engine idles with a slight shake and thin exhaust vapour; brake lamps and a dipping nose at 0.18 G of braking, cornering in three steps by the sideways G, left and right: from 0.10 G a lean into the bend, from 0.25 G the tail stepping out with a little smoke, from 0.35 G a full drift with thick tyre smoke and light trails; exhaust flames at 0.12 G of acceleration, otherwise driving straight on. A new state must last 150 ms and a shown one stays at least 400 ms, so one noisy sample does not flicker it; a new state fades in over the old one in 0.3 s (the old one still moving), so a change does not jump; 10 frames a second through the cluster render service. Under it a slim rpm bar; the gear on the left, the rpm on the right; along the bottom a small G meter and up to four readouts as chosen (power, torque, G, ...; two with bars in gauge mode). The drive mode colours it, as the Sport dial: in Sport a glowing red neon frame round the picture, a red rpm bar, rpm and GEAR label and **SPORT** (SPORT+) spelt out under the rpm; Comfort a thin blue frame and **COMFORT**; Eco Pro sky blue. Each element moves, sizes and hides on its own (Position / size: Car picture, RPM gauge, Gear, Drive mode, RPM number, G-force meter, Readouts 1-4, M mark).
+- While the picture shows, the two G sources are read every 200 ms instead of every second. The vehicle speed (`Vehicle2.statusCarSpeed2`, already watched for the vehicle alerts) is kept for it too, whether the alerts are on or not.
+- The pictures are original low-poly 3D renders (a generic white-over-black 1980s hatchback, no logos or lettering), so the body really turns in a drift: 8 states (standing still, driving on, flames, braking, reverse, three cornering steps) x 8 frames at 320 x 180 in one 256-colour palette (`car-meter-frames.js`, 610 KB; the HUD's set 240 x 135, `car-meter-hud-frames.js`, 155 KB), scaled to the element's size once per state; the left drift is the right one mirrored. Made by `tools/car-meter/render3d.py` (Python 3, no packages; see its README).
+- Not yet checked on the car: which way round the lateral G is (taken as positive to the left, ISO 8855).
+- Tests: `car-meter` (new); `redline-layouts`, `redline-layout-parts` (19 layouts, 16 on the HUD).
+- Merged with 1.3.48's menus: the Car layout is in the design picker after the two Jam layouts (the picker's rows fit above Back). Fix: in the layout picker on the car (the settings screen recorded for the GPU renderer) the Car preview stopped the screen (`Recorder.blit: not a layer`); the picture now goes there as a pixel image. `redline-layout-parts`: the Car layout's parts overlap a little where they meet, so it allows up to 40 differing pixels there.
 
 ## MGU Monitor 1.1.8
 
@@ -58,6 +111,16 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 ## Parked Games 0.2.2 (Korean edition, new)
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
+
+## Cluster Redline 1.3.48
+
+Menus reorganised as the user asked:
+- **Basic**: *App operation* (Start = auto start too, Stop = no auto start; the separate App auto start row is gone), *Settings per driver*, *HUD lamps* (Lead-car headway, HUD turn signals, Door-open warning, each with its Position / size), *Vehicle preset* (vehicle type, power unit, torque unit, shift alert RPM Sport and Comfort / Eco). Menus inside a tab (`SUBMENUS`), Back to their row.
+- **HUD and Cluster tabs**: Sport / All modes RPM display (BC mode on both), *Design* (a design, then its auxiliary values: gauges, text or none), Position / size, *BC mode screens*. The default design's top alert bar and circle beside the gear are the first two Redline layouts (*Jam top alert bar*, *Jam circle alert*). The separate Auxiliary information row is gone (it follows the design).
+- **BC mode on the HUD**: the HUD's RPM rows can be BC mode; its pages (`bcHudPages`) are its own, Set screen / No change / This page now; the HUD shows the Redline HUD in BC mode. `setNow({cluster, hud})`; `bcModeNow(cfg, mode, 'Hud')`. Data demand counts BC mode as showing the face (the cluster's too).
+- **BC pages**: no *Left out* (the stock cluster still shows such a page, so it put the count out of step; a saved one counts as No change; every page is counted). New defaults (iDrive 7): no display Waze (HUD no change); efficiency Analog needle / average speed, outside temperature text; trip Tyres & trip (HUD Jam top alert bar) / outside, battery voltage, average speed, average economy text; torque G-force + RPM rings / boost, oil gauges; G-meter Jam top alert bar / power, torque gauges; media Jam top alert bar / clock. Set screen: design, then auxiliary values, then Position / size.
+- **Navigation tab**: no Vehicle alerts row; always all of them (set at the start), hidden only in Position / size.
+- Tests: `bc-hud` (new), `bc-follow`, and the settings tests for the new menus.
 
 ## Cluster Redline 1.3.47
 

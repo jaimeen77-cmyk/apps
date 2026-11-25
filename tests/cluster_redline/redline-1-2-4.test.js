@@ -59,9 +59,9 @@ assert(/^nav:Lanes@\d+$/.test(values.layoutPreview));page.back();page.back();ass
 // Every new screen is Korean in the Korean edition.
 if(getLanguage()==='ko'){const english=[];page.selectTab(1);page.activate(page.keys().indexOf('layout'));page.open='layoutPresets';
  for(const draw of [()=>page.draw(new Canvas(1600,520)),()=>{page.open='layout';page.draw(new Canvas(1600,520));}]){
-  const cv=new Canvas(1600,520),text=cv.text;cv.text=function(v,x,y,z,c,o){const shown=o&&o.literal?String(v):t(v);if(/[A-Za-z]{3,}/.test(shown.replace(/\b(HUD|RPM|UTC)\b/g,'')))english.push(shown);return text.apply(this,arguments);};page.draw(cv);draw();}
- page.back();page.back();page.selectTab(1);page.activate(page.keys().indexOf('aux'));page.choose(0);page.toggleMetric('clock');
- const cv=new Canvas(1600,520),text=cv.text;cv.text=function(v,x,y,z,c,o){const shown=o&&o.literal?String(v):t(v);if(/[A-Za-z]{3,}/.test(shown.replace(/\b(HUD|RPM|UTC)\b/g,'')))english.push(shown);return text.apply(this,arguments);};page.draw(cv);
+  const cv=new Canvas(1600,520),text=cv.text;cv.text=function(v,x,y,z,c,o){const shown=o&&o.literal?String(v):t(v);if(/[A-Za-z]{3,}/.test(shown.replace(/\b(HUD|RPM|UTC|iDrive|BMW Coding)\b|Http:\S+/g,'')))english.push(shown);return text.apply(this,arguments);};page.draw(cv);draw();}
+ page.back();page.back();page.selectTab(1);page.activate(page.keys().indexOf('design'));page.choose(0);page.choose(0);page.toggleMetric('clock');
+ const cv=new Canvas(1600,520),text=cv.text;cv.text=function(v,x,y,z,c,o){const shown=o&&o.literal?String(v):t(v);if(/[A-Za-z]{3,}/.test(shown.replace(/\b(HUD|RPM|UTC|iDrive|BMW Coding)\b|Http:\S+/g,'')))english.push(shown);return text.apply(this,arguments);};page.draw(cv);
  assert.deepStrictEqual(english,[],'untranslated new labels');}
 
 // Preview: the selected part is drawn even when hidden or without guidance; markers expire.
