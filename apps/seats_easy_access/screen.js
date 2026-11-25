@@ -131,7 +131,7 @@ async function start(ctx, options) {
         BG.paint(cv, 1600, 520, left, TAB_BAR);
         // Lighter veil than before so the BMW Coding photo shows, as on Cluster Redline's settings screen.
         cv.fillRect(left, TAB_BAR, 1600 - left, 520 - TAB_BAR, [7, 11, 17, 105]);
-        // BMW Coding mark in the free space between the seat and the automatic Easy Access switch.
+        // profile mark (Korean edition) in the free space between the seat and the automatic Easy Access switch.
         const autoLabel = tr('자동 Easy Access') + (m1Armed ? ' · ' + tr('M1 우선') : '');
         const autoWidth = cv.textWidth ? cv.textWidth(autoLabel, 23, { literal: true }) : 230;
         BG.mark(cv, Math.min(1238, 1440 - autoWidth - 28), 100);

@@ -2,10 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## Cluster Redline 1.3.48 and MGU Monitor 1.1.9
+## Cluster Redline 1.3.48, MGU Monitor 1.1.9 and Seats Easy Access 0.7.10
 
 - **Cluster Redline**: the settings watermark no longer shows the cafe name "BMW Coding 배움터" or the blog address. The Korean edition keeps the profile picture and 서울II잼님; the English edition shows no watermark. The background photo is unchanged.
 - **MGU Monitor**: the mark on the Disks and Apps pages no longer shows "코딩나눔터" or the blog address. The Korean edition keeps "동이/카자미/잼님"; the English edition shows no mark. The background photo is unchanged.
+- **Seats Easy Access**: the mark beside the seat no longer shows "BMW Coding 배움터" or the blog address. The Korean edition keeps the profile picture and 서울II잼님; the English edition shows no mark. The background photo is unchanged.
 - App code only (`settings-bg.js`, `bg.js`); the Store UI templates are unchanged.
 
 ## MGU Monitor 1.1.8

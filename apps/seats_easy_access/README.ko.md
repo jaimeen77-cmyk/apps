@@ -1,4 +1,4 @@
-# Seats Easy Access 0.7.9
+# Seats Easy Access 0.7.10
 
 공용 캔버스 기반으로 실제 시트 이미지·원형 조절 버튼·운전석/조수석 탭을 표시합니다. 대상 프로젝트에서 `node kit/tools/emu.js seats_easy_access`로 실행하세요. PC에서는 미리보기 표시와 모의 상태를 사용하며 차량 소켓에 연결하지 않습니다.
 
