@@ -41,12 +41,18 @@ const resized = (f) => !!(f.width && f.height && (f.width > MP.BOX.w || f.height
 /**
  * Copies the chosen GIFs (choice: {stop, drive, reverse}: an id, or '' for none) into my-pictures/, each fitted to the
  * picture's box (<scene>.mpic); done({stop: {ok, w, h, frames, source} | {error}, ...}). The drive GIF is required
- * (done({error: 'need_drive'}) without it): a scene without its own GIF shows it. A GIF that cannot be used is not
+ * (done({error: 'need_drive'}) without it): a scene without its own GIF shows it. Nothing chosen: every copy removed
+ * (done({cleared: true})), the Car layout's own picture shows. A GIF that cannot be used is not
  * kept (its old copy stays).
  */
 function fetchChosen(dataDir, choice, done) {
-    if (!choice || !choice.drive) return done({ error: 'need_drive' });
     const dir = path.join(dataDir, 'my-pictures'), out = {};
+    // nothing chosen at all (1.3.54): the copies removed, so the layout shows the Car layout's own picture again
+    if (!choice || !MP.NAMES.some((n) => choice[n])) {
+        MP.NAMES.forEach((n) => ['.mpic', '.gif'].forEach((x) => { try { fs.unlinkSync(path.join(dir, n + x)); } catch (e) {} }));
+        MP.scan(Date.now(), true); return done({ cleared: true });
+    }
+    if (!choice.drive) return done({ error: 'need_drive' });
     try { fs.mkdirSync(dir); } catch (e) {}
     const names = MP.NAMES.slice(), drop = (n) => ['.mpic', '.gif'].forEach((x) => { try { fs.unlinkSync(path.join(dir, n + x)); } catch (e) {} });
     const next = () => {

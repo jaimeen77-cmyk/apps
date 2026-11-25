@@ -140,11 +140,15 @@ function frameRef(src, set, now, mirror) {
     const f = { mine: src, i, sig: l.sig, set }; if (mirror) f.mirror = true;
     return f;
 }
-// The frame to show on a display: your GIF's ({mine, i, sig, set}, while a change fades in also from: the GIF it
+// The frame to show on a display (no GIF at all: the Car layout's own, car-meter.js): your GIF's ({mine, i, sig, set}, while a change fades in also from: the GIF it
 // leaves, and t: 0..1 in FADE_STEPS steps) or, without any, the Car layout's own picture. A scene that shows the same
 // GIF as the last one (the drive GIF standing in) does not fade.
 const fades = {};
 function frameOf(display, stage, speed, now, g) {
+    // no GIF at all (none fetched, or none usable): the Car layout itself, its car braking, drifting and flaming with
+    // the car's G (1.3.54), not just one still scene
+    if (!usable('drive')) { const f = fades[display]; if (f) { f.key = null; f.v = null; f.from = null; }
+        return require('./car-meter').frameOf(display, g || { lat: 0, long: 0 }, stage, now, speed); }
     const set = display === 'hud' ? 'hud' : 'cluster', scene = pick(display, stage, speed, now, g), v = show(scene), m = fades[display] || (fades[display] = { key: null, v: null, from: null, at: 0 });
     const key = v ? v.src + (v.mirror ? '~' : '') : null;
     if (key !== m.key) { if (m.v && usable(m.v.src) && v) { m.from = m.v; m.at = now; } else m.from = null; m.key = key; m.v = v; }
