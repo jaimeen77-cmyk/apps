@@ -344,9 +344,10 @@ function start(ctx) {
             const carFaces=carMeterFaces(config);
             if(carFaces.length){const CM=require('./car-meter'),MP=require('./my-picture'),stage=require('./redline-hud').gearOf(gearbox.gear).stage,g={lat:controller.aux.gLat,long:controller.aux.gLong};
                 const speed=carSpeed.at!==null&&at-carSpeed.at<=2000?carSpeed.v:null;   // (a speed older than 2 s is not known)
-                // the Animation layout on the cluster shows your GIFs (my-picture.js) when there are any, else the car
-                if(carFaces.includes('cluster')){if(!MP.folder()&&ctx.dataDir)MP.setDir(ctx.dataDir);MP.scan(at);}
-                controller.aux.car={};carFaces.forEach(d=>{controller.aux.car[d]=d==='cluster'?MP.frameOf(d,stage,speed,at,g):CM.frameOf(d,g,stage,at,speed);});}
+                // the Animation layout shows your GIFs (my-picture.js) when there are any, else the car; on the HUD too
+                // (1.3.59; black there is see-through)
+                if(carFaces.length){if(!MP.folder()&&ctx.dataDir)MP.setDir(ctx.dataDir);MP.scan(at);}
+                controller.aux.car={};carFaces.forEach(d=>{controller.aux.car[d]=MP.frameOf(d,stage,speed,at,g);});}
             const navigationAvailable = !!(guidanceSub && guidanceSub.available === true && !guidanceSub.error);
             if (!navigationAvailable) { navigationRevision++; navigation.clear(); maneuvers.clearGuidance(); }
             Object.keys(PROJECTED).forEach((provider)=>{

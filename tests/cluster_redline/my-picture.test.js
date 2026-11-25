@@ -113,6 +113,10 @@ if(process.env.MY_PICTURE_PREVIEW){const out=path.resolve(process.env.MY_PICTURE
    let cf=MPR.frameOf('c','D',40,50000,{lat:0,long:0});assert.strictEqual(cf.state,'cruise');assert(!cf.mine,'the Car picture');
    for(let t=50050;t<=51000;t+=50)cf=MPR.frameOf('c','D',40,t,{lat:-0.4,long:0});assert(/^turn/.test(cf.state),'cornering: the Car layout\'s drift ('+cf.state+')');
    cf=MPR.frameOf('c','R',3,51100,{lat:0,long:0});assert.strictEqual(cf.state,'reverse');MPR.setDir(data);MPR.scan(0,true);MPR.reset();}
+  // the same GIFs on the HUD (1.3.59): one copy, both displays; black see-through there
+  {MPR.reset();const hf=MPR.frameOf('hud','D',40,60000,{lat:0});assert.strictEqual(hf.mine,'drive');assert.strictEqual(hf.set,'hud');
+   const RLh=require(path.join(repo,'apps/cluster_redline/redline-hud'));
+   assert.strictEqual(RLh.frame({config:settings({hudDesign:'rl-car'}),gear:'D3',aux:{}},0,'hud').car.mine,'drive','the HUD preview shows the GIF too');}
   // the share answers only GET from this head unit, only listed GIFs
   const st=await new Promise(res=>require('http').get({host:'127.0.0.1',port:18884,path:'/gif?id=../library.json'},r=>{r.resume();res(r.statusCode);}));assert.strictEqual(st,404);
  }finally{share.stop();}

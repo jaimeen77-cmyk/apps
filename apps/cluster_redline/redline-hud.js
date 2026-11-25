@@ -59,8 +59,8 @@ function kst(state){const t=new Date((isNum(state.now)?state.now:Date.now())+9*3
 function carOf(state,d){
  const cfg=state.config,p=d||'hud',st=style(cfg,p);if(st!=='car'&&st!=='mypic')return null;
  const a=state.aux||{},live=a.car&&a.car[p];if(live)return live;
- // the Animation layout on the cluster with your GIFs (my-picture.js) and no worker: the scene the gear shows now
- if(p==='cluster'){const MP=require('./my-picture');MP.scan(Date.now());if(MP.resolve('drive'))return MP.frameAt(MP.want(gearOf(state.gear).stage,null),'cluster',0);}
+ // the Animation layout with your GIFs (my-picture.js; the cluster and, 1.3.59, the HUD) and no worker: the scene the gear shows now
+ {const MP=require('./my-picture');MP.scan(Date.now());if(MP.resolve('drive'))return MP.frameAt(MP.want(gearOf(state.gear).stage,null),p==='hud'?'hud':'cluster',0);}
  const CM=require('./car-meter'),s=CM.look(CM.want({lat:a.gLat,long:a.gLong},gearOf(state.gear).stage));
  return {state:s.state,mirror:s.mirror,i:0,set:p==='hud'?'hud':'cluster'};
 }
