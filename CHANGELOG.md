@@ -15,6 +15,16 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 
 - **주차 게임** added: MaxxxFoka's Parked Games (MIT, from `jaimeen77-cmyk/idrive7games_fork` @ `5c6ac21`), eight games for a parked car, every on-screen text in Korean (`apps/parked_games/app.json` `translations.ko`, 260 texts; the texts the games drew untranslated now go through the kit's translation). iDrive 7 only, as the original; needs the GPU renderer (`idrive7-renderd`) and the controller gate (`mgu-inputgate`) from a source that offers them (e.g. appsKOR). Its Korean template is prepared with `tools/prepare-games.py`; `tools/store-build.js` copies an app's `storeSourceDirs` (the `games/` folder) and takes `storeMguHmi` when an app names one (others unchanged).
 
+## Cluster Redline 1.3.48
+
+Menus reorganised as the user asked:
+- **Basic**: *App operation* (Start = auto start too, Stop = no auto start; the separate App auto start row is gone), *Settings per driver*, *HUD lamps* (Lead-car headway, HUD turn signals, Door-open warning, each with its Position / size), *Vehicle preset* (vehicle type, power unit, torque unit, shift alert RPM Sport and Comfort / Eco). Menus inside a tab (`SUBMENUS`), Back to their row.
+- **HUD and Cluster tabs**: Sport / All modes RPM display (BC mode on both), *Design* (a design, then its auxiliary values: gauges, text or none), Position / size, *BC mode screens*. The default design's top alert bar and circle beside the gear are the first two Redline layouts (*Jam top alert bar*, *Jam circle alert*). The separate Auxiliary information row is gone (it follows the design).
+- **BC mode on the HUD**: the HUD's RPM rows can be BC mode; its pages (`bcHudPages`) are its own, Set screen / No change / This page now; the HUD shows the Redline HUD in BC mode. `setNow({cluster, hud})`; `bcModeNow(cfg, mode, 'Hud')`. Data demand counts BC mode as showing the face (the cluster's too).
+- **BC pages**: no *Left out* (the stock cluster still shows such a page, so it put the count out of step; a saved one counts as No change; every page is counted). New defaults (iDrive 7): no display Waze (HUD no change); efficiency Analog needle / average speed, outside temperature text; trip Tyres & trip (HUD Jam top alert bar) / outside, battery voltage, average speed, average economy text; torque G-force + RPM rings / boost, oil gauges; G-meter Jam top alert bar / power, torque gauges; media Jam top alert bar / clock. Set screen: design, then auxiliary values, then Position / size.
+- **Navigation tab**: no Vehicle alerts row; always all of them (set at the start), hidden only in Position / size.
+- Tests: `bc-hud` (new), `bc-follow`, and the settings tests for the new menus.
+
 ## Cluster Redline 1.3.47
 
 - **Favorites and settings per driver in BC mode**: loading a favorite, or a driver's settings at a driver change, set the cluster's design over the stock BC page's own screen until BC was pressed again. Now the page in step gets its screen back right after (the page count, `bcIndex`, was never in a favorite or a driver's settings, so it stays in step).

@@ -47,7 +47,7 @@ assert.deepStrictEqual(RL.readouts(state(cfgOf('hud','hexagon',['clock','oil']),
 for(const [design,ok] of [['rl-hexagon',false],['rl-classic',false],['rl-standard',true],['own',true]]){
  const values={};spec.settings.forEach(s=>values[s.key]=s.default);values.clusterDesign=design;
  const store={schema:spec.settings,get:k=>values[k],set:(k,v)=>values[k]=v,setMany:o=>Object.assign(values,o)},page=new SettingsPage(store,null,'test');
- page.selectTab(2);page.activate(page.keys().indexOf('aux'));page.choose(0);
+ page.selectTab(2);page.activate(page.keys().indexOf('design'));page.choose(page.choice);page.choose(0);
  page.toggleMetric('clock');assert.strictEqual(page.draft.items.includes('clock'),ok,design+': clock '+(ok?'can':'can\'t')+' be chosen');
  if(!page.draft.items.includes('clock'))page.draft.items.push('clock');page.toggleMetric('clock');assert(!page.draft.items.includes('clock'),design+': an old clock choice can be removed');
 }

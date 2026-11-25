@@ -4,12 +4,20 @@
 // map, or no change); kept for the next drive, or the first page; "This page now"; nothing while off; a page set up on
 // the settings screen (Set screen: auxiliary values, then design); the cluster shown / stepping aside per page.
 const assert=require('assert'),path=require('path');
-const {BcFollow,PAGES,pagesOf,cycleOf,setNow}=require('../../apps/cluster_redline/bc-follow');
+const {BcFollow,PAGES,pagesOf,cycleOf,setNow,KINDS}=require('../../apps/cluster_redline/bc-follow');
 const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
 (async()=>{
  assert.deepStrictEqual(PAGES.ID7.map(p=>p[0]),['none','efficiency','trip','torque','gmeter','media'],'the order of a BC press (the user\'s photos)');
- assert.strictEqual(pagesOf('',`ID7`).efficiency.kind,'yield');assert.strictEqual(pagesOf('','ID7').media.aux,JSON.stringify({mode:'gauges',items:['clock']}));
- assert.deepStrictEqual(cycleOf(JSON.stringify({ID7:{torque:{kind:'skip'}}}),'ID7'),['none','efficiency','trip','gmeter','media'],'left out: skipped');
+ // the defaults (1.3.48, the user's list)
+ const V=(items)=>JSON.stringify({mode:'values',items}),G=(items)=>JSON.stringify({mode:'gauges',items});
+ const want={none:{kind:'yield'},efficiency:{kind:'redline',design:'rl-needle',aux:V(['avgSpeed','outside'])},trip:{kind:'redline',design:'rl-tyres',aux:V(['outside','batteryVoltage','avgSpeed','economy'])},
+  torque:{kind:'redline',design:'rl-rings',aux:G(['boost','oil'])},gmeter:{kind:'redline',design:'own',alert:'bar',aux:G(['power','torque'])},media:{kind:'redline',design:'own',alert:'bar',aux:G(['clock'])}};
+ assert.deepStrictEqual(pagesOf('','ID7'),want,'cluster defaults');
+ const hud=pagesOf('','ID7','hud');assert.deepStrictEqual(hud.none,{kind:'keep'},'HUD: no display = no change');assert.strictEqual(hud.trip.design,'own','HUD: no Tyres & trip');assert.deepStrictEqual(hud.efficiency,want.efficiency);
+ assert.deepStrictEqual(KINDS,{cluster:['redline','yield','keep'],hud:['redline','keep']},'Waze on the cluster only; no Left out');
+ assert.deepStrictEqual(pagesOf(JSON.stringify({ID7:{torque:{kind:'skip'}}}),'ID7').torque,{kind:'keep'},'a saved Left out counts as No change');
+ assert.deepStrictEqual(cycleOf(JSON.stringify({ID7:{torque:{kind:'skip'}}}),'ID7'),['none','efficiency','trip','torque','gmeter','media'],'every page counted');
+ assert.strictEqual(pagesOf(JSON.stringify({ID7:{efficiency:{kind:'yield'}}}),'ID7','hud').efficiency.kind,'redline','no Waze on the HUD');
  const values={sportClusterOutput:'redline',allClusterOutput:'stock',bcHmi:'ID7',bcPages:'',bcStart:'last',bcIndex:0,bcCluster:''},L=[],applied=[];let t=0,feed=null,watched=0;
  const settings={get:k=>values[k],set:(k,v)=>{values[k]=v;L.forEach(f=>f(k,v));},onChange:f=>L.push(f)};
  const signals={loadConfig:()=>({fields:{IndicatorSteeringColumn:{}}}),watch:(i,inst,h)=>{watched++;feed=h;return Promise.resolve({shutdown(){}});}};
@@ -18,15 +26,16 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  // BC mode chosen on a cluster RPM row (1.3.42); the worker says the drive mode now is one in BC mode
  settings.set('allClusterOutput','bc');setNow(true);await flush();assert.strictEqual(watched,1,'one reader');assert.strictEqual(f.current(),'none');
  const press=()=>{t+=500;feed.IndicatorSteeringColumn({operationColumnStalks:64});t+=150;feed.IndicatorSteeringColumn({operationColumnStalks:0});};
- press();assert.strictEqual(f.current(),'efficiency');assert.strictEqual(values.bcCluster,'yield','efficiency: Waze / the stock map');
- press();assert.strictEqual(f.current(),'trip');assert.strictEqual(values.bcCluster,'redline');assert.deepStrictEqual(applied.pop(),{clusterDesign:'rl-tyres',clusterAuxConfig:JSON.stringify({mode:'values',items:['outside','batteryVoltage','economy','avgSpeed']})});
- press();press();press();assert.strictEqual(f.current(),'media');assert.deepStrictEqual(applied.pop(),{clusterAuxConfig:JSON.stringify({mode:'gauges',items:['clock']})});
- press();assert.strictEqual(f.current(),'none','round again');assert.strictEqual(values.bcCluster,'','no display: no change');
+ assert.strictEqual(values.bcCluster,'yield','no display: Waze / the stock map');
+ press();assert.strictEqual(f.current(),'efficiency');assert.strictEqual(values.bcCluster,'redline');assert.deepStrictEqual(applied.pop(),{clusterDesign:'rl-needle',clusterAuxConfig:want.efficiency.aux});
+ press();assert.strictEqual(f.current(),'trip');assert.deepStrictEqual(applied.pop(),{clusterDesign:'rl-tyres',clusterAuxConfig:want.trip.aux});
+ press();press();press();assert.strictEqual(f.current(),'media');assert.deepStrictEqual(applied.pop(),{clusterDesign:'own',clusterAuxConfig:want.media.aux,clusterAlertStyle:'bar'});
+ press();assert.strictEqual(f.current(),'none','round again');assert.strictEqual(values.bcCluster,'yield');
  // held, a bounce, other stalk switches: one step only
  t+=500;feed.IndicatorSteeringColumn({operationColumnStalks:64});feed.IndicatorSteeringColumn({operationColumnStalks:64});t+=50;feed.IndicatorSteeringColumn({operationColumnStalks:0});t+=50;feed.IndicatorSteeringColumn({operationColumnStalks:64});
  assert.strictEqual(f.current(),'efficiency','one press, its bounce ignored');t+=300;feed.IndicatorSteeringColumn({operationColumnStalks:0});
  t+=500;feed.IndicatorSteeringColumn({operationColumnStalks:2});assert.strictEqual(f.current(),'efficiency','another switch: no step');
- f.here('gmeter');assert.strictEqual(f.current(),'gmeter');assert.deepStrictEqual(applied.pop(),{clusterAuxConfig:JSON.stringify({mode:'gauges',items:['torque','power']})},'This page now');
+ f.here('gmeter');assert.strictEqual(f.current(),'gmeter');assert.deepStrictEqual(applied.pop(),{clusterDesign:'own',clusterAuxConfig:want.gmeter.aux,clusterAlertStyle:'bar'},'This page now');
  // the next drive: the page reached, or the first
  const g=new BcFollow({settings,signals,apply:()=>{},clock:()=>t});await flush();assert.strictEqual(g.current(),'gmeter','kept');
  settings.set('bcStart','first');const h=new BcFollow({settings,signals,apply:()=>{},clock:()=>t});await flush();assert.strictEqual(h.current(),'none','the first page');
@@ -41,19 +50,21 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
   for(const [bc,cl,want] of [['redline','bc',true],['yield','bc',false],['','bc',true],['redline','stock',false]]){const out=new Outputs(new C(),pt(1088,480),Object.assign(pt(800,480),{fullTarget:true}));
    const cfg={allClusterOutput:cl,allHudOutput:'stock',sportHudOutput:'stock',sportClusterOutput:'stock',bcCluster:bc};let o;
    out.policy.modeSample(4,0);for(let x=10;x<300;x+=50){out.policy.rpmSample(2000,x);o=out.tick(x,cfg).outputs;}assert.strictEqual(o.cluster.requested,want,'bcCluster '+bc);out.close();}}
- const {settings:norm}=require('../../apps/cluster_redline/policy'),DC=require('../../apps/cluster_redline/display-config');assert.strictEqual(norm({allClusterOutput:'bc'}).allClusterOutput,'bc');assert.strictEqual(norm({allHudOutput:'bc'}).allHudOutput,'stock','the HUD has no BC mode');
+ const {settings:norm}=require('../../apps/cluster_redline/policy'),DC=require('../../apps/cluster_redline/display-config');assert.strictEqual(norm({allClusterOutput:'bc'}).allClusterOutput,'bc');assert.strictEqual(norm({allHudOutput:'bc'}).allHudOutput,'bc','the HUD has BC mode too (1.3.48)');assert.strictEqual(DC.bcModeNow(norm({allHudOutput:'bc'}),'COMFORT','Hud'),true);assert.strictEqual(DC.bcModeNow(norm({allHudOutput:'bc'}),'COMFORT'),false,'the cluster rows apart');
  assert.strictEqual(DC.bcModeNow(norm({allClusterOutput:'bc',sportClusterOutput:'redline'}),'SPORT'),false,'Sport on Redline over All modes BC');assert.strictEqual(DC.bcModeNow(norm({allClusterOutput:'bc',sportClusterOutput:'redline'}),'COMFORT'),true);assert.strictEqual(DC.bcModeNow(norm({sportClusterOutput:'bc'}),'SPORT'),true);
  // the settings screen: Set screen (auxiliary values, then design) keeps the page's setup; This page now; back
  if(process.argv[2]){const root=path.join(path.resolve(process.argv[2]),'source/javascript'),{SettingsPage}=require(root+'/settings-ui'),{Canvas}=require(root+'/kit/canvas'),spec=require(root+'/kit/app-spec.json'),v={};spec.settings.forEach(x=>{v[x.key]=x.default;});
   Object.assign(v,{allClusterOutput:'bc',bcHmi:'ID7',bcPages:'',bcIndex:0});const LL=[],st={schema:spec.settings,get:k=>v[k],set:(k,x)=>{v[k]=x;LL.forEach(fn=>fn(k,x));},onChange:fn=>LL.push(fn)};
   const page=new SettingsPage(st,()=>{},'t');page.bcFollow=new BcFollow({settings:st,signals,apply:()=>{},clock:()=>t});await flush();page.selectTab(2);
   // the RPM rows offer BC mode
-  assert(require(root+'/settings-ui').options(spec.settings.find(x=>x.key==='allClusterOutput'),page.config()).some(o=>o[0]==='bc'));assert(!require(root+'/settings-ui').options(spec.settings.find(x=>x.key==='allHudOutput'),page.config()).some(o=>o[0]==='bc'));
+  assert(require(root+'/settings-ui').options(spec.settings.find(x=>x.key==='allClusterOutput'),page.config()).some(o=>o[0]==='bc'));assert(require(root+'/settings-ui').options(spec.settings.find(x=>x.key==='allHudOutput'),page.config()).some(o=>o[0]==='bc'),'the HUD rows too (1.3.48)');
   page.focus=page.keys().indexOf('bcFollow');assert(page.focus>=0);page.activate();assert.strictEqual(page.open,'bc');
   const scr=()=>{const cv=new Canvas(1600,520);page.draw(cv,'',{});return cv.targets;};
-  scr().find(x=>x.id==='bc-torque-edit').run();assert.strictEqual(page.open,'auxMode');page.choose(0);assert.strictEqual(page.open,'auxSelect');
-  page.choose(require(root+'/display-config').METRICS.indexOf('oil'));page.choose(require(root+'/display-config').METRICS.length);assert.strictEqual(page.open,'design','then its design');
-  page.choose(1);assert.strictEqual(page.open,'layout','then its Position / size (1.3.41)');
+  assert(!scr().some(x=>/-skip$/.test(x.id)),'no Left out (1.3.48)');
+  // Set screen (1.3.48): its design first (the Jam circle alert), then its auxiliary values, then its Position / size
+  scr().find(x=>x.id==='bc-torque-edit').run();assert.strictEqual(page.open,'rlDesign');page.choose(1);assert.strictEqual(page.open,'auxMode','then its auxiliary values');
+  page.choose(0);assert.strictEqual(page.open,'auxSelect');
+  page.choose(require(root+'/display-config').METRICS.indexOf('oil'));page.choose(require(root+'/display-config').METRICS.length);assert.strictEqual(page.open,'layout','then its Position / size (1.3.41)');
   page.adjust(0,1);const moved=v.clusterOffsetX;page.back();assert.strictEqual(page.open,'bc','back to the list');
   const saved=JSON.parse(v.bcPages).ID7.torque;assert.strictEqual(saved.kind,'redline');assert.deepStrictEqual(JSON.parse(saved.aux).items,['oil']);assert.strictEqual(saved.design,'own');assert.strictEqual(saved.alert,'circle');
   assert(saved.layout&&Object.keys(saved.layout).length>4,'positions and sizes kept');assert(Object.keys(saved.layout).every(k=>/^cluster/.test(k)),'the cluster\'s only');

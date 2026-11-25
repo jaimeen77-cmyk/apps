@@ -435,7 +435,7 @@ async function unusedAuxiliaryDoesNotCompeteWithNavigation(){
  } finally {h.worker.stop();await flush();h.stopped();}
 }
 async function lanesOnlyNeedsNoHiddenRpmOrTurnData(){
- const h=harness({withManeuvers:true,phoneStatus:true,lanes:true,routeEvents:true,renderedHUD:true,config:{allHudOutput:'stock',allClusterOutput:'stock',sportHudOutput:'stock',sportClusterOutput:'stock',hudNavHidden:true,hudTextHidden:true,hudLanesHidden:false}});
+ const h=harness({withManeuvers:true,phoneStatus:true,lanes:true,routeEvents:true,renderedHUD:true,config:{allHudOutput:'stock',allClusterOutput:'stock',sportHudOutput:'stock',sportClusterOutput:'stock',hudNavHidden:true,hudTextHidden:true,hudLanesHidden:false,hudCarAlertHidden:true}});
  try{
   await flush();h.navigate('INACTIVE');h.feeds[guidance.INTERFACE].guidingProvider('CAR_PLAY');h.feeds[PROJECTED.CAR_PLAY.iface].projectedGuidanceActive(true);
   h.tick(1000);await flush();h.tick(1050);await flush();assert.strictEqual(h.laneReads.length,1);
@@ -459,7 +459,7 @@ async function hiddenComponentsStopTheirStreams(){
   h.tick(1300);await flush();assert(!activeField('statusEngineSpeed2'),'gear/M-only output does not read hidden RPM');
   h.config.navDisplayMode='stock';h.tick(1400);await flush();const reads=h.polls.length;
   assert(!activeField('guidanceState')&&!activeField('projectedGuidanceActive'),'Stock NAV closes native and projected guidance subscriptions');
-  for(const d of ['hud','cluster']){for(const p of require('../../apps/cluster_redline/display-config').PARTS)h.config[d+p+'Hidden']=true;for(const p of ['Mark','MarkTop','MarkBottom'])h.config[d+p+'LineHidden']=true;}
+  for(const d of ['hud','cluster']){for(const p of require('../../apps/cluster_redline/display-config').PARTS)h.config[d+p+'Hidden']=true;for(const p of ['Mark','MarkTop','MarkBottom'])h.config[d+p+'LineHidden']=true;}h.config.hudCarAlertHidden=true;
   h.tick(1500);await flush();assert(h.watches.every(w=>w.sub.shutdowns===1),'all hidden closes all signal subscriptions');
   for(const p of h.polls)p.resolve(p.field==='guidanceState'?'ACTIVE':p.field==='guidingProvider'?'CAR_PLAY':{});await flush();h.tick(1600);await flush();
   assert.strictEqual(h.polls.length,reads);assert(!h.worker.controller.hud.ref&&!h.worker.controller.cluster.ref,'late reads cannot revive hidden output');
@@ -489,7 +489,7 @@ async function carplayLaneFeed(){
 }
 async function delayedPhoneGuidanceKeepsRpm(){
  for(const provider of ['ANDROID_AUTO','CAR_PLAY']) {
-  const replies=[],h=harness({withManeuvers:true,phoneStatus:true,routeEvents:true,queryContent:()=>{const d=deferred();replies.push(d);return d.promise;}});
+  const replies=[],h=harness({withManeuvers:true,phoneStatus:true,routeEvents:true,config:{hudCarAlerts:'off'},queryContent:()=>{const d=deferred();replies.push(d);return d.promise;}});
   const empty={maneuver:{pointOfInterest:{category:'SERVICE_AREA',formattedDistance:{distance:'',unit:'NONE'}}}};
   const reply=events=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInView:events}]}),turn={intersection:{direction:'RIGHT',formattedDistance:{distance:'55',unit:'METER'}}};
   try {

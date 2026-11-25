@@ -49,11 +49,11 @@ Object.assign(defaults,{hudHeadway:'off',hudHeadwayOffsetX:0,hudHeadwayOffsetY:0
 // where the next drive starts (the page reached last / the first page); bcIndex: the page in step now; bcCluster: what
 // it asks of the cluster ('redline' shows it in every mode, 'yield' steps it aside for Waze / the stock map, '' leaves
 // the drive mode rules). bcIndex and bcCluster are the car's state, not a favourite's or a driver's.
-Object.assign(defaults,{bcFollow:'off',bcHmi:'ID7',bcPages:'',bcStart:'last',bcIndex:0,bcCluster:''});
+Object.assign(defaults,{bcFollow:'off',bcHmi:'ID7',bcPages:'',bcHudPages:'',bcStart:'last',bcIndex:0,bcCluster:''});
 // HUD navigation: the turn after the next one under the arrow when it follows close behind (1.3.35)
 Object.assign(defaults,{hudNavThen:'on',hudThenOffsetX:0,hudThenOffsetY:0,hudThenScale:70,navProbeLog:'off'});
 Object.assign(defaults,{hudDoorOffsetX:0,hudDoorOffsetY:0,hudDoorScale:75,hudDoorHidden:false});
-Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'off',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
+Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'all',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
 ['hud','cluster'].forEach(d=>{
  defaults[d+'AuxConfig']=JSON.stringify({mode:'gauges',items:['boost','torque']});
  PARTS.concat(LEGACY_PARTS).forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=d==='cluster'&&/^Aux(Left|Right)$/.test(p)?50:0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=false;});
@@ -100,7 +100,7 @@ function normalize(raw,out){
  out.hudTurnBlindSpot=raw.hudTurnBlindSpot==='on'?'on':'off';out.hudTurnSignals=raw.hudTurnSignals==='on'?'on':'off';out.hudTurnStyle=TURN_STYLES.includes(raw.hudTurnStyle)?raw.hudTurnStyle:'arrow';out.hudTurnColor=Object.prototype.hasOwnProperty.call(TURN_COLORS,raw.hudTurnColor)?raw.hudTurnColor:'green';
  TURN_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
- out.bcFollow=raw.bcFollow==='on'?'on':'off';out.bcHmi=raw.bcHmi==='ID8'?'ID8':'ID7';out.bcPages=typeof raw.bcPages==='string'?raw.bcPages:'';out.bcStart=raw.bcStart==='first'?'first':'last';
+ out.bcFollow=raw.bcFollow==='on'?'on':'off';out.bcHmi=raw.bcHmi==='ID8'?'ID8':'ID7';out.bcPages=typeof raw.bcPages==='string'?raw.bcPages:'';out.bcHudPages=typeof raw.bcHudPages==='string'?raw.bcHudPages:'';out.bcStart=raw.bcStart==='first'?'first':'last';
  out.bcIndex=Number.isInteger(raw.bcIndex)&&raw.bcIndex>=0&&raw.bcIndex<20?raw.bcIndex:0;out.bcCluster=raw.bcCluster==='redline'||raw.bcCluster==='yield'?raw.bcCluster:'';
  out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.navProbeLog=raw.navProbeLog==='on'?'on':'off';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudHeadway'+s];if(typeof v==='number'&&isFinite(v))out['hudHeadway'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
@@ -110,7 +110,9 @@ function normalize(raw,out){
  BLIND_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudTurnBlindScale==='number'&&isFinite(raw.hudTurnBlindScale))out.hudTurnBlindScale=Math.max(20,Math.min(200,Math.round(raw.hudTurnBlindScale/5)*5));
  if(typeof raw.hudDoorScale==='number'&&isFinite(raw.hudDoorScale))out.hudDoorScale=Math.max(20,Math.min(200,Math.round(raw.hudDoorScale/5)*5));
- out.hudCarAlerts=ALERT_MODES.includes(raw.hudCarAlerts)?raw.hudCarAlerts:'off';out.hudCarAlertHidden=raw.hudCarAlertHidden===true;
+ // vehicle alerts (1.3.48): all of them by default and no option any more (main.js sets 'all' at the start); hidden
+ // only in the Navigation tab's Position / size
+ out.hudCarAlerts=ALERT_MODES.includes(raw.hudCarAlerts)?raw.hudCarAlerts:'all';out.hudCarAlertHidden=raw.hudCarAlertHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudCarAlert'+s];if(typeof v==='number'&&isFinite(v))out['hudCarAlert'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  if(typeof raw.hudCarAlertScale==='number'&&isFinite(raw.hudCarAlertScale))out.hudCarAlertScale=Math.max(20,Math.min(200,Math.round(raw.hudCarAlertScale/5)*5));
  out.layoutPreview=typeof raw.layoutPreview==='string'&&/^(hud|cluster|nav):[A-Za-z]{1,20}@[0-9]{1,15}$/.test(raw.layoutPreview)?raw.layoutPreview:'';
@@ -126,7 +128,8 @@ function rpmOutput(cfg,name,mode){return allOutput(cfg,name,mode)||sportMode(mod
 function rpmOutputPossible(cfg,name){return ['redline','nosport','bc'].includes(cfg['all'+name+'Output'])||['redline','bc'].includes(cfg['sport'+name+'Output']);}
 // BC mode (1.3.42, the cluster only): in Sport its own row decides (BC mode, or Redline over an All modes BC mode);
 // in the other modes the All modes row.
-function bcModeNow(cfg,mode){const s=cfg.sportClusterOutput,a=cfg.allClusterOutput;return sportMode(mode)?s==='bc'||s!=='redline'&&a==='bc':a==='bc';}
+// 1.3.48: the HUD too (name 'Hud'); 'Cluster' when not given
+function bcModeNow(cfg,mode,name){const n=name==='Hud'?'Hud':'Cluster',s=cfg['sport'+n+'Output'],a=cfg['all'+n+'Output'];return sportMode(mode)?s==='bc'||s!=='redline'&&a==='bc':a==='bc';}
 // HUD turn signals: the pair (Turn: position and size of both), then each side's own position.
 const TURN_STYLES=['arrow','chevron3','chevron'],TURN_COLORS={green:'#2fd65a',blue:'#3d8bff',orange:'#ff9a1f'};
 const TURN_PARTS=[{key:'Turn',label:'Both turn signals',prefix:'hudTurn',scale:'hudTurnScale'},{key:'TurnLeft',label:'Left turn signal',prefix:'hudTurnLeft',scale:'hudTurnScale'},{key:'TurnRight',label:'Right turn signal',prefix:'hudTurnRight',scale:'hudTurnScale'}];

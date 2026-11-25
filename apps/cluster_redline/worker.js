@@ -415,7 +415,7 @@ function start(ctx) {
             // while the driver greeting shows, the Redline HUD face steps aside (greeting-overlay.js)
             controller.greetingHold = !!greetingNow;
             // BC mode (bc-follow.js): whether the drive mode now follows the BC button; the settings side applies its page
-            require('./bc-follow').setNow(config.appEnabled && D.bcModeNow(config, controller.policy.mode));
+            require('./bc-follow').setNow({ cluster: config.appEnabled && D.bcModeNow(config, controller.policy.mode, 'Cluster'), hud: config.appEnabled && D.bcModeNow(config, controller.policy.mode, 'Hud') });
             const state = controller.tick(at, config);
             // HUD turn signals: in the Redline HUD image while it is on screen, else on their own overlay layers
             // (turn-overlay.js) above the stock HUD. Only one of the two carries them at a time.

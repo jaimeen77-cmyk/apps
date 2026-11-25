@@ -27,7 +27,7 @@ async function run(){
  store.onChange(()=>{assert.strictEqual(store.get('x'),10);assert.strictEqual(store.get('y'),20);});
  store.setMany({x:10,y:20});assert.strictEqual(writes,1);assert.deepStrictEqual(saved,{x:10,y:20});store.setMany({x:10,y:20});assert.strictEqual(writes,1,'unchanged layout must not rewrite settings');
  const full=new box.module.exports(require(root+'/kit/app-spec.json').settings),{SettingsPage}=require(root+'/settings-ui');
- const page=new SettingsPage(full);page.selectTab(1);page.activate(4);page.selectLayoutPart(1);
+ const page=new SettingsPage(full);page.selectTab(1);page.activate(page.keys().indexOf('layout'));page.selectLayoutPart(1);
  let observed=0;full.onChange(()=>{assert.strictEqual(full.get('hudRpmGaugeOffsetX'),10);assert.strictEqual(full.get('hudGearOffsetX'),10);observed++;});
  const before=writes;page.adjust(0,1);assert.strictEqual(writes-before,1,'real multi-selection movement persists once');assert.strictEqual(observed,2,'listeners see only the complete coordinate batch');
  let jobs=new Map(),id=0,draws=0,value=0,seen=[],release;const errors=[];

@@ -82,7 +82,7 @@ async function checkSettingsEntry(file, id, version) {
         await start;
         assert(frames > 0, 'installed entry must show the new settings immediately');
         assert.strictEqual(spec.version, version);
-        for (const text of ['Basic settings', 'HUD display setting', 'CLUSTER display setting', 'NAV display setting', 'App auto start', 'Vehicle preset']) assert(labels.some((label) => label.toLowerCase() === t(text).toLowerCase()), text);
+        for (const text of ['Basic settings', 'HUD display setting', 'CLUSTER display setting', 'NAV display setting', 'App operation', 'Vehicle preset']) assert(labels.some((label) => label.toLowerCase() === t(text).toLowerCase()), text);
         assert(labels.includes('v' + version), 'visible version must match the installed package');
         assert(!handlers.BTN_SETTINGS, 'entry must not show the old status page and Settings button');
         labels.length = 0; const before=frames;handlers.BTN_HUD();

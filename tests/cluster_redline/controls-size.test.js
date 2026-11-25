@@ -58,11 +58,12 @@ try {
     for(const name of ['Basic settings','HUD display setting','CLUSTER display setting','NAV display setting'])assert(calls.some(c=>c.value===t(name).toUpperCase()&&c.size===28));
     assert.strictEqual(display.tabs.length,5);
     const tap=id=>{const target=display.pageTargets.find(r=>r.id===id);assert(target,'missing target '+id);tapLogical(target);};
-    tap('shiftRpm');assert.strictEqual(page.open,'shiftRpm');tap('back');
+    tap('vehiclePreset');tap('shiftRpm');assert.strictEqual(page.open,'shiftRpm');tap('back');tap('back');
     tapLogical(display.tabs[1]);assert.strictEqual(page.tab,1);tap('sportHudOutput');tap('choice0');assert.strictEqual(values.sportHudOutput,'redline');
     tap('design');const nativeFrame=page.draw(display.canvas(1600,520));assert.strictEqual(nativeFrame.images.size,0,'design preview must use native vectors');
-    tap('design0');assert.strictEqual(values.hudAlertStyle,'bar');tap('design');tap('design1');assert.strictEqual(values.hudAlertStyle,'circle');save('hud-design-full');
-    tap('aux');tap('aux-mode1');tap('metric-oil');tap('metric-boost');tap('ok');assert.deepStrictEqual(JSON.parse(values.hudAuxConfig).items,['oil','boost']);
+    // 1.3.48: a design (the Jam layouts first), then its auxiliary values
+    tap('rl-jam-circle');assert.strictEqual(values.hudAlertStyle,'circle');assert.strictEqual(page.open,'auxMode');tap('aux-mode2');assert.strictEqual(JSON.parse(values.hudAuxConfig).mode,'off');assert.strictEqual(page.open,null);save('hud-design-full');
+    tap('design');tap('rl-jam-bar');assert.strictEqual(values.hudAlertStyle,'bar');tap('aux-mode1');tap('metric-oil');tap('metric-boost');tap('ok');assert.deepStrictEqual(JSON.parse(values.hudAuxConfig).items,['oil','boost']);
     tap('layout');tap('part1');tap('right');assert.strictEqual(values.hudGearOffsetX,10);tap('size-plus0');assert.strictEqual(values.hudGearWidthScale,105);save('hud-layout-full');tap('back');
     tapLogical(display.tabs[2]);tap('design');const clusterFrame=page.draw(display.canvas(1600,520));assert.strictEqual(clusterFrame.images.size,0);tap('back');
     tapLogical(display.tabs[3]);tap('navColor');assert.strictEqual(page.draw(display.canvas(1600,520)).images.size,0);tap('navColor-blue');assert.strictEqual(values.navColor,'blue');tap('navTextColor-orange');assert.strictEqual(values.navTextColor,'orange');tap('back');tap('layout');tap('part0');tap('part1');tap('right');assert.strictEqual(values.hudTextOffsetX,190);tap('size-plus0');assert.strictEqual(values.hudTextScale,70);assert.strictEqual(values.navUniformScale,70);save('nav-text-layout-full');tap('back');

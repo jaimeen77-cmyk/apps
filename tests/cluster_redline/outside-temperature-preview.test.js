@@ -14,5 +14,5 @@ const page=new SettingsPage({schema:spec.settings,get:k=>values[k],set:(k,v)=>{v
 page.selectTab(3);page.activate(page.keys().indexOf('layout'));assert(/^nav:/.test(values.layoutPreview));
 page.leave();assert.strictEqual(page.open,null,'leaving the screen closes Position / size');assert.strictEqual(values.layoutPreview,'','and ends the preview');
 page.selectTab(1);page.activate(page.keys().indexOf('layout'));page.open='layoutPresets';page.leave();assert.strictEqual(page.open,null);assert.strictEqual(values.layoutPreview,'');
-page.activate(page.keys().indexOf('aux'));page.leave();assert.strictEqual(page.open,'auxMode','other screens are kept');
+page.activate(page.keys().indexOf('design'));page.choose(0);page.leave();assert.strictEqual(page.open,'auxMode','other screens are kept');
 console.log('PASS: notifier-only exterior temperature kept by the build filter; leaving the settings screen ends Position / size and its preview');

@@ -3,7 +3,7 @@ const D=require('./display-config'),{SOURCES,auxOf}=require('./aux-info'),{PROJE
 const G='de.bmw.infotainment.navigation.guiding.Guidance',F='de.bmw.infotainment.drivingexcitement.FES',C='de.bmw.infotainment.vehicle.CDS',V='de.bmw.infrastructure.VehicleInformation';
 function demand(cfg,mode){
  const fields=new Set(),aux=new Set(),nav=D.navVisible(cfg,mode),enabled=cfg.appEnabled;
- const faces=['hud','cluster'].filter(d=>enabled&&D.faceVisible(cfg,d)&&(mode===null?D.rpmOutputPossible(cfg,d==='hud'?'Hud':'Cluster'):D.rpmOutput(cfg,d==='hud'?'Hud':'Cluster',mode)));
+ const faces=['hud','cluster'].filter(d=>enabled&&D.faceVisible(cfg,d)&&(mode===null?D.rpmOutputPossible(cfg,d==='hud'?'Hud':'Cluster'):D.rpmOutput(cfg,d==='hud'?'Hud':'Cluster',mode)||D.bcModeNow(cfg,mode,d==='hud'?'Hud':'Cluster')));
  faces.forEach(d=>D.visibleMetrics(cfg,d).forEach(k=>aux.add(k)));
  // The G-force + RPM rings layout's G meter reads the G-force whatever the readouts are.
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-classic'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlTempHidden'])aux.add('oil');});
