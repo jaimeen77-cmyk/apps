@@ -16,10 +16,17 @@ assert.strictEqual(d.width,3.4);assert.strictEqual(d.visibility,2);assert.strict
 assert.deepStrictEqual(d.lines.map(l=>[l.y,l.type,l.color]),[[1.7,1,1],[-1.7,2,2],[5.1,4,1]]);
 assert.strictEqual(decodeLanes(Buffer.alloc(100)),null,'too short');
 const e=egoLines(d);
-assert.deepStrictEqual(e.left,{y:1.7,type:'dashed',color:'white',margin:0.75});
-assert.deepStrictEqual(e.right,{y:-1.7,type:'solid',color:'yellow',margin:0.75});
+assert.deepStrictEqual(e.left,{y:1.7,slope:0,type:'dashed',color:'white',margin:0.75});
+assert.deepStrictEqual(e.right,{y:-1.7,slope:0,type:'solid',color:'yellow',margin:0.75});
 assert.strictEqual(e.width,3.4);
-assert.deepStrictEqual([levelOf({margin:0.5}),levelOf({margin:0.2}),levelOf({margin:-0.1}),levelOf({margin:-0.1},true),levelOf({margin:0.5},true),levelOf(null)],['ok','near','over','change','ok',null]);
+assert.deepStrictEqual([levelOf({margin:0.5}),levelOf({margin:0.1}),levelOf({margin:-0.1}),levelOf({margin:-0.1},true),levelOf({margin:0.5},true),levelOf(null)],['ok','near','over','change','ok',null]);
+// the user's captures (2026-11-26, parked): in the lane, then turned slightly right. y back at the car along the line's heading.
+const fx=(n)=>decodeLanes(Buffer.from(require('fs').readFileSync(path.join(__dirname,'fixtures/lanes-'+n+'.hex'),'utf8').trim(),'hex'));
+{const c=egoLines(fx('center')),n=egoLines(fx('ncenter'));
+ assert.strictEqual(c.width,3.04);assert.deepStrictEqual([c.left.y,c.left.type,c.right.y,c.right.type],[1.56,'double',-1.19,'dashed']);
+ assert.deepStrictEqual([levelOf(c.left),levelOf(c.right)],['ok','ok'],'in the lane: no warning');
+ assert(n.left.slope>0.05&&n.right.slope>0.05,'turned right: both lines run to the left ahead');
+ assert.deepStrictEqual([n.left.y,n.right.y],[2.15,-0.82]);assert.deepStrictEqual([levelOf(n.left),levelOf(n.right),levelOf(n.right,true)],['ok','over','change']);}
 // LaneLines through a fake helper socket
 const {EventEmitter}=require('events');let sock=null,t=0;
 const L=new LaneLines(()=>t,()=>{sock=new EventEmitter();sock.destroy=()=>{};return sock;});

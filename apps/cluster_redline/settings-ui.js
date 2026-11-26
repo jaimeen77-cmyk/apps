@@ -561,7 +561,7 @@ class SettingsPage{
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();},x=this.liveState&&this.liveState.laneLines,f=v=>v===null||v===undefined?'-':String(v);
   cv.text(tr('Lane lines'),100,126,32,'#ef4050',{literal:true});
   [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*732,146,718,64,()=>set('hudLaneLines',o[0]),cfg.hudLaneLines===o[0],'lanes-'+o[0]));
-  cv.text(tr('The lines either side of the car as the front camera sees them, above the headway badge. Within 30 cm amber, on the line red (blue with the turn signal: a lane change).'),100,252,19,'#c1cddd',{literal:true});
+  cv.text(tr('The lines either side of the car as the front camera sees them, above the headway badge. Within 15 cm amber, on the line red (blue with the turn signal: a lane change).'),100,252,19,'#c1cddd',{literal:true});
   cv.text(tr('Needs the lead-car helper (installed with Cluster Redline from the Store).'),100,284,19,'#91a1b6',{literal:true});
   if(cfg.hudLaneLines==='on'&&x){const on=x.helper==='connected',n=x.now,side=(s,lb)=>tr(lb)+' '+(s?Math.abs(s.y).toFixed(2)+' m · '+tr(s.type)+' · '+tr(s.color)+' · '+tr('margin')+' '+s.margin.toFixed(2)+' m':'-');
    cv.text(tr('Lead-car helper')+': '+(on?tr('connected'):x.helper==='connecting'?tr('waiting'):tr('not installed (Store: Cluster Redline lead-car helper)'))+' · '+tr('received')+' '+f(x.rx)+' · '+tr('lines')+' '+f(x.lines)+' · '+tr('visibility')+' '+f(x.visibility),100,330,17,on&&x.rx?'#5ee08f':on?'#c1cddd':'#ffad45',{literal:true});
