@@ -24,6 +24,8 @@ function descriptionText(value) {
     const text=value.elements.slice(0,24).map(e=>{
         if(!object(e))return '';
         if(typeof e.text==='string')return e.text;
+        // an icon's own text (1.3.75): an exit or IC number, a road number on its shield, sent as an icon, not as text
+        if(object(e.icon)&&typeof e.icon.text==='string'&&e.icon.text.trim())return ' '+e.icon.text.trim()+' ';
         if(e.spacer==='SLASH'||e.spacer===4)return ' / ';
         if(e.spacer!==undefined&&e.spacer!==null)return ' ';
         return '';

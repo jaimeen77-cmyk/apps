@@ -19,8 +19,11 @@ function filterRouteEvents(manifest,catalog,optional,missing) {
 function queryParams() {
     // These enum names and parameters returned SLIGHT_LEFT / 799 METER on the
     // supplied Android Auto vehicle probe. Numeric enums were rejected.
+    // 1.3.75: also the main road's and the passive junctions' events, up to 10, as cluster-metrics asks for them on a
+    // G30 (facts only): more of the route's turns for the next turn, and the highway's junctions (route-events.js
+    // leaves out a passive one the HUD does not draw).
     return {viewConfigs:[{
-        viewport:{startPoint:{anchorPoint:{standardReferencePoint:'CCP'},offsets:[]},maxElementCount:6,endPoints:[],includedTypes:['INCLUDE_ACTIVE_MANEUVERS','INCLUDE_DESTINATIONS']},
+        viewport:{startPoint:{anchorPoint:{standardReferencePoint:'CCP'},offsets:[]},maxElementCount:10,endPoints:[],includedTypes:['INCLUDE_ACTIVE_MANEUVERS','INCLUDE_ALONG_MAIN_ROAD','INCLUDE_DESTINATIONS','INCLUDE_PASSIVE_MANEUVER_JCT']},
         options:[],minimumUpdateIntervalMs:1000,segmentItemRasterLength:100
     }]};
 }
