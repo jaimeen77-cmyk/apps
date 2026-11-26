@@ -110,4 +110,6 @@ class DoorOverlay{
 }
 // the Position / size preview: every door open
 const SAMPLE=Object.assign(['driverFront','passengerFront','driverRear','passengerRear','hood','trunk'],{preview:true});
-module.exports={IFACE,FIELD,DOORS,LIDS,lids,items,openDoors,DoorState,DoorOverlay,draw,drawSized,paint,SAMPLE,W,H};
+// the car's shapes (top view, x across, y from the front), also for the HUD lane lines (lane-lines.js, 1.3.79)
+const SHAPES={BODY,HOOD,SCREEN,SIDE_GLASS,ROOF,PANO,REAR_GLASS,GATE,LAMP,MIRROR,SILVER,LIGHT,EDGE,GLASS,PANO_GLASS,LENGTH:128};
+module.exports={IFACE,FIELD,DOORS,LIDS,lids,items,openDoors,DoorState,DoorOverlay,draw,drawSized,paint,SAMPLE,SHAPES,W,H};

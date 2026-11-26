@@ -6,7 +6,7 @@
 // yellow as the camera reports. Drawn just above the headway badge, at its size (HUD lamps → Lane lines).
 const { LeadHelper } = require('./lead-helper');
 // NEAR_M 0.15 (1.3.78): with 0.3 a car 30 cm off a 3 m lane's centre was already amber (the user's capture)
-const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 56;
+const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 84;
 const TYPES = { 1: 'dashed', 2: 'solid', 3: 'dotted', 4: 'edge', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'edge' };
 /** The lines of the car's own lane: {left, right, width} (each {y, type, color, margin} or null) from the helper's list. */
 function egoLines(data) {
@@ -44,24 +44,52 @@ class LaneLines {
     }
     status(now) { const r = this.read(now, 'off'); return { helper: this.helper.status().state, rx: this.rx, lines: this.last && this.last.lines ? this.last.lines.length : 0, now: r, visibility: this.last ? this.last.visibility : null }; }
 }
-const COLORS = { white: '#e8eef5', yellow: '#ffd23a', near: '#ffa020', over: '#ff3a2a', change: '#5ab0ff' };
-// the picture: the road in perspective (the car's axis in the middle, 22 px a metre at the bottom, 7 at the top)
+const COLORS = { white: [232, 238, 246, 255], yellow: [255, 206, 58, 255], near: [255, 158, 40, 255], over: [255, 52, 44, 255], change: [56, 214, 255, 255] };
+// The picture (1.3.79, as the user's reference): a dark road in perspective with a faint grid near the car, the lines
+// glowing in their colour, the car seen from behind in the middle. A warning colours both lines (amber near, red over)
+// and tints the half of the lane on its side; red also glows under the car; with the turn signal (a lane change) only
+// that side's line turns cyan. A point d metres ahead of the car and y metres to its left: x = cx - F y / (d + D),
+// y = HZ + F EYE / (d + D). The lines are 15 cm (a double line two of 12 cm), dashes 3 m on and 5 m off.
+const F = 454, D = 20, EYE = 4.07, HZ = -26, NEAR_D = -3.2, FAR_D = 38, MARK = 0.15, CAR_D = 1.5;
+function project(d, y) { const q = d + D; return [W / 2 - F * y / q, HZ + F * EYE / q]; }
+const px2m = (px, d) => px * (d + D) / F;
 function draw(v, w, h) {
-    const { ScaledCanvas } = require('./kit/canvas'); const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
-    const cx = W / 2, X = (y, t) => cx - y * (22 - 15 * t), yy = (t) => H - 4 - t * (H - 10);
-    const line = (s, lvl) => {
-        if (!s) return;
-        const c = lvl && lvl !== 'ok' ? COLORS[lvl] : COLORS[s.color] || COLORS.white, wd = lvl === 'over' ? 4 : 3;
-        const k = (s.slope || 0) * 20, seg = (t0, t1, off) => cv.line(X(s.y + k * t0, t0) + off * (1 - 0.3 * t0), yy(t0), X(s.y + k * t1, t1) + off * (1 - 0.3 * t1), yy(t1), wd * (1 - 0.5 * t0), c);
-        const offs = s.type === 'double' ? [-3.2, 3.2] : [0];   // pixels: two lines side by side, also far ahead
-        offs.forEach((off) => {
-            if (s.type === 'dashed' || s.type === 'dotted') for (let t = 0; t < 1; t += 0.25) seg(t, t + (s.type === 'dotted' ? 0.06 : 0.14), off);
-            else seg(0, 1, off);
-        });
+    const { ScaledCanvas } = require('./kit/canvas'), { rearCar } = require('./rear-car');
+    const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
+    const yAt = (s, d) => s.y + (s.slope || 0) * d;
+    const strip = (fy0, fy1, d0, d1, c) => {
+        const n = Math.max(2, Math.ceil((d1 - d0) / 2)), a = [], b = [];
+        for (let i = 0; i <= n; i++) { const d = d0 + (d1 - d0) * i / n; a.push(project(d, fy0(d))); b.unshift(project(d, fy1(d))); }
+        cv.fill(a.concat(b), c);
     };
-    line(v.left, v.levels.left); line(v.right, v.levels.right);
-    // the car: a small outline at the bottom, between the lines
-    const cw = HALF_CAR * 22 * 2 * 0.9; cv.roundRect(cx - cw / 2, H - 16, cw, 12, 3, [220, 230, 240, 200]);
+    const L = v.left, R = v.right, lw = typeof v.width === 'number' && v.width > 2 && v.width < 5 ? v.width : 3.3;
+    const fl = L ? (d) => yAt(L, d) : (d) => yAt(R, d) + lw, fr = R ? (d) => yAt(R, d) : (d) => yAt(L, d) - lw;
+    const lv = v.levels || {}, worst = ['over', 'near'].find((x) => lv.left === x || lv.right === x) || null;
+    // the road: dark, a little beyond the lines, lighter near the car; the grid
+    strip((d) => fl(d) + 0.45, (d) => fr(d) - 0.45, NEAR_D, FAR_D, [20, 24, 30, 230]);
+    strip((d) => fl(d) + 0.45, (d) => fr(d) - 0.45, NEAR_D, 8, [36, 41, 49, 120]);
+    for (let d = -3; d <= 9; d += 2) strip((x) => fl(x) + 0.5, (x) => fr(x) - 0.5, d, d + px2m(0.5, d) * 0.6, [120, 140, 160, 34]);
+    for (let k = 1; k < 5; k++) { const t = k / 5; strip((d) => fl(d) + (fr(d) - fl(d)) * t + px2m(0.25, d), (d) => fl(d) + (fr(d) - fl(d)) * t - px2m(0.25, d), NEAR_D, 9, [120, 140, 160, 26]); }
+    // the warned half of the lane: from the middle to the line, in the warning's colour
+    const tint = (side, lvl) => { if (!lvl || lvl === 'ok') return; const c = COLORS[lvl], a = lvl === 'over' ? 92 : lvl === 'near' ? 78 : 46, mid = (d) => (fl(d) + fr(d)) / 2;
+        strip(side > 0 ? fl : mid, side > 0 ? mid : fr, NEAR_D, FAR_D, [c[0], c[1], c[2], a]); };
+    tint(1, lv.left); tint(-1, lv.right);
+    if (worst === 'over') { const c = COLORS.over; [[1.15, 26], [0.85, 32], [0.55, 40]].forEach(([wd, a]) => strip(() => wd, () => -wd, NEAR_D, CAR_D + 0.6, [c[0], c[1], c[2], a])); }
+    // the lines: a soft glow under each painted line
+    const mark = (s, lvl) => {
+        if (!s) return;
+        const c = worst ? COLORS[worst] : lvl === 'change' ? COLORS.change : COLORS[s.color] || COLORS.white;
+        const edges = s.type === 'double' ? [[-0.2, -0.07], [0.07, 0.2]] : s.type === 'edge' ? [[-0.1, 0.1]] : [[-MARK / 2, MARK / 2]];
+        const pieces = s.type === 'dashed' || s.type === 'dotted' ? (() => { const out = [], on = s.type === 'dotted' ? 0.8 : 3, per = s.type === 'dotted' ? 2.4 : 8; for (let d = NEAR_D - 1; d < FAR_D; d += per) out.push([Math.max(NEAR_D, d), Math.min(FAR_D, d + on)]); return out; })() : [[NEAR_D, FAR_D]];
+        [[3.2, 38], [1.6, 80], [0, 255]].forEach(([pad, a]) => edges.forEach(([e0, e1]) => pieces.forEach(([d0, d1]) => {
+            if (d1 <= d0) return;
+            strip((d) => yAt(s, d) + e1 + px2m(pad, d) + px2m(0.35, d), (d) => yAt(s, d) + e0 - px2m(pad, d) - px2m(0.35, d), d0, d1, [c[0], c[1], c[2], a === 255 ? c[3] : a]);
+        })));
+    };
+    mark(L, lv.left); mark(R, lv.right);
+    // the car in the middle, over the lines (a line it is on goes under it)
+    const [, by] = project(CAR_D, 0), cw = 1.9 * F / (CAR_D + D) * 0.74;
+    rearCar(cv, W / 2, by, cw, { lamp: worst ? COLORS[worst] : undefined });
     return cv.canvas;
 }
 class LaneOverlay {
@@ -72,7 +100,7 @@ class LaneOverlay {
         const r = require('./display-config').laneRect(cfg); let l = this.layer;
         if (l && (l.w !== r.w || l.h !== r.h)) { this.client.drop(l.ref); l = this.layer = null; }
         if (!l) { const ref = this.client.image({ target: 'hud', klass: 'overlay', z: 12, x: r.x, y: r.y, w: r.w, h: r.h, iw: r.w, ih: r.h, visible: false }); if (!ref) return false; l = this.layer = { ref, x: r.x, y: r.y, w: r.w, h: r.h, key: null, visible: false }; }
-        const key = JSON.stringify([v.left, v.right, v.levels]);
+        const key = JSON.stringify([v.left, v.right, v.levels, v.width]);
         if (l.key !== key) { const im = draw(v, r.w, r.h), px = Buffer.alloc(r.w * r.h * 4);
             for (let y = 0; y < Math.min(r.h, im.h); y++) Buffer.from(im.d.buffer, im.d.byteOffset + y * im.w * 4, Math.min(r.w, im.w) * 4).copy(px, y * r.w * 4);
             this.client.pixels(l.ref, null, px); l.key = key; }

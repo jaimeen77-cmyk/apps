@@ -22,6 +22,19 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.79 (lane lines and headway badge redrawn after the user's reference)
+
+- **Lane lines, redrawn.**
+  - A dark road in perspective, with a faint grid near the car. The lines glow in their colour (15 cm markings, double lines as two, dashes 3 m on and 5 m off).
+  - Your car, seen from behind, sits in the middle of the lane (new `rear-car.js`). A line it drives over goes under it.
+  - A warning (amber within 15 cm, red over the line) colours both lines and tints the half of the lane on its side. Red also glows under the car.
+  - With the turn signal on towards a line (a lane change), only that line turns cyan, with a faint cyan tint.
+  - The picture is 112 × 84, still just above the headway badge.
+- **Headway badge, redrawn.**
+  - The car ahead is seen from behind, filled in the colour step and glowing. The time gap sits beside it in thin figures.
+  - A thin rule runs under them, with a short stroke of the colour. Below it, the distance and the closing speed (in the colour).
+  - Red (under 1.0 s) adds the gap bars under the car.
+
 ## Cluster Redline 1.3.78 (lane lines checked on the user's car)
 
 - Two captures of the camera's lane list on the user's car (in the lane, and turned slightly right) decode as expected: lane width 3.04 m; a double line on the left, a dashed line on the right, a solid line and a curb further out.

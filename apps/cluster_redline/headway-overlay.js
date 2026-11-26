@@ -15,20 +15,20 @@ function content(v,mode) {
     // below 12 km/h there is no time gap: the distance takes the big place
     return v.headway!==null?{big:v.headway.toFixed(1)+'s',dist:gap,closing,color}:{big:gap,dist:null,closing,color};
 }
-// As the reference: the car ahead seen from the front (the cabin drawn as its outline, the body filled) over two gap
-// bars, the time gap beside it in thin figures; under them the distance and the closing speed.
+// As the user's reference (1.3.79): the car ahead seen from behind, filled in the colour step and glowing, the time gap
+// beside it in thin figures; a thin rule under them with a short stroke of the colour, then the distance and the
+// closing speed (in the colour). Red (under 1.0 s) adds the gap bars under the car.
+const RGB={red:[255,52,58],amber:[255,154,31],ok:[62,200,245]};
 function paint(cv,v,mode) {
-    const c=content(v,mode),col=c.color;
-    cv.polyline([[6,17],[9,7],[23,7],[26,17]],2.4,col);                 // the cabin, an outline
-    cv.roundRect(3,16,26,10,2.5,col);                                  // the body
-    cv.roundRect(5,19,5,3,1,[6,9,14,255]);cv.roundRect(22,19,5,3,1,[6,9,14,255]);   // its lamps
-    cv.fillRect(5,26,4,3,col);cv.fillRect(23,26,4,3,col);              // the wheels
-    cv.fillRect(6,31,20,2.4,col);cv.fillRect(4,36,24,2.4,col);         // the gap bars
-    let size=30;while(size>18&&cv.textWidth(c.big,size,{font:'light',literal:true})>W-38)size--;
-    cv.text(c.big,36,31,size,col,{font:'light',literal:true});
-    let x=4;
-    if(c.dist){cv.text(c.dist,x,55,15,DIST,{font:'bold',literal:true});x+=cv.textWidth(c.dist,15,{font:'bold',literal:true})+8;}
-    if(c.closing)cv.text(c.closing,x,55,15,/^-/.test(c.closing)?CLOSE:AWAY,{font:'bold',literal:true});
+    const c=content(v,mode),col=c.color,rgb=RGB[v.level]||RGB.ok;
+    require('./rear-car').rearCar(cv,17,33,24,{paint:[rgb[0],rgb[1],rgb[2],255],lamp:[255,255,255,200],glow:rgb});
+    if(v.level==='red')[36.5,39.5].forEach((y,i)=>cv.fillRect(6+i*2,y,22-i*4,1.6,col));
+    let size=30;while(size>18&&cv.textWidth(c.big,size,{font:'light',literal:true})>W-40)size--;
+    cv.text(c.big,38,31,size,col,{font:'light',literal:true});
+    cv.fillRect(4,43,104,0.8,[90,100,112,255]);cv.fillRect(4,42.6,22,1.6,col);
+    let x=6;
+    if(c.dist){cv.text(c.dist,x,57,13,'#d4dbe4',{literal:true});x+=cv.textWidth(c.dist,13,{literal:true})+9;}
+    if(c.closing)cv.text(c.closing,x,57,13,col,{literal:true});
     return cv;
 }
 function draw(v,mode,w,h){const {ScaledCanvas}=require('./kit/canvas');const cv=new ScaledCanvas(W,H,Math.min((w||W)/W,(h||H)/H));cv.clear([0,0,0,0]);paint(cv,v,mode);return cv.canvas;}

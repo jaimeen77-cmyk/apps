@@ -42,7 +42,7 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  const r0=D.headwayRect(settings({}));assert.strictEqual(r0.x+r0.w/2,400,'centred');assert(r0.y>=234&&r0.y+r0.h<=300&&r0.w===112&&r0.h===60,'between the turn arrows under the RPM face');
  assert.strictEqual(D.headwayRect(settings({hudHeadwayOffsetX:40,hudHeadwayScale:150})).w,168);
  // the overlay (stub drawing): shown with a car ahead, hidden without, redrawn only on change, the preview
- const Module=require('module'),orig=Module._load;Module._load=function(n){if(n==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}}return {ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}fillRect(){}polyline(){}text(){}textWidth(s){return String(s).length*8;}}};}return orig.apply(this,arguments);};
+ const Module=require('module'),orig=Module._load;Module._load=function(n){if(n==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}}return {ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}fillRect(){}polyline(){}fill(){}line(){}text(){}textWidth(s){return String(s).length*8;}}};}return orig.apply(this,arguments);};
  const {HeadwayOverlay,content}=require('../../apps/cluster_redline/headway-overlay');
  const layers=new Map();let k=0,up=0;const client={image(o){layers.set(++k,Object.assign({},o));return k;},pixels(){up++;},set(r,o){Object.assign(layers.get(r),o);},drop(r){layers.delete(r);}};
  const ov=new HeadwayOverlay(client),cfg=settings({hudHeadway:'detail'});
