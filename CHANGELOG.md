@@ -16,7 +16,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
-## Cluster Redline 1.3.69 (headway: is the Drive assist view's data offered?)
+## Cluster Redline 1.3.70 (headway: this car does not give it to apps)
+
+- On the user's car 1.3.69's screen showed the radar's service and both Drive assist view sources "not offered": the head unit does not get the driving assistant's data there (the cluster draws its Drive assist view from it directly). The Lead-car headway screen now says so plainly, 10 s after subscribing with nothing of the car ahead offered or received: "this car does not give the app the car ahead; the badge cannot show here". The raw lines stay underneath; a car that does offer one of them works as before.
+- Tests: `headway` (not before 10 s; one source offered: not decided).
+
+headway: is the Drive assist view's data offered?)
 
 - On the user's car 1.3.68's Drive assist view sources received nothing (ACC 0, objects 0) while the cluster's own view showed the car followed with the cruise control set. The Lead-car headway screen now says for each of the two whether it is offered to the app and on which instance (or not in the car's catalog), as 1.3.65 does for the radar's service: if neither is offered, the head unit does not get the driving assistant's data on this car (the cluster draws its view from it directly).
 - Tests: `headway`.

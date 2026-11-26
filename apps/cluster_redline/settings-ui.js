@@ -521,7 +521,7 @@ class SettingsPage{
  // signal on a car it has not been seen on), and Position / size.
  headwayValue(cfg){
   if(cfg.hudHeadway==='off')return tr('Off');const mode=tr(cfg.hudHeadway==='simple'?'Simple':'Detailed'),h=this.liveState&&this.liveState.headway;
-  if(!h)return mode;if(h.state==='not_installed'&&!(h.assist&&h.assist.state==='subscribed'))return mode+' · '+tr('not installed (reinstall from the Store)');if(h.state==='error')return mode+' · '+tr('subscription error');
+  if(!h)return mode;if(h.unsupported)return mode+' · '+tr('this car does not give the app the car ahead');if(h.state==='not_installed'&&!(h.assist&&h.assist.state==='subscribed'))return mode+' · '+tr('not installed (reinstall from the Store)');if(h.state==='error')return mode+' · '+tr('subscription error');
   return mode+(h.now?' · '+(h.now.headway!==null?h.now.headway.toFixed(1)+' s · ':'')+Math.round(h.now.gap)+' m':' · '+tr('no car ahead'));
  }
  drawHeadway(cv,cfg,targets){
@@ -529,10 +529,12 @@ class SettingsPage{
   cv.text(tr('Lead-car headway'),100,126,32,'#ef4050',{literal:true});
   [['off','Off'],['simple','Simple'],['detail','Detailed']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*488,146,474,64,()=>set('hudHeadway',o[0]),cfg.hudHeadway===o[0],'headway-'+o[0]));
   cv.text(tr('The car ahead as the radar measures it: time gap at your speed and distance (Detailed: closing speed too).'),100,252,21,'#c1cddd',{literal:true});
-  cv.text(tr('Under 1.0 s red · 1.0 to 1.5 s amber · 1.5 s and over cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});
+  {const hh=this.liveState&&this.liveState.headway;
+   if(hh&&hh.unsupported)cv.text(tr('Neither the radar nor the Drive assist view is offered to apps on this car (the cluster gets them directly): the badge cannot show here.'),100,284,19,'#ffad45',{literal:true});
+   else cv.text(tr('Under 1.0 s red · 1.0 to 1.5 s amber · 1.5 s and over cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}
   // what arrives: the raw values, to check the signal on this car
   const h=this.liveState&&this.liveState.headway,r=h&&h.raw||{},f=v=>v===null||v===undefined?'-':String(v);
-  cv.text(this.headwayValue(cfg),100,330,21,'#c1cddd',{literal:true});
+  cv.text(this.headwayValue(cfg),100,330,21,h&&h.unsupported?'#ffad45':'#c1cddd',{literal:true});
   // whether the car offers the radar's service to the app at all, and on which instance (1.3.65)
   if(h&&cfg.hudHeadway!=='off'&&h.state==='subscribed')cv.text(tr('Radar service')+': '+(h.available===true?tr('offered'):h.available===false?tr('not offered (the car does not send it now)'):'-')+(h.instance?' · '+tr('instance')+' '+h.instance:''),100,392,17,h.available?'#5ee08f':'#ffad45',{literal:true});
   // the car's Drive assist view (1.3.68): the cruise control's target and the object list, raw (their units not yet seen)

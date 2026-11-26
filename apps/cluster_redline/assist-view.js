@@ -72,7 +72,7 @@ class AssistView {
         if (this.state !== 'off') return;
         const token = ++this.token, wanted = SOURCES.filter(([iface]) => { try { return !!this.signals.loadConfig(iface); } catch (e) { return false; } });
         if (!wanted.length) { this.state = 'not_installed'; return; }
-        this.state = 'subscribed';
+        this.state = 'subscribed'; this.startedAt = this.clock();
         wanted.forEach(([iface, ev]) => {
             const h = {}; h[ev] = (v) => { if (token === this.token) (iface === ACC_IF ? this.sampleAcc(v, this.clock()) : this.sampleObjects(v, this.clock())); };
             const inst = String(this.instanceOf(iface) || '1'); this.instances[iface] = inst;
