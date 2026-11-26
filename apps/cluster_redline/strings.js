@@ -39,6 +39,7 @@ const KO={
  'not set':'없음','file too large':'파일이 너무 큼','canvas too big':'캔버스가 너무 큼','not a GIF':'GIF 아님','no frames':'프레임 없음',
  'this car does not give the app the car ahead':'이 차는 앞차 정보를 앱에 주지 않음','Neither the radar nor the Drive assist view is offered to apps on this car (the cluster gets them directly): the badge cannot show here.':'이 차는 레이더·주행 보조 화면 정보를 앱에 주지 않습니다(계기판만 직접 받음). 이 차에서는 앞차 간격을 표시할 수 없습니다.',
  'not in the catalog':'차 목록에 없음','not offered':'제공 안 됨',
+ 'Navigation':'길안내','Retro VU meters':'레트로 VU 미터','Navigation focus':'길안내 중심','G-G trail':'G-G 궤적',
  'Calm clock':'차분한 시계','Colours':'색상','Warm':'따뜻한 색','Cool':'차가운 색',
  'Drive assist view':'주행 보조 화면','objects':'목록','cars':'차량','car followed':'앞차','in use':'사용 중',
  'Route turn list':'안내 목록','last':'마지막','most':'최대','times':'회','1st to 2nd':'첫 회전→둘째','next turns arrive':'다음 회전도 옴','only one turn: no next turn':'회전 1개만 옴: 다음 안내 불가','none received yet':'아직 받은 것 없음','Radar service':'레이더 서비스','offered':'제공 중','not offered (the car does not send it now)':'제공 안 됨 (차가 지금 보내지 않음)','instance':'인스턴스','Smaller GIFs run faster: 160 × 90 10-20 frames a second, 320 × 180 2-6':'작은 GIF일수록 빠름: 160 × 90 초당 10~20장, 320 × 180 2~6장', 'Fetching':'가져오는 중','Fetch from GIF player':'GIF 플레이어에서 가져오기','Refresh':'새로고침','Next':'다음',

@@ -65,7 +65,7 @@ function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/L
 // driver has their own five favourites.
 // (1.3.16: the Position / size save slots of the HUD, cluster and NAV tabs too.)
 function driverKeys(schema){const own=[];for(let n=1;n<=FAV_COUNT;n++)own.push('favorite'+n);['hud','cluster','nav'].forEach(d=>{for(let i=1;i<=3;i++)own.push(d+'LayoutSlot'+i);});return favKeys(schema).concat(own);}
-const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RlClock|RlSpeed|RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlCar|RlCarPic|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
+const SLOT_COUNT=3,FACE_KEY=/^(hud|cluster)(RlNav|RlClock|RlSpeed|RpmGauge|Gear|Alert|AuxLeft|AuxRight|RpmValue|Mark|MarkTop|MarkBottom|Aux|RlCar|RlCarPic|RlGear|RlMode|RlAlert|RlRpm|RlGauge|RlGMeter|RlTemp|RlRead|RlReadA|RlReadB|RlReadC|RlReadD|RlMark)(OffsetX|OffsetY|WidthScale|HeightScale|Hidden|LineHidden)$/;
 const NAV_KEYS=['hudNavOffsetX','hudNavOffsetY','navUniformScale','hudNavWidthScale','hudNavHeightScale','hudTextOffsetX','hudTextOffsetY','hudTextScale','hudLanesOffsetX','hudLanesOffsetY','hudLanesScale','hudThenOffsetX','hudThenOffsetY','hudThenScale','hudThenHidden','hudNavHidden','hudTextHidden','hudLanesHidden'];
 function layoutKeys(tab,schema){
  const name=tab===3?'nav':tab===2?'cluster':'hud',known=new Set(schema.map(s=>s.key));

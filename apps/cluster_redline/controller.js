@@ -114,7 +114,7 @@ class Controller {
         d.guidanceRequested = cfg.displayTarget === 'map'; d.guidanceDisabled = !!target.guideDisabled;
         const panel = cfg.displayTarget === 'panel', hud = cfg.displayTarget === 'hud';
         const painter = hud ? this.hudPainter : this.painter;
-        d.navigation = hud ? this.navigation : null;
+        d.navigation = hud || cfg.clusterDesign === 'rl-navfocus' ? this.navigation : null;
         d.renderRpm=this.renderRpm!==false;d.aux=this.aux||{};
         // HUD turn signals (worker: TurnSignal.read); a turn signal part being moved shows both, lit.
         const turn=this.turn||{};d.indicator=turn.indicator||'off';d.turnLit=!!turn.lit;d.turnStep=turn.step||0;d.turnPreview=!!(this.turnPreview||this.preview&&/^(Turn|Blind)/.test(this.preview.part||''));d.turnInLayer=!!this.turnInLayer;

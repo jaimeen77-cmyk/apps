@@ -22,7 +22,15 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
-## Cluster Redline 1.3.71 (new layout: Calm clock)
+## Cluster Redline 1.3.72 (new layouts: Retro VU meters, Navigation focus, G-G trail)
+
+- **Retro VU meters** (레트로 VU 미터, cluster): two lit cream meters as on a hi-fi amplifier, the rpm and the first readout chosen (without one the rpm alone, centred); in the red zone the needle's tip turns red and the PEAK lamp lights. Drive mode, gear and clock under them.
+- **Navigation focus** (길안내 중심, cluster): the turn big in the middle (the HUD's own arrows, larger), its distance and description (highway exit / entry named), the lanes and the turn after it; a small rpm ring on the left, gear and speed on the right; without guidance the speed takes the middle. The cluster now receives the guidance with this layout (the same as the HUD's, in the drive modes navigation shows in). New Position / size part: Navigation.
+- **G-G trail** (G-G 궤적, cluster and HUD): the sideways and forward G of the last 2.5 s as a fading tail over rings at 0.4 / 0.8 / 1.2 G, this drive's highest left, right and braking G, the G now; an rpm ring of segments around it, gear and speed on the left. Reads the G only while it is chosen.
+- All three in the picker before Animation, which stays last. The speed (Navigation focus, G-G trail) as for Calm clock.
+- Tests: `redline-layout-parts`, `redline-layouts` (23 layouts, 18 on the HUD), `korean-ui` (VU and km/h allowed as names / units).
+
+new layout: Calm clock)
 
 - **Calm clock** (차분한 시계), a new layout for the cluster and the HUD, in the picker just before Animation (which stays last): the time big and thin with its date (Korean time or the head unit's, as the Clock time setting), up to four readouts in quiet figures under it (the auxiliary items chosen next), the gear, the speed and the drive mode small at the top. The rpm stays out of sight until 1,500 rpm before the shift point, then a thin bar fills above the clock (sky blue, amber, red; flashing at the shift point). Cool or warm colours (Auxiliary information screen, both displays). Its clock and speed are new Position / size parts (Clock, Speed). The speed is the vehicle speed the alerts read, sent to the layout only while it is chosen.
 - Tests: `redline-layout-parts`, `redline-layouts` (20 layouts, 17 on the HUD).
