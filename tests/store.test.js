@@ -102,7 +102,7 @@ async function checkSettingsEntry(file, id, version) {
         sourceParser = require(path.join(process.env.MGU_STORE_UPDATER_JS, 'sources'));
         const catalog = await sourceParser.repoCatalog((name) => Promise.resolve(fs.readFileSync(path.join(ROOT, name))), null, 'local');
         assert.deepStrictEqual(catalog.skipped, []);
-        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'gif_home_ko', 'idrive_circuit', 'idrive_circuit_en', 'mgu-gif-net', 'mgu-monitor-names', 'parked_games', 'seats_easy_access', 'seats_easy_access_ko', 'storage', 'storage_en']);
+        assert.deepStrictEqual(catalog.components.map((c) => c.id).sort(), ['cluster_redline', 'cluster_redline_en', 'gif_home_ko', 'idrive_circuit', 'idrive_circuit_en', 'mgu-gif-net', 'mgu-monitor-names', 'parked_games', 'seats_easy_access', 'seats_easy_access_ko', 'spotify_ko', 'storage', 'storage_en']);
         assert(catalog.components.filter((c) => c.kind === 'app').every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         for (const id of ['cluster_redline', 'cluster_redline_en']) {
             assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.4.0');

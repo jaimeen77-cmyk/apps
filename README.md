@@ -50,6 +50,13 @@ Eight games played with the iDrive controller while parked (lane runner, paddle 
 Plays GIFs uploaded from your phone in the home-screen widget and on its Animation screen. Cluster Redline's Animation layout uses the same uploaded GIFs.
 → **[Guide](apps/gif_home/README.md)**
 
+### 스포티파이 (Spotify, Korean edition) 2.0.0 · iDrive 7 · Korean
+
+<img src="apps/spotify/screenshots/now-playing-ko.png" width="640" alt="Spotify Korean edition">
+
+The Spotify Connect player and cover-art library of hexlay/idrive7-custom-apps in Korean, with a Hangul font so Korean song titles show. Needs the internet.
+→ **[Guide (Korean)](apps/spotify/README.ko.md)**
+
 ### Seats Easy Access 0.7.10 · iDrive 7·8 · English/Korean
 
 <img src="apps/seats_easy_access/screenshots/driver-en.jpg" width="640" alt="Seats Easy Access">
@@ -67,6 +74,7 @@ Driver and passenger seat adjustment, memories M1–M3, and Easy Access that mov
 | iDrive Circuit | [Guide](apps/idrive_circuit/README.md) | [설명서](apps/idrive_circuit/README.ko.md) |
 | 8게임즈 | — | [설명서](apps/parked_games/README.ko.md) |
 | GIF player | [Guide](apps/gif_home/README.md) | [설명서](apps/gif_home/README.ko.md) |
+| Spotify (Korean edition) | — | [설명서](apps/spotify/README.ko.md) |
 | Seats Easy Access | [Guide](apps/seats_easy_access/README.md) | [설명서](apps/seats_easy_access/README.ko.md) |
 
 [Changelog](CHANGELOG.md)
@@ -77,5 +85,6 @@ The pictures in the guides are drawn by the apps' own drawing code from the actu
 
 - **Cluster Redline** 1.3.10 and later: **permission required** ([apps/cluster_redline/LICENSE](apps/cluster_redline/LICENSE)). Installing and using it in your own car is free; copying, redistributing, modifying or commercial use needs permission. Up to 1.3.9: MIT. Components by others keep their own licenses ([NOTICE](NOTICE.cluster-redline.md)).
 - **GIF player**: GPL-3.0, as the original GIF Home (NamelsMissing/mgu-apps) ([NOTICE](NOTICE.gif-home.md)).
+- **Spotify (Korean edition)**: GPL-3.0, as the original Spotify (hexlay/idrive7-custom-apps) ([NOTICE](NOTICE.spotify.md)).
 - **8게임즈**: MIT, as the original Parked Games ([NOTICE](apps/parked_games/NOTICE)).
 - The other apps and the runtime kit: MIT ([LICENSE](LICENSE)). MGU Monitor's sources: [NOTICE](apps/storage/NOTICE).

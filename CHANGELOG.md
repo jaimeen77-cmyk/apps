@@ -2,6 +2,14 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Spotify 2.0.0 (Korean edition, new: 스포티파이)
+
+- **New in the Store: Spotify (한국어), id `spotify_ko`.** hexlay/idrive7-custom-apps' Spotify 2.0.0 (GPL-3.0, commit `db900984c13e`) in Korean: tabs, buttons, notices, the car's menu and settings. iDrive 7 only, needs the internet, the GPU renderer and the controller gate (as the original). Installs beside the original `spotify`; pair once again on its Connect tab.
+- **Korean song titles show**: the Hangul atlas of appsKOR (Noto Sans CJK KR, the 2,350 KS X 1001 syllables) is in the package and `fonts.js` draws Hangul from it (the original drew `?`).
+- **Names from Spotify are not translated.** The kit's i18n also replaced English words found inside a line; the Korean edition's `tools/spotify-i18n.js` translates a line only when it is, as a whole, in `localization/spotify.ko.json` (or one of its rules), piece by piece for lines joined with `  ·  `. `main.js` draws song, artist, playlist and device names as they are and translates a line before `fitText` cuts it.
+- The phone pairing page (hexlay.github.io) is the author's web page and stays in English.
+- `tools/prepare-spotify.py` (import / template) takes a new upstream version again; `tests/spotify-ko.test.js`.
+
 ## GIF Home 0.4.8 (Korean edition)
 
 - **No Widget settings page on the car.** The playback settings (mode, single GIF, group, interval, pause, playlist) are made on the phone page only, as the original GIF Home does; the widget's picture settings (fit, speed, frames, background, tone) stay on the kit's **Settings** button. Pages: Widget preview → Animation → Phone connection (Diagnostics by its button). The car's playlist picker went with the page.

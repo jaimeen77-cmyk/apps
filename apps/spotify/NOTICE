@@ -1,0 +1,12 @@
+Spotify 2.0.0 - Korean edition (Spotify 한국어판, spotify_ko)
+
+Source: hexlay/idrive7-custom-apps, apps/spotify (commit db900984c13e47f7be33c7b3c0ed92b1936c5026),
+GNU General Public License v3. This is a modified version, distributed under the same license:
+Korean text (localization/spotify.ko.json, tools/spotify-i18n.js), main.js lines measured and cut after
+translation and names from Spotify drawn untranslated, and Store packaging by jaimeen77-cmyk/apps.
+Full license text: LICENSE in the package, LICENSES/GPL-3.0-or-later.txt in the repository.
+Corresponding source: https://github.com/jaimeen77-cmyk/apps
+
+Runtime kit: hexlay/idrive7-custom-apps kit (cauliflowermossgrape/idrive7-apps), MIT (LICENSE.MIT).
+Korean font: Noto Sans CJK KR, SIL Open Font License 1.1 (OFL-NotoSansKR.txt), the atlas of jaimeen77-cmyk/appsKOR.
+Spotify is a trademark of Spotify AB. This app is not made or endorsed by Spotify.

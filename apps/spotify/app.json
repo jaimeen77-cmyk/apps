@@ -1,0 +1,69 @@
+{
+  "id": "spotify",
+  "title": "Spotify",
+  "description": "Spotify Connect cockpit player and cover-art library browser for BMW iDrive 7",
+  "version": "2.0.0",
+  "vendor": "custom",
+  "loggingId": "OASP",
+  "iconGlyph": "music",
+  "mguInternet": true,
+  "mguHmi": [
+    "ID7"
+  ],
+  "requires": {
+    "idrive7-renderd": "2.1.7",
+    "mgu-inputgate": "1.0.0"
+  },
+  "screens": [
+    {
+      "name": "MAIN",
+      "kind": "canvas",
+      "title": "Spotify",
+      "buttons": [
+        [
+          "BTN_PAGE",
+          "Next page"
+        ],
+        [
+          "BTN_SETTINGS",
+          "Settings"
+        ]
+      ]
+    }
+  ],
+  "settings": [
+    {
+      "key": "demo",
+      "label": "Playback mode",
+      "type": "choice",
+      "default": "off",
+      "options": [
+        [
+          "off",
+          "Online Mode (Default)"
+        ],
+        [
+          "on",
+          "Demo Mode (Offline)"
+        ]
+      ]
+    },
+    {
+      "key": "pollRate",
+      "label": "Playback sync rate",
+      "type": "number",
+      "unit": "s",
+      "default": 2,
+      "steps": [
+        1,
+        2,
+        3,
+        5,
+        10
+      ]
+    }
+  ],
+  "storeMguHmi": [
+    "ID7"
+  ]
+}
