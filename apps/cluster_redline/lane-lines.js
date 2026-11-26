@@ -54,7 +54,7 @@ const F = 454, D = 20, EYE = 4.07, HZ = -26, NEAR_D = -3.2, FAR_D = 38, MARK = 0
 function project(d, y) { const q = d + D; return [W / 2 - F * y / q, HZ + F * EYE / q]; }
 const px2m = (px, d) => px * (d + D) / F;
 function draw(v, w, h) {
-    const { ScaledCanvas } = require('./kit/canvas'), { rearCar } = require('./rear-car');
+    const { ScaledCanvas } = require('./kit/canvas');
     const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
     const yAt = (s, d) => s.y + (s.slope || 0) * d;
     const strip = (fy0, fy1, d0, d1, c) => {
@@ -88,8 +88,9 @@ function draw(v, w, h) {
     };
     mark(L, lv.left); mark(R, lv.right);
     // the car in the middle, over the lines (a line it is on goes under it)
-    const [, by] = project(CAR_D, 0), cw = 1.9 * F / (CAR_D + D) * 0.74;
-    rearCar(cv, W / 2, by, cw, { lamp: worst ? COLORS[worst] : undefined });
+    // (1.3.80) the car cut from the user's reference picture (hud-art.js), its shadow included
+    const [, by] = project(CAR_D, 0), cw = 1.9 * F / (CAR_D + D) * 0.86, art = require('./hud-art'), sz = art.size('car'), ch = cw * sz.h / sz.w;
+    art.paint(cv, 'car', W / 2 - cw / 2, by - ch + 2, cw, ch);
     return cv.canvas;
 }
 class LaneOverlay {

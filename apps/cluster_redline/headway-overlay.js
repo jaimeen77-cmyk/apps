@@ -21,7 +21,8 @@ function content(v,mode) {
 const RGB={red:[255,52,58],amber:[255,154,31],ok:[62,200,245]};
 function paint(cv,v,mode) {
     const c=content(v,mode),col=c.color,rgb=RGB[v.level]||RGB.ok;
-    require('./rear-car').rearCar(cv,17,33,24,{paint:[rgb[0],rgb[1],rgb[2],255],lamp:[255,255,255,200],glow:rgb});
+    // (1.3.80) the icon cut from the user's reference picture, its glow included (hud-art.js)
+    const art=require('./hud-art'),name=v.level==='red'?'red':v.level==='amber'?'amber':'ok',sz=art.size(name),iw=34,ih=iw*sz.h/sz.w;art.paint(cv,name,0,35-ih,iw,ih);
     if(v.level==='red')[36.5,39.5].forEach((y,i)=>cv.fillRect(6+i*2,y,22-i*4,1.6,col));
     let size=30;while(size>18&&cv.textWidth(c.big,size,{font:'light',literal:true})>W-40)size--;
     cv.text(c.big,38,31,size,col,{font:'light',literal:true});

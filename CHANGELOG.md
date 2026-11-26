@@ -22,11 +22,19 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.80 (the cars from the user's picture)
+
+- **The car in the lane-lines picture and the headway badge's car icons are cut from the user's own reference picture**, with their glow, instead of drawn.
+  - The source PNGs are in `tools/hud-art/`. `make.py` embeds them as zlib'd RGBA in `hud-art.js`.
+  - They are painted bilinear and alpha-blended at the layer's size.
+  - The badge shows the cyan, amber or red car for its colour step (the red one recoloured from the cyan, so all three are the same car).
+  - `rear-car.js` (the drawn car of 1.3.79) is removed.
+
 ## Cluster Redline 1.3.79 (lane lines and headway badge redrawn after the user's reference)
 
 - **Lane lines, redrawn.**
   - A dark road in perspective, with a faint grid near the car. The lines glow in their colour (15 cm markings, double lines as two, dashes 3 m on and 5 m off).
-  - Your car, seen from behind, sits in the middle of the lane (new `rear-car.js`). A line it drives over goes under it.
+  - Your car, seen from behind, sits in the middle of the lane. A line it drives over goes under it.
   - A warning (amber within 15 cm, red over the line) colours both lines and tints the half of the lane on its side. Red also glows under the car.
   - With the turn signal on towards a line (a lane change), only that line turns cyan, with a faint cyan tint.
   - The picture is 112 × 84, still just above the headway badge.
