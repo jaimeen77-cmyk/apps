@@ -87,5 +87,19 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
   assert.strictEqual(L5.status(5000).unsupported,false,'not before 10 s');assert.strictEqual(L5.status(11000).unsupported,true);
   const sig2={loadConfig:sig.loadConfig,watch:(i)=>Promise.resolve({available:/ObjectList/.test(i),shutdown(){}})};const L6=new LeadVehicle(sig2,null,()=>'1',()=>t5);L6.sync(true);await flush();
   assert.strictEqual(L6.status(20000).unsupported,false,'one source offered: not yet decided');}
+ // 1.3.73: the front camera's object list: the nearest vehicle in our lane (metres as sent), before the Drive assist view
+ {let t6=0;const subs={};const C=require('../../apps/cluster_redline/camera-objects');
+  const sig={loadConfig:(i)=>{if(i===IFACE)throw new Error('none');return {};},watch:(i,inst,h)=>{subs[i]=h;return Promise.resolve({available:true,shutdown(){}});}};
+  const L7=new LeadVehicle(sig,null,()=>'1',()=>t7);var t7=0;L7.sync(true);await flush();assert(subs[C.IFACE],'subscribed to the camera objects');
+  const rec=(objs)=>({eventDataQualifier:0,numberOfObjects:objs.length,objectRecognitionInfo:objs.map(([id,lane,type])=>({objectID:id,statusMeasurement:1,classificationType:type,drivingTubeMapping:lane}))});
+  const pos=(objs)=>({eventDataQualifier:0,numberOfObjects:objs.length,objectPositionInfo:objs.map(([x,y])=>({objectPositionInfoInvalidFlags:0,positionX:x,positionY:y}))});
+  L7.sampleSpeed({speedVehicleCentreOfGravity:72*64},0);
+  subs[C.IFACE][C.REC](rec([[3,2,3],[7,1,3],[9,1,0],[11,1,4]]));subs[C.IFACE][C.POS](pos([[12,3.4],[28.5,0.2],[6,0.1],[44,0]]));
+  let r=L7.read(0);assert(r&&Math.abs(r.gap-28.5)<0.01,'the nearest vehicle in our lane (a pedestrian nearer is not followed)');assert.strictEqual(L7.status(0).source,'camera');
+  const cs=L7.status(0).camera;assert.deepStrictEqual([cs.offered,cs.instance,cs.received.rec,cs.received.pos,cs.raw.objects,cs.raw.lead.id],[true,'1',1,1,4,7]);
+  // the Drive assist view does not take over while the camera is fresh
+  const A=require('../../apps/cluster_redline/assist-view');subs[A.OBJ_IF][A.OBJ_EV]({objectList:[{objectID:4,objectPosition:{x:900,y:0},objectPrediction:{laneAssignment:'EGO'}}]});assert(Math.abs(L7.read(0).gap-28.5)<0.01);
+  t7=300;subs[C.IFACE][C.REC](rec([[3,2,3]]));subs[C.IFACE][C.POS](pos([[12,3.4]]));assert.strictEqual(L7.read(300),null,'nobody in our lane: none');
+  assert.deepStrictEqual(C.objectsOf({eventDataQualifier:2,numberOfObjects:1,objectRecognitionInfo:[{objectID:1}]},{numberOfObjects:1,objectPositionInfo:[{positionX:5,positionY:0}]}),[],'data not available: nothing');}
  console.log('PASS: HUD headway badge: GapVehicleAhead read only while on, fine distance first, time gap from our speed (none below 12 km/h), closing speed, colour steps, install-time input, settings, overlay'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

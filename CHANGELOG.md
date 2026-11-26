@@ -22,7 +22,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
-## Cluster Redline 1.3.72 (new layouts: Retro VU meters, Navigation focus, G-G trail)
+## Cluster Redline 1.3.73 (lead-car headway from the front camera's object list)
+
+- On the user's car neither the radar's service nor the Drive assist view's sources are offered to apps, but the front camera's traffic sign recognition does reach the app. The headway badge now also reads the same camera's object list (`camera-objects.js`): `de.bmw.environmentalmodel.ObjectRecognitionFrontCamera2`, its ObjectRecognition (id, measured, class, driving-tube mapping) and ObjectPosition (metres ahead and to the side) broadcasts, paired object by object; the car followed is the nearest vehicle in our lane (pedestrians and cyclists left out). Metres as sent, so no unit to calibrate. The radar first, then the camera, then the Drive assist view. Added at install where the car's catalog has it. The layout as BimmerVision's published perception schema lists it (facts only; written anew).
+- The Lead-car headway screen: a line for it (Front camera objects: offered or not, instance, received, cars, the car followed and its distance); "this car does not give the app the car ahead" now only when the camera's list is not offered either.
+- Tests: `headway` (our lane, nearest vehicle, a pedestrian left out, before the Drive assist view, no data).
+
+new layouts: Retro VU meters, Navigation focus, G-G trail)
 
 - **Retro VU meters** (레트로 VU 미터, cluster): two lit cream meters as on a hi-fi amplifier, the rpm and the first readout chosen (without one the rpm alone, centred); in the red zone the needle's tip turns red and the PEAK lamp lights. Drive mode, gear and clock under them.
 - **Navigation focus** (길안내 중심, cluster): the turn big in the middle (the HUD's own arrows, larger), its distance and description (highway exit / entry named), the lanes and the turn after it; a small rpm ring on the left, gear and speed on the right; without guidance the speed takes the middle. The cluster now receives the guidance with this layout (the same as the HUD's, in the drive modes navigation shows in). New Position / size part: Navigation.

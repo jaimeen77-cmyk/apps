@@ -25,6 +25,9 @@ const INPUTS=[
  // the car followed as the car's own Drive assist view shows it (assist-view.js, 1.3.68), for cars without the above
  ['de.bmw.dass.AssistedDrivingViewFunctionInput','assistedDrivingViewFunctionInputIbVip','event'],
  ['de.bmw.dass.pad.communication.ObjectListSuAAR','suAARObjectList','event'],
+ // the front camera's object list (camera-objects.js, 1.3.73): the same camera's signs already reach the app
+ ['de.bmw.environmentalmodel.ObjectRecognitionFrontCamera2','ObjectRecognition','event'],
+ ['de.bmw.environmentalmodel.ObjectRecognitionFrontCamera2','ObjectPosition','event'],
 ];
 const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
 function instanceOf(catalog,iface){
