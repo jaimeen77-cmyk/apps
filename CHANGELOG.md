@@ -16,7 +16,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
-## Cluster Redline 1.3.67 (the GIF switch gone; the route's turn list on screen)
+## Cluster Redline 1.3.68 (lead-car headway from the Drive assist view)
+
+- On the user's car the radar's service for apps (`de.bmw.dass.GapVehicleAhead`) is not offered (1.3.65's screen: "not offered · instance 1"), yet the cluster's own Drive assist view shows the cars ahead and beside. The headway badge now also reads what that view is built from (`assist-view.js`): the cruise control's target (`AssistedDrivingViewFunctionInput`) and the object list (`ObjectListSuAAR`); the car followed is the cruise control's target, else the nearest in our lane. The radar's service, where offered, still comes first. Added at install where the car's catalog has them. The names as appsKOR's Cluster Layouts reads them (dap.js, MIT); written anew.
+- Not yet seen on a car: the position's unit. A value over 300 is read as centimetres, otherwise metres; the Lead-car headway screen shows the raw values (Drive assist view: received, cars, the car followed #id x y, the cruise control's target and its distance, which source is in use) to check it against a car followed.
+- Tests: `headway` (the Drive assist view: target, our lane, none; the old tests keep to the radar's service).
+
+the GIF switch gone; the route's turn list on screen)
 
 - **The Fast GIF layer switch is gone**: the GIF is always on its own layer, an Off stored by 1.3.64-1.3.66 included (1.3.66 only fixed the button; this was meant to go with it). A refused layer still falls back.
 - **Received turns: the route's turn list** (why the next turn shows or not, without a log file): how many turns the last list held and the most so far, how many lists came, from which phone navigation, and the distance from its first turn to the second. "Only one turn: no next turn": the navigation sends just the next turn, so the HUD's next turn cannot show.
