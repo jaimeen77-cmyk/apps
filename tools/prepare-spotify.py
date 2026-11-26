@@ -50,6 +50,99 @@ MAIN_PATCHES = [
     ("cv.text(fitText(cv, curTrk.artist, mw, aSize), mx, artistY, aSize, t.text);",
      "cv.text(fitText(cv, curTrk.artist, mw, aSize, { literal: true }), mx, artistY, aSize, t.text, { literal: true });", 1),
 ]
+# The Korean atlas (1024 x 2976) goes to the GPU renderer in pieces, as appsKOR's kit does (its fonts.js / record.js):
+# the renderer keeps every app's atlases in two shared 1024 x 4096 columns, and the upstream kit sends an atlas whole,
+# so once other atlases took more than 1120 rows of each column the Korean one never fitted and every Hangul line was
+# blank on the car ("glyph atlas texture full"), Latin still drawn. The software path keeps the whole atlas.
+FONTS_PIECES = """/*
+ * jaimeen77-cmyk/apps (한국어판), from appsKOR's fonts.js: GPU pieces of a tall atlas. The renderer keeps every app's
+ * atlases in one shared texture of two 1024 x 4096 columns; the Korean atlas (1024 x 2976) sent whole no longer fits
+ * once other apps' atlases took more than 1120 rows of each column, and every Hangul line was blank. Pieces of at most
+ * PIECE_H rows fit in the gaps. Each piece is its own atlas; the software path and measuring keep the whole atlas.
+ */
+const PIECE_H = 512;
+
+function pieces(f) {
+    if (f._pieces !== undefined) return f._pieces;
+    if (!(f.atlasH > PIECE_H)) return (f._pieces = null);
+    if (!f.alpha) f.alpha = zlib.inflateSync(Buffer.from(f._alpha, 'base64'));
+    const drawn = Object.keys(f.glyphs).filter((k) => f.glyphs[k][2] && f.glyphs[k][3])
+        .sort((a, b) => f.glyphs[a][1] - f.glyphs[b][1]);
+    const list = [], of = Object.create(null);
+    let cur = null;
+    for (const k of drawn) {
+        const g = f.glyphs[k];
+        if (!cur || g[1] + g[3] > cur.y0 + PIECE_H) { cur = { y0: g[1], y1: g[1] + g[3] }; list.push(cur); }
+        if (g[1] + g[3] > cur.y1) cur.y1 = g[1] + g[3];
+        of[k] = list.length - 1;
+    }
+    f._pieceOf = of;
+    f._pieces = list.map((p, i) => ({
+        size: f.size, ascent: f.ascent, descent: f.descent, atlasW: f.atlasW, atlasH: p.y1 - p.y0,
+        glyphs: f.glyphs, alpha: f.alpha.subarray(p.y0 * f.atlasW, p.y1 * f.atlasW), family: f.family,
+        cacheKey: (f.cacheKey || '') + '/piece' + i + 'of' + list.length + 'x' + PIECE_H, y0: p.y0,
+    }));
+    return f._pieces;
+}
+
+/** The piece of f's atlas with glyph cp (f itself when f is short enough); its rows start at .y0. */
+function piece(f, cp) {
+    const p = pieces(f);
+    if (!p) return f;
+    const i = f._pieceOf[cp];
+    return i === undefined ? f : p[i];
+}
+
+"""
+RECORD_OLD = """        let cnt = 0;
+        const head = this.n;
+        this._grow(4 + s.length * 8);
+        const fl = this.f, u = this.u;
+        let i = head + 4;
+        for (const ch of s) {
+            const g = f.glyphs[ch.codePointAt(0)] || f.glyphs[63];
+            if (!g) continue;
+            const gx = g[0], gy = g[1], gw = g[2], gh = g[3];
+            if (gw && gh) {
+                fl[i++] = pen + g[4] * sc; fl[i++] = y + g[5] * sc; fl[i++] = gw * sc; fl[i++] = gh * sc;
+                fl[i++] = gx; fl[i++] = gy; fl[i++] = gx + gw; fl[i++] = gy + gh;
+                cnt++;
+            }
+            pen += g[6] * sc + sp;
+        }
+        if (cnt) {
+            const aid = atlasId(f, f.family || family); this.atlases.add(aid);
+            u[head] = OP.GLYPHS; u[head + 1] = aid; u[head + 2] = pack(c); u[head + 3] = cnt;
+            this.n = i;
+        }
+        return w;
+"""
+RECORD_NEW = """        // jaimeen77-cmyk/apps (한국어판), as appsKOR's record.js: one GLYPHS op per run of glyphs from the same
+        // atlas piece (fonts.piece), so the tall Korean atlas reaches the GPU renderer in pieces
+        this._grow(s.length * 12);
+        const fl = this.f, u = this.u, colour = pack(c);
+        let i = this.n, head = -1, run = null, cnt = 0;
+        const close = () => {
+            const aid = atlasId(run, run.family || family); this.atlases.add(aid);
+            u[head] = OP.GLYPHS; u[head + 1] = aid; u[head + 2] = colour; u[head + 3] = cnt;
+        };
+        for (const ch of s) {
+            const cp = ch.codePointAt(0), g = f.glyphs[cp] || f.glyphs[63];
+            if (!g) continue;
+            const gx = g[0], gw = g[2], gh = g[3];
+            if (gw && gh) {
+                const p = fonts.piece(f, f.glyphs[cp] ? cp : 63), gy = g[1] - (p.y0 || 0);
+                if (p !== run) { if (run) close(); run = p; head = i; i += 4; cnt = 0; }
+                fl[i++] = pen + g[4] * sc; fl[i++] = y + g[5] * sc; fl[i++] = gw * sc; fl[i++] = gh * sc;
+                fl[i++] = gx; fl[i++] = gy; fl[i++] = gx + gw; fl[i++] = gy + gh;
+                cnt++;
+            }
+            pen += g[6] * sc + sp;
+        }
+        if (run) { close(); this.n = i; }
+        return w;
+"""
+
 NOTICE = """Spotify {version} - Korean edition (Spotify 한국어판, spotify_ko)
 
 Source: hexlay/idrive7-custom-apps, apps/spotify (commit {commit}),
@@ -152,7 +245,11 @@ def cmd_template(a):
                         "    // jaimeen77-cmyk/apps (한국어판): Hangul from the Korean atlas (fonts/korean.json, as appsKOR)\n"
                         "    if (text && /[\\u1100-\\u11ff\\u3130-\\u318f\\ua960-\\ua97f\\uac00-\\ud7ff]/.test(text) && family('korean')) name = 'korean';\n"
                         "    else if (text && /[\\u3000-\\u9fff\\uff00-\\uffef]/.test(text)) name = 'cjk';\n", 1, 'fonts.js')
+        fonts = replace(fonts, 'function measure(f, s) {', FONTS_PIECES + 'function measure(f, s) {', 1, 'fonts.js')
+        fonts = replace(fonts, 'module.exports = { get, measure };', 'module.exports = { get, measure, piece, PIECE_H };', 1, 'fonts.js')
         (kit / 'fonts.js').write_text(fonts, encoding='utf-8', newline='\n')
+        record = replace((kit / 'record.js').read_text(encoding='utf-8'), RECORD_OLD, RECORD_NEW, 1, 'record.js')
+        (kit / 'record.js').write_text(record, encoding='utf-8', newline='\n')
         shutil.copyfile(ROOT / 'tools/spotify-i18n.js', kit / 'i18n.js')
         # build.py copies an oap-sdk module into the package; a stand-in, left out of the template below
         (work / 'oap-sdk').mkdir()

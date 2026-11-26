@@ -103,5 +103,22 @@ const fonts = require(path.join(js, 'kit/fonts'));
 assert.strictEqual(fonts.get('bold', 20, '방탄소년단').family, 'korean', 'a Korean song title draws from the Korean atlas');
 assert.strictEqual(fonts.get('bold', 20, 'Midnight City').family, 'bold');
 
+// the GPU path: the tall Korean atlas reaches the renderer in pieces of at most 512 rows (sent whole it did not fit
+// the renderer's shared atlas texture and every Hangul line was blank on the car), and the pieces draw the same pixels
+const rec = require(path.join(js, 'kit/record'));
+const { Canvas } = require(path.join(js, 'kit/canvas'));
+const line = '플레이리스트 · 좋아요 표시한 곡 · 지금 재생 중 · 연결 · 방탄소년단 Dynamite';
+const r = new rec.Recorder(1600, 120);
+r.text(line, 10, 60, 30, '#ffffff');
+const used = Array.from(r.atlases).map((id) => rec.atlasById(id));
+assert.ok(used.length > 1, 'Korean text uses several atlas pieces');
+used.forEach((f) => assert.ok(f.atlasH <= 512 && f.alpha.length === f.atlasW * f.atlasH, 'piece of ' + f.atlasH + ' rows'));
+const viaPieces = new Canvas(1600, 120), direct = new Canvas(1600, 120);
+rec.play(r.words ? r.words() : r, viaPieces);
+direct.text(line, 10, 60, 30, '#ffffff');
+const lit = (cv) => { let n = 0; for (let k = 0; k < cv.d.length; k += 4) if (cv.d[k] > 128) n++; return n; };
+assert.ok(lit(direct) > 1000, 'the line is drawn');
+assert.ok(Math.abs(lit(viaPieces) - lit(direct)) <= lit(direct) * 0.02, 'pieces draw the same glyphs: ' + lit(viaPieces) + ' vs ' + lit(direct));
+
 fs.rmSync(temp, { recursive: true, force: true });
 console.log('PASS: spotify_ko builds without an SDK, menus and lines in Korean, names from Spotify untranslated, Hangul in its atlas');
