@@ -7,7 +7,7 @@ const {LeadVehicle,level,IFACE}=require('../../apps/cluster_redline/lead-vehicle
 const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
 (async()=>{
  assert.deepStrictEqual([level(0.8),level(1.2),level(1.6),level(null)],['red','amber','ok','ok']);
- let t=0,watched=null,shut=0;const signals={loadConfig:(i)=>i===IFACE?{fields:{GapVehicleDrivingAhead:{},DataFrontVehicle:{},DataFrontVehicleExtended:{}}}:{},watch:(i,inst,h)=>{watched={i,inst,h};return Promise.resolve({available:true,shutdown(){shut++;}});}};
+ let t=0,watched=null,shut=0;const signals={loadConfig:(i)=>i===IFACE?{fields:{GapVehicleDrivingAhead:{},DataFrontVehicle:{},DataFrontVehicleExtended:{}}}:(()=>{throw new Error('none');})(),watch:(i,inst,h)=>{watched={i,inst,h};return Promise.resolve({available:true,shutdown(){shut++;}});}};
  const L=new LeadVehicle(signals,null,()=>'1',()=>t);
  L.sync(false);assert.strictEqual(watched,null,'off: nothing read');
  L.sync(true);await flush();assert(watched&&watched.i===IFACE&&watched.h.DataFrontVehicle&&watched.h.GapVehicleDrivingAhead,'on: subscribed');
@@ -57,13 +57,28 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
   const cv=O.draw({gap:36,headway:0.8,closing:-6,level:'red'},'detail',112,60);let red=0;for(let i=0;i<cv.d.length;i+=4)if(cv.d[i]>200&&cv.d[i+1]<80&&cv.d[i+3]>200)red++;assert(red>80,'drawn red');}
  // 1.3.65: nothing offered on the manifest's instance for 20 s: subscribed again on instance 1 (as cluster-metrics), once;
  // the screen shows whether the radar's service is offered and on which instance
- {let t2=0;const seen=[];const sig={loadConfig:()=>({fields:{GapVehicleDrivingAhead:{},DataFrontVehicle:{}}}),watch:(i,inst)=>{seen.push(inst);return Promise.resolve({available:false,shutdown(){}});}};
+ {let t2=0;const seen=[];const sig={loadConfig:()=>({fields:{GapVehicleDrivingAhead:{},DataFrontVehicle:{}}}),watch:(i,inst)=>{if(i===IFACE)seen.push(inst);return Promise.resolve({available:false,shutdown(){}});}};
   const L2=new LeadVehicle(sig,null,()=>'Main_Instance',()=>t2);L2.sync(true);await flush();
   assert.deepStrictEqual([L2.status(0).instance,L2.status(0).available],['Main_Instance',false]);
   t2=10000;L2.sync(true);await flush();assert.deepStrictEqual(seen,['Main_Instance'],'not before 20 s');
   t2=21000;L2.sync(true);await flush();assert.deepStrictEqual(seen,['Main_Instance','1'],'then instance 1');assert.strictEqual(L2.status(t2).instance,'1');
   t2=60000;L2.sync(true);await flush();assert.strictEqual(seen.length,2,'once');
-  const seen3=[];const L3=new LeadVehicle({loadConfig:sig.loadConfig,watch:(i,inst)=>{seen3.push(inst);return Promise.resolve({available:false,shutdown(){}});}},null,()=>'1',()=>t2);
+  const seen3=[];const L3=new LeadVehicle({loadConfig:sig.loadConfig,watch:(i,inst)=>{if(i===IFACE)seen3.push(inst);return Promise.resolve({available:false,shutdown(){}});}},null,()=>'1',()=>t2);
   L3.sync(true);await flush();t2=200000;L3.sync(true);await flush();assert.deepStrictEqual(seen3,['1'],'already instance 1: nothing else to try');}
+ // 1.3.68: the car's Drive assist view when the radar's service is not offered: the cruise control's target in the
+ // object list (centimetres over 300), else the nearest in our lane; the radar first when it comes
+ {let t4=0;const subs={};const sig={loadConfig:(i)=>{if(i===IFACE)throw new Error('none');return {};},watch:(i,inst,h)=>{subs[i]=h;return Promise.resolve({available:true,shutdown(){}});}};
+  const L4=new LeadVehicle(sig,null,()=>'1',()=>t4);L4.sync(true);await flush();
+  const A=require('../../apps/cluster_redline/assist-view');assert(subs[A.ACC_IF]&&subs[A.OBJ_IF],'both broadcasts');assert.strictEqual(L4.status(0).state,'not_installed');
+  const list=(objs)=>({objectList:objs.map(([id,x,y,lane])=>({objectID:id,objectPosition:{x,y},objectPrediction:{laneAssignment:lane}}))});
+  L4.sampleSpeed({speedVehicleCentreOfGravity:72*64},0);
+  subs[A.OBJ_IF][A.OBJ_EV](list([[4,1200,-350,'RIGHT'],[9,3600,20,'EGO'],[11,5200,40,'EGO']]));
+  let r=L4.read(0);assert(r&&Math.abs(r.gap-36)<0.01,'the nearest in our lane: 3600 cm = 36 m');assert.strictEqual(L4.status(0).source,'assist');
+  subs[A.ACC_IF][A.ACC_EV]({assistedDrivingViewACCTargetObjectId:11,assistedDrivingViewACCTargetDistance:52,assistedDrivingViewStateXcc:3});
+  t4=500;subs[A.OBJ_IF][A.OBJ_EV](list([[9,3500,20,'EGO'],[11,5100,40,'EGO']]));r=L4.read(500);assert(Math.abs(r.gap-51)<0.01,'the cruise control\'s target');
+  const st=L4.status(500).assist;assert.deepStrictEqual([st.received.acc,st.received.objects,st.raw.objects,st.raw.lead.id,st.raw.lead.x,st.raw.target,st.raw.accDistance],[1,2,2,11,5100,11,52]);
+  t4=900;subs[A.OBJ_IF][A.OBJ_EV](list([[4,900,-350,'RIGHT']]));assert.strictEqual(L4.read(900),null,'nobody in our lane: none');
+  assert.strictEqual(A.metres(38),38,'metres as they are');assert.strictEqual(A.metres(3800),38);
+  L4.sync(false);assert.strictEqual(L4.assist.state,'off');}
  console.log('PASS: HUD headway badge: GapVehicleAhead read only while on, fine distance first, time gap from our speed (none below 12 km/h), closing speed, colour steps, install-time input, settings, overlay'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

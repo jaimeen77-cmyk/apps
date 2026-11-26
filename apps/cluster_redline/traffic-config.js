@@ -22,6 +22,9 @@ const INPUTS=[
  ['de.bmw.dass.GapVehicleAhead','GapVehicleDrivingAhead','field'],
  ['de.bmw.dass.GapVehicleAhead','DataFrontVehicle','field'],
  ['de.bmw.dass.GapVehicleAhead','DataFrontVehicleExtended','field'],
+ // the car followed as the car's own Drive assist view shows it (assist-view.js, 1.3.68), for cars without the above
+ ['de.bmw.dass.AssistedDrivingViewFunctionInput','assistedDrivingViewFunctionInputIbVip','event'],
+ ['de.bmw.dass.pad.communication.ObjectListSuAAR','suAARObjectList','event'],
 ];
 const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;
 function instanceOf(catalog,iface){

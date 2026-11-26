@@ -9,6 +9,7 @@
 //   DataFrontVehicleExtended  the kind of object (shown in the status only)
 // The field names, values and scale are those chyiz's idrive7-cluster-metrics found on a G30 (GPL; facts only, no code
 // taken); not yet seen on this car, so the settings screen shows what arrives. Read only: nothing is ever sent.
+const {AssistView}=require('./assist-view');
 const IFACE='de.bmw.dass.GapVehicleAhead',FIELDS=['GapVehicleDrivingAhead','DataFrontVehicle','DataFrontVehicleExtended'];
 const STALE_MS=2500,FINE_MS=900,MIN_M=0.4,MAX_M=260,SLOW_KMH=12,RED_S=1.0,AMBER_S=1.5;
 const num=(v)=>typeof v==='number'&&isFinite(v)?v:null;
@@ -21,10 +22,16 @@ class LeadVehicle {
         this.clock=clock||Date.now;this.signals=signals;this.log=log||{warn(){},info(){}};this.instanceOf=instanceOf||(()=>'1');
         this.sub=null;this.state='off';this.error=null;this.token=0;this.instance=null;this.altInstance=null;this.subscribedAt=0;this.speed=null;this.speedAt=null;
         this.raw={status:null,gap:null,gapX:null,object:null,qualifier:null,kind:null};this.received=0;this.reset();
+        // the car's Drive assist view (assist-view.js, 1.3.68): the car followed when the radar's service is not offered
+        this.radarAt=null;this.source=null;
+        this.assist=new AssistView(signals,log,instanceOf,this.clock,(m,id,now)=>this.fromAssist(m,id,now),(now)=>{if(this.source==='assist'&&!this.radarFresh(now))this.reset();});
     }
-    reset(){this.gap=null;this.at=null;this.fineAt=null;this.object=null;this.closing=null;this.ref=null;}
+    reset(){this.gap=null;this.at=null;this.fineAt=null;this.object=null;this.closing=null;this.ref=null;this.source=null;}
+    radarFresh(now){return this.radarAt!==null&&now-this.radarAt<STALE_MS;}
+    fromAssist(m,id,now){if(this.radarFresh(now))return;if(this.source!=='assist'){this.closing=null;this.ref=null;}this.distance(m,id,now);this.source='assist';}
     // on: the badge wanted (on, the app running, the car's signals there). Subscribes or lets go.
     sync(on) {
+        if(this.assist)this.assist.sync(on);
         if(!on){if(this.sub||this.state==='subscribing'){this.token++;if(this.sub)try{this.sub.shutdown();}catch(e){}this.sub=null;}this.state='off';this.reset();return;}
         if(this.sub)this.check(this.clock());
         if(this.sub||this.state==='subscribing'||this.state==='not_installed'||this.state==='error')return;
@@ -60,7 +67,7 @@ class LeadVehicle {
         const fine=this.fineAt!==null&&now-this.fineAt<FINE_MS;
         if(none){if(!fine)this.lost();return;}
         // the coarse metres only while the finer distance is not coming
-        if(measured&&!fine&&g!==null)this.distance(g,this.object,now);
+        if(measured&&!fine&&g!==null){this.distance(g,this.object,now);this.radarAt=now;this.source='radar';}
     }
     sampleFront(v,now) {
         if(!v||typeof v!=='object')return;this.received++;
@@ -68,7 +75,7 @@ class LeadVehicle {
         this.raw.qualifier=q===undefined?null:q;this.raw.object=id;this.raw.gapX=x;
         const bad=q===2||q===15||names(q,/NOT_AVAILABLE|UNBEFUELLT|INVALID/);
         if(bad||(id!==null&&id>=250)||(x!==null&&(x<=0||x>=4090))){this.lost();return;}
-        if(x!==null){this.fineAt=now;this.distance(x*0.0625,id,now);}
+        if(x!==null){this.fineAt=now;this.distance(x*0.0625,id,now);this.radarAt=now;this.source='radar';}
     }
     lost(){this.reset();}
     distance(m,id,now) {
@@ -85,11 +92,11 @@ class LeadVehicle {
     }
     /** The car ahead now: { gap m, headway s or null (slow, or our speed unknown), closing km/h or null, level }, or null. */
     read(now) {
-        if(this.state!=='subscribed'||this.gap===null||this.at===null||now-this.at>STALE_MS)return null;
+        if(this.state==='off'||this.gap===null||this.at===null||now-this.at>STALE_MS)return null;
         const speed=this.speedAt!==null&&now-this.speedAt<=STALE_MS?this.speed:null;
         const headway=speed!==null&&speed>=SLOW_KMH?Math.max(0.1,Math.min(9.9,this.gap/(speed/3.6))):null;
         return {gap:this.gap,headway,closing:this.closing,level:level(headway)};
     }
-    status(now){return {state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
+    status(now){return {source:this.source,assist:this.assist?this.assist.status():null,state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
 }
 module.exports={LeadVehicle,level,IFACE,FIELDS,STALE_MS,SLOW_KMH,RED_S,AMBER_S};
