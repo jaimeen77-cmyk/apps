@@ -42,10 +42,10 @@ msg({rx:7,data:d2,at:5000});t=2000;assert.strictEqual(L.read(2000,'off'),null,'a
 assert.strictEqual(L.status(0).rx,7);assert.strictEqual(L.status(0).helper,'connected');
 L.sync(false);assert.strictEqual(L.read(0,'off'),null);assert.strictEqual(L.status(0).helper,'off');
 // the picture and the overlay
-const im=draw({left:e.left,right:e.right,levels:{left:'ok',right:'over'}},112,64);assert(im.w>=112&&im.h>=64);assert(lineCalls>=5,'dashed left, solid right');
+const im=draw({left:e.left,right:e.right,levels:{left:'ok',right:'over'}},112,84);assert(im.w>=112&&im.h>=84);assert(lineCalls>=5,'dashed left, solid right');
 const layers=new Map();let k=0,up=0;const client={image(o){layers.set(++k,Object.assign({},o));return k;},pixels(){up++;},set(ref,o){Object.assign(layers.get(ref),o);},drop(ref){layers.delete(ref);}};
 const cfg=settings(Object.assign({},D.defaults,{hudLaneLines:'on'})),O=new LaneOverlay(client);
-const rect=D.laneRect(cfg),hw=D.headwayRect(cfg);assert(rect.y+rect.h<=hw.y,'above the headway badge');assert(rect.w===112&&rect.h===64);
+const rect=D.laneRect(cfg),hw=D.headwayRect(cfg);assert(rect.y+rect.h<=hw.y,'above the headway badge');assert(rect.w===112&&rect.h===84);
 assert.strictEqual(O.tick(null,cfg,false),false);assert.strictEqual(layers.size,0);
 assert.strictEqual(O.tick(Object.assign({},e,{levels:{left:'ok',right:'ok'}}),cfg,false),true);
 const l=layers.get(1);assert.strictEqual(l.target,'hud');assert.strictEqual(l.visible,true);assert.strictEqual(up,1);
@@ -56,5 +56,5 @@ assert.strictEqual(O.tick(e,off,false),false);assert.strictEqual(O.tick(null,off
 O.close();assert.strictEqual(layers.size,0);
 // the real canvas of a built package: the picture has pixels
 if(process.argv[2]){Module._load=orig;const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),X=require(path.join(dir,'lane-lines'));
- const p=X.draw({left:e.left,right:e.right,levels:{left:'near',right:'ok'}},112,64);let lit=0;for(let i=3;i<p.d.length;i+=4)if(p.d[i])lit++;assert(lit>200,'drawn '+lit);}
+ const p=X.draw({left:e.left,right:e.right,levels:{left:'near',right:'ok'}},112,84);let lit=0;for(let i=3;i<p.d.length;i+=4)if(p.d[i])lit++;assert(lit>200,'drawn '+lit);}
 console.log('lane-lines ok');

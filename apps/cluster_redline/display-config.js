@@ -44,7 +44,7 @@ Object.assign(defaults,{greetHello:'on',greetBye:'on'});
 // (+ closing speed); placed by its own rectangle, between the turn arrows under the RPM face by default.
 const HEADWAY_PARTS=[{key:'Headway',label:'Lead-car headway',prefix:'hudHeadway',scale:'hudHeadwayScale',w:112,h:60}];
 // Lane lines (lane-lines.js, 1.3.77): just above the headway badge, at its size
-function laneRect(cfg){const h0=headwayRect(cfg),s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(64*s);return {x:Math.max(0,Math.min(800-w,Math.round(h0.x+(h0.w-w)/2))),y:Math.max(0,h0.y-h-4),w,h};}
+function laneRect(cfg){const h0=headwayRect(cfg),s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(84*s);return {x:Math.max(0,Math.min(800-w,Math.round(h0.x+(h0.w-w)/2))),y:Math.max(0,h0.y-h-4),w,h};}
 function headwayRect(cfg){const s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(60*s);return {x:Math.max(0,Math.min(800-w,Math.round((800-w)/2+(cfg.hudHeadwayOffsetX||0)))),y:Math.max(0,Math.min(480-h,Math.round(238+(cfg.hudHeadwayOffsetY||0)))),w,h};}
 Object.assign(defaults,{hudHeadway:'off',hudHeadwayOffsetX:0,hudHeadwayOffsetY:0,hudHeadwayScale:100,hudHeadwayHidden:false});
 // Following the BC button (bc-follow.js, 1.3.40): on / off, the head unit's list (ID7 / ID8), each page's setup (JSON),

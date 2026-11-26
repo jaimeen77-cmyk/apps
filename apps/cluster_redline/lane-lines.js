@@ -6,7 +6,7 @@
 // yellow as the camera reports. Drawn just above the headway badge, at its size (HUD lamps → Lane lines).
 const { LeadHelper } = require('./lead-helper');
 // NEAR_M 0.15 (1.3.78): with 0.3 a car 30 cm off a 3 m lane's centre was already amber (the user's capture)
-const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 64;
+const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 84;
 const TYPES = { 1: 'dashed', 2: 'solid', 3: 'dotted', 4: 'edge', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'edge' };
 /** The lines of the car's own lane: {left, right, width} (each {y, type, color, margin} or null) from the helper's list. */
 function egoLines(data) {
@@ -44,61 +44,52 @@ class LaneLines {
     }
     status(now) { const r = this.read(now, 'off'); return { helper: this.helper.status().state, rx: this.rx, lines: this.last && this.last.lines ? this.last.lines.length : 0, now: r, visibility: this.last ? this.last.visibility : null }; }
 }
-const COLORS = { white: [236, 241, 247, 255], yellow: [255, 206, 58, 255], near: [255, 160, 32, 255], over: [255, 58, 42, 255], change: [90, 176, 255, 255] };
-// The picture (1.3.79): the road seen from behind and above the car, in true perspective. A point d metres ahead of the
-// car's centre and y metres to its left is at x = cx - F y / (d + D), y = HZ + F (EYE - z) / (d + D) on screen (z: height).
-// The lines are painted road markings of their real width (15 cm; a double line two of 12 cm, 12 cm apart), dashes 3 m
-// on and 5 m off (Korean town roads); the lane between them a faint surface; the car inside it, its roof and its rear.
-const F = 160, D = 12, EYE = 3.6, HZ = 3, NEAR_D = -4, FAR_D = 48, MARK = 0.15;
-const CAR = { half: 0.95, rear: -2.35, front: 2.35, roof: 1.42, roofHalf: 0.72, roofRear: -1.6, roofFront: 0.7 };
-function project(d, y, z) { const q = d + D; return [W / 2 - F * y / q, HZ + F * (EYE - (z || 0)) / q]; }
-// The car (1.3.79): the door-open warning's car (door-alert.js), its top view laid on the road at its heights (the hood
-// and the tailgate 0.9 m, the roof 1.42 m, the glass between), over its shadow and a rear face; 4.7 m long.
-function paintCar(cv) {
-    const S = require('./door-alert').SHAPES, k = (CAR.front - CAR.rear) / S.LENGTH;
-    const zOf = (py) => py < 25.4 ? 0.9 : py < 37 ? 0.9 + (py - 25.4) / 11.6 * 0.52 : py < 80.4 ? 1.42 : py < 108.6 ? 1.42 - (py - 80.4) / 28.2 * 0.47 : 0.95;
-    const P = (pts, z, flip) => pts.map(([x, py]) => project(CAR.front - py * k, (flip ? x : -x) * k, z === undefined ? zOf(py) : z));
-    const inset = (pts, f) => pts.map(([x, y]) => [x * f, y]);
-    cv.fill([project(CAR.rear - 0.15, 1.08, 0), project(CAR.front, 1.08, 0), project(CAR.front, -1.08, 0), project(CAR.rear - 0.15, -1.08, 0)], [0, 0, 0, 160]);
-    cv.fill([project(CAR.rear, 1.0, 0.92), project(CAR.rear, -1.0, 0.92), project(CAR.rear, -0.98, 0.28), project(CAR.rear, 0.98, 0.28)], S.EDGE);   // the rear face
-    cv.fill([project(CAR.rear, 0.98, 0.86), project(CAR.rear, 0.55, 0.86), project(CAR.rear, 0.55, 0.74), project(CAR.rear, 0.98, 0.74)], [230, 40, 50, 255]);
-    cv.fill([project(CAR.rear, -0.55, 0.86), project(CAR.rear, -0.98, 0.86), project(CAR.rear, -0.98, 0.74), project(CAR.rear, -0.55, 0.74)], [230, 40, 50, 255]);
-    cv.fill(P(S.BODY, 0.9), S.EDGE); cv.fill(P(inset(S.BODY, 0.95), 0.9), S.SILVER);
-    cv.fill(P(S.MIRROR, 1.0), S.SILVER); cv.fill(P(S.MIRROR, 1.0, true), S.SILVER);
-    cv.fill(P(inset(S.HOOD, 0.86)), S.LIGHT); cv.fill(P(inset(S.GATE, 0.86)), S.LIGHT);
-    cv.fill(P(S.SCREEN), S.GLASS); cv.fill(P(S.ROOF), S.SILVER); cv.fill(P(S.PANO), S.PANO_GLASS); cv.fill(P(S.REAR_GLASS), S.GLASS);
-    cv.fill(P(S.LAMP), [200, 40, 50, 255]); cv.fill(P(S.LAMP, undefined, true), [200, 40, 50, 255]);
-}
+const COLORS = { white: [232, 238, 246, 255], yellow: [255, 206, 58, 255], near: [255, 158, 40, 255], over: [255, 52, 44, 255], change: [56, 214, 255, 255] };
+// The picture (1.3.79, as the user's reference): a dark road in perspective with a faint grid near the car, the lines
+// glowing in their colour, the car seen from behind in the middle. A warning colours both lines (amber near, red over)
+// and tints the half of the lane on its side; red also glows under the car; with the turn signal (a lane change) only
+// that side's line turns cyan. A point d metres ahead of the car and y metres to its left: x = cx - F y / (d + D),
+// y = HZ + F EYE / (d + D). The lines are 15 cm (a double line two of 12 cm), dashes 3 m on and 5 m off.
+const F = 454, D = 20, EYE = 4.07, HZ = -26, NEAR_D = -3.2, FAR_D = 38, MARK = 0.15, CAR_D = 1.5;
+function project(d, y) { const q = d + D; return [W / 2 - F * y / q, HZ + F * EYE / q]; }
+const px2m = (px, d) => px * (d + D) / F;
 function draw(v, w, h) {
-    const { ScaledCanvas } = require('./kit/canvas'); const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
+    const { ScaledCanvas } = require('./kit/canvas'), { rearCar } = require('./rear-car');
+    const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
     const yAt = (s, d) => s.y + (s.slope || 0) * d;
-    const strip = (fy0, fy1, d0, d1, c) => {   // a band on the road between two lateral functions of d, from d0 to d1
-        const n = Math.max(2, Math.ceil((d1 - d0) / 3)), a = [], b = [];
+    const strip = (fy0, fy1, d0, d1, c) => {
+        const n = Math.max(2, Math.ceil((d1 - d0) / 2)), a = [], b = [];
         for (let i = 0; i <= n; i++) { const d = d0 + (d1 - d0) * i / n; a.push(project(d, fy0(d))); b.unshift(project(d, fy1(d))); }
         cv.fill(a.concat(b), c);
     };
-    // the lane's surface: between the two lines, or a usual lane's width beside the one seen
     const L = v.left, R = v.right, lw = typeof v.width === 'number' && v.width > 2 && v.width < 5 ? v.width : 3.3;
     const fl = L ? (d) => yAt(L, d) : (d) => yAt(R, d) + lw, fr = R ? (d) => yAt(R, d) : (d) => yAt(L, d) - lw;
-    strip(fl, fr, NEAR_D, FAR_D, [70, 92, 116, 70]);
-    const mark = (s, lvl, side, top) => {
+    const lv = v.levels || {}, worst = ['over', 'near'].find((x) => lv.left === x || lv.right === x) || null;
+    // the road: dark, a little beyond the lines, lighter near the car; the grid
+    strip((d) => fl(d) + 0.45, (d) => fr(d) - 0.45, NEAR_D, FAR_D, [20, 24, 30, 230]);
+    strip((d) => fl(d) + 0.45, (d) => fr(d) - 0.45, NEAR_D, 8, [36, 41, 49, 120]);
+    for (let d = -3; d <= 9; d += 2) strip((x) => fl(x) + 0.5, (x) => fr(x) - 0.5, d, d + px2m(0.5, d) * 0.6, [120, 140, 160, 34]);
+    for (let k = 1; k < 5; k++) { const t = k / 5; strip((d) => fl(d) + (fr(d) - fl(d)) * t + px2m(0.25, d), (d) => fl(d) + (fr(d) - fl(d)) * t - px2m(0.25, d), NEAR_D, 9, [120, 140, 160, 26]); }
+    // the warned half of the lane: from the middle to the line, in the warning's colour
+    const tint = (side, lvl) => { if (!lvl || lvl === 'ok') return; const c = COLORS[lvl], a = lvl === 'over' ? 92 : lvl === 'near' ? 78 : 46, mid = (d) => (fl(d) + fr(d)) / 2;
+        strip(side > 0 ? fl : mid, side > 0 ? mid : fr, NEAR_D, FAR_D, [c[0], c[1], c[2], a]); };
+    tint(1, lv.left); tint(-1, lv.right);
+    if (worst === 'over') { const c = COLORS.over; [[1.15, 26], [0.85, 32], [0.55, 40]].forEach(([wd, a]) => strip(() => wd, () => -wd, NEAR_D, CAR_D + 0.6, [c[0], c[1], c[2], a])); }
+    // the lines: a soft glow under each painted line
+    const mark = (s, lvl) => {
         if (!s) return;
-        let c = lvl && lvl !== 'ok' ? COLORS[lvl] : COLORS[s.color] || COLORS.white; if (top) c = [c[0], c[1], c[2], 150];
-        const near = top ? CAR.front + 1 : FAR_D;
-        const wide = lvl === 'over' ? 1.6 : 1, edges = s.type === 'double' ? [[-0.18, -0.06], [0.06, 0.18]] : s.type === 'edge' ? [[-0.1, 0.1]] : [[-MARK / 2, MARK / 2]];
-        // widen towards the viewer a little so the far end stays visible
-        edges.forEach(([e0, e1]) => {
-            const g0 = (d) => yAt(s, d) + e0 * wide * (1 + d / 18), g1 = (d) => yAt(s, d) + e1 * wide * (1 + d / 18);
-            if (!top && (s.type === 'dashed' || s.type === 'dotted')) { const on = s.type === 'dotted' ? 1 : 3, period = s.type === 'dotted' ? 3 : 8;
-                for (let d = NEAR_D; d < near; d += period) strip(g0, g1, d, Math.min(near, d + on), c); }
-            else strip(g0, g1, NEAR_D, near, c);
-        });
+        const c = worst ? COLORS[worst] : lvl === 'change' ? COLORS.change : COLORS[s.color] || COLORS.white;
+        const edges = s.type === 'double' ? [[-0.2, -0.07], [0.07, 0.2]] : s.type === 'edge' ? [[-0.1, 0.1]] : [[-MARK / 2, MARK / 2]];
+        const pieces = s.type === 'dashed' || s.type === 'dotted' ? (() => { const out = [], on = s.type === 'dotted' ? 0.8 : 3, per = s.type === 'dotted' ? 2.4 : 8; for (let d = NEAR_D - 1; d < FAR_D; d += per) out.push([Math.max(NEAR_D, d), Math.min(FAR_D, d + on)]); return out; })() : [[NEAR_D, FAR_D]];
+        [[3.2, 38], [1.6, 80], [0, 255]].forEach(([pad, a]) => edges.forEach(([e0, e1]) => pieces.forEach(([d0, d1]) => {
+            if (d1 <= d0) return;
+            strip((d) => yAt(s, d) + e1 + px2m(pad, d) + px2m(0.35, d), (d) => yAt(s, d) + e0 - px2m(pad, d) - px2m(0.35, d), d0, d1, [c[0], c[1], c[2], a === 255 ? c[3] : a]);
+        })));
     };
-    mark(L, v.levels.left, 1); mark(R, v.levels.right, -1);
-    paintCar(cv);
-    // a warned line under the car: its part beside the car again over it, half seen through
-    if (v.levels.left && v.levels.left !== 'ok') mark(L, v.levels.left, 1, true);
-    if (v.levels.right && v.levels.right !== 'ok') mark(R, v.levels.right, -1, true);
+    mark(L, lv.left); mark(R, lv.right);
+    // the car in the middle, over the lines (a line it is on goes under it)
+    const [, by] = project(CAR_D, 0), cw = 1.9 * F / (CAR_D + D) * 0.74;
+    rearCar(cv, W / 2, by, cw, { lamp: worst ? COLORS[worst] : undefined });
     return cv.canvas;
 }
 class LaneOverlay {
