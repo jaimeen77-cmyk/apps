@@ -6,7 +6,7 @@
 // yellow as the camera reports. Drawn just above the headway badge, at its size (HUD lamps → Lane lines).
 const { LeadHelper } = require('./lead-helper');
 // NEAR_M 0.15 (1.3.78): with 0.3 a car 30 cm off a 3 m lane's centre was already amber (the user's capture)
-const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 56;
+const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 64;
 const TYPES = { 1: 'dashed', 2: 'solid', 3: 'dotted', 4: 'edge', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'edge' };
 /** The lines of the car's own lane: {left, right, width} (each {y, type, color, margin} or null) from the helper's list. */
 function egoLines(data) {
@@ -44,24 +44,61 @@ class LaneLines {
     }
     status(now) { const r = this.read(now, 'off'); return { helper: this.helper.status().state, rx: this.rx, lines: this.last && this.last.lines ? this.last.lines.length : 0, now: r, visibility: this.last ? this.last.visibility : null }; }
 }
-const COLORS = { white: '#e8eef5', yellow: '#ffd23a', near: '#ffa020', over: '#ff3a2a', change: '#5ab0ff' };
-// the picture: the road in perspective (the car's axis in the middle, 22 px a metre at the bottom, 7 at the top)
+const COLORS = { white: [236, 241, 247, 255], yellow: [255, 206, 58, 255], near: [255, 160, 32, 255], over: [255, 58, 42, 255], change: [90, 176, 255, 255] };
+// The picture (1.3.79): the road seen from behind and above the car, in true perspective. A point d metres ahead of the
+// car's centre and y metres to its left is at x = cx - F y / (d + D), y = HZ + F (EYE - z) / (d + D) on screen (z: height).
+// The lines are painted road markings of their real width (15 cm; a double line two of 12 cm, 12 cm apart), dashes 3 m
+// on and 5 m off (Korean town roads); the lane between them a faint surface; the car inside it, its roof and its rear.
+const F = 160, D = 12, EYE = 3.6, HZ = 3, NEAR_D = -4, FAR_D = 48, MARK = 0.15;
+const CAR = { half: 0.95, rear: -2.35, front: 2.35, roof: 1.42, roofHalf: 0.72, roofRear: -1.6, roofFront: 0.7 };
+function project(d, y, z) { const q = d + D; return [W / 2 - F * y / q, HZ + F * (EYE - (z || 0)) / q]; }
+// The car (1.3.79): the door-open warning's car (door-alert.js), its top view laid on the road at its heights (the hood
+// and the tailgate 0.9 m, the roof 1.42 m, the glass between), over its shadow and a rear face; 4.7 m long.
+function paintCar(cv) {
+    const S = require('./door-alert').SHAPES, k = (CAR.front - CAR.rear) / S.LENGTH;
+    const zOf = (py) => py < 25.4 ? 0.9 : py < 37 ? 0.9 + (py - 25.4) / 11.6 * 0.52 : py < 80.4 ? 1.42 : py < 108.6 ? 1.42 - (py - 80.4) / 28.2 * 0.47 : 0.95;
+    const P = (pts, z, flip) => pts.map(([x, py]) => project(CAR.front - py * k, (flip ? x : -x) * k, z === undefined ? zOf(py) : z));
+    const inset = (pts, f) => pts.map(([x, y]) => [x * f, y]);
+    cv.fill([project(CAR.rear - 0.15, 1.08, 0), project(CAR.front, 1.08, 0), project(CAR.front, -1.08, 0), project(CAR.rear - 0.15, -1.08, 0)], [0, 0, 0, 160]);
+    cv.fill([project(CAR.rear, 1.0, 0.92), project(CAR.rear, -1.0, 0.92), project(CAR.rear, -0.98, 0.28), project(CAR.rear, 0.98, 0.28)], S.EDGE);   // the rear face
+    cv.fill([project(CAR.rear, 0.98, 0.86), project(CAR.rear, 0.55, 0.86), project(CAR.rear, 0.55, 0.74), project(CAR.rear, 0.98, 0.74)], [230, 40, 50, 255]);
+    cv.fill([project(CAR.rear, -0.55, 0.86), project(CAR.rear, -0.98, 0.86), project(CAR.rear, -0.98, 0.74), project(CAR.rear, -0.55, 0.74)], [230, 40, 50, 255]);
+    cv.fill(P(S.BODY, 0.9), S.EDGE); cv.fill(P(inset(S.BODY, 0.95), 0.9), S.SILVER);
+    cv.fill(P(S.MIRROR, 1.0), S.SILVER); cv.fill(P(S.MIRROR, 1.0, true), S.SILVER);
+    cv.fill(P(inset(S.HOOD, 0.86)), S.LIGHT); cv.fill(P(inset(S.GATE, 0.86)), S.LIGHT);
+    cv.fill(P(S.SCREEN), S.GLASS); cv.fill(P(S.ROOF), S.SILVER); cv.fill(P(S.PANO), S.PANO_GLASS); cv.fill(P(S.REAR_GLASS), S.GLASS);
+    cv.fill(P(S.LAMP), [200, 40, 50, 255]); cv.fill(P(S.LAMP, undefined, true), [200, 40, 50, 255]);
+}
 function draw(v, w, h) {
     const { ScaledCanvas } = require('./kit/canvas'); const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
-    const cx = W / 2, X = (y, t) => cx - y * (22 - 15 * t), yy = (t) => H - 4 - t * (H - 10);
-    const line = (s, lvl) => {
+    const yAt = (s, d) => s.y + (s.slope || 0) * d;
+    const strip = (fy0, fy1, d0, d1, c) => {   // a band on the road between two lateral functions of d, from d0 to d1
+        const n = Math.max(2, Math.ceil((d1 - d0) / 3)), a = [], b = [];
+        for (let i = 0; i <= n; i++) { const d = d0 + (d1 - d0) * i / n; a.push(project(d, fy0(d))); b.unshift(project(d, fy1(d))); }
+        cv.fill(a.concat(b), c);
+    };
+    // the lane's surface: between the two lines, or a usual lane's width beside the one seen
+    const L = v.left, R = v.right, lw = typeof v.width === 'number' && v.width > 2 && v.width < 5 ? v.width : 3.3;
+    const fl = L ? (d) => yAt(L, d) : (d) => yAt(R, d) + lw, fr = R ? (d) => yAt(R, d) : (d) => yAt(L, d) - lw;
+    strip(fl, fr, NEAR_D, FAR_D, [70, 92, 116, 70]);
+    const mark = (s, lvl, side, top) => {
         if (!s) return;
-        const c = lvl && lvl !== 'ok' ? COLORS[lvl] : COLORS[s.color] || COLORS.white, wd = lvl === 'over' ? 4 : 3;
-        const k = (s.slope || 0) * 20, seg = (t0, t1, off) => cv.line(X(s.y + k * t0, t0) + off * (1 - 0.3 * t0), yy(t0), X(s.y + k * t1, t1) + off * (1 - 0.3 * t1), yy(t1), wd * (1 - 0.5 * t0), c);
-        const offs = s.type === 'double' ? [-3.2, 3.2] : [0];   // pixels: two lines side by side, also far ahead
-        offs.forEach((off) => {
-            if (s.type === 'dashed' || s.type === 'dotted') for (let t = 0; t < 1; t += 0.25) seg(t, t + (s.type === 'dotted' ? 0.06 : 0.14), off);
-            else seg(0, 1, off);
+        let c = lvl && lvl !== 'ok' ? COLORS[lvl] : COLORS[s.color] || COLORS.white; if (top) c = [c[0], c[1], c[2], 150];
+        const near = top ? CAR.front + 1 : FAR_D;
+        const wide = lvl === 'over' ? 1.6 : 1, edges = s.type === 'double' ? [[-0.18, -0.06], [0.06, 0.18]] : s.type === 'edge' ? [[-0.1, 0.1]] : [[-MARK / 2, MARK / 2]];
+        // widen towards the viewer a little so the far end stays visible
+        edges.forEach(([e0, e1]) => {
+            const g0 = (d) => yAt(s, d) + e0 * wide * (1 + d / 18), g1 = (d) => yAt(s, d) + e1 * wide * (1 + d / 18);
+            if (!top && (s.type === 'dashed' || s.type === 'dotted')) { const on = s.type === 'dotted' ? 1 : 3, period = s.type === 'dotted' ? 3 : 8;
+                for (let d = NEAR_D; d < near; d += period) strip(g0, g1, d, Math.min(near, d + on), c); }
+            else strip(g0, g1, NEAR_D, near, c);
         });
     };
-    line(v.left, v.levels.left); line(v.right, v.levels.right);
-    // the car: a small outline at the bottom, between the lines
-    const cw = HALF_CAR * 22 * 2 * 0.9; cv.roundRect(cx - cw / 2, H - 16, cw, 12, 3, [220, 230, 240, 200]);
+    mark(L, v.levels.left, 1); mark(R, v.levels.right, -1);
+    paintCar(cv);
+    // a warned line under the car: its part beside the car again over it, half seen through
+    if (v.levels.left && v.levels.left !== 'ok') mark(L, v.levels.left, 1, true);
+    if (v.levels.right && v.levels.right !== 'ok') mark(R, v.levels.right, -1, true);
     return cv.canvas;
 }
 class LaneOverlay {
@@ -72,7 +109,7 @@ class LaneOverlay {
         const r = require('./display-config').laneRect(cfg); let l = this.layer;
         if (l && (l.w !== r.w || l.h !== r.h)) { this.client.drop(l.ref); l = this.layer = null; }
         if (!l) { const ref = this.client.image({ target: 'hud', klass: 'overlay', z: 12, x: r.x, y: r.y, w: r.w, h: r.h, iw: r.w, ih: r.h, visible: false }); if (!ref) return false; l = this.layer = { ref, x: r.x, y: r.y, w: r.w, h: r.h, key: null, visible: false }; }
-        const key = JSON.stringify([v.left, v.right, v.levels]);
+        const key = JSON.stringify([v.left, v.right, v.levels, v.width]);
         if (l.key !== key) { const im = draw(v, r.w, r.h), px = Buffer.alloc(r.w * r.h * 4);
             for (let y = 0; y < Math.min(r.h, im.h); y++) Buffer.from(im.d.buffer, im.d.byteOffset + y * im.w * 4, Math.min(r.w, im.w) * 4).copy(px, y * r.w * 4);
             this.client.pixels(l.ref, null, px); l.key = key; }

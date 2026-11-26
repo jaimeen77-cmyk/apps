@@ -2,7 +2,7 @@
 // Lane lines on the HUD (1.3.77): the helper's LaneBoundaries decode (0xD024, 1193 bytes), the car's own lane lines,
 // the near / over / lane-change levels, the overlay above the headway badge, the settings screen.
 const assert=require('assert'),path=require('path');
-const Module=require('module'),orig=Module._load;let lineCalls=0;Module._load=function(n){if(n==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}}return {ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}line(){lineCalls++;}}};}return orig.apply(this,arguments);};
+const Module=require('module'),orig=Module._load;let lineCalls=0;Module._load=function(n){if(n==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}}return {ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}line(){lineCalls++;}fill(){lineCalls++;}}};}return orig.apply(this,arguments);};
 const {decodeLanes,SPECS}=require('../../native/redline-lead/redline-lead');
 const {LaneLines,LaneOverlay,egoLines,levelOf,draw}=require('../../apps/cluster_redline/lane-lines');
 const D=require('../../apps/cluster_redline/display-config'),{settings}=require('../../apps/cluster_redline/policy');
@@ -42,10 +42,10 @@ msg({rx:7,data:d2,at:5000});t=2000;assert.strictEqual(L.read(2000,'off'),null,'a
 assert.strictEqual(L.status(0).rx,7);assert.strictEqual(L.status(0).helper,'connected');
 L.sync(false);assert.strictEqual(L.read(0,'off'),null);assert.strictEqual(L.status(0).helper,'off');
 // the picture and the overlay
-const im=draw({left:e.left,right:e.right,levels:{left:'ok',right:'over'}},112,56);assert(im.w>=112&&im.h>=56);assert(lineCalls>=5,'dashed left, solid right');
+const im=draw({left:e.left,right:e.right,levels:{left:'ok',right:'over'}},112,64);assert(im.w>=112&&im.h>=64);assert(lineCalls>=5,'dashed left, solid right');
 const layers=new Map();let k=0,up=0;const client={image(o){layers.set(++k,Object.assign({},o));return k;},pixels(){up++;},set(ref,o){Object.assign(layers.get(ref),o);},drop(ref){layers.delete(ref);}};
 const cfg=settings(Object.assign({},D.defaults,{hudLaneLines:'on'})),O=new LaneOverlay(client);
-const rect=D.laneRect(cfg),hw=D.headwayRect(cfg);assert(rect.y+rect.h<=hw.y,'above the headway badge');assert(rect.w===112&&rect.h===56);
+const rect=D.laneRect(cfg),hw=D.headwayRect(cfg);assert(rect.y+rect.h<=hw.y,'above the headway badge');assert(rect.w===112&&rect.h===64);
 assert.strictEqual(O.tick(null,cfg,false),false);assert.strictEqual(layers.size,0);
 assert.strictEqual(O.tick(Object.assign({},e,{levels:{left:'ok',right:'ok'}}),cfg,false),true);
 const l=layers.get(1);assert.strictEqual(l.target,'hud');assert.strictEqual(l.visible,true);assert.strictEqual(up,1);
@@ -56,5 +56,5 @@ assert.strictEqual(O.tick(e,off,false),false);assert.strictEqual(O.tick(null,off
 O.close();assert.strictEqual(layers.size,0);
 // the real canvas of a built package: the picture has pixels
 if(process.argv[2]){Module._load=orig;const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),X=require(path.join(dir,'lane-lines'));
- const p=X.draw({left:e.left,right:e.right,levels:{left:'near',right:'ok'}},112,56);let lit=0;for(let i=3;i<p.d.length;i+=4)if(p.d[i])lit++;assert(lit>200,'drawn '+lit);}
+ const p=X.draw({left:e.left,right:e.right,levels:{left:'near',right:'ok'}},112,64);let lit=0;for(let i=3;i<p.d.length;i+=4)if(p.d[i])lit++;assert(lit>200,'drawn '+lit);}
 console.log('lane-lines ok');

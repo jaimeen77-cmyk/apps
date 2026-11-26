@@ -22,6 +22,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.79 (lane lines: the car in its lane, real road markings)
+
+- **The lane-lines picture is now a road in true perspective**, seen from behind and above the car, as the user asked.
+  - The car sits inside its lane: the door-open warning's car (door-alert.js SHAPES), its top view laid on the road at its heights, 4.7 m long, over its shadow and a rear face.
+  - The lines are painted markings of their real width: 15 cm, and a double line as two 12 cm lines. Dashes are 3 m on and 5 m off. The lane between the lines is a faint road surface.
+  - A line the car is near or over is drawn again over the car, half transparent, in its warning colour, so it is not hidden under the car.
+- The picture is 112 × 64 (was 56 high), still just above the headway badge and following its Position / size.
+
 ## Cluster Redline 1.3.78 (lane lines checked on the user's car)
 
 - Two captures of the camera's lane list on the user's car (in the lane, and turned slightly right) decode as expected: lane width 3.04 m; a double line on the left, a dashed line on the right, a solid line and a curb further out.
