@@ -81,5 +81,11 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
   assert.strictEqual(A.metres(38),38,'metres as they are');assert.strictEqual(A.metres(3800),38);
   {const a=L4.status(900).assist;assert.deepStrictEqual([a.acc.offered,a.acc.instance,a.objects.offered],[true,'1',true],'1.3.69: each source offered, its instance');}
   L4.sync(false);assert.strictEqual(L4.assist.state,'off');}
+ // 1.3.70: nothing of the car ahead offered at all, 10 s on: this car does not give it to apps
+ {let t5=0;const sig={loadConfig:()=>({fields:{GapVehicleDrivingAhead:{},DataFrontVehicle:{}}}),watch:()=>Promise.resolve({available:false,shutdown(){}})};
+  const L5=new LeadVehicle(sig,null,()=>'1',()=>t5);L5.sync(true);await flush();
+  assert.strictEqual(L5.status(5000).unsupported,false,'not before 10 s');assert.strictEqual(L5.status(11000).unsupported,true);
+  const sig2={loadConfig:sig.loadConfig,watch:(i)=>Promise.resolve({available:/ObjectList/.test(i),shutdown(){}})};const L6=new LeadVehicle(sig2,null,()=>'1',()=>t5);L6.sync(true);await flush();
+  assert.strictEqual(L6.status(20000).unsupported,false,'one source offered: not yet decided');}
  console.log('PASS: HUD headway badge: GapVehicleAhead read only while on, fine distance first, time gap from our speed (none below 12 km/h), closing speed, colour steps, install-time input, settings, overlay'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

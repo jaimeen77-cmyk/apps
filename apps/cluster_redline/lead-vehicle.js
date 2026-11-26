@@ -97,6 +97,17 @@ class LeadVehicle {
         const headway=speed!==null&&speed>=SLOW_KMH?Math.max(0.1,Math.min(9.9,this.gap/(speed/3.6))):null;
         return {gap:this.gap,headway,closing:this.closing,level:level(headway)};
     }
-    status(now){return {source:this.source,assist:this.assist?this.assist.status():null,state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
+    // nothing of the car ahead offered to the app at all, 10 s after subscribing (1.3.70): the radar's service and the
+    // Drive assist view's two sources not offered (or not in the catalog), nothing received. The user's car is so:
+    // its cluster draws the Drive assist view from the driving assistant directly, the head unit never gets it.
+    unsupported(now){
+        if(this.state==='off'||this.received)return false;
+        const a=this.assist?this.assist.status():null,since=Math.max(this.subscribedAt||0,a&&a.state==='subscribed'?this.assist.startedAt||0:0);
+        if(now===undefined||now-since<10000)return false;
+        const radarOff=this.state==='not_installed'||this.state==='error'||(this.state==='subscribed'&&!(this.sub&&this.sub.available));
+        const assistOff=!a||a.state!=='subscribed'||(!(a.acc&&a.acc.offered)&&!(a.objects&&a.objects.offered)&&!a.received.acc&&!a.received.objects);
+        return radarOff&&assistOff;
+    }
+    status(now){return {unsupported:this.unsupported(now),source:this.source,assist:this.assist?this.assist.status():null,state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
 }
 module.exports={LeadVehicle,level,IFACE,FIELDS,STALE_MS,SLOW_KMH,RED_S,AMBER_S};
