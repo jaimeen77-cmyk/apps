@@ -143,4 +143,4 @@ function scaled(cv,s){return {line:(a,b,c,d,w,col)=>cv.line(a*s,b*s,c*s,d*s,w*s,
  text:(t,x,y,size,c,o)=>cv.text(t,x*s,y*s,size*s,c,o),textWidth:(t,size,o)=>cv.textWidth(t,size*s,o)/s};}
 function drawSized(state,w,h){const s=(w||W)/W,cv=new Canvas(Math.max(1,Math.round(w||W)),Math.max(1,Math.round(h||H*s)));cv.clear([0,0,0,0]);draw(state,scaled(cv,s));return cv;}
 const then={W:THEN_W,H:THEN_H,draw:drawThen,drawSized(state,w,h){const s=(w||THEN_W)/THEN_W,cv=new Canvas(Math.max(1,Math.round(w||THEN_W)),Math.max(1,Math.round(h||THEN_H*s)));cv.clear([0,0,0,0]);drawThen(state,scaled(cv,s));return cv;}};
-module.exports={draw,drawSized,then,W,H,highwayInfo,diagramKind};
+module.exports={draw,drawSized,then,W,H,highwayInfo,diagramKind,arrow};

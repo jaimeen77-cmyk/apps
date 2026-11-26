@@ -96,7 +96,8 @@ class Outputs {
             out.renderRpm=rpm;out.aux=this.aux||{};out.turn=this.turn||null;
             out.requiresRpm=!pv&&rpm&&D.faceRpmNeeded(local,name);out.preview=pv;out.turnPreview=name==='hud'&&turnPreview;out.turnInLayer=name==='hud'&&turnInLayer;
             out.profile = cfg.engineProfile; out.gear = this.gear; out.gearMode = this.gearMode;
-            out.navigation = name === 'hud' && navAllowed(local,this.policy.mode) ? navigation : null;
+            // the HUD's guidance, and the cluster's with Navigation focus (1.3.72), in the drive modes navigation shows in
+            out.navigation = (name === 'hud' || local.clusterDesign === 'rl-navfocus') && navAllowed(local,this.policy.mode) ? navigation : null;
             // Navigation setting: the cluster gives way to route guidance (Waze over CarPlay / Android Auto, or any).
             const yielded=name==='cluster'&&!pv&&cfg.clusterYieldGuidance!=='off'&&!!this.guidanceYield;
             // An open door: the cluster gives way so the car's own door-open warning is not covered (door-alert.js).

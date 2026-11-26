@@ -468,7 +468,88 @@ function drawCalm(cv,f,h){
   cv.text(it.value,x,372,34,it.tone==='hot'?'#ff6a52':it.tone==='cold'?'#7cc2ff':T.text,{align:'center',font:'light',literal:true});
   cv.text(it.label,x,400,17,T.dim,{align:'center',font:'bold',literal:true});}
 }
-const DRAW={calm:drawCalm,car:drawCar,mypic:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
+// Retro VU meters (1.3.72, cluster): two lit cream meters as on a hi-fi amplifier, the rpm and the first readout
+// (boost, torque ... as chosen; without one the rpm meter alone, centred), the drive mode, the gear and the clock under
+// them. In the red zone the needle's tip turns red and the PEAK lamp lights (flashing at the shift point).
+const VU={face:'#f1d9a6',ink:'#3a2a18',ink2:'#6b5638',red:'#c8261e',hot:'#ff2a1a',bezel:'#2a2016',lamp:'#5a1810',under:'#c9a46a',
+ pt:(cx,cy,r,a)=>[cx+r*Math.sin(a*Math.PI/180),cy-r*Math.cos(a*Math.PI/180)]};
+function rrect(cv,x,y,w,h,r,c){cv.fillRect(x+r,y,w-2*r,h,c);cv.fillRect(x,y+r,r,h-2*r,c);cv.fillRect(x+w-r,y+r,r,h-2*r,c);[[x+r,y+r],[x+w-r,y+r],[x+r,y+h-r],[x+w-r,y+h-r]].forEach(p=>cv.circle(p[0],p[1],r,c));}
+function vuMeter(cv,x,y,frac,redFrac,labels,title,unit,value,lit){
+ const w=440,h=300,cx=x+w/2,cy=y+h*0.92,R=h*0.72,a0=-50,a1=50,A=t=>a0+(a1-a0)*clamp(t,0,1),P=VU.pt;
+ if(cv.reserve)cv.reserve(x-6,y-6,w+12,h+12);
+ rrect(cv,x-6,y-6,w+12,h+12,14,VU.bezel);rrect(cv,x,y,w,h,10,VU.face);
+ cv.arc(cx,cy,R-2,R+2,a0,A(redFrac),VU.ink);cv.arc(cx,cy,R-2,R+6,A(redFrac),a1,VU.red);
+ const n=labels.length-1;
+ for(let i=0;i<=n*2;i++){const t=i/(n*2),a=A(t),red=t>=redFrac-1e-6,p1=P(cx,cy,R,a),p2=P(cx,cy,R+(i%2?10:18),a);cv.line(p1[0],p1[1],p2[0],p2[1],2,red?VU.red:VU.ink);
+  if(i%2===0){const p=P(cx,cy,R+34,a);cv.text(labels[i/2],p[0],p[1]+6,17,red?VU.red:VU.ink,{align:'center',font:'num',literal:true});}}
+ cv.text(title,cx,y+h*0.62,28,VU.ink,{align:'center',font:'bold',literal:true,spacing:4});
+ cv.text(unit,cx,y+h*0.62+24,15,VU.ink2,{align:'center',font:'bold',literal:true});
+ if(value)cv.text(value,x+30,y+h-22,18,VU.ink2,{font:'num',literal:true});
+ const a=A(frac),tip=P(cx,cy,R+12,a),base=P(cx,cy,18,a),hot=frac>=redFrac;
+ cv.line(base[0],base[1],tip[0],tip[1],3,hot?VU.red:'#1b140c');if(hot){const t1=P(cx,cy,R-14,a);cv.line(t1[0],t1[1],tip[0],tip[1],5,VU.hot);}
+ cv.circle(cx,cy,14,'#1b140c');cv.circle(cx,cy,6,VU.ink2);
+ cv.circle(x+w-30,y+28,8,lit?'#ff3a24':VU.lamp);cv.text(language()==='ko'?'피크':'PEAK',x+w-48,y+33,12,VU.ink2,{align:'right',font:'bold',literal:true});
+}
+function drawVu(cv,f,h){
+ const d=f.d,max=f.max,q=cue(f),list=f.readouts||[],it=list[0],two=!!it,ko=language()==='ko';
+ if(want(f,'gauge')){const r=isNum(d.rpm)?clamp(d.rpm,0,max):0,top=Math.ceil(max/1000),labels=[];for(let i=0;i<=top;i++)labels.push(String(i));
+  vuMeter(cv,two?70:324,70,r/(top*1000),f.redline/(top*1000),labels,'RPM','×1000',null,(q.flash&&q.on)||r>=f.redline);}
+ if(two&&want(f,'readA')){const lo=isNum(it.lo)?it.lo:0,hi=isNum(it.hi)?it.hi:1,labels=[];
+  for(let i=0;i<=5;i++){const v=lo+(hi-lo)*i/5;labels.push(Math.abs(hi-lo)>=20?String(Math.round(v)):v.toFixed(1));}
+  vuMeter(cv,578,70,isNum(it.frac)?it.frac:0,0.8,labels,it.label,it.unit||'',it.value,isNum(it.frac)&&it.frac>=0.8);}
+ if(want(f,'gear')){if(cv.reserve)cv.reserve(504,396,80,52);cv.text(h.gearText(d),544,440,44,VU.face,{align:'center',font:'num',literal:true});}
+ if(want(f,'mode')){const dm=carMode(f.drive);if(cv.reserve)cv.reserve(350,414,140,30);if(dm.word)cv.text(dm.word,420,436,20,VU.under,{align:'center',font:'bold',literal:true,spacing:3});}
+ if(want(f,'clock')&&f.clock){if(cv.reserve)cv.reserve(610,414,120,30);cv.text(String(f.clock.h).padStart(2,'0')+':'+String(f.clock.m).padStart(2,'0'),668,436,22,VU.under,{align:'center',font:'num',literal:true});}
+}
+// Navigation focus (1.3.72, cluster): the turn big in the middle (the HUD's own arrows, three times their size), its
+// distance and description over it, the lanes and the turn after it under it; a small rpm ring on the left, the gear
+// and speed on the right. Without guidance the speed takes the middle.
+const NF={blue:'#45b8ff',text:'#eef3f8',dim:'#7b8796',ring:'#1c242e',lane:'#141a21',laneOn:'#16405e'};
+const TURN_KO={LEFT:'좌회전',RIGHT:'우회전',SLIGHT_LEFT:'왼쪽 방향',SLIGHT_RIGHT:'오른쪽 방향',SHARP_LEFT:'급좌회전',SHARP_RIGHT:'급우회전',STRAIGHT_ON:'직진',UTURN_LEFT:'유턴',UTURN_RIGHT:'유턴',ROUNDABOUT:'회전교차로',KEEP_LEFT:'왼쪽 유지',KEEP_RIGHT:'오른쪽 유지',LANE_LEFT:'왼쪽 차로',LANE_RIGHT:'오른쪽 차로'};
+function navArrow(cv,state,x,y,s,color,small){const N=require('./nav-draw'),m=p=>[x+p[0]*s,y+p[1]*s];
+ return N.arrow({polyline:(pts,w,c)=>cv.polyline(pts.map(m),w*s,c),quad:(pts,c)=>cv.quad(pts.map(m),c),text:(t,tx,ty,size,c,o)=>cv.text(t,x+tx*s,y+ty*s,size*s,c,Object.assign({literal:true},o))},state,color,small);}
+function drawNavFocus(cv,f,h){
+ const d=f.d,n=f.nav,ko=language()==='ko',max=f.max;
+ if(want(f,'nav')){if(cv.reserve)cv.reserve(290,30,508,440);
+  if(n){let size=72;while(size>36&&cv.textWidth(n.distanceText,size,{font:'num',literal:true})>480)size--;
+   cv.text(n.distanceText||'',544,112,size,NF.text,{align:'center',font:'num',literal:true});
+   const hw=/^HIGHWAY_(IN|OUT)/.exec(n.branchType||''),desc=(hw?(hw[1]==='OUT'?(ko?'고속도로 진출':'Highway exit'):(ko?'고속도로 진입':'Highway entry'))+(n.description?' · ':''):'')+(n.description||'');
+   let line=desc;while(line.length>2&&cv.textWidth(line,26,{font:'bold',literal:true})>500)line=line.slice(0,-2);
+   if(line)cv.text(line,544,152,26,NF.dim,{align:'center',font:'bold',literal:true});
+   const s=n.lanes&&n.lanes.length?1.55:1.9,turn=hw?{maneuver:/LEFT/.test(n.branchType)?'SLIGHT_LEFT':/RIGHT/.test(n.branchType)?'SLIGHT_RIGHT':'STRAIGHT_ON'}:n;
+   if(!navArrow(cv,turn,544-52*s,168,s,NF.blue))navArrow(cv,{maneuver:'STRAIGHT_ON'},544-52*s,168,s,NF.blue);
+   if(n.lanes&&n.lanes.length){const k=n.lanes.length,bw=Math.min(80,400/k-12),x0=544-(k*(bw+12)-12)/2;
+    n.lanes.forEach((l,i)=>{const x=x0+i*(bw+12);rrect(cv,x,364,bw,58,8,l.on?NF.laneOn:NF.lane);navArrow(cv,{maneuver:l.d},x+bw/2-52*0.42,368,0.42,l.on?NF.blue:NF.dim,true);});}
+   if(n.then){const w=ko?(TURN_KO[n.then.maneuver]||'안내'):String(n.then.maneuver).toLowerCase().replace(/_/g,' ');cv.text((ko?'그다음 ':'Then ')+w+(isNum(n.then.gap)?' '+n.then.gap+' m':''),544,458,20,NF.dim,{align:'center',font:'bold',literal:true});}}
+  else{cv.text(isNum(f.speed)?String(f.speed):'--',544,290,140,NF.text,{align:'center',font:'num',literal:true});cv.text('km/h',544,330,24,NF.dim,{align:'center',font:'bold',literal:true});
+   cv.text(ko?'길안내 없음':'No route guidance',544,400,18,NF.dim,{align:'center',font:'bold',literal:true});}}
+ if(want(f,'gauge')){const r=isNum(d.rpm)?clamp(d.rpm,0,max):0,A=v=>-130+260*clamp(v/max,0,1),q=cue(f);if(cv.reserve)cv.reserve(40,150,220,220);
+  cv.arc(150,260,96,104,-130,130,NF.ring);cv.arc(150,260,96,104,A(f.redline),130,'#3a1416');if(r>0)cv.arc(150,260,96,104,-130,A(r),r>=f.redline||q.flash&&q.on?'#ff4a3a':NF.blue);
+  cv.text(rpmText(d),150,270,34,NF.text,{align:'center',font:'num',literal:true});cv.text('rpm',150,296,16,NF.dim,{align:'center',font:'bold',literal:true});}
+ if(want(f,'speed')){if(cv.reserve)cv.reserve(860,212,160,100);if(n){cv.text(isNum(f.speed)?String(f.speed):'--',938,272,64,NF.text,{align:'center',font:'num',literal:true});cv.text('km/h',938,302,18,NF.dim,{align:'center',font:'bold',literal:true});}}
+ if(want(f,'gear'))cv.text(h.gearText(d),938,180,40,NF.dim,{align:'center',font:'num',literal:true});
+}
+// G-G trail (1.3.72): the sideways and forward G of the last 2.5 s left as a fading tail over rings at 0.4, 0.8 and 1.2 G,
+// so a corner draws its shape; this drive's highest left, right and braking G under it, the G now on the right. Around
+// it the rpm as a ring of segments (amber, then yellow and red towards the shift point); the gear and speed on the left.
+function drawGg(cv,f,h){
+ const d=f.d,max=f.max,cx=544,cy=232,R=170,hud=f.display!=='cluster',A='#ff7a2a',T='#eef3f8',DM=hud?'#aab6c4':'#6f7b88',LN=hud?'#5b6672':'#232b34',g=f.gg||{trail:[],peaks:{left:0,right:0,brake:0}},ko=language()==='ko',q=cue(f);
+ if(want(f,'gauge')){const r=isNum(d.rpm)?clamp(d.rpm,0,max):0,t=r/max,red=f.redline/max;if(cv.reserve)cv.reserve(cx-R-40,cy-R-40,2*R+80,2*R+80);
+  cv.arc(cx,cy,R+22,R+34,-135,135,hud?'#3a434d':'#171d24');
+  for(let i=0;i<54;i++){const a0=-135+i*5,u=i/54;if(u<t){const c=u>=red||q.flash&&q.on?'#ff3a2a':u>red-0.15?'#ffd21a':A;cv.arc(cx,cy,R+22,R+34,a0,a0+4,c);}}}
+ if(want(f,'gmeter')){if(cv.reserve)cv.reserve(cx-R,cy-R,2*R,2*R+54);
+  [1,2/3,1/3].forEach(k=>cv.arc(cx,cy,R*k-1,R*k+1,0,360,LN));cv.line(cx-R,cy,cx+R,cy,1.5,LN);cv.line(cx,cy-R,cx,cy+R,1.5,LN);
+  ['0.4','0.8','1.2'].forEach((l,i)=>cv.text(l+' G',cx+R*(i+1)/3+4,cy-6,13,DM,{font:'num',literal:true}));
+  const P=p=>[cx+clamp(p[0],-1.2,1.2)*R/1.2,cy-clamp(p[1],-1.2,1.2)*R/1.2],tr=g.trail,n=tr.length;
+  for(let i=1;i<n;i++){const a=P(tr[i-1]),b=P(tr[i]);cv.line(a[0],a[1],b[0],b[1],2+5*i/n,fade(A,0.15+0.85*i/n));}
+  const lat=isNum(f.g.lat)?f.g.lat:0,lon=isNum(f.g.long)?f.g.long:0,p=P([lat,lon]);cv.circle(p[0],p[1],12,'#ffd21a');cv.circle(p[0],p[1],5,hud?'#000':'#06080b');
+  const pk=g.peaks;cv.text((ko?'최고 좌 ':'Max L ')+pk.left.toFixed(2)+(ko?' · 우 ':' · R ')+pk.right.toFixed(2)+(ko?' · 제동 ':' · brake ')+pk.brake.toFixed(2),cx,cy+R+46,18,DM,{align:'center',font:'bold',literal:true});
+  const now=isNum(f.g.total)?f.g.total:Math.hypot(lat,lon);cv.text(now.toFixed(2),938,240,72,'#ffd21a',{align:'center',font:'num',literal:true});cv.text(ko?'G 지금':'G now',938,276,20,DM,{align:'center',font:'bold',literal:true});}
+ if(want(f,'gear'))cv.text(h.gearText(d),150,240,110,T,{align:'center',font:'num',literal:true});
+ if(want(f,'speed')){if(cv.reserve)cv.reserve(80,266,140,32);if(isNum(f.speed))cv.text(f.speed+' km/h',150,290,24,DM,{align:'center',font:'num',literal:true});}
+ if(want(f,'rpm'))cv.text(rpmText(d)+' rpm',938,330,24,DM,{align:'center',font:'num',literal:true});
+}
+const DRAW={vu:drawVu,navfocus:drawNavFocus,gg:drawGg,calm:drawCalm,car:drawCar,mypic:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX,CAR,S};

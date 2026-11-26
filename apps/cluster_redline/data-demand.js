@@ -9,6 +9,7 @@ function demand(cfg,mode){
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-classic'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlTempHidden'])aux.add('oil');});
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-rings'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlGMeterHidden'])aux.add('gforce');});
  // The Car layout: its car picture follows the G (car-meter.js), and its small G meter shows it.
+ faces.forEach(d=>{if(cfg[d+'Design']==='rl-gg'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlGMeterHidden'])aux.add('gforce');});   // (G-G trail, 1.3.72)
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-car'&&!cfg[d+'RpmGaugeHidden']&&(!cfg[d+'RlCarPicHidden']||!cfg[d+'RlGMeterHidden']))aux.add('gforce');});
  // (its GIFs on the cluster, my-picture.js, follow the gear and speed and, for the turns, the same sideways G)
  // the blind spot warning reads the mirror lamps only while the engine runs: it needs the engine speed
