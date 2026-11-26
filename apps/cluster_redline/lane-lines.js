@@ -1,11 +1,12 @@
 'use strict';
 // Lane lines on the HUD (1.3.77): the lines either side of the car as the front camera sees them, read through Cluster
 // Redline's root helper (native/redline-lead 0.2.0: LaneBoundaries 0xD024, which this app's uid is refused). A small
-// picture: the two lines in perspective and the car between them; a line the car comes within 30 cm of turns amber, one
+// picture: the two lines in perspective and the car between them; a line the car comes within 15 cm of turns amber, one
 // it is over turns red (not while the turn signal is on towards it: a lane change). Solid, dashed, double; white or
 // yellow as the camera reports. Drawn just above the headway badge, at its size (HUD lamps → Lane lines).
 const { LeadHelper } = require('./lead-helper');
-const HALF_CAR = 0.95, NEAR_M = 0.3, STALE_MS = 1200, W = 112, H = 56;
+// NEAR_M 0.15 (1.3.78): with 0.3 a car 30 cm off a 3 m lane's centre was already amber (the user's capture)
+const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 56;
 const TYPES = { 1: 'dashed', 2: 'solid', 3: 'dotted', 4: 'edge', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'edge' };
 /** The lines of the car's own lane: {left, right, width} (each {y, type, color, margin} or null) from the helper's list. */
 function egoLines(data) {
@@ -13,13 +14,17 @@ function egoLines(data) {
     let left = null, right = null;
     data.lines.forEach((l) => {
         if (typeof l.y !== 'number') return;
-        if (l.y > 0 && (!left || l.y < left.y)) left = l;
-        if (l.y < 0 && (!right || l.y > right.y)) right = l;
+        const y = typeof l.x === 'number' && typeof l.angle === 'number' && Math.abs(l.angle) < 30 ? l.y - l.x * Math.tan(l.angle * Math.PI / 180) : l.y;
+        if (y > 0 && (!left || y < left.y0)) left = Object.assign({}, l, { y0: y });
+        if (y < 0 && (!right || y > right.y0)) right = Object.assign({}, l, { y0: y });
     });
-    const side = (l, sign) => (l ? { y: l.y, type: TYPES[l.type] || 'solid', color: l.color === 2 ? 'yellow' : 'white', margin: Math.round((sign * l.y - HALF_CAR) * 100) / 100 } : null);
+    // y is sent at the line's point x metres ahead (6-12 m); at the car: back along the line's heading (angle, degrees,
+    // + the line running to the left ahead; checked on the user's captures: turned right, both lines about +4 degrees)
+    const at0 = (l) => (typeof l.x === 'number' && typeof l.angle === 'number' && Math.abs(l.angle) < 30 ? l.y - l.x * Math.tan(l.angle * Math.PI / 180) : l.y);
+    const side = (l, sign) => (l ? { y: Math.round(at0(l) * 100) / 100, slope: typeof l.angle === 'number' && Math.abs(l.angle) < 30 ? Math.round(Math.tan(l.angle * Math.PI / 180) * 1000) / 1000 : 0, type: TYPES[l.type] || 'solid', color: l.color === 2 ? 'yellow' : 'white', margin: Math.round((sign * at0(l) - HALF_CAR) * 100) / 100 } : null);
     return { left: side(left, 1), right: side(right, -1), width: typeof data.width === 'number' ? data.width : null };
 }
-/** A side's state: 'over' (the car on the line), 'near' (within 30 cm), 'ok'; 'change' with the turn signal towards it. */
+/** A side's state: 'over' (the car on the line), 'near' (within 15 cm), 'ok'; 'change' with the turn signal towards it. */
 function levelOf(s, signal) {
     if (!s) return null;
     const l = s.margin < 0 ? 'over' : s.margin < NEAR_M ? 'near' : 'ok';
@@ -47,8 +52,8 @@ function draw(v, w, h) {
     const line = (s, lvl) => {
         if (!s) return;
         const c = lvl && lvl !== 'ok' ? COLORS[lvl] : COLORS[s.color] || COLORS.white, wd = lvl === 'over' ? 4 : 3;
-        const seg = (t0, t1, off) => cv.line(X(s.y + off, t0), yy(t0), X(s.y + off, t1), yy(t1), wd * (1 - 0.5 * t0), c);
-        const offs = s.type === 'double' ? [-0.12, 0.12] : [0];
+        const k = (s.slope || 0) * 20, seg = (t0, t1, off) => cv.line(X(s.y + k * t0, t0) + off * (1 - 0.3 * t0), yy(t0), X(s.y + k * t1, t1) + off * (1 - 0.3 * t1), yy(t1), wd * (1 - 0.5 * t0), c);
+        const offs = s.type === 'double' ? [-3.2, 3.2] : [0];   // pixels: two lines side by side, also far ahead
         offs.forEach((off) => {
             if (s.type === 'dashed' || s.type === 'dotted') for (let t = 0; t < 1; t += 0.25) seg(t, t + (s.type === 'dotted' ? 0.06 : 0.14), off);
             else seg(0, 1, off);
@@ -56,7 +61,7 @@ function draw(v, w, h) {
     };
     line(v.left, v.levels.left); line(v.right, v.levels.right);
     // the car: a small outline at the bottom, between the lines
-    const cw = HALF_CAR * 22 * 2 * 0.7; cv.roundRect(cx - cw / 2, H - 16, cw, 12, 3, [220, 230, 240, 200]);
+    const cw = HALF_CAR * 22 * 2 * 0.9; cv.roundRect(cx - cw / 2, H - 16, cw, 12, 3, [220, 230, 240, 200]);
     return cv.canvas;
 }
 class LaneOverlay {

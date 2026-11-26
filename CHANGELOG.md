@@ -22,9 +22,17 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.78 (lane lines checked on the user's car)
+
+- Two captures of the camera's lane list on the user's car (in the lane, and turned slightly right) decode as expected: lane width 3.04 m; a double line on the left, a dashed line on the right, a solid line and a curb further out.
+- **The lines are measured at the car now.** The camera gives each line's place 3 to 12 m ahead, along with its heading. The distance to the car is now carried back along that heading. The turned capture shows both lines at about +4°, and its right line under the car's right side (red), as it was.
+- **Amber from 15 cm** (was 30 cm). In the centred capture the car sat 30 cm off the lane's centre, which 30 cm already showed amber.
+- The picture follows each line's heading: turned, the lines lean. A double line is two lines side by side all the way up, and the car outline is closer to its true width.
+- Tests: `lane-lines` uses the two captures (`fixtures/lanes-center.hex`, `lanes-ncenter.hex`).
+
 ## Cluster Redline 1.3.77 (lane lines on the HUD; lead-car helper 0.2.0)
 
-- **New: Lane lines (HUD lamps → 차선 표시, off by default).** The two lines of the car's own lane as the front camera sees them, drawn small in perspective just above the headway badge (it moves and scales with the badge's Position / size). Dashed, solid, dotted, double and road edge as the camera reports, white or yellow. A line within 30 cm of the car turns amber; a line under the car turns red. With the turn signal on towards that side the line turns blue instead (a lane change, no warning). Lines the camera has not seen for 1.2 s are hidden.
+- **New: Lane lines (HUD lamps → 차선 표시, off by default).** The two lines of the car's own lane as the front camera sees them, drawn small in perspective just above the headway badge (it moves and scales with the badge's Position / size). Dashed, solid, dotted, double and road edge as the camera reports, white or yellow. A line within 30 cm (15 cm from 1.3.78) of the car turns amber; a line under the car turns red. With the turn signal on towards that side the line turns blue instead (a lane change, no warning). Lines the camera has not seen for 1.2 s are hidden.
 - The lane list (`de.bmw` LaneBoundaries, SOME/IP 0xD024 eventgroup 3, event 0x8003) is refused to the app's uid on the user's car, as the lead-car sources were, so it comes from the root helper. **redline-lead 0.2.0** subscribes it too and decodes the front lane recognition (ego lane width, visibility) and the four front boundaries (lateral offset, type, colour, existence; lines the camera marks not available or less than 30 % sure are left out). The layout is the car's catalog's, as BimmerVision's published schema lists it (facts only, written anew); its length (1193 + 8) matches what the car sends. Read only. Cluster Redline (Korean and English) now requires 0.2.0, so the Store updates the helper with the app (no head-unit restart: the tool has no hooks).
 - The Lane lines screen shows what arrives: helper state, events received, lines seen, visibility, and the left / right lines (distance, type, colour, margin) with the lane width, to check on the car at a marked lane.
 - Tests: `lane-lines` (the decode of a 1193-byte payload, the ego lines, the levels, the overlay above the badge, the settings default).
