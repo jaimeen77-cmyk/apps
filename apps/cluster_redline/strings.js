@@ -39,6 +39,7 @@ const KO={
  'not set':'없음','file too large':'파일이 너무 큼','canvas too big':'캔버스가 너무 큼','not a GIF':'GIF 아님','no frames':'프레임 없음',
  'this car does not give the app the car ahead':'이 차는 앞차 정보를 앱에 주지 않음','Neither the radar nor the Drive assist view is offered to apps on this car (the cluster gets them directly): the badge cannot show here.':'이 차는 레이더·주행 보조 화면·카메라 물체 정보를 앱에 주지 않습니다(계기판만 직접 받음). 이 차에서는 앞차 간격을 표시할 수 없습니다.',
  'not in the catalog':'차 목록에 없음','not offered':'제공 안 됨',
+ 'Lead-car helper':'앞차 도우미','not installed (Store: Cluster Redline lead-car helper)':'설치 안 됨 (스토어: Cluster Redline 앞차 도우미)','connected':'연결됨','camera':'카메라','radar':'레이더',
  'Front camera objects':'카메라 물체','Navigation':'길안내','Retro VU meters':'레트로 VU 미터','Navigation focus':'길안내 중심','G-G trail':'G-G 궤적',
  'Calm clock':'차분한 시계','Colours':'색상','Warm':'따뜻한 색','Cool':'차가운 색',
  'Drive assist view':'주행 보조 화면','objects':'목록','cars':'차량','car followed':'앞차','in use':'사용 중',

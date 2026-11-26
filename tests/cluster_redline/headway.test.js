@@ -101,5 +101,24 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
   const A=require('../../apps/cluster_redline/assist-view');subs[A.OBJ_IF][A.OBJ_EV]({objectList:[{objectID:4,objectPosition:{x:900,y:0},objectPrediction:{laneAssignment:'EGO'}}]});assert(Math.abs(L7.read(0).gap-28.5)<0.01);
   t7=300;subs[C.IFACE][C.REC](rec([[3,2,3]]));subs[C.IFACE][C.POS](pos([[12,3.4]]));assert.strictEqual(L7.read(300),null,'nobody in our lane: none');
   assert.deepStrictEqual(C.objectsOf({eventDataQualifier:2,numberOfObjects:1,objectRecognitionInfo:[{objectID:1}]},{numberOfObjects:1,objectPositionInfo:[{positionX:5,positionY:0}]}),[],'data not available: nothing');}
+ // 1.3.74: the root helper (native/redline-lead): its camera car first; the radar's "no car" values ignored; absent: retried
+ {const {EventEmitter}=require('events'),H=require('../../apps/cluster_redline/lead-helper');let sock=null,tries=0,t8=0;
+  const L8=new LeadVehicle({loadConfig:()=>{throw new Error('none');},watch:()=>Promise.resolve({available:false,shutdown(){}})},null,()=>'1',()=>t8);
+  L8.helper=new H.LeadHelper((m,now)=>L8.fromHelper(m,now),()=>t8,()=>{tries++;sock=new EventEmitter();sock.destroy=()=>{};return sock;});
+  L8.sync(true);await flush();sock.emit('connect');L8.sampleSpeed({speedVehicleCentreOfGravity:72*64},0);
+  const send=(o)=>sock.emit('data',Buffer.from(JSON.stringify(Object.assign({t:'lead',at:1000},o))+'\n'));
+  send({cam:{rx:40,n:6,at:990,lead:{m:31.4,y:0.3,id:12,type:3}},radar:{rx:20,front:{id:253,gapX:4093,qualifier:2},gap:null}});
+  let r=L8.read(0);assert(r&&Math.abs(r.gap-31.4)<0.01,'the camera car through the helper');assert.strictEqual(L8.status(0).source,'camera');
+  assert.strictEqual(L8.status(0).helper.state,'connected');assert.strictEqual(L8.status(0).unsupported,false);
+  send({cam:{rx:41,n:6,at:990,lead:null},radar:{rx:21,front:{id:4,gapX:480,qualifier:0},gap:null}});r=L8.read(0);assert(Math.abs(r.gap-30)<0.01,'a valid radar reading wins (480 x 0.0625 m)');
+  sock.emit('close');assert.strictEqual(L8.helper.state,'lost');t8=5000;L8.sync(true);assert.strictEqual(tries,1,'not before 10 s');t8=11000;L8.sync(true);assert.strictEqual(tries,2,'tried again');
+  L8.sync(false);assert.strictEqual(L8.helper.state,'off');}
+ // the helper's decoders (native/redline-lead/redline-lead.js)
+ {const R=require('../../native/redline-lead/redline-lead.js');
+  const head=(n)=>'00ac01780100000e93068d0636084691000001e0'+'00'+'00'+'00'+n;
+  const rec=Buffer.from(head('02')+'01000300010301'+'01000400010701'+'00'.repeat(7*18),'hex');
+  const pos=Buffer.from('01d701780100000f548715c036084691000001e0'+'00'+'00'+'02'+'fc41e40000c0000000'+'0041500000'+'00000000'+'00'.repeat(9*18),'hex');
+  const lead=R.leadOf(R.decodeRecognition(rec),R.decodePosition(pos));assert.deepStrictEqual([lead.id,lead.m],[7,13],'the nearest vehicle in our lane, metres as sent (big endian floats)');
+  assert.deepStrictEqual(R.decodeFront(Buffer.from('fd0ffd0ffd0ffd0ffd0201','hex')),{id:253,speedX:4093,speedY:4093,gapX:4093,gapY:4093,qualifier:2,ext:1},'the radar parked, as on the car');}
  console.log('PASS: HUD headway badge: GapVehicleAhead read only while on, fine distance first, time gap from our speed (none below 12 km/h), closing speed, colour steps, install-time input, settings, overlay'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

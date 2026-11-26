@@ -9,7 +9,7 @@
 //   DataFrontVehicleExtended  the kind of object (shown in the status only)
 // The field names, values and scale are those chyiz's idrive7-cluster-metrics found on a G30 (GPL; facts only, no code
 // taken); not yet seen on this car, so the settings screen shows what arrives. Read only: nothing is ever sent.
-const {AssistView}=require('./assist-view'),{CameraObjects}=require('./camera-objects');
+const {AssistView}=require('./assist-view'),{CameraObjects}=require('./camera-objects'),{LeadHelper}=require('./lead-helper');
 const IFACE='de.bmw.dass.GapVehicleAhead',FIELDS=['GapVehicleDrivingAhead','DataFrontVehicle','DataFrontVehicleExtended'];
 const STALE_MS=2500,FINE_MS=900,MIN_M=0.4,MAX_M=260,SLOW_KMH=12,RED_S=1.0,AMBER_S=1.5;
 const num=(v)=>typeof v==='number'&&isFinite(v)?v:null;
@@ -27,15 +27,28 @@ class LeadVehicle {
         this.assist=new AssistView(signals,log,instanceOf,this.clock,(m,id,now)=>this.fromAssist(m,id,now),(now)=>{if(this.source==='assist'&&!this.radarFresh(now))this.reset();});
         // the front camera's object list (camera-objects.js, 1.3.73): before the Drive assist view, after the radar
         this.cameraAt=null;
+        // Cluster Redline's root helper (lead-helper.js, native/redline-lead, 1.3.74): the same camera objects and radar,
+        // received as root where this app's uid is refused them; first of all when it is installed
+        this.helper=new LeadHelper((m,now)=>this.fromHelper(m,now),this.clock);
         this.camera=new CameraObjects(signals,log,instanceOf,this.clock,(m,id,now)=>{this.cameraAt=now;this.fromAssist(m,id,now,'camera');},(now)=>{if(this.source==='camera'&&!this.radarFresh(now))this.reset();});
     }
     reset(){this.gap=null;this.at=null;this.fineAt=null;this.object=null;this.closing=null;this.ref=null;this.source=null;this.cameraAt=null;}
+    fromHelper(m,now){
+        const f=m.radar&&m.radar.front,g=m.radar&&m.radar.gap,c=m.cam;
+        // the radar, only a valid reading (its "no car" values would clear the camera's car too)
+        if(f&&f.qualifier<2&&f.id<250&&f.gapX>0&&f.gapX<4090)this.sampleFront({qualifierEventDataFunctionFrontVehicle:f.qualifier,frontVehicleObjectID:f.id,frontVehicleGapX:f.gapX},now);
+        if(g&&g.status>=1&&g.status<=4&&g.gap>0&&g.gap<250)this.sampleGap({statusMeasurementVehicleDrivingAhead:g.status,gapVehicleDrivingAhead:g.gap},now);
+        // the camera's car in our lane, while its lists are fresh
+        const fresh=c&&typeof c.at==='number'&&typeof m.at==='number'&&m.at-c.at<1500;
+        if(fresh&&c.lead&&typeof c.lead.m==='number'){this.cameraAt=now;this.fromAssist(c.lead.m,c.lead.id,now,'camera');}
+        else if(this.source==='camera'&&!this.radarFresh(now))this.reset();
+    }
     radarFresh(now){return this.radarAt!==null&&now-this.radarAt<STALE_MS;}
     fromAssist(m,id,now,src){src=src||'assist';if(this.radarFresh(now))return;if(src==='assist'&&this.cameraAt!==null&&now-this.cameraAt<STALE_MS)return;
         if(this.source!==src){this.closing=null;this.ref=null;}this.distance(m,id,now);this.source=src;}
     // on: the badge wanted (on, the app running, the car's signals there). Subscribes or lets go.
     sync(on) {
-        if(this.assist)this.assist.sync(on);if(this.camera)this.camera.sync(on);
+        if(this.assist)this.assist.sync(on);if(this.camera)this.camera.sync(on);if(this.helper)this.helper.sync(on,this.clock());
         if(!on){if(this.sub||this.state==='subscribing'){this.token++;if(this.sub)try{this.sub.shutdown();}catch(e){}this.sub=null;}this.state='off';this.reset();return;}
         if(this.sub)this.check(this.clock());
         if(this.sub||this.state==='subscribing'||this.state==='not_installed'||this.state==='error')return;
@@ -106,6 +119,7 @@ class LeadVehicle {
     // its cluster draws the Drive assist view from the driving assistant directly, the head unit never gets it.
     unsupported(now){
         if(this.state==='off'||this.received)return false;
+        if(this.helper&&this.helper.lines)return false;   // the root helper answers: the car ahead does reach the head unit
         const a=this.assist?this.assist.status():null,since=Math.max(this.subscribedAt||0,a&&a.state==='subscribed'?this.assist.startedAt||0:0);
         if(now===undefined||now-since<10000)return false;
         const radarOff=this.state==='not_installed'||this.state==='error'||(this.state==='subscribed'&&!(this.sub&&this.sub.available));
@@ -113,6 +127,6 @@ class LeadVehicle {
         const c=this.camera?this.camera.status():null,cameraOff=!c||c.state!=='subscribed'||(!c.offered&&!c.received.rec&&!c.received.pos);
         return radarOff&&assistOff&&cameraOff;
     }
-    status(now){return {unsupported:this.unsupported(now),source:this.source,camera:this.camera?this.camera.status():null,assist:this.assist?this.assist.status():null,state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
+    status(now){return {unsupported:this.unsupported(now),helper:this.helper?this.helper.status():null,source:this.source,camera:this.camera?this.camera.status():null,assist:this.assist?this.assist.status():null,state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
 }
 module.exports={LeadVehicle,level,IFACE,FIELDS,STALE_MS,SLOW_KMH,RED_S,AMBER_S};

@@ -1,0 +1,22 @@
+[Unit]
+Description=Cluster Redline helper: the car ahead from the driving assistant (read only)
+After=vsomeipd.service oapcontroller.service
+RequiresMountsFor=/var/opt
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+# root: the head unit's vsomeip policy lets uid 0 receive the driving assistant's services (front camera objects,
+# GapVehicleAhead), which an app's uid does not. Read only: it only subscribes. The apps read
+# /run/redline-lead/lead.sock (0666).
+User=root
+RuntimeDirectory=redline-lead
+RuntimeDirectoryMode=0755
+ExecStart=/usr/bin/node /var/opt/redline-lead/current/redline-lead.js
+StandardOutput=journal
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
