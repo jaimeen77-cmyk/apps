@@ -442,7 +442,33 @@ function drawCar(cv,f,h){
   cv.text(it.value,mid,gauges?446:458,gauges?42:50,it.tone==='hot'?'#ff5a3a':it.tone==='cold'?'#5ab0ff':C.text,{align:'center',font:'bold'});
   if(gauges&&gb(it)){if(isTemp(it))thermo(cv,mid-150,464,300,10,it.frac,it.tone==='hot'?h.P.high:h.P.low,{glass:C.soft});else slants(cv,mid-150,458,300,14,16,6,it.frac,(k,m)=>k>=m-3?h.P.high:h.P.low,null,3);}}
 }
-const DRAW={car:drawCar,mypic:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
+// Calm clock (1.3.71): the time, big and thin, its date under it, then up to four readouts in quiet figures; the gear,
+// the speed and the drive mode small at the top. The rpm stays out of sight until 1500 rpm before the shift point,
+// then a thin bar fills above the clock (sky blue, amber, red; flashing at the shift point). Cool (white on blue-black)
+// or warm (cream) tones; on the HUD the dim figures are a little brighter, as the glass needs.
+const CALM={cool:{text:'#e9eef5',dim:'#7d8896',rule:'#262d36',accent:'#8fd3ff',off:'#151a20'},warm:{text:'#f6ead8',dim:'#a3917a',rule:'#2f2820',accent:'#ffcf8a',off:'#1a1510'}};
+const WEEK_KO=['일','월','화','수','목','금','토'],WEEK_EN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MON_EN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function drawCalm(cv,f,h){
+ const hud=f.display!=='cluster',T=Object.assign({},CALM[f.tone]||CALM.cool,hud?{dim:'#b4bfcc',rule:'#5b6672',off:'#3a434d'}:{}),cx=544,ko=language()==='ko',q=cue(f),d=f.d;
+ if(want(f,'gauge')){const from=f.cue.from,r=isNum(d.rpm)?d.rpm:0;
+  if(cv.reserve)cv.reserve(cx-260,90,560,14);
+  if(r>=from){const t=clamp((r-from)/Math.max(1,f.cue.at-from),0,1),w=520,x0=cx-w/2,n=30,lit=q.flash&&!q.on;
+   for(let i=0;i<n;i++){const on=i/n<t,c=i/n>0.8?'#ff5a4a':i/n>0.5?'#ffb43a':T.accent;cv.fillRect(x0+i*w/n+1,96,w/n-3,5,on&&!lit?c:T.off);}
+   cv.text(rpmText(d),cx+w/2+14,103,16,t>0.8?'#ff5a4a':T.dim,{align:'left',font:'num',literal:true});}}
+ if(want(f,'clock')&&f.clock){const c=f.clock,hh=String(c.h).padStart(2,'0')+':'+String(c.m).padStart(2,'0');
+  cv.text(hh,cx,250,150,T.text,{align:'center',font:'light',literal:true});
+  const date=c.mo?(ko?c.mo+'월 '+c.day+'일 '+WEEK_KO[c.wd]+'요일':WEEK_EN[c.wd]+' '+c.day+' '+MON_EN[c.mo-1]):'';
+  if(date)cv.text(date,cx,294,24,T.dim,{align:'center',font:'bold',literal:true});}
+ if(want(f,'gear'))cv.text(h.gearText(d),cx-200,64,30,T.dim,{align:'center',font:'light',literal:true});
+ if(want(f,'speed')){if(cv.reserve)cv.reserve(cx-70,40,140,30);if(isNum(f.speed))cv.text(f.speed+' km/h',cx,64,22,T.dim,{align:'center',font:'light',literal:true});}
+ if(want(f,'mode')){const dm=carMode(f.drive);if(cv.reserve)cv.reserve(cx+130,44,140,26);if(dm.word)cv.text(dm.word,cx+200,64,18,T.dim,{align:'center',font:'bold',literal:true,spacing:1});}
+ const list=f.readouts||[],n=Math.min(4,list.length);
+ for(let i=0;i<n;i++){const it=list[i],id='read'+'ABCD'[i];if(!want(f,id)||!it)continue;const x=cx+(i-(n-1)/2)*(n>3?150:190);
+  cv.line(x-70,320,x+70,320,1.5,T.rule);   // a short rule over each (each readout moves on its own)
+  cv.text(it.value,x,372,34,it.tone==='hot'?'#ff6a52':it.tone==='cold'?'#7cc2ff':T.text,{align:'center',font:'light',literal:true});
+  cv.text(it.label,x,400,17,T.dim,{align:'center',font:'bold',literal:true});}
+}
+const DRAW={calm:drawCalm,car:drawCar,mypic:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX,CAR,S};

@@ -341,6 +341,8 @@ function start(ctx) {
             batteryVoltage.tick(at,voltageWanted,controller.policy.rpm>0&&controller.policy.rpmAt!==null&&at-controller.policy.rpmAt<=2500);controller.aux=Object.assign(auxInfo.read(at),{batteryVoltage:batteryVoltage.read(at)},neededAux.has('clock')?{clock:clockText(config)}:{});
             // The Car layout's picture (car-meter.js: the car's state, held against noise, and frame) or My picture's
             // GIFs (my-picture.js: stop / drive / reverse, the folder looked at every 5 s), per display
+            // the Calm clock's speed (1.3.71): the vehicle speed the alerts read, whole km/h, only while that layout is on
+            if(config.clusterDesign==='rl-calm'||config.hudDesign==='rl-calm')controller.aux.speedNow=carSpeed.at!==null&&at-carSpeed.at<=2000&&typeof carSpeed.v==='number'?Math.round(carSpeed.v):null;
             const carFaces=carMeterFaces(config);
             if(carFaces.length){const CM=require('./car-meter'),MP=require('./my-picture'),stage=require('./redline-hud').gearOf(gearbox.gear).stage,g={lat:controller.aux.gLat,long:controller.aux.gLong};
                 const speed=carSpeed.at!==null&&at-carSpeed.at<=2000?carSpeed.v:null;   // (a speed older than 2 s is not known)
