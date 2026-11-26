@@ -37,6 +37,7 @@ const KO={
  'not running or older than 0.4.3 (update it and open it once)':'꺼져 있거나 0.4.3보다 이전 버전 (업데이트 후 한 번 실행하세요)','not reachable':'연결 안 됨',
  'Standing still':'정지','Driving':'주행','Reverse':'후진','Car picture (none)':'차 그림 (GIF 없음)','Built-in':'기본 제공','In use':'사용 중','not kept':'저장 안 됨',
  'not set':'없음','file too large':'파일이 너무 큼','canvas too big':'캔버스가 너무 큼','not a GIF':'GIF 아님','no frames':'프레임 없음',
+ 'not in the catalog':'차 목록에 없음','not offered':'제공 안 됨',
  'Drive assist view':'주행 보조 화면','objects':'목록','cars':'차량','car followed':'앞차','in use':'사용 중',
  'Route turn list':'안내 목록','last':'마지막','most':'최대','times':'회','1st to 2nd':'첫 회전→둘째','next turns arrive':'다음 회전도 옴','only one turn: no next turn':'회전 1개만 옴: 다음 안내 불가','none received yet':'아직 받은 것 없음','Radar service':'레이더 서비스','offered':'제공 중','not offered (the car does not send it now)':'제공 안 됨 (차가 지금 보내지 않음)','instance':'인스턴스','Smaller GIFs run faster: 160 × 90 10-20 frames a second, 320 × 180 2-6':'작은 GIF일수록 빠름: 160 × 90 초당 10~20장, 320 × 180 2~6장', 'Fetching':'가져오는 중','Fetch from GIF player':'GIF 플레이어에서 가져오기','Refresh':'새로고침','Next':'다음',
  'other sizes are fitted automatically':'다른 크기는 자동으로 맞춤','Over N frames: N kept':'프레임 N장 넘으면 N장으로 줄임','fitted to':'맞춤',
