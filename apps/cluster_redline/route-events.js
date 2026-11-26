@@ -5,9 +5,11 @@ function decodeReply(reply) {
     if(!reply||(reply.GuidanceEventListError!==0&&reply.GuidanceEventListError!=='NO_ERROR'))return {state:'query_rejected',value:null};
     const views=reply.viewContent;
     if(!Array.isArray(views)||views.length!==1||!views[0]||!Array.isArray(views[0].eventsInView))return {state:'query_shape_invalid',value:null};
-    const events=views[0].eventsInView;
+    // a passive junction (along the highway, no turn to make) is not a turn to show: left out (1.3.75, with the query
+    // asking for them); any other kind the decoder does not know stays, so it is never skipped over
+    const events=views[0].eventsInView.filter(e=>!(e&&typeof e==='object'&&e.passiveManeuver&&typeof e.passiveManeuver==='object'));
     if(!events.length)return {state:'no_route_events',value:null};
-    if(events.length>6)return {state:'query_limit_exceeded',value:null};
+    if(events.length>10)return {state:'query_limit_exceeded',value:null};
     // The viewport begins at the current car position. Never skip an unknown
     // first event to display a later turn as if it were the upcoming one.
     const value=decodeDart({maneuver:events[0]});

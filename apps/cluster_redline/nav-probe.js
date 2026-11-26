@@ -31,7 +31,7 @@ function distanceOf(item){
 }
 function textOf(item){
  const d=object(item)&&object(item.description)?item.description:null;if(!d||!Array.isArray(d.elements))return '';
- return d.elements.slice(0,24).map(e=>object(e)&&typeof e.text==='string'?e.text:object(e)&&e.spacer!==undefined&&e.spacer!==null?' ':'').join('').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,48);
+ return d.elements.slice(0,24).map(e=>object(e)&&typeof e.text==='string'?e.text:object(e)&&object(e.icon)&&typeof e.icon.text==='string'?' ['+e.icon.text+'] ':object(e)&&e.spacer!==undefined&&e.spacer!==null?' ':'').join('').replace(/[\x00-\x1f\x7f]/g,' ').replace(/\s+/g,' ').trim().slice(0,48);
 }
 const clockText=(d)=>[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
 class NavProbe {

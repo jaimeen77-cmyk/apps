@@ -22,6 +22,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.75 (navigation: icon texts, more of the route)
+
+- **Exit / IC and road numbers sent as icons now show**: a turn's description can carry them as an icon with its own text (an exit badge, a road number on its shield) instead of text; the HUD's description (and the Received turns screen, in [brackets]) left those out. As cluster-metrics reads them on a G30 (facts only).
+- **The route's turn list asks for more**: the main road's and passive junctions' events too, up to 10 (was active turns and destinations, up to 6), as cluster-metrics asks for them: more of the route for the next turn (the Received turns screen's Route turn list shows how many come). A passive junction (along the highway, nothing to do) is left out of the list; an unknown kind first is still never skipped over.
+- Tests: `nav-icons-passive` (new).
+
 ## Cluster Redline 1.3.74 · Cluster Redline 앞차 도우미 0.1.0 (the car ahead through a root helper)
 
 - **Why nothing came:** on the user's car the head unit's SOME/IP policy keeps the driving assistant's services from apps: Cluster Redline's uid saw the radar's GapVehicleAhead, the Drive assist view's sources and the front camera's object list all "not offered". Run as root (IterioDev's hmictl, by hand over SSH), the same car delivered the camera's object list (0xF139 0x8001 / 0x8002) and GapVehicleAhead (0x3539), as BimmerVision gets them.
