@@ -1,136 +1,113 @@
-# MGU Monitor 1.1.1
+# MGU Monitor 1.1.10 guide
 
-[한국어](README.ko.md)
+[한국어](README.ko.md) · [Installation](../../docs/INSTALL.md) · [The apps](../../README.md)
 
-Previously **Storage**. The `storage` / `storage_en` IDs are preserved so existing
-installs update normally to **MGU Monitor / MGU 모니터 1.1.1**.
+MGU Monitor shows the state of the head unit (MGU):
 
-Storage and resource monitor for BMW MGU / iDrive 7 (ID7). Displays disk usage,
-free space on the apps filesystem, RAM usage and allocated disk space per app
-under `/var/opt/public/oap`. The home widget shows usage and highlights the
-configured warning threshold (80% by default). It only writes/prunes its own usage logs and does not change vehicle settings; the warning is within the app/widget.
+- **Disks**: free space per file system, the space for apps, memory (RAM)
+- **Apps**: how much space each installed app takes
+- **CPU / Memory**: CPU and memory by app with the last 30 minutes as graphs, and alerts for apps whose memory keeps growing
+- **Log history**: daily averages and averages by app from 30 days of usage logs
+- **Home-screen widget**: CPU and memory over the last 30 minutes, and the app storage
 
-In MGU Store add source **`jaimeen77-cmyk/apps`**, branch **`main`**, refresh,
-then install **MGU Monitor (English) 1.1.1** or **MGU 모니터 (한국어) 1.1.1**.
-Both editions install independently. Requires `mgu-deploy >= 0.7.17` and the
-vehicle's SDK donor, supplied by MGU Store during installation.
+It only **reads**; the only files it writes and prunes are its own usage logs. It changes no vehicle settings.
 
-Use Refresh to rescan; Next page switches disks/apps/CPU-Memory. Settings control the
-warning threshold, initial page, RAM/read-only partitions, units and theme.
-Leave Preview data at **Auto** for vehicle readings. Forced demo options use
-example values and show a DEMO badge. Off-car Auto also uses example values.
-An asterisk marks an incomplete app measurement; unreadable files and scan
-limits can make the reported size a lower bound. Per-app totals do not equal
-the whole partition's used space. `df` free space can differ from size minus
-used because of filesystem reservations.
+> The pictures are drawn by the actual package's drawing code, with example data.
 
-Host package, parser and renderer checks were run for this release. Actual
-vehicle installation and widget behavior still need verification; this does
-not claim real-car testing. See [NOTICE](NOTICE) for source attribution.
+## 1. Install
 
-These examples use the installed package's renderer and demo values:
+1. Add MGU Store source **`jaimeen77-cmyk/apps`**, branch **`main`**, and press Check now.
+2. Install **MGU Monitor (English)** (the Korean edition is MGU 모니터 (한국어)).
+3. The helper that shows app names, **mgu-monitor-names**, is installed with it. If the Store asks for a restart, do it once.
 
-![Disks, example data](screenshots/disks-ok-en.png)
-![Widget, example 95% usage](screenshots/widget-crit-en.png)
+It installs on iDrive 7 and iDrive 8.
 
-## Home widget: CPU and memory graphs (1.1.8)
+## 2. Placing the widget on the home screen
 
-The big home widget draws the whole head unit's **CPU** and **memory (RAM)** use as
-**graphs of the last 30 minutes** (0 to 100%, now on the right). It uses the same
-10-second samples as the app screen, so the graphs continue while MGU Monitor runs,
-even with its screen closed; the widget is redrawn only when a new sample arrives.
-A CPU / memory rise or a suspected leak turns that number orange. The bottom line keeps
-the app storage use and free space, red above the warning threshold. The small widget
-shows `CPU 23% · RAM 66%` with a memory bar; during a storage warning it shows the
-storage text and bar as before. Settings and UI templates are unchanged.
+| Large widget: CPU and memory graphs | With a storage warning |
+|---|---|
+| ![Large widget](screenshots/widget-usage-en.png) | ![Storage warning](screenshots/widget-crit-en.png) |
 
-![CPU / memory widget, demo data](screenshots/widget-usage-en.png)
+1. On the iDrive **HOME** screen push the controller **up** to open the top menu.
+2. Choose **Customize main menu**.
+3. Choose a slot and add **MGU Monitor** from the list.
+4. A **large tile** gives the large widget above; a narrow tile shows `CPU 23% · RAM 66%` and a memory bar.
+5. Save.
 
-## Log history (1.1.6)
+- **Large widget**: the whole head unit's **CPU** and **memory** use as graphs of the last 30 minutes (0–100 %, now on the right). The bottom line is the app storage use and its free space.
+- A CPU or memory rise, or a suspected memory leak, turns that number **orange**.
+- Above the warning threshold (80 % by default) the storage line turns **red**, and the small widget shows the storage warning.
+- It measures every 10 s. While MGU Monitor runs the graphs continue, even with its screen closed.
 
-The **Log history** tab reads the saved 30-day usage logs: on the left the
-**daily average** of the whole head unit's CPU (bars) and memory (line) for
-the last 30 days, on the right the **average use by app** (CPU %, average and
-highest RAM MB) over all logged days. Tap a day, or press **Next app**, for
-that day only; again for all days. A day's log is read once and its summary is
-kept (`usage-summary.json` beside the logs); today's log is read again at most
-once a minute. Averages cover only the time the app was running and logging.
+## 3. The app's screens
 
-![Log history, example data](screenshots/history-en.png)
+Change between the four screens with the tabs on top or **Next page**. **Refresh** measures again; **Settings** opens the settings in 5. The current CPU and RAM % show at the top of every screen.
 
-## Per-app CPU / memory (1.1.1)
+### Disks
 
-The **CPU / Memory** tab lists running apps by CPU usage. Select a row with
-Touch/iDrive or use **Next app** to switch the two graphs between the whole
-head unit and an app. Every tab keeps the latest whole-unit CPU/RAM percentages
-in its header. Samples and logs update every **10 seconds**; the graphs retain
-the last **30 minutes of the current session**. CPU needs two samples, so its
-first value appears about 10 seconds after start. This app must be running;
-shutdown/closed-process periods have no samples. No auto-start change is made.
+![Disks](screenshots/disks-ok-en.png)
 
-Apps are grouped by the effective Linux UID corresponding to `oap_<uid>`;
-helpers under the same UID are included. CPU is a share of all CPU cores,
-normalized to 0–100%. RAM is the sum of the app's readable process RSS (MB in
-this view means MiB); shared pages can be counted in multiple processes. The
-whole-unit RAM percentage uses MemAvailable and is a different measure. Only
-readable live processes are covered; root/system services without an app UID
-are excluded from the app list. Access failures are shown. `*` means partial
-CPU/RSS coverage, including process startup; a missing value is not zero.
+- Each file system's free space, used of total and a bar. The partition apps are installed on is marked **APPS**.
+- On the right, **Free for apps** and the free **memory (RAM)** in large numbers.
+- Above the warning threshold a red warning line shows at the top.
 
-The table shows each app's RAM change over five minutes. App growth alerts need
-at least +16 MiB over five minutes, with the readings across the last minute at least
-8 MiB above the baseline. **Possible memory leak** requires at least 15 minutes
-of uninterrupted valid samples, +32 MiB overall, and +8 MiB in each of three
-five-minute segments. System thresholds are +5 percentage points/5 min and
-+10 points/15 min (at least +2 per segment). CPU rising means +15 points/5 min,
-confirmed by elevated readings throughout the last minute. Raw trends remain visible below these
-thresholds. A rising RSS can have legitimate causes; these flags require
-investigation and do not identify an allocation leak or its code location.
+![Storage warning](screenshots/disks-crit-en.png)
 
-## Logs
+### Apps
 
-Recording is on by default; **Save CPU / memory usage logs** switches it off.
-Real samples are collected every 10 seconds. Three samples share one gzip block
-written every 30 seconds to the app's persistent data folder:
+![Apps](screenshots/apps-en.png)
 
-`usage-logs/usage-YYYY-MM-DD.csv.gz`
+The space each app under `/var/opt/public/oap` really takes, largest first. A `*` means only part could be measured (access limits); the real size can be larger.
 
-The full path is usually `/var/opt/public/oap/oap_<MGU Monitor UID>/data/usage-logs/`.
-Each file is a standard concatenated-member gzip CSV; `gzip -cd` or Python's
-`gzip.open` reads it. Daily dates/timestamps are UTC according to the car clock.
-The CSV includes whole-unit CPU/RAM, five-minute changes, growth flags, coverage
-counts and `apps_json`. That field is an array of
-`[uid, name, cpuPercent, rssBytes, processCount, cpuDeltaPp, rssDeltaMiB, flags]`;
-flags bits: 1 partial, 2 CPU rising, 4 RAM rising, 8 leak suspected. Missing values
-are blank/null. Demo values are never saved.
+### CPU / Memory
 
-A 30-day cutoff is applied on startup and hourly while running (including when
-recording is off). Expired daily files are deleted and the boundary day's old
-rows are removed. No other app's files are touched. The chart history resets
-on restart; existing logs remain. Limits are 3 MiB/day and 96 MiB total, without
-preallocating space. The package permits 128 MiB for code/data. If the filesystem
-is full, access is denied or a limit is hit, the UI reports a log error and retries
-at the next sample without deleting unexpired records. Log size varies with
-app count. Closed-process periods are cleaned up at the next start.
+| The whole head unit | One app chosen |
+|---|---|
+| ![Whole unit](screenshots/usage-total-en.png) | ![One app](screenshots/usage-app-en.png) |
 
-![Per-app graphs, simulated increasing RSS](screenshots/usage-app-en.png)
+- The table on the left: running apps in CPU order, with CPU %, RAM MB and the **RAM change over 5 minutes**.
+- Choose an app by tapping its row or with **Next app**: the two graphs on the right show that app's CPU % and memory (RSS). **Whole head unit** can be chosen too.
+- The graphs cover the last 30 minutes, every 10 s.
+- **Rise alerts**: an app's memory up 16 MiB or more in 5 minutes and staying high for the last minute shows **Memory rising**; growing steadily for more than 15 minutes, **Memory leak suspected**. Normal work can grow memory too, so it is not proof of a leak.
 
-### App names and the 1.1.1 update
+### Log history
 
-MGU Store also installs **mgu-monitor-names 0.1.0**. Other OAP app folders
-and MainApp's UID registry are protected from an ordinary app. This small root
-metadata exporter reads package display names, App Kit titles, installed RHMI
-entry titles and the real UID registry, then writes only UID/id/title data to
-`/dev/shm/mgu-monitor-names/apps.json` (root-owned, readable by apps).
-It exports on install and every minute through a oneshot systemd timer. It does
-not change OAP permissions, app settings or vehicle configuration. If the Store
-reports the helper pending, complete its requested head-unit restart once.
-UIDs are never guessed. Until a name is available the row says App name pending,
-with its UID still shown below. The names also enter the app list and logs.
+| Last 30 days | One day chosen |
+|---|---|
+| ![Log history](screenshots/history-en.png) | ![One day](screenshots/history-day-en.png) |
 
-The 30-minute graph now holds up to 181 readings. Growth confirmation still
-covers a whole minute (7 samples), with the existing five/fifteen-minute windows.
-Logs keep every 10-second timestamp, grouped losslessly into 30-second gzip
-blocks to limit storage overhead. Pending rows flush on graceful process exit
-and when recording is disabled; abrupt termination can lose up to 20 seconds
-of buffered samples. Existing 1.1.0 logs remain readable and expire normally.
+- Left: the whole head unit's **daily average** CPU (bars) and memory (line) over the last 30 days.
+- Right: the **average by app** over the logged time (CPU %, average and peak RAM MB).
+- Tap a day or press **Next app** for that day alone; again for all days.
+- Averages only cover the time MGU Monitor was running and logging.
+
+## 4. Usage logs
+
+- Saved by default (can be turned off in the settings): measured every 10 s, written in 30-second groups as compressed CSV.
+- Where: the app's data folder, `usage-logs/usage-YYYY-MM-DD.csv.gz` (usually `/var/opt/public/oap/oap_<MGU Monitor UID>/data/usage-logs/`). Standard gzip, readable with `gzip -cd`. Times are UTC by the car's clock.
+- Logs older than **30 days** are removed automatically. At most 3 MiB a day, 96 MiB in all. Other apps' files are never removed.
+- Each entry of the `apps_json` column: `[UID, app name, CPU %, RSS bytes, processes, CPU change pp, RSS change MiB, flags]`. Flag bits: 1 partial, 2 CPU rising, 4 RAM rising, 8 leak suspected.
+
+## 5. Settings
+
+| Setting | Default | What it does |
+|---|---|---|
+| Alert when apps storage above | 80 % | 70 / 80 / 90 / 95 % |
+| Start page | Disks | Disks / Apps / CPU / Memory |
+| Save CPU / memory usage logs | On | Off: no new logs (old ones are still pruned) |
+| Show RAM disks (tmpfs) | Off | |
+| Show read-only system partitions | On | |
+| Size units | GB = 1024 MB | like df -h / 1000 MB |
+| Colour theme | M Tricolour | M Red / M Tricolour / Ice White / Night Amber |
+| Preview data (emulator) | Auto | Keep **Auto** in the car (real values in the car, demo data on a PC). Demo 44/78/95 % shows example values instead |
+
+## 6. The app-name helper (mgu-monitor-names)
+
+An app cannot read other apps' folders or the app registry, so the helper exports **only UIDs, app IDs and names** to `/dev/shm/mgu-monitor-names/apps.json` (at install, then every minute). It changes no other app and no vehicle setting.
+An app whose name is not known yet shows as `App name pending` with its UID.
+
+## Notes
+
+- An app's RAM is the RSS of its readable processes, which can count shared pages twice; so the apps' RAM added up differs from the whole RAM use. The whole RAM is by MemAvailable.
+- Reserved file-system space can make the free space differ from "total − used".
+- Sources and licenses: [NOTICE](NOTICE).

@@ -1,40 +1,108 @@
-# Seats Easy Access
+# Seats Easy Access 0.7.10 guide
 
-English is the default. Add the source overlay to an existing iDrive app kit:
+[한국어](README.ko.md) · [Installation](../../docs/INSTALL.md) · [The apps](../../README.md)
 
-```sh
-python tools/install-overlay.py ../idrive7-apps --apps seats_easy_access
-```
+Adjust the driver's and the passenger's seat on the iDrive screen, save and recall memories (M1–M3), and use **Easy Access**, which moves the seat out of the way to get in and out.
+Each driver can have a **personal M1** that **Ignition M1** recalls when the car starts.
 
-Inside that target project:
+The seats themselves, and the door, ignition and occupancy logic, are handled by IterioDev's **Comfort** (`iteriodev-comfort`). This app is the screen that sends Comfort its requests.
 
-```sh
-python kit/tools/build.py seats_easy_access
-python kit/tools/make_kit.py seats_easy_access
-# Korean:
-python kit/tools/make_kit.py seats_easy_access --language ko
-```
+> The pictures are drawn by the actual package's drawing code (PC preview, example state). The `PREVIEW` badge at the top right shows on a PC only.
 
-MGU Store offers **Seats Easy Access (English)** (`seats_easy_access`) and **시트 Easy Access (한국어)** (`seats_easy_access_ko`). Both provide driver/passenger controls, memories, Easy Access and Make room. Install the original Comfort tool separately from IterioDev/car-apps.
+## 1. Install
 
-Version 0.7.2 recognizes the active BMW driver profile and displays its name when available. With their own BMW profile selected, each driver can adjust the seat, press **Save memory → M1**, and turn on **Ignition M1**. Manual M1 and Ignition M1 both recall the recognized driver's personal position. Each personal M1 uses one free slot of Comfort's three driver-seat memories. Allocated slots are locked in the shared driver M2/M3 controls. If only occupied shared slots remain, repeat Save memory → M1 within 30 seconds to confirm replacing the indicated shared position. A 0.7.1 M1 opt-in is carried over when exactly one profile matches the stored shared M1. Requires Comfort 0.6.1 or later.
+1. Add MGU Store sources **`jaimeen77-cmyk/apps`** and **`IterioDev/car-apps`** (both branch `main`).
+2. Install **Seats Easy Access (English)** (the Korean edition is 시트 Easy Access (한국어)). **Comfort 0.6.1 or later** and `mgu-deploy` 0.7.11 or later come with it. Comfort is not in this repository; it comes from IterioDev's source.
+3. It installs on iDrive 7 and iDrive 8.
 
-Version 0.7.3 adds a shared power-off exit position. With the driver's seat adjusted back, press **Save exit** on the driver page. The car must be stationary and the active driver must have **Ignition M1** on. An observed power-off moves the driver seat to the saved exit position even with the door closed. Power-on then recalls the recognized driver's personal M1. The shared exit takes one additional free Comfort driver-memory slot. The head unit and Comfort must still be running when power-off is reported.
+## 2. The screen
 
-In GPU full-screen mode, touch and iDrive controller adjustments move while held and stop on release. The regular HMI buttons make short adjustments.
+![Driver](screenshots/driver-en.jpg)
 
-Starting in 0.7.1, with Ignition M1 on for any driver, Seats turns off Comfort's automatic Easy Access switch for both front seats. Manual Easy Access remains available. A return Comfort already stored can still run after the switch is turned off. To use automatic Easy Access again, turn off all enabled Ignition M1 profiles and then turn the automatic Easy Access switch on.
+| Where | What |
+|---|---|
+| Tabs on top | **DRIVER / PASSENGER**: the seat to control. Locked while a request runs |
+| Top left | The seat and the car's state (`Driver · Stationary`) and the last message |
+| Middle | The seat and its buttons: **Headrest**, **Cushion**, **Height**, **Backrest**, **Fore / aft** |
+| Top right | The **Automatic Easy Access** switch; on the driver's side the **Ignition M1** button and the driver's state |
+| Lower middle | **Save exit**; on the passenger's side **Make room** |
+| Bottom row | **M1 / M2 / M3**, **Save memory**, **Easy Access**, **Refresh**, **STOP** |
 
-Version 0.6.6 adds an opt-in **Ignition M1** button on the driver page (off by default). Save the desired driver M1 first. After an observed off→on cycle, the app waits 8 seconds (on the car 6 s was too early, 10 s and 15 s arrived), refreshes status and calls driver M1 once, only while stationary with saved M1/position data and after Comfort has been idle for at least 3 seconds. A busy service can defer the call up to 45 seconds from power-on. Driving, power-off, connection loss, manual controls, STOP or disabling the option cancels a waiting call. The target is the fixed driver M1, not the position before exit. Passenger memories are unaffected.
+- **Adjusting**: the seat moves while you hold an arrow and stops when you let go (touch or the iDrive controller on the GPU screen). The plain HMI buttons give short moves.
+- **STOP** asks Comfort to stop a moving seat. It is a request only: always keep a hand near the car's own seat switches.
+- **Refresh** reads the seat positions and state from Comfort again.
 
-The app autostarts and monitors Comfort with the screen hidden. A stopped app process cannot observe events. Observed power-off is retained across process restarts; launching on an already-on car without an observed off, or enabling the option, never initiates a recall. Comfort's original automation remains in place. M1 does not clear Comfort's pending-return flag. Vehicle execution still needs validation.
+## 3. First setup
 
-Version 0.6.6 extends the initial wait from 5 to 15 seconds and requires 3 seconds of idle status. This addresses a possible start-up readiness issue, not a confirmed cause. Both manual and automatic driver M1 calls now log the reported position before, stored target, job-end position-change observation and position after. Counter changes do not prove physical arrival, and the Comfort service's detailed failure reason may still require its own journal.
+1. Park somewhere safe and make sure nobody and nothing is where the seat moves.
+2. Press **Refresh**.
+3. With the car's seat switches (or the screen's buttons), set a position that is easy to get out at.
+4. Press **Save exit**. Do the same on the PASSENGER tab if you want.
+5. Turn the **Automatic Easy Access** switch on.
+6. Try it once first with the **Easy Access** button, ready to use the seat switches or **STOP**.
 
-Version 0.6.7 checks arrival: when Comfort's memory job ends, the reported driver position is compared with the stored M1. If any axis is more than 80 counts away (for example the seat module holding its motors right after the engine starts: only a relay click is heard), the app calls M1 **once more** after 2 seconds of idle Comfort status, under the same guards; never a third time.
+## 4. Memories M1–M3
 
-Version 0.6.11 removes the Logs tab and keeps no vehicle or seat history: nothing is collected or written, and the history file older versions kept in the app data folder is deleted at start. Car tests (0.6.7 to 0.6.10): a recall 6 s after power-on did not move; 8, 10 and 15 s arrived at once.
+![Save memory](screenshots/save-memory-en.jpg)
 
-The shared canvas runtime also works in `node kit/tools/emu.js seats_easy_access`. The PC preview uses a socket-free demo client and displays a PREVIEW badge; it never sends commands to a vehicle. Driver/passenger tabs, circular adjustment controls, memories and Make room are interactive in the emulator.
+- **Recall**: press **M1 / M2 / M3** to move to the saved position.
+- **Save**: set the position, press **Save memory** (`Press M1, M2 or M3 to save.`), then one of **M1 / M2 / M3**.
+- The driver and the passenger have three each.
+- While driving, saving, recalling, Easy Access and Make room are locked. On a seat without position sensors the save and Easy Access buttons are locked.
 
-The default existing app ID is now English; choose the Korean listing to keep a Korean UI. Vehicle hardware and position sensors determine supported functions. Real vehicle installation and motion have not been validated here.
+## 5. Easy Access (getting in and out)
+
+![Automatic Easy Access](screenshots/auto-easy-access-en.jpg)
+
+- **Automatic Easy Access on**: by Comfort's rules, opening the driver's door while stationary moves the seat back to the exit position, and closing the door and switching the car on brings it back to the driving position. The passenger's side depends on the car's occupancy sensors.
+- The switch is Comfort's, so it applies to **both seats**.
+- The **Easy Access** button moves the current seat to its saved exit position now (by hand).
+
+## 6. Make room (passenger)
+
+| Passenger tab | After Make room |
+|---|---|
+| ![Passenger](screenshots/passenger-en.jpg) | ![Return passenger](screenshots/make-room-en.jpg) |
+
+On the PASSENGER tab, **Make room** has Comfort move the passenger seat forward and tilt its backrest, to make room in the back. The button then becomes **Return passenger**, which brings the seat back. Use it only while stationary, on a passenger seat with position sensors.
+
+## 7. A personal M1 per driver, and Ignition M1
+
+| Personal M1 saved | Ignition M1 on |
+|---|---|
+| ![Personal M1](screenshots/personal-m1-en.jpg) | ![Ignition M1](screenshots/ignition-m1-en.jpg) |
+
+The driver's screen recognises iDrive's current **BMW driver profile** and shows its name when it can be read (under the Ignition M1 button).
+
+1. Each driver chooses **their own profile** in iDrive and sets the seat to their driving position.
+2. **Save memory → M1** saves that driver's **personal M1** (`Personal M1 saved`).
+3. Set the driver's seat to a position back that is easy to get out at and press **Save exit** once (`Power-off exit position saved`). All drivers share it.
+4. Press **Ignition M1** to make it **On**.
+
+Now, when that driver switches off while stationary, the driver's seat moves back to the exit position even with the door shut; at the next start it returns to that driver's personal M1.
+
+- After the start it waits about 8 s, checks again that the car is stationary, the seat's position and that an M1 is saved, and recalls it when Comfort is idle. Not ready within 45 s, it gives up. If after one recall the seat is still far off, it recalls once more, once only.
+- A personal M1 takes one free slot of Comfort's three driver memories; that slot is locked out of the shared driver M2 / M3. With no free slot it shows which one would be replaced, and you press **Save memory → M1** again within 30 s only if that may be overwritten.
+- As soon as one driver turns Ignition M1 on, Comfort's **Automatic Easy Access** turns off and the switch reads **Automatic Easy Access · M1 priority**. Manual Easy Access and adjusting still work. To use Automatic Easy Access again, turn Ignition M1 off for the drivers who have it on, then turn the switch on.
+- The app starts by itself and keeps checking with its screen closed. If it never saw the car switch off, that start may not move the seat.
+
+## Safety
+
+- Saving and moving by hand only work while Comfort reports the car **stationary**.
+- **STOP** is a request, not a guaranteed physical stop. Always keep a hand near the car's seat switches.
+- Do not use Make room or Easy Access with a child seat, a person or luggage on the passenger seat.
+- Treat the first install as experimental and try it briefly with nobody in the seats.
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| Every button greyed out | That Comfort is installed and running (IterioDev source), **Refresh**, that the car is stationary |
+| Only the save and Easy Access buttons locked | That seat has no position sensors |
+| The seat does not return after getting out | The return is Comfort's. Collect Comfort's log as in the [return diagnosis guide (Korean)](../../docs/SEATS-DIAGNOSTICS.ko.md) |
+| Ignition M1 does nothing | That the driver profile is recognised (name shown), a personal M1 saved and the power-off exit position saved |
+
+## License and origin
+
+MIT ([LICENSE](LICENSE)). An independent client of Comfort's published JSON protocol; it does not contain or modify IterioDev's sources or binaries. Other components (the seat picture and so on): [NOTICE](NOTICE) and [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
+Developer build steps: [build and install guide (Korean)](../../docs/SEATS-OVERLAY.ko.md).

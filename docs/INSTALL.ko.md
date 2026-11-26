@@ -1,86 +1,91 @@
-# 설치 안내 · MGU Store / iDrive 7
+# 설치 안내 · MGU Store
 
-> **최신 설치·메뉴별 사용법은 [계기판 레드라인 설치·사용 설명서](CLUSTER-REDLINE.ko.md)를 보세요.** 제작: 잼님 · [GitHub](https://github.com/jaimeen77-cmyk/apps) · [네이버 블로그](https://blog.naver.com/jaimeen77)
+[English](INSTALL.md) · [앱 소개](../README.ko.md)
 
-[English](INSTALL.md) · [레드라인 사용 설명서](CLUSTER-REDLINE.ko.md) · [스크린샷](../screenshots/README.md)
+이 저장소의 앱은 모두 차량의 **MGU Store**에서 설치합니다. PC나 USB는 필요 없습니다.
+Store가 설치할 때 그 차의 BMW SDK를 넣어 차에서 직접 빌드합니다.
 
-이 저장소는 **계기판 레드라인**과 **아이드라이브 회로 1.0.0**을 한국어·영어로 배포합니다. 이 문서는 앱 설치 안내입니다. 헤드유닛 플래시·코딩 작업은 포함하지 않습니다.
+## 1. 준비
 
-## 준비
+- MGU Store가 설치된 헤드유닛(iDrive 7 또는 iDrive 8)과 인터넷 연결
+  - MGU Store 자체 설치는 [MGU Store 안내](https://github.com/robertnisipeanu/mgu-store)를 따릅니다.
+- 설치가 끝날 때까지 주차 상태와 안정적인 차량 전원(시동 또는 충전기)
 
-- MGU Store가 설치된 iDrive 7과 인터넷 연결
-- 레드라인을 사용할 경우 **Cluster renderer (`cluster-render`) 0.4.0 이상**
-- 설치를 마칠 때까지 주차 상태와 안정적인 차량 전원
+## 2. 소스 등록
 
-Store의 일반 화면용 렌더러와 레드라인의 `cluster-render`는 별도 구성 요소입니다. Circuit만 사용할 때는 `cluster-render`가 필요하지 않습니다. 등록된 소스가 필요한 렌더러를 제공하면 Store가 의존성을 확인하며, 제공하지 않으면 해당 렌더러 소스를 먼저 등록해야 합니다.
+MGU Store에서 **Settings → Add source(소스 추가)**를 열고 아래 소스를 등록합니다. 브랜치는 모두 **`main`**입니다(Releases가 아닙니다).
 
-MGU Store 자체 설치는 [개발자 안내](https://github.com/robertnisipeanu/mgu-store)를 따릅니다.
-
-## MGU Store에서 설치
-
-1. Store의 **Settings → 소스 추가(Add source)**를 엽니다.
-2. 저장소에 `jaimeen77-cmyk/apps`, 브랜치에 `main`을 입력합니다.
-3. **새로고침 / Check now**를 실행합니다. Offline이면 먼저 Settings에서 인터넷 연결을 확인합니다.
-4. 아래 목록에서 원하는 언어의 앱을 선택하고 **Install**을 누릅니다.
-5. 함께 표시되는 필수 도구의 설치 안내를 따릅니다. 재시작이 필요하다고 표시되면 설치가 끝난 뒤 안내에 따라 진행합니다.
-6. 차량 앱 목록에서 앱을 엽니다.
-
-| 표시 이름 | 설치 ID | 버전 |
+| 소스 | 꼭 필요한가 | 제공하는 것 |
 |---|---|---|
-| 계기판 레드라인 (한국어) | `cluster_redline` | 1.2.56 |
-| Cluster Redline (English) | `cluster_redline_en` | 1.2.56 |
-| 아이드라이브 회로 (한국어) | `idrive_circuit` | 1.0.0 |
-| iDrive Circuit (English) | `idrive_circuit_en` | 1.0.0 |
+| **`jaimeen77-cmyk/apps`** | 예 | 이 저장소의 앱: 계기판 레드라인, MGU 모니터, 아이드라이브 회로, 시트 Easy Access, 8게임즈, GIF 플레이어 |
+| **`jaimeen77-cmyk/appsKOR`** | 8게임즈·GIF 플레이어를 쓸 때 | GPU 렌더러(`idrive7-renderd`), iDrive 컨트롤러 연결(`mgu-inputgate`), 한국어 앱 15개 |
+| Store 기본 소스(`robertnisipeanu/idrive-apps`) | 계기판 레드라인을 쓸 때 | 계기판 렌더러(`cluster-render`), `mgu-deploy` |
+| `IterioDev/car-apps` | 시트 Easy Access를 쓸 때 | Comfort(`iteriodev-comfort`) |
 
-스토어에서 언어가 표시된 목록을 선택하면 됩니다. PC에서 언어 옵션을 입력할 필요는 없습니다. Store는 저장소의 SDK 없는 UI·런타임과 현재 앱 코드를 조립하고, 필요한 차량 SDK는 기존 설치 절차에서 준비합니다.
+등록한 뒤 **Check now(새로고침)**를 누릅니다. Offline으로 나오면 인터넷 연결부터 확인하세요.
 
-## 레드라인 첫 설정
+## 3. 앱 설치
 
-1. 앱 위쪽의 버전이 **v1.2.56** 이상인지 확인합니다.
-2. **기본설정 → 차량 프리셋·단위·변속 알림 RPM**을 선택합니다.
-3. **HUD 표시 설정 / CLUSTER 표시 설정**에서 원하는 모드의 RPM 출력을 **레드라인 앱**으로 선택합니다. 기본 HUD RPM은 순정입니다.
-4. **앱 켜기**로 현재 출력을 시작합니다. 자동 실행을 원하면 **앱 자동 켜짐**도 켭니다.
-5. 클러스터 출력은 BMW **계기판 → 중심 표시 영역**을 **지도 보기 또는 꺼짐**으로 설정해 확인합니다. Assist나 다른 앱의 화면 우선순위에 따라 가려질 수 있습니다.
-6. NAV 설정을 확인한 뒤 휴대전화 길안내를 시작합니다. 방향·거리·문구는 차량에서 실제 수신한 지원 안내가 있을 때 표시합니다.
+목록에서 앱을 고르고 **Install**을 누릅니다. 필요한 도구가 없거나 오래되었으면 Store가 앱보다 먼저 설치합니다.
+도구를 제공하는 소스가 등록되어 있지 않으면 Store가 설치를 막고 그 이유를 보여 줍니다.
 
-한국어판과 영어판은 별도 앱입니다. 두 판을 모두 설치했다면 사용하지 않는 판에서 **앱 끄기 + 앱 자동 켜짐 끄기**를 설정해 출력 경쟁을 피합니다.
+| Store 목록 이름 | 버전 | iDrive 7 | iDrive 8 | 함께 설치되는 도구 |
+|---|---|:-:|:-:|---|
+| 계기판 레드라인 (한국어) / Cluster Redline (English) | 1.3.67 | ✅ | ✅ | `cluster-render` 0.4.0+, `mgu-deploy` 0.7.17+ |
+| MGU 모니터 (한국어) / MGU Monitor (English) | 1.1.10 | ✅ | ✅ | `mgu-monitor-names` 0.1.0(이 소스), `mgu-deploy` |
+| 아이드라이브 회로 (한국어) / iDrive Circuit (English) | 1.0.5 | ✅ | ✅ | `mgu-deploy` |
+| 시트 Easy Access (한국어) / Seats Easy Access (English) | 0.7.10 | ✅ | ✅ | `iteriodev-comfort` 0.6.1+, `mgu-deploy` 0.7.11+ |
+| 8게임즈 | 0.2.4 | ✅ | — | `idrive7-renderd`, `mgu-inputgate`, `mgu-deploy` |
+| GIF 플레이어 (한국어) | 0.4.8 | ✅ | — | `idrive7-renderd`, `mgu-inputgate`, `mgu-gif-net` 0.1.0(이 소스), `mgu-deploy` |
 
-## 업데이트·중지·삭제
+- 8게임즈와 GIF 플레이어는 원본 앱과 같이 **iDrive 7 전용**입니다. iDrive 8에서는 Store가 설치를 거부합니다.
+- iDrive 8 설치는 지원하지만, iDrive 8 차량에서의 동작은 아직 모든 앱에서 확인하지 않았습니다.
+- 한국어판과 English판은 서로 다른 앱입니다. 같은 앱의 두 판을 함께 쓰지 마세요. 둘 다 설치했다면 쓰지 않는 쪽은 끄거나 삭제합니다.
+- 설치가 끝나고 재시작 안내가 나오면 그대로 따릅니다(보조 도구가 다음 HMI 시작부터 적용되는 경우).
 
-- 같은 소스의 `main`을 새로고침한 뒤 **Installed → Update**를 실행합니다. 업데이트 후 버전을 다시 확인합니다.
-- **앱 끄기**는 현재 표시 작업과 구독·연결을 종료합니다. 설정 화면은 다시 켤 수 있도록 유지됩니다.
-- **앱 자동 켜짐**은 다음 앱 프로세스 시작 때의 동작을 정합니다. 업데이트·재시작 후에도 자동 시작을 원하지 않으면 이 항목을 끕니다.
-- 삭제는 Store의 **Installed**에서 해당 앱을 선택해 진행합니다. 설정 보존 여부는 Store의 삭제 안내를 확인하세요.
+## 4. 처음 실행
 
-1.2.0 첫 실행에서는 새 NAV 기본 위치·크기와 부가정보 좌우 설정을 한 번 적용합니다. 기존 클러스터의 50px 이동을 두 번 더하지 않으며, 이후 저장한 새 위치는 유지합니다. 다른 화면을 가리는 경우 표시 출력을 순정으로 바꾸거나 앱을 끌 수 있습니다.
+설치한 앱은 차의 앱 목록에서 엽니다. 앱마다 처음 할 일은 설명서에 있습니다.
 
-## 설치·표시 문제 확인
-
-| 증상 | 먼저 확인할 부분 |
+| 앱 | 설명서 |
 |---|---|
-| 앱 목록이 비어 있음 | 인터넷 연결, 저장소 철자, `main`, 소스 새로고침 |
-| 업데이트 후 예전 화면 | 실제 앱의 상단 버전, 설치한 언어·ID, 다른 판의 실행 여부 |
-| 클러스터/HUD에 RPM이 안 보임 | 앱 켜짐, 해당 모드의 출력 선택, 렌더러 버전, 실제 차량 신호 |
-| Assist/다른 앱에 가림 | BMW 중심 표시 영역과 다른 앱의 출력 선택 |
-| 전압·잔량·연비가 `--` | 선택한 값의 차량 지원·신선도. 지원되지 않는 값을 추정해 채우지 않습니다. |
-| 길안내가 순정으로 전환됨 | 지원하는 최신 안내를 받지 못하면 순정에 양보합니다. 모든 지도 앱·버전의 안내 전달을 보장하지 않습니다. |
-| install failed / interface 오류 | 오류 문구와 버전을 보관하고 [설치 오류 진단](REDLINE-INSTALL-FAILED.ko.md)을 참고하세요. |
+| 계기판 레드라인 | [설명서](CLUSTER-REDLINE.ko.md) — 기본설정 → 앱 실행 → **앱 켜기** |
+| MGU 모니터 | [설명서](../apps/storage/README.ko.md) — 홈 화면에 위젯 놓기 |
+| 아이드라이브 회로 | [설명서](../apps/idrive_circuit/README.ko.md) |
+| 8게임즈 | [설명서](../apps/parked_games/README.ko.md) |
+| GIF 플레이어 | [설명서](../apps/gif_home/README.ko.md) — 휴대폰 연결로 GIF 올리기 |
+| 시트 Easy Access | [설명서](../apps/seats_easy_access/README.ko.md) |
 
-계속되는 문제는 [로그 수집 안내](COLLECT-CLUSTER-REDLINE.ko.md)에 따라 로그와 설정 화면을 함께 확인합니다. 화면 예시는 모의 데이터로 실제 앱을 렌더링한 것이며 실차 촬영본이 아닙니다. 이번 버전의 차량별 설치·신호 수신·화면 복귀는 실차 확인이 필요합니다.
+### 홈 화면에 위젯 놓기 (MGU 모니터, GIF 플레이어)
 
-## 고급: PC에서 직접 빌드
+1. iDrive **HOME** 화면에서 컨트롤러를 **위로** 밀어 위쪽 메뉴를 엽니다.
+2. **메인 메뉴 편집(Customize main menu)**을 고릅니다.
+3. 놓을 칸을 고르고 목록에서 **MGU 모니터** 또는 **GIF 플레이어**를 추가합니다.
+4. **큰 타일**을 고르면 그래프나 GIF가 그려진 큰 위젯이, 좁은 타일을 고르면 글자만 있는 작은 위젯이 나옵니다.
+5. 저장합니다.
 
-소스 오버레이를 전체 원본에 합치는 과정은 [통합 안내](JAM-INTEGRATION.ko.md)를 참고합니다. 아래 명령은 **합쳐진 원본 프로젝트 폴더**에서, 본인 차량에서 추출한 SDK가 준비된 상태로 실행합니다.
+## 5. 업데이트
 
-```powershell
-python kit/tools/make_kit.py --language ko cluster_redline
-```
+1. MGU Store에서 소스를 **Check now(새로고침)**합니다.
+2. **Installed**에서 업데이트가 있는 앱의 **Update**를 누릅니다.
+3. 앱을 열어 오른쪽 위 버전을 확인합니다.
 
-한국어 결과는 `dist/mgu-custom-apps-ko.tar.gz`입니다. 기본 영어는 `--language ko`를 생략하며 결과는 `dist/mgu-custom-apps.tar.gz`입니다. Circuit도 넣으려면 앱 ID를 뒤에 추가합니다.
+설정은 업데이트해도 유지됩니다.
 
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File ".\deploy\push-to-car.ps1" check -Key "C:\keys\id_rsa" -Ip "헤드유닛IP" -Kit ".\dist\mgu-custom-apps-ko.tar.gz"
-powershell.exe -ExecutionPolicy Bypass -File ".\deploy\push-to-car.ps1" install -Key "C:\keys\id_rsa" -Ip "헤드유닛IP" -Kit ".\dist\mgu-custom-apps-ko.tar.gz"
-```
+## 6. 삭제
 
-키와 IP를 본인 환경으로 바꾸고, 키트에 필요한 `cluster-render`도 별도로 준비합니다. 생성된 PC 패키지는 SDK를 포함할 수 있으므로 공개하지 않습니다.
+MGU Store → **Installed** → 앱 → 삭제. 보조 도구(렌더러 등)는 다른 앱도 쓰므로 필요 없을 때만 따로 삭제합니다.
+
+## 7. 문제 해결
+
+| 증상 | 확인할 것 |
+|---|---|
+| 목록에 앱이 없음 | 소스 철자 `jaimeen77-cmyk/apps`, 브랜치 `main`, Check now, 인터넷 연결 |
+| 필요한 도구 때문에 설치가 막힘 | 그 도구를 제공하는 소스(위 2번 표)가 등록되어 있는지 |
+| iDrive 8에서 "is for iDrive 7" | 8게임즈·GIF 플레이어는 iDrive 7 전용입니다 |
+| 업데이트했는데 예전 그대로 | 앱 오른쪽 위 버전, 같은 앱의 다른 언어판이 켜져 있지 않은지 |
+| GIF 플레이어·8게임즈가 느리고 터치가 안 됨 | GPU 렌더러(`idrive7-renderd`)가 설치되어 있는지, appsKOR 소스가 등록되어 있는지 |
+| 계기판 레드라인이 계기판에 안 나옴 | [레드라인 설명서의 문제 해결](CLUSTER-REDLINE.ko.md#문제-해결) |
+
+모든 앱은 차량 신호를 **읽기만** 합니다(시트 Easy Access는 시트 이동, 계기판 레드라인은 계기판·HUD 그림 표시만 합니다).
+운전 중에는 앱을 조작하지 마세요.
