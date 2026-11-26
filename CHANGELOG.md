@@ -22,7 +22,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
-## Cluster Redline 1.3.70 (headway: this car does not give it to apps)
+## Cluster Redline 1.3.71 (new layout: Calm clock)
+
+- **Calm clock** (차분한 시계), a new layout for the cluster and the HUD, in the picker just before Animation (which stays last): the time big and thin with its date (Korean time or the head unit's, as the Clock time setting), up to four readouts in quiet figures under it (the auxiliary items chosen next), the gear, the speed and the drive mode small at the top. The rpm stays out of sight until 1,500 rpm before the shift point, then a thin bar fills above the clock (sky blue, amber, red; flashing at the shift point). Cool or warm colours (Auxiliary information screen, both displays). Its clock and speed are new Position / size parts (Clock, Speed). The speed is the vehicle speed the alerts read, sent to the layout only while it is chosen.
+- Tests: `redline-layout-parts`, `redline-layouts` (20 layouts, 17 on the HUD).
+
+headway: this car does not give it to apps)
 
 - On the user's car 1.3.69's screen showed the radar's service and both Drive assist view sources "not offered": the head unit does not get the driving assistant's data there (the cluster draws its Drive assist view from it directly). The Lead-car headway screen now says so plainly, 10 s after subscribing with nothing of the car ahead offered or received: "this car does not give the app the car ahead; the badge cannot show here". The raw lines stay underneath; a car that does offer one of them works as before.
 - Tests: `headway` (not before 10 s; one source offered: not decided).

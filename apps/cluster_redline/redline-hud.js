@@ -9,8 +9,8 @@ let drawing=null;const kit=()=>drawing||(drawing={DRAW:require('./rl-hud-draw'),
 const {shiftSpec}=require('./shift-alert'),{auxConfig}=require('./display-config'),{gauges}=require('./units'),{language}=require('./strings');
 // The Redline app's layouts (Minimal and Split wings not offered: Standard with parts hidden covers them),
 // then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
-const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','car'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','car','mypic'];
-const NAMES={car:'Animation',mypic:'Animation',standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
+const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','calm','car'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','calm','car','mypic'];
+const NAMES={calm:'Calm clock',car:'Animation',mypic:'Animation',standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
 // Layouts made for the cluster only (too detailed for the HUD's glass): not offered on the HUD.
 // Layouts that draw the auxiliary items as bar gauges in gauge mode (the others show them as text).
 const GAUGE_LAYOUTS=['standard','digital','vfd','vector','ramp','shift','logger','ribbon','hexagon','classic','sporthud','sportdial','tyres','car'];
@@ -53,6 +53,9 @@ function readouts(state,d){
 // Redline's frame from Cluster Redline's render state. Lights count over the 1500 rpm before the shift
 // point (Redline's plain span) and flash at it, with the comfort/sport shift point of the drive mode.
 // Korean time (UTC+9) for the Classic dial, which is a clock: hours (0-11), minutes, seconds.
+// The Calm clock's time and date (1.3.71): Korean time or the head unit's, as the Clock readout (Clock time setting).
+function calmClock(state){const cfg=state.config||{},now=new Date(isNum(state.now)?state.now:Date.now()),utc9=cfg.clockZone==='utc9',t=utc9?new Date(now.getTime()+9*3600000):now;
+ return {h:utc9?t.getUTCHours():t.getHours(),m:utc9?t.getUTCMinutes():t.getMinutes(),mo:(utc9?t.getUTCMonth():t.getMonth())+1,day:utc9?t.getUTCDate():t.getDate(),wd:utc9?t.getUTCDay():t.getDay()};}
 function kst(state){const t=new Date((isNum(state.now)?state.now:Date.now())+9*3600000);return {h:t.getUTCHours()%12,m:t.getUTCMinutes(),s:t.getUTCSeconds()};}
 // The Car layout's picture (car-meter.js): the frame the worker picked this tick (aux.car), or, without one
 // (settings previews), the state the G and gear show now, first frame.
@@ -68,7 +71,7 @@ function frame(state,now,d){
  const cfg=state.config,rpm=isNum(state.rpm)?state.rpm:null,spec=shiftSpec(cfg,state.mode),g=gearOf(state.gear);
  const limiter=rpm!==null&&rpm>=cfg.maxRpm-50,flash=!!state.shift||limiter,blink=flash?state.flash!==false:true;
  return {d:{rpm,gear:g.gear,stage:g.stage},shift:spec.shift,redline:cfg.redlineRpm,max:cfg.maxRpm,blink,
-  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,tyres:{temp:(state.aux||{}).tyreTemp||null,bar:(state.aux||{}).tyrePressure||null},g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},car:carOf(state,d),down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,clock:style(cfg,d)==='classic'?kst(state):null,
+  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,tyres:{temp:(state.aux||{}).tyreTemp||null,bar:(state.aux||{}).tyrePressure||null},g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},car:carOf(state,d),down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,clock:style(cfg,d)==='classic'?kst(state):style(cfg,d)==='calm'?calmClock(state):null,speed:style(cfg,d)==='calm'&&isNum((state.aux||{}).speedNow)?Math.round(state.aux.speedNow):null,tone:cfg.calmTone==='warm'?'warm':'cool',display:d||'hud',
   opts:{style:style(cfg,d)||'standard',palette:'colour',gear:true,rpm:true,bar:true,lights:true,gt3:true,dim:true,lightStyle:'gt3',clearLabels:false}};
 }
 function paint(target,state,k,ox,oy,now,d){const {DRAW}=kit();DRAW.drawLayer(DRAW.scaled(target,k,ox||0,oy||0),frame(state,now,d));}
@@ -126,11 +129,12 @@ const ELEMENTS={
  luxury:['gauge','alert','rpm','gear','mode','readA','readB','readC','readD','mark'],
  sporthud:['gauge','alert','gear','rpm','mode','readA','readB','readC','readD','mark'],
  tyres:['car','gear','mode','readA','readB','readC','readD'],
+ calm:['gauge','clock','gear','speed','mode','readA','readB','readC','readD','mark'],
  car:['carpic','gauge','gear','mode','rpm','gmeter','readA','readB','readC','readD','mark'],
  mypic:['carpic','gauge','gear','mode','rpm','gmeter','readA','readB','readC','readD','mark']};   // (My picture: the Car layout with your own GIFs)
-const PART={carpic:'RlCarPic',gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',car:'RlCar',mark:'RlMark'};
+const PART={clock:'RlClock',speed:'RlSpeed',carpic:'RlCarPic',gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',car:'RlCar',mark:'RlMark'};
 const PART_NAMES=Object.keys(PART).map(k=>PART[k]);
-const LABELS={RlCarPic:'Car picture',RlCar:'Car and tyres',RlTemp:'Temperature gauge',RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
+const LABELS={RlClock:'Clock',RlSpeed:'Speed',RlCarPic:'Car picture',RlCar:'Car and tyres',RlTemp:'Temperature gauge',RlGear:'Gear',RlMode:'Drive mode',RlAlert:'RPM alert',RlRpm:'RPM number',RlGauge:'RPM gauge',RlRead:'Readouts',RlReadA:'Readout 1',RlReadB:'Readout 2',RlReadC:'Readout 3',RlReadD:'Readout 4',RlGMeter:'G-force meter',RlMark:'M mark'};
 function readoutCount(cfg,d){const a=auxConfig(cfg[(d||'hud')+'AuxConfig']);return a.mode==='off'?0:Math.min(4,a.items.length);}
 // The elements the chosen layout draws with the chosen readouts: [{id, key}].
 function elements(cfg,d){
@@ -220,14 +224,14 @@ function placed(state,layout,d,face0){
  return list.map(({e,b})=>{const L=Array.isArray(lift[e.key])?lift[e.key]:[0,lift[e.key]||0],spread=f!==1&&/^RlRead/.test(e.key)?{x:(b.x+b.w/2-C.x)*(f-1)+L[0],y:(b.y+b.h/2-C.y)*(f-1)+L[1]}:L[0]||L[1]?{x:L[0],y:L[1]}:null;
   return Object.assign({b,r:clampTo(partRect(cfg,layout,b,e.key,d,spread),wholeMoved||cfg[p+e.key+'OffsetX']||cfg[p+e.key+'OffsetY']?face:band)},e);});
 }
-function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode,f.clock,f.car]);}   // (clock: the Classic dial's hands; car: the G-force meter's Car picture frame)
+function key(state,d){const f=frame(state,0,d);return JSON.stringify([f.opts.style,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode,f.clock,f.car,f.speed,f.tone]);}   // (clock: the Classic dial's hands; car: the G-force meter's Car picture frame)
 // Each element's own key, so a tile repaints only when what it shows changes (the mode, readouts, M mark,
 // temperature and G-meter do not follow the revs; the gear does on the layouts that light it towards the
 // shift point, and on the others flashes at the limiter). One frame is read for all of them.
 const GEAR_FOLLOWS_REVS=['ramp','sportdial','classic'];
 function keys(state,d){
- const f=frame(state,0,d),st=f.opts.style,full=JSON.stringify([st,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode,f.drive]);
- const base=[st,f.redline,f.max,f.drive,f.mode,f.d.gear,f.d.stage,language()],memo={};
+ const f=frame(state,0,d),st=f.opts.style,full=JSON.stringify([st,f.d,f.shift,f.redline,f.max,f.cue,f.blink,f.readouts,f.mode,f.drive,f.tone]);
+ const base=[st,f.redline,f.max,f.drive,f.mode,f.d.gear,f.d.stage,language(),f.tone],memo={};
  return id=>{if(memo[id])return memo[id];let v;
   if(id==='gauge')v=f.clock?full+JSON.stringify(f.clock):full;   // the Classic dial's hands follow the time
   else if(id==='alert'||id==='rpm'||id==='gear'&&GEAR_FOLLOWS_REVS.includes(st))v=full;
@@ -235,7 +239,9 @@ function keys(state,d){
   else if(id==='read')v=JSON.stringify(base.concat([f.readouts]));
   else if(/^read[A-D]$/.test(id))v=JSON.stringify(base.concat([f.readouts['ABCD'.indexOf(id[4])]||null]));
   else if(id==='gmeter')v=JSON.stringify(base.concat([f.g]));
-  else if(id==='carpic')v=JSON.stringify(base.concat([f.car]));   // (the Car layout's picture: its state and frame)
+  else if(id==='carpic')v=JSON.stringify(base.concat([f.car]));
+  else if(id==='clock')v=JSON.stringify(base.concat([f.clock,f.tone]));   // (the Calm clock: once a minute)
+  else if(id==='speed')v=JSON.stringify(base.concat([f.speed,f.tone]));   // (the Car layout's picture: its state and frame)
   else if(id==='temp')v=JSON.stringify(base.concat([f.oil]));
   else v=JSON.stringify(base.concat([id]));
   return (memo[id]=v);};
