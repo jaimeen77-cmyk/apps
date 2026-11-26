@@ -16,7 +16,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
-## Cluster Redline 1.3.68 (lead-car headway from the Drive assist view)
+## Cluster Redline 1.3.69 (headway: is the Drive assist view's data offered?)
+
+- On the user's car 1.3.68's Drive assist view sources received nothing (ACC 0, objects 0) while the cluster's own view showed the car followed with the cruise control set. The Lead-car headway screen now says for each of the two whether it is offered to the app and on which instance (or not in the car's catalog), as 1.3.65 does for the radar's service: if neither is offered, the head unit does not get the driving assistant's data on this car (the cluster draws its view from it directly).
+- Tests: `headway`.
+
+lead-car headway from the Drive assist view)
 
 - On the user's car the radar's service for apps (`de.bmw.dass.GapVehicleAhead`) is not offered (1.3.65's screen: "not offered · instance 1"), yet the cluster's own Drive assist view shows the cars ahead and beside. The headway badge now also reads what that view is built from (`assist-view.js`): the cruise control's target (`AssistedDrivingViewFunctionInput`) and the object list (`ObjectListSuAAR`); the car followed is the cruise control's target, else the nearest in our lane. The radar's service, where offered, still comes first. Added at install where the car's catalog has them. The names as appsKOR's Cluster Layouts reads them (dap.js, MIT); written anew.
 - Not yet seen on a car: the position's unit. A value over 300 is read as centimetres, otherwise metres; the Lead-car headway screen shows the raw values (Drive assist view: received, cars, the car followed #id x y, the cruise control's target and its distance, which source is in use) to check it against a car followed.

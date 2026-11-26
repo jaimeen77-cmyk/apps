@@ -64,7 +64,7 @@ class AssistView {
     constructor(signals, log, instanceOf, clock, onLead, onNone) {
         this.signals = signals; this.log = log || { warn() {}, info() {} }; this.instanceOf = instanceOf || (() => '1'); this.clock = clock || Date.now;
         this.onLead = onLead || (() => {}); this.onNone = onNone || (() => {});
-        this.subs = {}; this.state = 'off'; this.token = 0; this.received = { acc: 0, objects: 0 }; this.acc = null; this.accAt = null;
+        this.subs = {}; this.instances = {}; this.state = 'off'; this.token = 0; this.received = { acc: 0, objects: 0 }; this.acc = null; this.accAt = null;
         this.raw = { objects: null, lead: null, target: null, accDistance: null, accState: null }; this.leadAt = null;
     }
     sync(on) {
@@ -75,7 +75,8 @@ class AssistView {
         this.state = 'subscribed';
         wanted.forEach(([iface, ev]) => {
             const h = {}; h[ev] = (v) => { if (token === this.token) (iface === ACC_IF ? this.sampleAcc(v, this.clock()) : this.sampleObjects(v, this.clock())); };
-            Promise.resolve().then(() => this.signals.watch(iface, String(this.instanceOf(iface) || '1'), h, this.log, {})).then((s) => {
+            const inst = String(this.instanceOf(iface) || '1'); this.instances[iface] = inst;
+            Promise.resolve().then(() => this.signals.watch(iface, inst, h, this.log, {})).then((s) => {
                 if (token !== this.token) { try { s.shutdown(); } catch (e) {} return; }
                 this.subs[iface] = s;
             }, (e) => { if (token === this.token) this.error = String(e && e.message || e).slice(0, 120); });
@@ -93,7 +94,9 @@ class AssistView {
     }
     status() {
         const offered = Object.keys(this.subs).filter((k) => this.subs[k] && this.subs[k].available).length;
-        return { state: this.state, offered, sources: Object.keys(this.subs).length, received: Object.assign({}, this.received), raw: Object.assign({}, this.raw) };
+        // each source (1.3.69): offered to the app or not, and on which instance; null: not subscribed (not in the catalog)
+        const one = (iface) => this.subs[iface] ? { offered: !!this.subs[iface].available, instance: this.instances[iface] || null, error: this.subs[iface].error || null } : null;
+        return { state: this.state, offered, sources: Object.keys(this.subs).length, acc: one(ACC_IF), objects: one(OBJ_IF), received: Object.assign({}, this.received), raw: Object.assign({}, this.raw) };
     }
 }
 module.exports = { AssistView, decodeObjects, decodeAcc, pickLead, metres, SOURCES, ACC_IF, ACC_EV, OBJ_IF, OBJ_EV };

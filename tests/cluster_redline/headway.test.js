@@ -79,6 +79,7 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
   const st=L4.status(500).assist;assert.deepStrictEqual([st.received.acc,st.received.objects,st.raw.objects,st.raw.lead.id,st.raw.lead.x,st.raw.target,st.raw.accDistance],[1,2,2,11,5100,11,52]);
   t4=900;subs[A.OBJ_IF][A.OBJ_EV](list([[4,900,-350,'RIGHT']]));assert.strictEqual(L4.read(900),null,'nobody in our lane: none');
   assert.strictEqual(A.metres(38),38,'metres as they are');assert.strictEqual(A.metres(3800),38);
+  {const a=L4.status(900).assist;assert.deepStrictEqual([a.acc.offered,a.acc.instance,a.objects.offered],[true,'1',true],'1.3.69: each source offered, its instance');}
   L4.sync(false);assert.strictEqual(L4.assist.state,'off');}
  console.log('PASS: HUD headway badge: GapVehicleAhead read only while on, fine distance first, time gap from our speed (none below 12 km/h), closing speed, colour steps, install-time input, settings, overlay'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});
