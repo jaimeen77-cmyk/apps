@@ -537,16 +537,19 @@ class SettingsPage{
    else cv.text(tr('Under 1.0 s red · 1.0 to 1.5 s amber · 1.5 s and over cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}
   // what arrives: the raw values, to check the signal on this car
   const h=this.liveState&&this.liveState.headway,r=h&&h.raw||{},f=v=>v===null||v===undefined?'-':String(v);
-  cv.text(this.headwayValue(cfg),100,330,21,h&&h.unsupported?'#ffad45':'#c1cddd',{literal:true});
+  cv.text(this.headwayValue(cfg),100,322,21,h&&h.unsupported?'#ffad45':'#c1cddd',{literal:true});
   // whether the car offers the radar's service to the app at all, and on which instance (1.3.65)
-  if(h&&cfg.hudHeadway!=='off'&&h.state==='subscribed')cv.text(tr('Radar service')+': '+(h.available===true?tr('offered'):h.available===false?tr('not offered (the car does not send it now)'):'-')+(h.instance?' · '+tr('instance')+' '+h.instance:''),100,392,17,h.available?'#5ee08f':'#ffad45',{literal:true});
+  if(h&&cfg.hudHeadway!=='off'&&h.state==='subscribed')cv.text(tr('Radar service')+': '+(h.available===true?tr('offered'):h.available===false?tr('not offered (the car does not send it now)'):'-')+(h.instance?' · '+tr('instance')+' '+h.instance:''),100,372,16,h.available?'#5ee08f':'#ffad45',{literal:true});
   // the car's Drive assist view (1.3.68): the cruise control's target and the object list, raw (their units not yet seen)
   if(h&&cfg.hudHeadway!=='off'&&h.assist){const a=h.assist,ar=a.raw||{},rc=a.received||{};
-   cv.text(tr('Drive assist view')+': '+(a.state==='not_installed'?tr('not installed (reinstall from the Store)'):tr('received')+' ACC '+(rc.acc||0)+' · '+tr('objects')+' '+(rc.objects||0)+' · '+tr('cars')+' '+f(ar.objects)+' · '+tr('car followed')+' '+(ar.lead?'#'+f(ar.lead.id)+' x '+f(ar.lead.x)+' y '+f(ar.lead.y):'-')+' · ACC target #'+f(ar.target)+' '+f(ar.accDistance)+' · ACC '+f(ar.accState))+(h.source?' · '+tr('in use')+': '+h.source:''),100,414,16,rc.objects?'#5ee08f':'#7f8b9a',{literal:true});
+   cv.text(tr('Drive assist view')+': '+(a.state==='not_installed'?tr('not installed (reinstall from the Store)'):tr('received')+' ACC '+(rc.acc||0)+' · '+tr('objects')+' '+(rc.objects||0)+' · '+tr('cars')+' '+f(ar.objects)+' · '+tr('car followed')+' '+(ar.lead?'#'+f(ar.lead.id)+' x '+f(ar.lead.x)+' y '+f(ar.lead.y):'-')+' · ACC target #'+f(ar.target)+' '+f(ar.accDistance)+' · ACC '+f(ar.accState))+(h.source?' · '+tr('in use')+': '+h.source:''),100,394,16,rc.objects?'#5ee08f':'#7f8b9a',{literal:true});
    // each source offered or not (1.3.69): the radar's service is not offered on the user's car; these two the same?
    if(a.state==='subscribed'){const src=(x,label)=>label+' '+(!x?tr('not in the catalog'):x.offered?tr('offered'):tr('not offered'))+(x&&x.instance?' ('+tr('instance')+' '+x.instance+')':'');
-    cv.text(tr('Drive assist view')+' · '+src(a.acc,'ACC')+' · '+src(a.objects,tr('objects')),100,436,16,a.acc&&a.acc.offered||a.objects&&a.objects.offered?'#5ee08f':'#ffad45',{literal:true});}}
-  if(h&&cfg.hudHeadway!=='off')cv.text(tr('From the car')+': '+tr('received')+' '+(h.received||0)+' · status '+f(r.status)+' · gap '+f(r.gap)+' · gapX '+f(r.gapX)+' · object '+f(r.object)+' · qualifier '+f(r.qualifier)+(r.kind?' · '+r.kind:''),100,362,17,'#7f8b9a',{literal:true});
+    cv.text(tr('Drive assist view')+' · '+src(a.acc,'ACC')+' · '+src(a.objects,tr('objects')),100,416,16,a.acc&&a.acc.offered||a.objects&&a.objects.offered?'#5ee08f':'#ffad45',{literal:true});}}
+  // the front camera's object list (1.3.73): offered or not, what came, the car followed (metres ahead, as sent)
+  if(h&&cfg.hudHeadway!=='off'&&h.camera){const c=h.camera,cr=c.received||{},cw=c.raw||{};
+   cv.text(tr('Front camera objects')+': '+(c.state==='not_installed'?tr('not installed (reinstall from the Store)'):(c.offered===true?tr('offered'):c.offered===false?tr('not offered'):'-')+(c.instance?' ('+tr('instance')+' '+c.instance+')':'')+' · '+tr('received')+' '+(cr.rec||0)+' / '+(cr.pos||0)+' · '+tr('cars')+' '+f(cw.objects)+' · '+tr('car followed')+' '+(cw.lead?'#'+cw.lead.id+' '+cw.lead.x+' m':'-')),100,438,16,cr.rec||cr.pos?'#5ee08f':c.offered?'#c1cddd':'#ffad45',{literal:true});}
+  if(h&&cfg.hudHeadway!=='off')cv.text(tr('From the car')+': '+tr('received')+' '+(h.received||0)+' · status '+f(r.status)+' · gap '+f(r.gap)+' · gapX '+f(r.gapX)+' · object '+f(r.object)+' · qualifier '+f(r.qualifier)+(r.kind?' · '+r.kind:''),100,350,16,'#7f8b9a',{literal:true});
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='headway';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Headway']);this.setPreview(true);this.changed();},false,'headway-layout');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }

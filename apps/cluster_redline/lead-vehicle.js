@@ -9,7 +9,7 @@
 //   DataFrontVehicleExtended  the kind of object (shown in the status only)
 // The field names, values and scale are those chyiz's idrive7-cluster-metrics found on a G30 (GPL; facts only, no code
 // taken); not yet seen on this car, so the settings screen shows what arrives. Read only: nothing is ever sent.
-const {AssistView}=require('./assist-view');
+const {AssistView}=require('./assist-view'),{CameraObjects}=require('./camera-objects');
 const IFACE='de.bmw.dass.GapVehicleAhead',FIELDS=['GapVehicleDrivingAhead','DataFrontVehicle','DataFrontVehicleExtended'];
 const STALE_MS=2500,FINE_MS=900,MIN_M=0.4,MAX_M=260,SLOW_KMH=12,RED_S=1.0,AMBER_S=1.5;
 const num=(v)=>typeof v==='number'&&isFinite(v)?v:null;
@@ -25,13 +25,17 @@ class LeadVehicle {
         // the car's Drive assist view (assist-view.js, 1.3.68): the car followed when the radar's service is not offered
         this.radarAt=null;this.source=null;
         this.assist=new AssistView(signals,log,instanceOf,this.clock,(m,id,now)=>this.fromAssist(m,id,now),(now)=>{if(this.source==='assist'&&!this.radarFresh(now))this.reset();});
+        // the front camera's object list (camera-objects.js, 1.3.73): before the Drive assist view, after the radar
+        this.cameraAt=null;
+        this.camera=new CameraObjects(signals,log,instanceOf,this.clock,(m,id,now)=>{this.cameraAt=now;this.fromAssist(m,id,now,'camera');},(now)=>{if(this.source==='camera'&&!this.radarFresh(now))this.reset();});
     }
-    reset(){this.gap=null;this.at=null;this.fineAt=null;this.object=null;this.closing=null;this.ref=null;this.source=null;}
+    reset(){this.gap=null;this.at=null;this.fineAt=null;this.object=null;this.closing=null;this.ref=null;this.source=null;this.cameraAt=null;}
     radarFresh(now){return this.radarAt!==null&&now-this.radarAt<STALE_MS;}
-    fromAssist(m,id,now){if(this.radarFresh(now))return;if(this.source!=='assist'){this.closing=null;this.ref=null;}this.distance(m,id,now);this.source='assist';}
+    fromAssist(m,id,now,src){src=src||'assist';if(this.radarFresh(now))return;if(src==='assist'&&this.cameraAt!==null&&now-this.cameraAt<STALE_MS)return;
+        if(this.source!==src){this.closing=null;this.ref=null;}this.distance(m,id,now);this.source=src;}
     // on: the badge wanted (on, the app running, the car's signals there). Subscribes or lets go.
     sync(on) {
-        if(this.assist)this.assist.sync(on);
+        if(this.assist)this.assist.sync(on);if(this.camera)this.camera.sync(on);
         if(!on){if(this.sub||this.state==='subscribing'){this.token++;if(this.sub)try{this.sub.shutdown();}catch(e){}this.sub=null;}this.state='off';this.reset();return;}
         if(this.sub)this.check(this.clock());
         if(this.sub||this.state==='subscribing'||this.state==='not_installed'||this.state==='error')return;
@@ -106,8 +110,9 @@ class LeadVehicle {
         if(now===undefined||now-since<10000)return false;
         const radarOff=this.state==='not_installed'||this.state==='error'||(this.state==='subscribed'&&!(this.sub&&this.sub.available));
         const assistOff=!a||a.state!=='subscribed'||(!(a.acc&&a.acc.offered)&&!(a.objects&&a.objects.offered)&&!a.received.acc&&!a.received.objects);
-        return radarOff&&assistOff;
+        const c=this.camera?this.camera.status():null,cameraOff=!c||c.state!=='subscribed'||(!c.offered&&!c.received.rec&&!c.received.pos);
+        return radarOff&&assistOff&&cameraOff;
     }
-    status(now){return {unsupported:this.unsupported(now),source:this.source,assist:this.assist?this.assist.status():null,state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
+    status(now){return {unsupported:this.unsupported(now),source:this.source,camera:this.camera?this.camera.status():null,assist:this.assist?this.assist.status():null,state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
 }
 module.exports={LeadVehicle,level,IFACE,FIELDS,STALE_MS,SLOW_KMH,RED_S,AMBER_S};
