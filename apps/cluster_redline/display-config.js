@@ -43,6 +43,8 @@ Object.assign(defaults,{greetHello:'on',greetBye:'on'});
 // The HUD headway badge (lead-vehicle.js, headway-overlay.js, 1.3.37): off / simple (time gap + distance) / detail
 // (+ closing speed); placed by its own rectangle, between the turn arrows under the RPM face by default.
 const HEADWAY_PARTS=[{key:'Headway',label:'Lead-car headway',prefix:'hudHeadway',scale:'hudHeadwayScale',w:112,h:60}];
+// Lane lines (lane-lines.js, 1.3.77): just above the headway badge, at its size
+function laneRect(cfg){const h0=headwayRect(cfg),s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(56*s);return {x:Math.max(0,Math.min(800-w,Math.round(h0.x+(h0.w-w)/2))),y:Math.max(0,h0.y-h-4),w,h};}
 function headwayRect(cfg){const s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(60*s);return {x:Math.max(0,Math.min(800-w,Math.round((800-w)/2+(cfg.hudHeadwayOffsetX||0)))),y:Math.max(0,Math.min(480-h,Math.round(238+(cfg.hudHeadwayOffsetY||0)))),w,h};}
 Object.assign(defaults,{hudHeadway:'off',hudHeadwayOffsetX:0,hudHeadwayOffsetY:0,hudHeadwayScale:100,hudHeadwayHidden:false});
 // Following the BC button (bc-follow.js, 1.3.40): on / off, the head unit's list (ID7 / ID8), each page's setup (JSON),
@@ -51,7 +53,7 @@ Object.assign(defaults,{hudHeadway:'off',hudHeadwayOffsetX:0,hudHeadwayOffsetY:0
 // the drive mode rules). bcIndex and bcCluster are the car's state, not a favourite's or a driver's.
 Object.assign(defaults,{bcFollow:'off',bcHmi:'ID7',bcPages:'',bcHudPages:'',bcStart:'last',bcIndex:0,bcCluster:''});
 // HUD navigation: the turn after the next one under the arrow when it follows close behind (1.3.35)
-Object.assign(defaults,{myPicIds:'',hudNavThen:'on',hudThenOffsetX:0,hudThenOffsetY:0,hudThenScale:70,navProbeLog:'off',calmTone:'cool'});
+Object.assign(defaults,{myPicIds:'',hudNavThen:'on',hudThenOffsetX:0,hudThenOffsetY:0,hudThenScale:70,navProbeLog:'off',calmTone:'cool',hudLaneLines:'off'});
 Object.assign(defaults,{hudDoorOffsetX:0,hudDoorOffsetY:0,hudDoorScale:75,hudDoorHidden:false});
 Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'all',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
 ['hud','cluster'].forEach(d=>{
@@ -105,7 +107,7 @@ function normalize(raw,out){
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
  out.bcFollow=raw.bcFollow==='on'?'on':'off';out.bcHmi=raw.bcHmi==='ID8'?'ID8':'ID7';out.bcPages=typeof raw.bcPages==='string'?raw.bcPages:'';out.bcHudPages=typeof raw.bcHudPages==='string'?raw.bcHudPages:'';out.bcStart=raw.bcStart==='first'?'first':'last';
  out.bcIndex=Number.isInteger(raw.bcIndex)&&raw.bcIndex>=0&&raw.bcIndex<20?raw.bcIndex:0;out.bcCluster=raw.bcCluster==='redline'||raw.bcCluster==='yield'?raw.bcCluster:'';
- out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.navProbeLog=raw.navProbeLog==='on'?'on':'off';out.calmTone=raw.calmTone==='warm'?'warm':'cool';out.myPicIds=typeof raw.myPicIds==='string'&&raw.myPicIds.length<2000?raw.myPicIds:'';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
+ out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.navProbeLog=raw.navProbeLog==='on'?'on':'off';out.calmTone=raw.calmTone==='warm'?'warm':'cool';out.hudLaneLines=raw.hudLaneLines==='on'?'on':'off';out.myPicIds=typeof raw.myPicIds==='string'&&raw.myPicIds.length<2000?raw.myPicIds:'';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudHeadway'+s];if(typeof v==='number'&&isFinite(v))out['hudHeadway'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  if(typeof raw.hudHeadwayScale==='number'&&isFinite(raw.hudHeadwayScale))out.hudHeadwayScale=Math.max(20,Math.min(200,Math.round(raw.hudHeadwayScale/5)*5));out.greetHello=raw.greetHello==='off'?'off':'on';out.greetBye=raw.greetBye==='off'?'off':'on';
  out.hudDoorAlert=raw.hudDoorAlert==='off'?'off':'on';out.hudDoorHidden=raw.hudDoorHidden===true;
@@ -173,4 +175,4 @@ function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig'])
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !cfg[d+'RpmGaugeHidden']&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={carMeterFaces,bcModeNow,HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={laneRect,carMeterFaces,bcModeNow,HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

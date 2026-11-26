@@ -13,5 +13,8 @@ received the camera's object list (0xF139, events 0x8001 / 0x8002) and `GapVehic
   catalog's layouts as BimmerVision's published schema lists them, the length fields checked against them) and
   serves `/run/redline-lead/lead.sock` (0666, JSON lines). The car followed: the nearest vehicle the camera puts in our
   lane (driving-tube mapping 1), metres as sent.
+- 0.2.0: also the lane lines for Cluster Redline 1.3.77's HUD Lane lines: `LaneBoundaries` (0xD024, eventgroup 3,
+  event 0x8003, 1193 bytes; open to root at about 16 Hz on the user's car). Sent as `lane: {rx, at, data: {width,
+  visibility, lines: [{y, type, color, existence, ...}]}}`; y: metres to the left of the car's axis.
 
 Test by hand on the unit (root): `/var/opt/redline-lead/current/redline-someip 0xf139:1:2:1:0x8001,0x8002`
