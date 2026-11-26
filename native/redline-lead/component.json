@@ -4,14 +4,35 @@
   "version": "0.1.0",
   "title": "Cluster Redline lead-car helper",
   "description": "The car ahead for Cluster Redline's HUD headway badge, from the front camera's object list and the radar (read only, root: apps are not allowed these services)",
-  "mguHmi": ["ID7"],
+  "mguHmi": [
+    "ID7",
+    "ID8"
+  ],
   "optional": true,
   "uninstallable": true,
   "files": [
-    {"path": "redline-lead.js", "mode": "0644"},
-    {"path": "redline-someip", "mode": "0755"}
+    {
+      "path": "redline-lead.js",
+      "mode": "0644"
+    },
+    {
+      "path": "redline-someip",
+      "mode": "0755"
+    }
   ],
-  "units": [{"name": "redline-lead.service", "from": "redline-lead.service"}],
-  "enable": [{"unit": "redline-lead.service", "target": "multi-user.target"}],
-  "restart": ["redline-lead.service"]
+  "units": [
+    {
+      "name": "redline-lead.service",
+      "from": "redline-lead.service"
+    }
+  ],
+  "enable": [
+    {
+      "unit": "redline-lead.service",
+      "target": "multi-user.target"
+    }
+  ],
+  "restart": [
+    "redline-lead.service"
+  ]
 }

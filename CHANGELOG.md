@@ -22,6 +22,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.76 (the lead-car helper installed with it)
+
+- The Store does not list a tool on its own: tools come with the apps that require them (as the GIF player brings `mgu-gif-net`). Cluster Redline (Korean and English) now requires `redline-lead` 0.1.0 (Cluster Redline 앞차 도우미), so updating to 1.3.76 installs it.
+
 ## Cluster Redline 1.3.75 (navigation: icon texts, more of the route)
 
 - **Exit / IC and road numbers sent as icons now show**: a turn's description can carry them as an icon with its own text (an exit badge, a road number on its shield) instead of text; the HUD's description (and the Received turns screen, in [brackets]) left those out. As cluster-metrics reads them on a G30 (facts only).
