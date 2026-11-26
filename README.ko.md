@@ -51,6 +51,13 @@ BMW iDrive 7·8 헤드유닛의 **MGU Store**에서 설치하는 앱 모음입�
 휴대폰에서 올린 GIF를 홈 화면 위젯과 애니메이션 화면에 재생합니다. 올린 GIF는 계기판 레드라인의 애니메이션 레이아웃에서도 씁니다.
 → **[설명서](apps/gif_home/README.ko.md)**
 
+### 스포티파이 (Spotify 한국어판) 2.0.0 · iDrive 7 · 한국어
+
+<img src="apps/spotify/screenshots/now-playing-ko.png" width="640" alt="스포티파이">
+
+Spotify Connect로 재생 중인 곡을 차에서 보고 조작하며, 플레이리스트와 좋아요 표시한 곡을 커버 아트와 함께 고릅니다. 한글 곡 제목도 표시합니다. 인터넷이 필요합니다. 원본: hexlay/idrive7-custom-apps.
+→ **[설명서](apps/spotify/README.ko.md)**
+
 ### 시트 Easy Access 0.7.10 · iDrive 7·8 · 한국어/English
 
 <img src="apps/seats_easy_access/screenshots/driver-ko.jpg" width="640" alt="시트 Easy Access">
@@ -68,6 +75,7 @@ BMW iDrive 7·8 헤드유닛의 **MGU Store**에서 설치하는 앱 모음입�
 | 아이드라이브 회로 | [설명서](apps/idrive_circuit/README.ko.md) | [Guide](apps/idrive_circuit/README.md) |
 | 8게임즈 | [설명서](apps/parked_games/README.ko.md) | — |
 | GIF 플레이어 | [설명서](apps/gif_home/README.ko.md) | [Guide](apps/gif_home/README.md) |
+| 스포티파이 | [설명서](apps/spotify/README.ko.md) | — |
 | 시트 Easy Access | [설명서](apps/seats_easy_access/README.ko.md) | [Guide](apps/seats_easy_access/README.md) |
 
 [업데이트 이력](CHANGELOG.md) · [계기판 레드라인 이전 설명서](docs/CLUSTER-REDLINE-HISTORY.ko.md)
@@ -78,5 +86,6 @@ BMW iDrive 7·8 헤드유닛의 **MGU Store**에서 설치하는 앱 모음입�
 
 - **계기판 레드라인** 1.3.10부터: **허락 필요** 라이선스([apps/cluster_redline/LICENSE](apps/cluster_redline/LICENSE)). 본인 차량에 설치해 쓰는 것은 자유이고, 복사·재배포·수정·상업적 이용은 허락을 받아야 합니다. 1.3.9까지는 MIT. 다른 사람이 만든 구성 요소는 원래 라이선스를 따릅니다([NOTICE](NOTICE.cluster-redline.md)).
 - **GIF 플레이어**: 원본 GIF Home(NamelsMissing/mgu-apps)의 GPL-3.0을 따릅니다([NOTICE](NOTICE.gif-home.md)).
+- **스포티파이**: 원본 Spotify(hexlay/idrive7-custom-apps)의 GPL-3.0을 따릅니다([NOTICE](NOTICE.spotify.md)).
 - **8게임즈**: 원작 Parked Games의 MIT([NOTICE](apps/parked_games/NOTICE)).
 - 그 밖의 앱과 런타임 킷: MIT([LICENSE](LICENSE)). MGU 모니터의 출처는 [NOTICE](apps/storage/NOTICE).
