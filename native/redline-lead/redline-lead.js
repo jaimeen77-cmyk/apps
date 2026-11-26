@@ -13,11 +13,12 @@
 //            0x8002 DataFrontVehicle {objectID u8, speedX, speedY, gapX, gapY u16, qualifier, extQualifier}
 // all big endian (SOME/IP); the layouts are the car's catalog's (as BimmerVision's published schema lists them), the
 // length fields checked against them. The car followed: the nearest vehicle the camera puts in our lane.
+//   0xD024 LaneBoundaries (0.2.0): the lane lines the camera sees (decodeLanes)
 // Serves /run/redline-lead/lead.sock (0666, JSON lines). Subscribes only while a client is connected.
 const net = require('net'), fs = require('fs'), path = require('path'), { spawn } = require('child_process');
 const DIR = process.env.REDLINE_LEAD_DIR || '/run/redline-lead', SOCK = path.join(DIR, 'lead.sock');
 const BIN = process.env.REDLINE_SOMEIP || path.join(__dirname, 'redline-someip');
-const SPECS = ['0xf139:1:2:1:0x8001,0x8002', '0x3539:1:1:1:0x8001:f', '0x3539:1:1:2:0x8002:f'];
+const SPECS = ['0xf139:1:2:1:0x8001,0x8002', '0x3539:1:1:1:0x8001:f', '0x3539:1:1:2:0x8002:f', '0xd024:1:1:3:0x8003'];
 const VEHICLE = [2, 3, 4, 5, 6], MEASURED = [0, 1, 2], IDLE_STOP_MS = 15000, SEND_MS = 100;
 const log = (s) => { try { process.stdout.write(new Date().toISOString() + ' ' + s + '\n'); } catch (e) {} };
 
@@ -39,6 +40,28 @@ function decodeFront(b) {
     if (b.length < 11) return null;
     return { id: b[0], speedX: b.readUInt16BE(1), speedY: b.readUInt16BE(3), gapX: b.readUInt16BE(5), gapY: b.readUInt16BE(7), qualifier: b[9], ext: b[10] };
 }
+// 0xD024 LaneBoundaries (0.2.0), eventgroup 3, event 0x8003: length u16, counter u16, dataID u32, crc u32, timestamp u32,
+// eventDataQualifier u8, extendedQualifier u8, laneRecognitionFront {flags u8, widthEgoLane f32, routing u8, visibility u8},
+// laneBoundaryFront 4 x 53 bytes {flags u8, status u8, existence f32, vCurv f32, vCurvChange f32, modelQualifier u8,
+// point {flags u8, x f32, y f32}, base {flags u8, angle f32, curvature f32}, seg1 {flags u8, curvChange f32, validLength f32},
+// seg2 {...}, id u8, accuracy u8}, laneBoundaryPropertiesFront 4 x 34 bytes {flags u8, width f32, typeInfo {flags u8, type u8,
+// existence f32, elevated u8, elevation f32, entranceExit u8, pattern {flags u8, length f32, ratio f32}}, mergeSplit {flags u8,
+// kind u8, distance f32, toID u8}, color u8}, then the rear boundaries and the deviations (not read). 1193 bytes (length 1201,
+// checked on the user's car). y: metres to the left of the car's axis at x metres ahead.
+function decodeLanes(b) {
+    if (b.length < 373) return null;
+    const lines = [];
+    for (let i = 0; i < 4; i++) {
+        const o = 25 + i * 53, q = 237 + i * 34;
+        const line = { status: b[o + 1], existence: b.readFloatBE(o + 2), model: b[o + 14], x: b.readFloatBE(o + 16), y: b.readFloatBE(o + 20),
+            angle: b.readFloatBE(o + 25), curvature: b.readFloatBE(o + 29), length: b.readFloatBE(o + 38), id: b[o + 51],
+            type: b[q + 6], color: b[q + 33], pflags: b[q], width: b.readFloatBE(q + 1) };
+        if (line.model >= 2 || line.status > 5 || !isFinite(line.y) || Math.abs(line.y) > 10 || !(line.existence > 0.3)) continue;
+        Object.keys(line).forEach((k) => { if (typeof line[k] === 'number' && !Number.isInteger(line[k])) line[k] = Math.round(line[k] * 1000) / 1000; });
+        lines.push(line);
+    }
+    return { qualifier: b[16], ext: b[17], width: Math.round(b.readFloatBE(19) * 100) / 100, routing: b[23], visibility: b[24], lines };
+}
 function decodeGap(b) { return b.length < 5 ? null : { qualifier: b[0], status: b[1], gap: b[2], type: b[3], lamp: b[4] }; }
 /** The nearest vehicle the camera puts in our lane: {m, y, id, type, n} or null; the pair must be of one instant. */
 function leadOf(rec, pos) {
@@ -53,7 +76,7 @@ function leadOf(rec, pos) {
     return best;
 }
 
-const state = { cam: { rx: 0, lead: null, n: null, at: null }, radar: { rx: 0, front: null, gap: null, at: null }, avail: {}, child: 'off', error: null };
+const state = { lane: { rx: 0, data: null, at: null }, cam: { rx: 0, lead: null, n: null, at: null }, radar: { rx: 0, front: null, gap: null, at: null }, avail: {}, child: 'off', error: null };
 let child = null, buf = '', rec = null, pos = null, clients = new Set(), stopTimer = null, sendTimer = null, restartTimer = null;
 function onLine(l) {
     const p = l.split(' ');
@@ -67,6 +90,8 @@ function onLine(l) {
         state.cam.rx++;
         if (p[2] === '0x8001') rec = decodeRecognition(b); else if (p[2] === '0x8002') pos = decodePosition(b);
         if (rec && pos && rec.ns === pos.ns && rec.s === pos.s) { state.cam.lead = leadOf(rec, pos); state.cam.n = rec.n; state.cam.at = now; }
+    } else if (p[1] === '0xd024') {
+        state.lane.rx++; if (p[2] === '0x8003') { state.lane.data = decodeLanes(b); state.lane.at = now; }
     } else if (p[1] === '0x3539') {
         state.radar.rx++; state.radar.at = now;
         if (p[2] === '0x8002') state.radar.front = decodeFront(b); else if (p[2] === '0x8001') state.radar.gap = decodeGap(b);
@@ -84,7 +109,7 @@ function startChild() {
     log('redline-someip started');
 }
 function stopChild() { if (!child) return; try { child.stdin.end(); } catch (e) {} const c = child; setTimeout(() => { try { c.kill('SIGTERM'); } catch (e) {} }, 1000); }
-function message() { return JSON.stringify({ t: 'lead', at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar }) + '\n'; }
+function message() { return JSON.stringify({ t: 'lead', at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar, lane: state.lane }) + '\n'; }
 function schedule() { if (sendTimer || !clients.size) return; sendTimer = setTimeout(() => { sendTimer = null; const m = message(); clients.forEach((s) => { try { s.write(m); } catch (e) {} }); }, SEND_MS); }
 
 function serve() {
@@ -101,4 +126,4 @@ function serve() {
     process.on('SIGTERM', bye); process.on('SIGINT', bye);
 }
 if (require.main === module) serve();
-module.exports = { decodeRecognition, decodePosition, decodeFront, decodeGap, leadOf, SPECS };
+module.exports = { decodeRecognition, decodePosition, decodeFront, decodeGap, decodeLanes, leadOf, SPECS };

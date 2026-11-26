@@ -22,6 +22,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.77 (lane lines on the HUD; lead-car helper 0.2.0)
+
+- **New: Lane lines (HUD lamps → 차선 표시, off by default).** The two lines of the car's own lane as the front camera sees them, drawn small in perspective just above the headway badge (it moves and scales with the badge's Position / size). Dashed, solid, dotted, double and road edge as the camera reports, white or yellow. A line within 30 cm of the car turns amber; a line under the car turns red. With the turn signal on towards that side the line turns blue instead (a lane change, no warning). Lines the camera has not seen for 1.2 s are hidden.
+- The lane list (`de.bmw` LaneBoundaries, SOME/IP 0xD024 eventgroup 3, event 0x8003) is refused to the app's uid on the user's car, as the lead-car sources were, so it comes from the root helper. **redline-lead 0.2.0** subscribes it too and decodes the front lane recognition (ego lane width, visibility) and the four front boundaries (lateral offset, type, colour, existence; lines the camera marks not available or less than 30 % sure are left out). The layout is the car's catalog's, as BimmerVision's published schema lists it (facts only, written anew); its length (1193 + 8) matches what the car sends. Read only. Cluster Redline (Korean and English) now requires 0.2.0, so the Store updates the helper with the app (no head-unit restart: the tool has no hooks).
+- The Lane lines screen shows what arrives: helper state, events received, lines seen, visibility, and the left / right lines (distance, type, colour, margin) with the lane width, to check on the car at a marked lane.
+- Tests: `lane-lines` (the decode of a 1193-byte payload, the ego lines, the levels, the overlay above the badge, the settings default).
+
 ## Cluster Redline 1.3.76 (the lead-car helper installed with it)
 
 - The Store does not list a tool on its own: tools come with the apps that require them (as the GIF player brings `mgu-gif-net`). Cluster Redline (Korean and English) now requires `redline-lead` 0.1.0 (Cluster Redline 앞차 도우미), so updating to 1.3.76 installs it.
