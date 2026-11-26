@@ -2,6 +2,12 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Spotify 2.0.0 (Korean edition): Hangul on the GPU renderer
+
+- **Fix: no text at all on the car** (tabs, buttons and lines blank; the PC preview, drawn in software, was fine). The upstream kit sends a glyph atlas to the GPU renderer whole, and the Korean atlas (1024 x 2976) did not fit the renderer's shared atlas texture beside the other apps' atlases, so every Hangul line was dropped. The template now sends it in pieces of at most 512 rows, as appsKOR's kit does (`fonts.piece`, `record.js`); the software path is unchanged.
+- The version stays 2.0.0 (upstream's); the Store offers the new revision of the branch.
+- Tests: `spotify-ko` (the GPU recording uses pieces of at most 512 rows and draws the same pixels).
+
 ## Spotify 2.0.0 (Korean edition, new: 스포티파이)
 
 - **New in the Store: Spotify (한국어), id `spotify_ko`.** hexlay/idrive7-custom-apps' Spotify 2.0.0 (GPL-3.0, commit `db900984c13e`) in Korean: tabs, buttons, notices, the car's menu and settings. iDrive 7 only, needs the internet, the GPU renderer and the controller gate (as the original). Installs beside the original `spotify`; pair once again on its Connect tab.
