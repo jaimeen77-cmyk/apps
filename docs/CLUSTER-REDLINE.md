@@ -197,7 +197,7 @@ Choosing **Animation** in the design list opens the My GIFs screen.
 |---|---|
 | ![Animated car](../screenshots/cluster_redline/manual/face-cluster-animation-car-en.jpg) | ![Your GIF](../screenshots/cluster_redline/manual/face-cluster-animation-gif-en.jpg) |
 
-- **The animated car** shows when no GIF is added: brake lights, a three-step drift left and right, flames when accelerating, reversing lamps and standing still, from the car's G and gear.
+- **The animated car** (the owner's M3) shows when no GIF is added: brake lights, four cornering steps left and right (from 0.10, 0.25 and 0.35 G, and a drift from 0.50 G), flames when accelerating, reversing lamps and standing still, from the car's G and gear.
 - **Your pictures (your GIFs)** come from the [GIF player](../apps/gif_home/README.md): the GIFs you uploaded to it from your phone, a different one for driving, standing still, reverse, turning left and turning right. The GIF takes the picture's place; the gear, rpm, auxiliary information and G-meter stay.
 
 #### Adding your pictures
