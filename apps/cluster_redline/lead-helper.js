@@ -31,7 +31,7 @@ class LeadHelper {
     }
     status() {
         const m = this.last || {};
-        return { state: this.state, lines: this.lines, child: m.child || null, avail: m.avail || {}, cam: m.cam ? { rx: m.cam.rx, n: m.cam.n, lead: m.cam.lead } : null,
+        return { state: this.state, lines: this.lines, child: m.child || null, avail: m.avail || {}, cam: m.cam ? { rx: m.cam.rx, n: m.cam.n, lead: m.cam.lead, objects: Array.isArray(m.cam.objects) ? m.cam.objects.length : null } : null,
             radar: m.radar ? { rx: m.radar.rx, gapX: m.radar.front ? m.radar.front.gapX : null, qualifier: m.radar.front ? m.radar.front.qualifier : null, id: m.radar.front ? m.radar.front.id : null } : null };
     }
 }

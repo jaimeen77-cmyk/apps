@@ -14,6 +14,8 @@
 // all big endian (SOME/IP); the layouts are the car's catalog's (as BimmerVision's published schema lists them), the
 // length fields checked against them. The car followed: the nearest vehicle the camera puts in our lane.
 //   0xD024 LaneBoundaries (0.2.0): the lane lines the camera sees (decodeLanes)
+// 0.3.0: also every object the camera measures (cam.objects: id, class, place, lane), not only the car followed: for
+// Cluster Redline's pedestrian / cyclist warning, cut-in warning and the road users around
 // Serves /run/redline-lead/lead.sock (0666, JSON lines). Subscribes only while a client is connected.
 const net = require('net'), fs = require('fs'), path = require('path'), { spawn } = require('child_process');
 const DIR = process.env.REDLINE_LEAD_DIR || '/run/redline-lead', SOCK = path.join(DIR, 'lead.sock');
@@ -62,6 +64,18 @@ function decodeLanes(b) {
     }
     return { qualifier: b[16], ext: b[17], width: Math.round(b.readFloatBE(19) * 100) / 100, routing: b[23], visibility: b[24], lines };
 }
+/** Every object the camera measures now (0.3.0): {id, type, x (m ahead), y (m left), tube (1 our lane, 2 / 4 the lanes
+ *  beside ...), mv (statusMovement), lat (modeLateral)}; the same instant's two lists, as leadOf. */
+function objectsOf(rec, pos) {
+    if (!rec || !pos || rec.ns !== pos.ns || rec.s !== pos.s || rec.qualifier >= 2 || pos.qualifier >= 2) return [];
+    const out = [];
+    for (let i = 0; i < Math.min(rec.objects.length, pos.objects.length); i++) {
+        const r = rec.objects[i], p = pos.objects[i];
+        if (r.id === 255 || MEASURED.indexOf(r.status) < 0 || (p.flags & 3) || !isFinite(p.x) || !isFinite(p.y) || p.x < -5 || p.x > 250) continue;
+        out.push({ id: r.id, type: r.type, x: Math.round(p.x * 100) / 100, y: Math.round(p.y * 100) / 100, tube: r.tube, mv: r.movement, lat: r.lateral });
+    }
+    return out.sort((a, b) => a.x - b.x);
+}
 function decodeGap(b) { return b.length < 5 ? null : { qualifier: b[0], status: b[1], gap: b[2], type: b[3], lamp: b[4] }; }
 /** The nearest vehicle the camera puts in our lane: {m, y, id, type, n} or null; the pair must be of one instant. */
 function leadOf(rec, pos) {
@@ -76,7 +90,7 @@ function leadOf(rec, pos) {
     return best;
 }
 
-const state = { lane: { rx: 0, data: null, at: null }, cam: { rx: 0, lead: null, n: null, at: null }, radar: { rx: 0, front: null, gap: null, at: null }, avail: {}, child: 'off', error: null };
+const state = { lane: { rx: 0, data: null, at: null }, cam: { rx: 0, lead: null, n: null, at: null, objects: [] }, radar: { rx: 0, front: null, gap: null, at: null }, avail: {}, child: 'off', error: null };
 let child = null, buf = '', rec = null, pos = null, clients = new Set(), stopTimer = null, sendTimer = null, restartTimer = null;
 function onLine(l) {
     const p = l.split(' ');
@@ -89,7 +103,7 @@ function onLine(l) {
     if (p[1] === '0xf139') {
         state.cam.rx++;
         if (p[2] === '0x8001') rec = decodeRecognition(b); else if (p[2] === '0x8002') pos = decodePosition(b);
-        if (rec && pos && rec.ns === pos.ns && rec.s === pos.s) { state.cam.lead = leadOf(rec, pos); state.cam.n = rec.n; state.cam.at = now; }
+        if (rec && pos && rec.ns === pos.ns && rec.s === pos.s) { state.cam.lead = leadOf(rec, pos); state.cam.objects = objectsOf(rec, pos); state.cam.n = rec.n; state.cam.at = now; }
     } else if (p[1] === '0xd024') {
         state.lane.rx++; if (p[2] === '0x8003') { state.lane.data = decodeLanes(b); state.lane.at = now; }
     } else if (p[1] === '0x3539') {
@@ -126,4 +140,4 @@ function serve() {
     process.on('SIGTERM', bye); process.on('SIGINT', bye);
 }
 if (require.main === module) serve();
-module.exports = { decodeRecognition, decodePosition, decodeFront, decodeGap, decodeLanes, leadOf, SPECS };
+module.exports = { decodeRecognition, decodePosition, decodeFront, decodeGap, decodeLanes, leadOf, objectsOf, SPECS };

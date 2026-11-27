@@ -22,6 +22,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.88 (lead-car helper 0.3.0: every camera object)
+
+- **redline-lead 0.3.0** sends every object the front camera measures, not only the car followed, nearest first. Each object has its id, its class (pedestrian, cyclist, motorbike, car, truck / bus / van ...), its place (metres ahead, metres to the left) and its lane. It is the base for the pedestrian / cyclist warning, the cut-in warning and the road users around. This version shows nothing new yet.
+- `log-objects.js` (installed with the helper) records the objects while driving, to set those warnings on the car: `node /var/opt/redline-lead/current/log-objects.js 20`.
+- Cluster Redline (Korean and English) requires redline-lead 0.3.0, so the Store updates it (no head-unit restart).
+- The headway screen's helper line counts the road users ("주변 물체 N"). With the older helper it says "도우미 0.2 (업데이트 필요)".
+- Tests: the helper decode (`objectsOf`) and the store requirement.
+
 ## Cluster Redline 1.3.87 (the car ahead in the lane picture; lead car departure alert)
 
 - **Lane lines: the car ahead on the road.**
