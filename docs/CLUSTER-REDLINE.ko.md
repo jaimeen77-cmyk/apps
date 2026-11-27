@@ -259,6 +259,10 @@ HUD에는 이렇게 보입니다(왼쪽부터: 기본 바닥색과 청록 1.6초
 
 ![자동차 그림 애니메이션](../screenshots/cluster_redline/manual/car-animation-ko.gif)
 
+HUD의 애니메이션 디자인도 같은 M3 그림이 같은 순서로 바뀝니다(HUD에서는 검은 부분이 투명).
+
+![HUD 자동차 그림 애니메이션](../screenshots/cluster_redline/manual/car-animation-hud-ko.gif)
+
 **내 GIF를 넣었을 때**: 실제 차에서 찍은 화면입니다(휴대폰 이름은 가림).
 
 ![실제 차: 내 GIF](../screenshots/cluster_redline/manual/car-mygif-real.gif)
