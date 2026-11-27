@@ -259,6 +259,10 @@ Choosing **Animation** in the design list opens the My GIFs screen.
 
 ![Animated car](../screenshots/cluster_redline/manual/car-animation-en.gif)
 
+The HUD's Animation design goes through the same M3 scenes (on the HUD black is see-through).
+
+![Animated car on the HUD](../screenshots/cluster_redline/manual/car-animation-hud-en.gif)
+
 **With your GIF**, filmed on the car (the phone's name hidden; the car's language is Korean):
 
 ![On the car: your GIF](../screenshots/cluster_redline/manual/car-mygif-real.gif)
