@@ -88,6 +88,10 @@ Now switch the drive mode to Sport and the Redline screen shows on the cluster.
 | **Turn signals on HUD** | On / Off (default). When the indicators or the hazards flash, HUD arrows flash with the car's rhythm (about 0.64 s). Shape (arrow · `<<< >>>` · `< >`), colour (green, blue, orange) and position / size. Also over the stock HUD. The same screen has the **blind spot warning** (when a door mirror's warning lamp lights, a top view under that side's arrow; red with that indicator on). The blind spot warning uses frequent diagnostic reads, so it is off by default. |
 | **Door-open warning** | On (default) / Off. With a door, the bonnet or the boot open, a top view of the car shows in the middle of the HUD with the open parts in red. Also while parked; gone when all are shut. It has its own position / size. |
 
+**The Lead-car headway screen** (HUD lamps → Lead-car headway): Off / Simple / Detailed on top, and **Distance correction** at the top right (− / + buttons, −2.0 m by default). If it does not read 0 m right behind a car, adjust it with − / +. The lines at the bottom are the values received from the car (before the correction).
+
+![Lead-car headway · distance correction](../screenshots/cluster_redline/manual/t0-headway-en.jpg)
+
 While you adjust their position / size, the turn arrows, blind spot and door pictures show on the HUD as a preview; they go when you leave the screen.
 
 ### 4-2. Vehicle preset
