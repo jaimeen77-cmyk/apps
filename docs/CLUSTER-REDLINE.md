@@ -1,9 +1,9 @@
-# Cluster Redline 1.3.67 user guide
+# Cluster Redline 1.3.91 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [The apps](../README.md) · [Changelog](../CHANGELOG.md)
 
 Cluster Redline draws rpm, shift alerts, the gear and auxiliary information on the BMW instrument cluster and the HUD.
-For each drive mode you choose the Redline screen or the stock one, and on the HUD it adds navigation, vehicle alerts, turn signals, the door-open warning and more.
+For each drive mode you choose the Redline screen, the stock one or BC mode, and on the HUD it adds navigation, vehicle alerts, the lead-car headway, lane lines, turn signals, the door-open warning and more.
 
 | Cluster (gauges) | Cluster (red shift alert) |
 |---|---|
@@ -13,7 +13,7 @@ For each drive mode you choose the Redline screen or the stock one, and on the H
 |---|---|
 | ![HUD circle](../screenshots/cluster_redline/manual/face-hud-circle-en.jpg) | ![HUD bar](../screenshots/cluster_redline/manual/face-hud-bar-en.jpg) |
 
-> The pictures in this guide are drawn by the actual 1.3.67 package's drawing code, with example data. Colours and positions on the car can differ a little.
+> The pictures in this guide are drawn by the actual 1.3.91 package's drawing code, with example data. Colours and positions on the car can differ a little.
 
 ## Contents
 
@@ -34,8 +34,10 @@ For each drive mode you choose the Redline screen or the stock one, and on the H
 
 1. In MGU Store → **Settings → Add source**, add repository **`jaimeen77-cmyk/apps`**, branch **`main`**, and press **Check now**.
 2. **Install** **Cluster Redline (English)** (the Korean edition is 계기판 레드라인 (한국어)).
-3. The cluster renderer **`cluster-render` 0.4.0 or later** is installed with it. It comes from the Store's default source (`robertnisipeanu/idrive-apps`), which must be registered.
-4. Open the app: **v1.3.67** at the top right means it is done.
+3. Installed with it:
+   - The cluster renderer **`cluster-render` 0.4.0 or later**. It comes from the Store's default source (`robertnisipeanu/idrive-apps`), which must be registered.
+   - **Cluster Redline lead-car helper (`redline-lead`) 0.4.0**, from this source. It **only reads** the front camera's and the radar's car ahead, the lane lines and the road users, as root (some cars keep them from apps). The lead-car headway, lane lines and scene recording use it.
+4. Open the app: **v1.3.91** at the top right means it is done.
 
 It installs on iDrive 7 and iDrive 8. See [Installation](INSTALL.md) for details.
 
@@ -44,8 +46,8 @@ It installs on iDrive 7 and iDrive 8. See [Installation](INSTALL.md) for details
 ## 2. First setup (5 minutes)
 
 1. **Basic settings → Vehicle preset**: choose the vehicle type (Petrol / Diesel / eDrive / M). The default shift-alert rpm follows it.
-2. **Cluster display setting → Sport mode RPM display** should be **Redline app** (the default). To see it in Comfort and Eco too, set **All modes RPM display** to Redline app as well.
-3. For the HUD, choose Redline app the same way in **HUD display setting** (the HUD's default is the stock display).
+2. **Cluster display setting → Drive-mode display**: Sport should be **Redline app** (the default). To see it in Comfort and Eco too, set those rows to Redline app as well.
+3. For the HUD, choose Redline app the same way in **HUD display setting → Drive-mode display** (the HUD's default is the stock display in every mode).
 4. In the car's **cluster settings**, set the **centre display area** to **map view** or **off**. Other displays there (driving assistance and so on) can cover the Redline screen.
 5. **Basic settings → App operation → Start app (auto start)**. From the next start it comes on by itself.
 
@@ -55,10 +57,10 @@ Now switch the drive mode to Sport and the Redline screen shows on the cluster.
 
 | Tab | What it is for |
 |---|---|
-| **Basic settings** | Start and stop the app, settings per driver, HUD lamps (lead-car headway, turn signals, door-open warning), vehicle preset |
-| **HUD display setting** | What the HUD shows and when, design, position / size, BC mode screens |
-| **Cluster display setting** | What the cluster shows and when, design (including Animation), position / size, BC mode screens |
-| **Nav display setting** | HUD navigation, colours, yielding the cluster, position / size, vehicle alerts |
+| **Basic settings** | Start and stop the app, settings per driver, HUD lamps (lead-car headway, lane lines, turn signals, door-open warning), vehicle preset |
+| **HUD display setting** | What the HUD shows in each drive mode, design, position / size, BC mode screens |
+| **Cluster display setting** | What the cluster shows in each drive mode, design (including Animation), position / size, BC mode screens |
+| **Nav display setting** | HUD navigation, colours and arrow style, yielding the cluster, position / size, vehicle alerts |
 | **Favorites** | Save the current settings in five slots and load them back |
 
 - **Using it**: tap the screen, or turn the iDrive controller to a row and press. Change tabs with the tabs on top or the button bar.
@@ -75,7 +77,7 @@ Now switch the drive mode to Sport and the Redline screen shows on the cluster.
 |---|---|---|
 | App operation | **Start app (auto start)** / **Stop app (no auto start)** | Starts or stops the display now, and sets whether it starts by itself next time. The settings screen works either way. |
 | Settings per driver | Off (default) / On | Keeps settings per driver profile of the car. See [4-3](#4-3-settings-per-driver-and-greetings). |
-| HUD lamps | opens a screen | Lead-car headway, turn signals on the HUD, door-open warning. See [4-1](#4-1-hud-lamps). |
+| HUD lamps | opens a screen | Lead-car headway, lane lines, turn signals on the HUD, door-open warning. See [4-1](#4-1-hud-lamps). |
 | Vehicle preset | opens a screen | Vehicle type, units, shift-alert rpm. See [4-2](#4-2-vehicle-preset). |
 
 ### 4-1. HUD lamps
@@ -84,15 +86,46 @@ Now switch the drive mode to Sport and the Redline screen shows on the cluster.
 
 | Item | What it does |
 |---|---|
-| **Lead-car headway** | Off (default) / Simple (time gap + distance) / Detailed (+ closing speed). Reads the distance the radar (ACC) measured and shows it small between the HUD's turn arrows. Time gap under 1.0 s red, 1.0–1.5 s orange, 1.5 s and more teal. **Distance correction** (1.3.91): the car measures from its sensor behind the windscreen, so this is taken off the distance shown to read from the bumper: 0 to −3 m in 0.5 m steps, −2 m by default (right behind a car: 0 m). The time gap uses the corrected distance too. The values received from the car, and whether the car offers the radar's service to the app, show at the bottom. |
+| **Lead-car headway** | Off (default) / Simple (time gap + distance) / Detailed (+ closing speed). The time gap to the car ahead, small between the HUD's turn arrows: under 1.0 s red, 1.0–1.5 s orange, 1.5 s and more teal. Below 12 km/h the distance takes the big place. The **lead car departure alert** and the **distance correction** are on this screen too. See [Lead-car headway](#lead-car-headway). |
+| **Lane lines** | Off (default) / On. The lines either side of your lane, and the car ahead, as the front camera sees them, drawn in perspective above the headway badge. See [Lane lines](#lane-lines). |
 | **Turn signals on HUD** | On / Off (default). When the indicators or the hazards flash, HUD arrows flash with the car's rhythm (about 0.64 s). Shape (arrow · `<<< >>>` · `< >`), colour (green, blue, orange) and position / size. Also over the stock HUD. The same screen has the **blind spot warning** (when a door mirror's warning lamp lights, a top view under that side's arrow; red with that indicator on). The blind spot warning uses frequent diagnostic reads, so it is off by default. |
 | **Door-open warning** | On (default) / Off. With a door, the bonnet or the boot open, a top view of the car shows in the middle of the HUD with the open parts in red. Also while parked; gone when all are shut. It has its own position / size. |
 
-**The Lead-car headway screen** (HUD lamps → Lead-car headway): Off / Simple / Detailed on top, and **Distance correction** at the top right (− / + buttons, −2.0 m by default). If it does not read 0 m right behind a car, adjust it with − / +. The lines at the bottom are the values received from the car (before the correction).
+While you adjust their position / size, the turn arrows, blind spot and door pictures show on the HUD as a preview; they go when you leave the screen.
+
+On the HUD (from the left: the default lane colour with teal 1.6 s, the lime green lane with orange 1.2 s, the car ahead moving off):
+
+![Lane lines and lead-car headway on the HUD](../screenshots/cluster_redline/manual/face-hud-lanes-en.jpg)
+
+#### Lead-car headway
 
 ![Lead-car headway · distance correction](../screenshots/cluster_redline/manual/t0-headway-en.jpg)
 
-While you adjust their position / size, the turn arrows, blind spot and door pictures show on the HUD as a preview; they go when you leave the screen.
+- Choose **Off / Simple / Detailed** on top. **Distance correction** at the top right (− / +, 0 to −3 m in 0.5 m steps, **−2.0 m** by default) is taken off the distance shown: the car measures from its sensor behind the windscreen, so without it a car right in front still reads about 2 m (1.3.91). The time gap and its colour use the corrected distance, which never goes under 0 m.
+- **Where the car ahead comes from**: the **lead-car helper** (`redline-lead`: the front camera's object list and the radar) first; without it, the radar (ACC) service the car offers to apps, the front camera's object list, then the Drive assist view. The lines at the bottom show whether each one arrives, and the values received (before the correction). When the car gives apps none of them, `this car does not give the app the car ahead` shows.
+- **Lead car departure alert** (no setting of its own; on with the headway badge): standing (under 1 km/h) for 2 s with a car within 15 m, when that car moves 3 m further than its nearest (or is lost having been within 10 m), **Moving off** shows in green for 3 s. Once per stop; not in P, nor once you move. With the lane lines on, the car ahead turns green with an arrow too.
+- **Position / size**: the badge's place and size. The lane lines move and scale with it.
+
+#### Lane lines
+
+![Lane lines](../screenshots/cluster_redline/manual/t0-lanelines-en.jpg)
+
+- **Off / On**, and **Lane colour**: **Default** (the dark road) or **Lime green** (the lane lit, brightest near the car).
+- The lines are drawn as the camera reports them: dashed, solid, double, road edge; white or yellow.
+- Within **15 cm** of a line that side turns amber; **over the line** red. With the turn signal on towards it, it is a lane change: teal, no warning.
+- A car ahead is drawn at its distance as the camera's class (car, truck, motorbike, bicycle, pedestrian), its headway colour glowing on the road under it; its distance and closing speed sit small at the top right. Your car at the bottom is an M3 seen from behind.
+- **The lead-car helper is required** (installed from the Store with the app). The lines at the bottom show the helper, events received, lines seen, both lines' distance, type and margin, and the lane width. Lines not seen for 1.2 s are hidden.
+
+#### Scene recording
+
+![Scene recording](../screenshots/cluster_redline/manual/t0-clips-en.jpg)
+
+**Scene recording** on the Lead-car headway screen (off by default) collects the scenes needed to set up the pedestrian / cyclist warning, the cut-in warning and the road users around, without SSH.
+
+- While it is on, the lead-car helper keeps the last 30 s of what the front camera measures (objects, the car followed, lane lines) with your speed and gear.
+- **20 s before and 10 s after** are saved by themselves for: a pedestrian or cyclist on your path within 30 m, a car beside you coming into your lane, the car ahead moving off. **Save now** keeps the scene now.
+- Clips are numbered in order (`001-1127-1010-보행자자전거.jsonl`, `002-…-끼어들기`, `003-…-직접저장`). At most 50 clips / 5 MB are kept, the oldest going first. **Delete all clips** deletes on a second press within 5 s.
+- **To your phone**: join the phone to the car's Wi-Fi (as for the GIF player's phone page) and scan the QR code: a page lists the clips with **모두 받기** (download all; the page is in Korean). It is read only, and there only while recording is on.
 
 ### 4-2. Vehicle preset
 
@@ -123,20 +156,34 @@ The shift alert is green from 50 % of the set rpm, yellow from 80 %, and flashes
 
 | Item | Choices | What it does |
 |---|---|---|
-| Sport mode RPM display | Redline app / Stock display (default) / BC mode | What the HUD shows in Sport, Sport+ and Sport Individual |
-| All modes RPM display | Redline app / Redline app · except Sport modes / Stock display (default) / BC mode | Every drive mode. **Redline app** includes Sport; **except Sport modes** leaves the Sport modes to the row above. |
+| Drive-mode display | opens a screen | What the HUD shows in Sport / Comfort / Eco / other modes. See [5-0](#5-0-drive-mode-display) |
 | Design | design → auxiliary information | See 5-1 |
 | Position / size | opens a screen | See 5-2 |
 | BC mode screens | opens a screen | See 5-3 |
 
-- **Only in Sport**: Sport = Redline app, All modes = Stock display.
-- **Stock only in Sport**: Sport = Stock display, All modes = Redline app · except Sport modes.
+### 5-0. Drive-mode display
+
+![Drive-mode display](../screenshots/cluster_redline/manual/t1-hud-modes-en.jpg)
+
+From 1.3.84 this screen replaces the two rows **Sport mode RPM display / All modes RPM display**. Your older settings carry over, and nothing changes until you touch it.
+
+| Group | Drive modes in it |
+|---|---|
+| Sport | Sport, Sport+, Sport Individual, PHEV Sport, Boost |
+| Comfort | Comfort, Comfort+, Comfort Individual, PHEV Hybrid, a mode not known yet |
+| Eco | Eco Pro, Eco Pro+, Eco Pro Individual, PHEV Hybrid Eco |
+| Other modes | Adaptive, PHEV Electric, Battery control, off-road and the rest. **As Comfort** by default |
+
+- Each group gets **Redline app / Stock display / BC mode**.
+- With Redline app, the **Screen** column on the right is **Common** (the Design and Position / size rows' screen) or **Set own**: set up like a BC page (design → auxiliary information → position / size) and used in that group only. The common screen is not changed.
+- BC mode keeps one set of BC page screens for every drive mode.
+- Examples: **only in Sport** = Sport Redline app, the rest Stock display. **Stock only in Sport** = Sport Stock display, the rest Redline app.
 
 ### 5-1. Design and auxiliary information
 
 ![HUD design](../screenshots/cluster_redline/manual/t1-hud-design-en.jpg)
 
-- The first two, **Jam top alert bar / Jam circle alert**, are this app's own designs; the rest are the Redline app layouts (16 on the HUD). Each tile says **Gauge support** or **Text only** at its top right.
+- The first two, **Jam top alert bar / Jam circle alert**, are this app's own designs; the rest are the Redline app layouts (18 on the HUD, 20 designs in all). Each tile says **Gauge support** or **Text only** at its top right.
 - After a design you choose the **auxiliary information**: **Gauges** (up to 2) / **Text** (up to 4) / **No auxiliary information**. They are placed in the order you press them, and saved only with **OK**.
 
 | Auxiliary information | What it is |
@@ -165,7 +212,7 @@ A value not received yet, or too old, shows as `--`. Missing values are never es
 
 ![HUD BC mode](../screenshots/cluster_redline/manual/t1-hud-bc-en.jpg)
 
-With **BC mode** chosen as the RPM display, the Redline screen follows the stock BC pages as you step them with the **BC button** on the left stalk.
+With **BC mode** chosen in Drive-mode display, the Redline screen follows the stock BC pages as you step them with the **BC button** on the left stalk.
 
 - At the top choose the **iDrive 7 / iDrive 8** page list.
 - For each page: **Set screen** (design → auxiliary information → position / size, kept per page) / **No change** / **This page now** (to put the count right when it is out of step).
@@ -180,14 +227,24 @@ With **BC mode** chosen as the RPM display, the Redline screen follows the stock
 
 The same menus as the HUD tab; the cluster and the HUD have **separate** outputs, designs, auxiliary information and positions.
 
-- Defaults: **Sport mode = Redline app**, All modes = Stock display.
+- Defaults: in Drive-mode display **Sport = Redline app**, the rest Stock display.
+
+![Cluster drive-mode display](../screenshots/cluster_redline/manual/t2-cluster-modes-en.jpg)
 - For the cluster, the car's **centre display area** must be **map view or off**.
 
 ### 6-1. Design
 
 ![Cluster design](../screenshots/cluster_redline/manual/t2-cluster-design-en.jpg)
 
-The cluster has **20 designs**: Jam top alert bar, Jam circle alert and 18 Redline app layouts (Standard, 80s digital dash, VFD glow, Vector arcade, Arc (F80 M3/M4), Ramp (G80 M3/M4), Dial (E60 M5), M shift lights, Data logger, Analog needle, G-force + RPM rings, Mode ribbon, Hexagon, Sport dial, Classic dial, Luxury arc, Tyres & trip, **Animation**).
+The cluster has **24 designs**: Jam top alert bar, Jam circle alert and 22 Redline app layouts (Standard, 80s digital dash, VFD glow, Vector arcade, Arc (F80 M3/M4), Ramp (G80 M3/M4), Dial (E60 M5), M shift lights, Data logger, Analog needle, G-force + RPM rings, Mode ribbon, Hexagon, Sport dial, Classic dial, Luxury arc, Tyres & trip, Calm clock, Retro VU meters, Navigation focus, G-G trail, **Animation**). Animation is always last.
+
+**Calm clock** (1.3.71, cluster and HUD): the time big and thin with its date, up to four readouts in quiet figures under it (the auxiliary items chosen), the gear, speed and drive mode small at the top. The rpm stays out of sight until 1,500 rpm before the shift point, then a thin bar fills above the clock. **Cool / warm** colours on the Auxiliary information screen. The clock and the speed are Position / size parts of their own.
+
+**Retro VU meters** (1.3.72, cluster): two lit cream meters as on a hi-fi amplifier: the rpm and the first readout chosen (boost, torque…; without one the rpm alone, centred). In the red zone the needle's tip turns red and the PEAK lamp lights. Drive mode, gear and clock under them.
+
+**Navigation focus** (1.3.72, cluster): the turn big in the middle, its distance and description (highway exits and entries named), the lanes and the turn after it; a small rpm ring on the left, gear and speed on the right. Without guidance the speed takes the middle. It uses the HUD's guidance and follows the Navigation display setting.
+
+**G-G trail** (1.3.72, cluster and HUD): the sideways and forward G of the last 2.5 s as a fading tail over rings at 0.4 / 0.8 / 1.2 G, this drive's highest left, right and braking G, and the G now; an rpm ring around it, gear and speed on the left.
 
 | Four text values | Two gauges |
 |---|---|
@@ -240,6 +297,7 @@ The HUD's Animation design shows the same GIFs (black is see-through).
 - Recommended size **320 × 180**. Larger GIFs (up to 640 × 360, 6 MB) are scaled down, keeping their shape, when fetched; more than 30 frames are thinned to 30 (the duration is kept).
 - **Smaller GIFs run faster**: 160 × 90 at about 10–20 frames a second, 320 × 180 at about 2–6 (depending on the car).
 - Scene changes fade over 0.4 s.
+- The GIF is always drawn on its own fast layer (from 1.3.66; the old Fast GIF layer switch is gone).
 - Once fetched, the GIF player may be off. After changing the GIFs in the GIF player, or choosing others, press **Fetch** again.
 - To go back to the animated car, set all five rows to none and press **Fetch**.
 
@@ -273,7 +331,7 @@ As on the HUD, plus **Waze map** on the cluster (Redline steps aside for Waze or
 | Item | What it does |
 |---|---|
 | Navigation display | When the HUD shows the app's turn guidance (direction, distance, road name, lanes) |
-| Navigation colour | Arrow colour and text colour |
+| Navigation colour | Arrow colour and text colour, arrow style (3D / drawn arrows) |
 | Cluster · yield to navigation | Whether the cluster's RPM screen steps aside during guidance |
 | Position / size | Direction, text, lane guidance, next turn and vehicle alerts |
 
@@ -285,13 +343,19 @@ As on the HUD, plus **Waze map** on the cluster (Redline steps aside for Waze or
 
 - **All drive modes / Except Sport / Stock display**: the stock display turns the app's guidance off.
 - **Next turn on HUD**: On (default) shows the turn after the next one small under the arrow, e.g. `Then ↰ 120 m`, when it follows within 250 m.
-- **Received turns**: the last 10 turns the navigation (BMW, CarPlay, Android Auto) sent and, from 1.3.67, the route's turn list. Use it to see why the next turn shows or not.
+- **Received turns**: the last 10 turns the navigation (BMW, CarPlay, Android Auto) sent, and the route's turn list (up to 10 turns from 1.3.75). With only one turn in the list, `only one turn: no next turn` shows (the navigation sends just the next turn). Use it to see why the next turn shows or not.
+- Exit / IC and road numbers sent as icons now show in the turn's description too (1.3.75).
 
 ### 7-2. Navigation colour
 
 ![Navigation colour](../screenshots/cluster_redline/manual/t3-nav-color-en.jpg)
 
-Arrow colour (turn arrow, recommended lanes) and text colour (distance, road name): orange, green, blue or white, with a preview below. Default: blue arrow, white text.
+- **Arrow colour** (turn arrow, recommended lanes) and **text colour** (distance, road name): orange, green, blue, white or **Neon**. Default: blue arrow, white text.
+- **Arrow style**: **3D** (the default, glowing icons) / **Drawn arrows** (the line arrows up to 1.3.80). It applies to the turn box, the next-turn arrow, the lanes and the Navigation focus layout. Forks and branches stay drawn either way.
+- With 3D, **Neon** uses its own neon yellow-green icons (grey roads, orange arrival flags, its own highway exits) and lights the lane to take in neon. The other colours tint the blue icons.
+- The preview below shows the choice.
+
+![Arrow style: 3D blue · 3D neon · drawn arrows](../screenshots/cluster_redline/manual/face-hud-nav-styles-en.jpg)
 
 ### 7-3. Cluster · yield to navigation
 
@@ -330,7 +394,7 @@ Save the current settings (design, auxiliary information, position / size, navig
 
 - **Update**: in MGU Store, Check now → **Installed → Cluster Redline → Update**, then check the version at the top right. Settings are kept.
 - **Stop for now**: Basic settings → App operation → **Stop app (no auto start)**.
-- **Stock in one mode only**: set that mode to **Stock display** in the HUD / Cluster display setting.
+- **Stock in one mode only**: set that mode to **Stock display** in HUD / Cluster display setting → Drive-mode display.
 - **Remove**: MGU Store → Installed → Cluster Redline → remove.
 
 ## Troubleshooting
@@ -338,14 +402,17 @@ Save the current settings (design, auxiliary information, position / size, navig
 | Symptom | Check |
 |---|---|
 | The app is not in the Store list | Source `jaimeen77-cmyk/apps`, branch `main`, Check now, internet |
-| No RPM screen on the cluster | App running, the current drive mode's RPM display set to Redline app, centre display area map view / off, `cluster-render` 0.4.0 or later |
+| No RPM screen on the cluster | App running, the current mode set to Redline app in Drive-mode display, centre display area map view / off, `cluster-render` 0.4.0 or later |
 | Updated but nothing changed | The version at the top right; that the other language edition is not running |
 | Positions not where expected | Position / size → Save / load → Reset to defaults, then adjust again |
 | Outside temperature or auxiliary information `--` | The reason in the orange status line (signal not installed, no value…). Not installed: reinstall from the Store |
 | No GIF in the Animation layout | The GIF player's state on the Animation screen, that a driving GIF is chosen, that **Fetch** was pressed |
 | The animation looks choppy | Use a smaller GIF (160 × 90 for example) and fetch again |
 | The cluster does not yield during Waze guidance | The yield setting and the status line (HUD O/X). Without guidance on the HUD it cannot yield |
-| No lead-car headway | The values received and the radar service state at the bottom of HUD lamps → Lead-car headway |
+| No lead-car headway | The lines at the bottom of HUD lamps → Lead-car headway: the lead-car helper, camera and radar received. Helper `not installed`: install Cluster Redline again from the Store (the helper comes with it) |
+| Not 0 m right behind a car | Adjust the distance correction (−2.0 m by default) with − / + on the Lead-car headway screen |
+| No lane lines | The lines at the bottom of the Lane lines screen: helper, received, lines seen. On roads with faint or no markings they are hidden |
+| The scene recording QR does not open | That the phone is on the car's Wi-Fi and recording is on |
 
 When you ask, send the app version, a photo of the settings screen and of the status line.
 Older details are in the [Changelog](../CHANGELOG.md).

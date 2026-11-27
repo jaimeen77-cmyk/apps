@@ -17,8 +17,8 @@ MGU Store에서 **Settings → Add source(소스 추가)**를 열고 아래 소�
 
 | 소스 | 꼭 필요한가 | 제공하는 것 |
 |---|---|---|
-| **`jaimeen77-cmyk/apps`** | 예 | 이 저장소의 앱: 계기판 레드라인, MGU 모니터, 아이드라이브 회로, 시트 Easy Access, 8게임즈, GIF 플레이어 |
-| **`jaimeen77-cmyk/appsKOR`** | 8게임즈·GIF 플레이어를 쓸 때 | GPU 렌더러(`idrive7-renderd`), iDrive 컨트롤러 연결(`mgu-inputgate`), 한국어 앱 15개 |
+| **`jaimeen77-cmyk/apps`** | 예 | 이 저장소의 앱: 계기판 레드라인, MGU 모니터, 아이드라이브 회로, 시트 Easy Access, 8게임즈, GIF 플레이어, 스포티파이, 그리고 도구 `redline-lead`(계기판 레드라인 앞차 도우미)·`mgu-gif-net`·`mgu-monitor-names` |
+| **`jaimeen77-cmyk/appsKOR`** | 8게임즈·GIF 플레이어·스포티파이를 쓸 때 | GPU 렌더러(`idrive7-renderd`), iDrive 컨트롤러 연결(`mgu-inputgate`), 한국어 앱 15개 |
 | Store 기본 소스(`robertnisipeanu/idrive-apps`) | 계기판 레드라인을 쓸 때 | 계기판 렌더러(`cluster-render`), `mgu-deploy` |
 | `IterioDev/car-apps` | 시트 Easy Access를 쓸 때 | Comfort(`iteriodev-comfort`) |
 
@@ -37,8 +37,9 @@ MGU Store에서 **Settings → Add source(소스 추가)**를 열고 아래 소�
 | 시트 Easy Access (한국어) / Seats Easy Access (English) | 0.7.10 | ✅ | ✅ | `iteriodev-comfort` 0.6.1+, `mgu-deploy` 0.7.11+ |
 | 8게임즈 | 0.2.4 | ✅ | — | `idrive7-renderd`, `mgu-inputgate`, `mgu-deploy` |
 | GIF 플레이어 (한국어) | 0.4.8 | ✅ | — | `idrive7-renderd`, `mgu-inputgate`, `mgu-gif-net` 0.1.0(이 소스), `mgu-deploy` |
+| Spotify (한국어) | 2.0.0 | ✅ | — | `idrive7-renderd` 2.1.7+, `mgu-inputgate` 1.0.0+, `mgu-deploy` 0.7.17+ |
 
-- 8게임즈와 GIF 플레이어는 원본 앱과 같이 **iDrive 7 전용**입니다. iDrive 8에서는 Store가 설치를 거부합니다.
+- 8게임즈, GIF 플레이어, 스포티파이는 원본 앱과 같이 **iDrive 7 전용**입니다. iDrive 8에서는 Store가 설치를 거부합니다.
 - iDrive 8 설치는 지원하지만, iDrive 8 차량에서의 동작은 아직 모든 앱에서 확인하지 않았습니다.
 - 한국어판과 English판은 서로 다른 앱입니다. 같은 앱의 두 판을 함께 쓰지 마세요. 둘 다 설치했다면 쓰지 않는 쪽은 끄거나 삭제합니다.
 - 설치가 끝나고 재시작 안내가 나오면 그대로 따릅니다(보조 도구가 다음 HMI 시작부터 적용되는 경우).
@@ -54,6 +55,7 @@ MGU Store에서 **Settings → Add source(소스 추가)**를 열고 아래 소�
 | 아이드라이브 회로 | [설명서](../apps/idrive_circuit/README.ko.md) |
 | 8게임즈 | [설명서](../apps/parked_games/README.ko.md) |
 | GIF 플레이어 | [설명서](../apps/gif_home/README.ko.md) — 휴대폰 연결로 GIF 올리기 |
+| 스포티파이 | [설명서](../apps/spotify/README.ko.md) — QR로 계정 연결, 인터넷 필요 |
 | 시트 Easy Access | [설명서](../apps/seats_easy_access/README.ko.md) |
 
 ### 홈 화면에 위젯 놓기 (MGU 모니터, GIF 플레이어)
@@ -82,7 +84,7 @@ MGU Store → **Installed** → 앱 → 삭제. 보조 도구(렌더러 등)는 
 |---|---|
 | 목록에 앱이 없음 | 소스 철자 `jaimeen77-cmyk/apps`, 브랜치 `main`, Check now, 인터넷 연결 |
 | 필요한 도구 때문에 설치가 막힘 | 그 도구를 제공하는 소스(위 2번 표)가 등록되어 있는지 |
-| iDrive 8에서 "is for iDrive 7" | 8게임즈·GIF 플레이어는 iDrive 7 전용입니다 |
+| iDrive 8에서 "is for iDrive 7" | 8게임즈·GIF 플레이어·스포티파이는 iDrive 7 전용입니다 |
 | 업데이트했는데 예전 그대로 | 앱 오른쪽 위 버전, 같은 앱의 다른 언어판이 켜져 있지 않은지 |
 | GIF 플레이어·8게임즈가 느리고 터치가 안 됨 | GPU 렌더러(`idrive7-renderd`)가 설치되어 있는지, appsKOR 소스가 등록되어 있는지 |
 | 계기판 레드라인이 계기판에 안 나옴 | [레드라인 설명서의 문제 해결](CLUSTER-REDLINE.ko.md#문제-해결) |
