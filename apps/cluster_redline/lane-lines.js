@@ -7,7 +7,7 @@
 const { LeadHelper } = require('./lead-helper');
 // NEAR_M 0.15 (1.3.78): with 0.3 a car 30 cm off a 3 m lane's centre was already amber (the user's capture)
 // NEAR_LOW_M (1.3.95): the default step; NEAR_M is 'normal'
-const NEAR_LOW_M = 0.05, NEAR_HOLD_MS = 700, NEAR_RELEASE_M = 0.1, NEAR_KMH = 30;
+const HOLD_MS = 3000, NEAR_LOW_M = 0.05, NEAR_HOLD_MS = 700, NEAR_RELEASE_M = 0.1, NEAR_KMH = 30;
 const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 84;
 const TYPES = { 1: 'dashed', 2: 'solid', 3: 'dotted', 4: 'edge', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'edge' };
 /** The lines of the car's own lane: {left, right, width} (each {y, type, color, margin} or null) from the helper's list. */
@@ -37,12 +37,15 @@ class LaneLines {
         this.clock = clock || Date.now; this.last = null; this.at = null; this.rx = 0;
         this.helper = new LeadHelper((m, now) => { if (m.lane) { this.rx = m.lane.rx || 0; if (m.lane.data && typeof m.lane.at === 'number' && m.at - m.lane.at < STALE_MS) { this.last = m.lane.data; this.at = now; } } }, this.clock, connect);
     }
-    sync(on) { this.helper.sync(on, this.clock()); if (!on) { this.last = null; this.at = null; this.held = {}; } }
+    sync(on) { this.helper.sync(on, this.clock()); if (!on) { this.last = null; this.at = null; this.held = {}; this.good = null; } }
     /** What the HUD shows now, or null: {left, right, width, levels: {left, right}}; indicator: 'left' / 'right' / 'off';
      *  o: {speed (km/h or null), sensitivity: 'off' | 'low' | 'normal'} (1.3.95). */
     read(now, indicator, o) {
-        if (!this.last || this.at === null || now - this.at > STALE_MS) { this.shown = null; return null; }
-        const e = egoLines(this.last); if (!e || (!e.left && !e.right)) { this.shown = null; return null; }
+        // (1.3.95) lines lost (no list, or none seen: 38 % of the user's town driving) for up to 3 s: the last ones kept on the
+        // HUD as they were, without warnings (an old place warns nothing); only then the picture goes
+        const hold = () => { if (this.good && now - this.good.at <= HOLD_MS) { const k = JSON.parse(JSON.stringify(this.good.e)); k.levels = { left: k.left ? 'ok' : null, right: k.right ? 'ok' : null }; k.held = true; this.shown = k; return k; } this.shown = null; return null; };
+        if (!this.last || this.at === null || now - this.at > STALE_MS) return hold();
+        const e = egoLines(this.last); if (!e || (!e.left && !e.right)) return hold();
         // (1.3.95) each line's place smoothed (a third of the way to the new one a frame; a jump over 0.8 m is taken at
         // once: another line), so it does not wobble
         this.smooth = this.smooth || {};
@@ -51,6 +54,7 @@ class LaneLines {
             const sign = k === 'left' ? 1 : -1; s.y = Math.round(y * 100) / 100; s.margin = Math.round((sign * y - HALF_CAR) * 100) / 100; });
         const sig = { left: indicator === 'left' || indicator === 'hazard' || indicator === 'both', right: indicator === 'right' || indicator === 'hazard' || indicator === 'both' };
         this.shown = Object.assign(e, { levels: { left: this.levelHeld('left', e.left, sig.left, now, o), right: this.levelHeld('right', e.right, sig.right, now, o) } });
+        this.good = { e: JSON.parse(JSON.stringify(Object.assign({}, e, { levels: undefined }))), at: now };
         return this.shown;
     }
     // (1.3.95) amber only when it lasts: within the step (5 cm low, 15 cm normal) for 0.7 s, off again 10 cm further out;
