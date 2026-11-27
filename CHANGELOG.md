@@ -2,6 +2,21 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.98 (the Redline HUD hides Waze on Map's HUD map in Sport)
+
+- **Fix: on the HUD, Waze on Map's map and the Redline HUD showed on top of each other.**
+  - Both are layers of the same HUD picture (cluster-render). The Redline HUD's layer did not hide the ones under it, so Waze showed through its see-through parts.
+  - The cluster was already fine: its layer hides the ones under it.
+- **New option** (HUD display settings, last row): **HUD · hide Waze** (HUD · Waze 가리기).
+  - **In Sport only** is the default.
+  - **Whenever the Redline HUD shows** is the second choice.
+  - **Do not hide** keeps it as before.
+- While it applies, the Redline HUD's layer is set to hide the layers under it, in place (no new layer). Waze on Map's HUD map waits behind it and comes back when Sport ends.
+  - Redline's own alerts (turn signals, lead car, lane lines) are above it and still show.
+  - The car's own HUD content (speed, limit, ACC) is not affected.
+  - Waze on Map itself is not touched (it has no command for this).
+- Tests: `hud-hide-waze` (Sport by default, always, never; the cluster unchanged).
+
 ## Cluster Redline 1.3.97 (the cluster gives way to the cruise control display; lane picture of a fixed lane)
 
 - **Fix: the car's cruise control (ACC) display was hidden behind Cluster Redline on some cars** (reported: shown with the original Redline, not with Cluster Redline).

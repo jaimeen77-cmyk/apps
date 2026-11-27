@@ -111,7 +111,7 @@ class Outputs {
             // ...or steps it aside for Waze / the stock map
             const bcYield=name==='cluster'&&bcNow&&cfg.bcCluster==='yield';
             const blocked=name==='hud' && this.hudBlocked || yielded || doorYield || accYield || greeting || bcYield;
-            states[name] = out.tick(now, Object.assign({}, local, { displayMode: pv||bcShow||D.allOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
+            states[name] = out.tick(now, Object.assign({}, local, { displayMode: pv||bcShow||D.allOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', hudExclusive: name === 'hud' && (cfg.hudHideWaze === 'always' || cfg.hudHideWaze !== 'off' && D.sportMode(this.policy.mode)), appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';
             else if(greeting && cfg.appEnabled)states[name].reason='greeting';
             else if(bcYield && cfg.appEnabled)states[name].reason='bc_yield';
