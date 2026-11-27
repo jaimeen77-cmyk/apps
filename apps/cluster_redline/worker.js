@@ -106,6 +106,8 @@ function start(ctx) {
     let lead=null;const headwayOverlay=new HeadwayOverlay(client);
     // the HUD lane lines (lane-lines.js, 1.3.77): from the root helper, only while on
     const laneLines=new LaneLines(mono),laneOverlay=new LaneOverlay(client),departure=new LeadDeparture();let departureOn=false;
+    // scene clips (redline-lead 0.4.0): the setting, the speed and gear to the helper every half second; a save asked
+    let clipsCmdAt=-Infinity,clipSaveSeen=null,wentBefore=false;
     const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',greetingNow=null;
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
@@ -470,10 +472,18 @@ function start(ctx) {
             const headwayOn = live && config.appEnabled && config.hudHeadway !== 'off';
             const lanesOn = live && config.appEnabled && config.hudLaneLines === 'on';
             departureOn = headwayOn;   // the departure alert comes with the headway badge (no setting of its own)
-            if (lead) lead.sync(headwayOn || lanesOn);
+            const clipsOn = live && config.appEnabled && config.hudClips === 'on';
+            if (lead) lead.sync(headwayOn || lanesOn || clipsOn);
             const leadNow = lead && (headwayOn || lanesOn) ? lead.read(at) : null;
             const speedKmh = carSpeed.at !== null && at - carSpeed.at <= 2000 ? carSpeed.v : null;
             const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : null) : false;
+            if (lead && lead.helper) {
+                if (at - clipsCmdAt >= 500) { clipsCmdAt = at; lead.helper.send({ t: 'cmd', rec: clipsOn, speed: speedKmh, gear: controller.gear || null }); }
+                if (clipSaveSeen === null) clipSaveSeen = config.clipSaveAt;
+                if (config.clipSaveAt !== clipSaveSeen) { clipSaveSeen = config.clipSaveAt; if (clipsOn) lead.helper.send({ t: 'cmd', save: 'button' }); }
+                if (going && !wentBefore && clipsOn) lead.helper.send({ t: 'cmd', save: 'departure' });
+            }
+            wentBefore = going;
             const leadShown = leadNow ? Object.assign({}, leadNow, { go: going }) : going ? { gap: departure.nearest || 0, go: true } : null;
             headwayOverlay.tick(headwayOn ? leadShown : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));
             laneLines.sync(lanesOn);

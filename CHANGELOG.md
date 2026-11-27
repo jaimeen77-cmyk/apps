@@ -22,6 +22,22 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.89 (scene recording, downloaded by QR; lead-car helper 0.4.0)
+
+- **New: Scene recording** (HUD lamps → 앞차 간격 → 상황 기록, off by default). It records the scenes needed to set the pedestrian / cyclist warning, the cut-in warning and the road users around, without SSH.
+  - The helper keeps the last 30 s of what the front camera measures (objects, the car followed, lane lines) with our speed and gear.
+  - Clips (20 s before, 10 s after) are saved by themselves for:
+    - a pedestrian or cyclist on our path within 30 m
+    - a car beside us coming into our lane
+    - the car ahead moving off
+  - The driver can keep a scene by pressing BC three times quickly, or with Save now. In BC mode the three presses also turn the pages.
+  - At most 50 clips / 5 MB are kept; the oldest go first.
+- **Download by QR.** The screen shows a QR code with the head unit's address on the car's Wi-Fi. With the phone joined to the car's Wi-Fi (as for the GIF player's phone page), scanning it opens a page with each clip and "모두 받기".
+  - The page is read only.
+  - It and its firewall rule are there only while recording is on.
+- **redline-lead 0.4.0** (`clips.js`, `share.js`, commands from the app on its socket). Cluster Redline requires it, so the Store updates it.
+- Tests: `redline-lead` checks the clips: off keeps nothing; a pedestrian, a cut-in, the button and departure in one clip; 20 s before and 10 s after.
+
 ## Cluster Redline 1.3.88 (lead-car helper 0.3.0: every camera object)
 
 - **redline-lead 0.3.0** sends every object the front camera measures, not only the car followed, nearest first. Each object has its id, its class (pedestrian, cyclist, motorbike, car, truck / bus / van ...), its place (metres ahead, metres to the left) and its lane. It is the base for the pedestrian / cyclist warning, the cut-in warning and the road users around. This version shows nothing new yet.

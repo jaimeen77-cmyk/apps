@@ -97,6 +97,8 @@ class BcFollow {
   this.held=down;
  }
  press(){
+  // three presses within 1.5 s (1.3.89): keep the scene now (redline-lead's clips), when scene recording is on
+  const t=this.clock();this.taps=(this.taps||[]).filter(x=>t-x<1500).concat([t]);if(this.taps.length>=3&&this.get('hudClips')==='on'){this.taps=[];this.settings.set('clipSaveAt',t);}
   const cycle=cycleOf(this.get('bcPages'),hmiOf(k=>this.get(k)));if(!cycle.length)return;
   const i=Math.max(0,Math.min(cycle.length-1,Number(this.get('bcIndex'))||0));this.presses++;
   this.settings.set('bcIndex',(i+1)%cycle.length);this.show();this.changed();
