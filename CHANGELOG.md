@@ -22,6 +22,25 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.84 (drive-mode display: per mode output and screen)
+
+- **New: Drive-mode display** (HUD tab and Cluster tab, 주행 모드별 표시). It replaces the two rows "Sport mode RPM display" and "All modes RPM display".
+  - Each group of drive modes has its own output: Redline app, stock display or BC mode. The groups are:
+    - **Sport**: Sport, Sport+, Sport Individual, PHEV Sport, Boost
+    - **Comfort**: Comfort, Comfort+, Comfort Individual, PHEV Hybrid; also the mode not known yet
+    - **Eco**: Eco Pro, Eco Pro+, Eco Pro Individual, PHEV Hybrid Eco
+    - **Other modes**: Adaptive, PHEV Electric, Battery control, off-road and the rest. These follow Comfort by default.
+  - With the Redline app, each group has its screen: **Common** (the Design and Position / size rows) or **Own**.
+    - An own screen is set up with the BC page's steps (design, auxiliary values, Position / size) and kept for that group.
+    - Setting one up does not change the common screen, which is put back afterwards.
+  - BC mode keeps one set of page screens for all drive modes.
+- **Nothing changes until it is touched.** A group not saved follows the older rows exactly: All modes and Except Sport modes, BC mode, the Sport row. Once saved, every group is written out.
+- Under the hood:
+  - `display-config.js` adds `groupOf`, `modeSetup`, `modeEntry` and `screenValues`. `rpmOutput`, `allOutput`, `rpmOutputPossible` and `bcModeNow` now come from them.
+  - `policy.screenSettings` gives a display's settings in a drive mode, kept per normalised settings. The outputs, the data demand (a mode's own screen reads what it needs) and the worker draw with it.
+  - BC mode reads the setup too.
+- Tests: new `drive-modes`. It checks that every older pair means the same as before, plus saved groups, the screen overlay, what is read, the outputs, and the editor (save, common screen back). `settings-ui`, `display-settings` and `controls-size` are updated for the new row.
+
 ## Cluster Redline 1.3.83
 
 - The arrow style **Icons** is now named **3D** (Korean and English), on its button and in the Navigation tab's summary.

@@ -59,7 +59,7 @@ try {
     assert.strictEqual(display.tabs.length,5);
     const tap=id=>{const target=display.pageTargets.find(r=>r.id===id);assert(target,'missing target '+id);tapLogical(target);};
     tap('vehiclePreset');tap('shiftRpm');assert.strictEqual(page.open,'shiftRpm');tap('back');tap('back');
-    tapLogical(display.tabs[1]);assert.strictEqual(page.tab,1);tap('sportHudOutput');tap('choice0');assert.strictEqual(values.sportHudOutput,'redline');
+    tapLogical(display.tabs[1]);assert.strictEqual(page.tab,1);tap('hudModes');assert.strictEqual(page.open,'modes');tap('mode-sport-redline');assert.strictEqual(JSON.parse(values.hudModeSetup).sport.out,'redline');tap('back');
     tap('design');const nativeFrame=page.draw(display.canvas(1600,520));assert.strictEqual(nativeFrame.images.size,0,'design preview must use native vectors');
     // 1.3.48: a design (the Jam layouts first), then its auxiliary values
     tap('rl-jam-circle');assert.strictEqual(values.hudAlertStyle,'circle');assert.strictEqual(page.open,'auxMode');tap('aux-mode2');assert.strictEqual(JSON.parse(values.hudAuxConfig).mode,'off');assert.strictEqual(page.open,null);save('hud-design-full');

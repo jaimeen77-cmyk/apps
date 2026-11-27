@@ -1,7 +1,10 @@
 'use strict';
 const D=require('./display-config'),{SOURCES,auxOf}=require('./aux-info'),{PROJECTED}=require('./projection-config');
 const G='de.bmw.infotainment.navigation.guiding.Guidance',F='de.bmw.infotainment.drivingexcitement.FES',C='de.bmw.infotainment.vehicle.CDS',V='de.bmw.infrastructure.VehicleInformation';
-function demand(cfg,mode){
+function demand(base,mode){
+ // each face as it draws in this drive mode (1.3.84: a mode's own screen); the mode not known: the common screens
+ const per={hud:mode===null?base:require('./policy').screenSettings(base,'hud',mode),cluster:mode===null?base:require('./policy').screenSettings(base,'cluster',mode)};
+ const cfg=new Proxy(base,{get:(t,k)=>typeof k==='string'&&/^hud/.test(k)?per.hud[k]:typeof k==='string'&&/^cluster/.test(k)?per.cluster[k]:t[k]});
  const fields=new Set(),aux=new Set(),nav=D.navVisible(cfg,mode),enabled=cfg.appEnabled;
  const faces=['hud','cluster'].filter(d=>enabled&&D.faceVisible(cfg,d)&&(mode===null?D.rpmOutputPossible(cfg,d==='hud'?'Hud':'Cluster'):D.rpmOutput(cfg,d==='hud'?'Hud':'Cluster',mode)||D.bcModeNow(cfg,mode,d==='hud'?'Hud':'Cluster')));
  faces.forEach(d=>D.visibleMetrics(cfg,d).forEach(k=>aux.add(k)));

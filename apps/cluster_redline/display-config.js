@@ -51,7 +51,7 @@ Object.assign(defaults,{hudHeadway:'off',hudHeadwayOffsetX:0,hudHeadwayOffsetY:0
 // where the next drive starts (the page reached last / the first page); bcIndex: the page in step now; bcCluster: what
 // it asks of the cluster ('redline' shows it in every mode, 'yield' steps it aside for Waze / the stock map, '' leaves
 // the drive mode rules). bcIndex and bcCluster are the car's state, not a favourite's or a driver's.
-Object.assign(defaults,{bcFollow:'off',bcHmi:'ID7',bcPages:'',bcHudPages:'',bcStart:'last',bcIndex:0,bcCluster:''});
+Object.assign(defaults,{hudModeSetup:'',clusterModeSetup:'',bcFollow:'off',bcHmi:'ID7',bcPages:'',bcHudPages:'',bcStart:'last',bcIndex:0,bcCluster:''});
 // HUD navigation: the turn after the next one under the arrow when it follows close behind (1.3.35)
 Object.assign(defaults,{myPicIds:'',hudNavThen:'on',hudThenOffsetX:0,hudThenOffsetY:0,hudThenScale:70,navProbeLog:'off',calmTone:'cool',hudLaneLines:'off'});
 Object.assign(defaults,{hudDoorOffsetX:0,hudDoorOffsetY:0,hudDoorScale:75,hudDoorHidden:false});
@@ -105,7 +105,7 @@ function normalize(raw,out){
  out.hudTurnBlindSpot=raw.hudTurnBlindSpot==='on'?'on':'off';out.hudTurnSignals=raw.hudTurnSignals==='on'?'on':'off';out.hudTurnStyle=TURN_STYLES.includes(raw.hudTurnStyle)?raw.hudTurnStyle:'arrow';out.hudTurnColor=Object.prototype.hasOwnProperty.call(TURN_COLORS,raw.hudTurnColor)?raw.hudTurnColor:'green';
  TURN_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
  if(typeof raw.hudTurnScale==='number'&&isFinite(raw.hudTurnScale))out.hudTurnScale=Math.max(20,Math.min(300,Math.round(raw.hudTurnScale/5)*5));
- out.bcFollow=raw.bcFollow==='on'?'on':'off';out.bcHmi=raw.bcHmi==='ID8'?'ID8':'ID7';out.bcPages=typeof raw.bcPages==='string'?raw.bcPages:'';out.bcHudPages=typeof raw.bcHudPages==='string'?raw.bcHudPages:'';out.bcStart=raw.bcStart==='first'?'first':'last';
+ out.hudModeSetup=typeof raw.hudModeSetup==='string'?raw.hudModeSetup:'';out.clusterModeSetup=typeof raw.clusterModeSetup==='string'?raw.clusterModeSetup:'';out.bcFollow=raw.bcFollow==='on'?'on':'off';out.bcHmi=raw.bcHmi==='ID8'?'ID8':'ID7';out.bcPages=typeof raw.bcPages==='string'?raw.bcPages:'';out.bcHudPages=typeof raw.bcHudPages==='string'?raw.bcHudPages:'';out.bcStart=raw.bcStart==='first'?'first':'last';
  out.bcIndex=Number.isInteger(raw.bcIndex)&&raw.bcIndex>=0&&raw.bcIndex<20?raw.bcIndex:0;out.bcCluster=raw.bcCluster==='redline'||raw.bcCluster==='yield'?raw.bcCluster:'';
  out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.navProbeLog=raw.navProbeLog==='on'?'on':'off';out.calmTone=raw.calmTone==='warm'?'warm':'cool';out.hudLaneLines=raw.hudLaneLines==='on'?'on':'off';out.myPicIds=typeof raw.myPicIds==='string'&&raw.myPicIds.length<2000?raw.myPicIds:'';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudHeadway'+s];if(typeof v==='number'&&isFinite(v))out['hudHeadway'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
@@ -126,15 +126,42 @@ function normalize(raw,out){
 function metricSlots(items){if(items.length<3)return items.map((id,i)=>({id,side:i,row:0,rows:1,index:i+1}));return items.map((id,i)=>({id,side:i<2?0:1,row:i%2,rows:i<2||items.length===4?2:1,index:i+1}));}
 function sportMode(mode){return /^(SPORT|PHEV_SPORT)/.test(String(mode||''));}
 function navAllowed(cfg,mode){return cfg.hudNavigationEnabled&&cfg.navDisplayMode!=='stock'&&!(cfg.navDisplayMode==='excludeSport'&&sportMode(mode));}
-// All modes RPM display: 'redline' every mode, 'nosport' every mode but Sport (Sport then follows its own row).
-function allOutput(cfg,name,mode){const v=cfg['all'+name+'Output'];return v==='redline'||v==='nosport'&&!sportMode(mode);}
-function rpmOutput(cfg,name,mode){return allOutput(cfg,name,mode)||sportMode(mode)&&cfg['sport'+name+'Output']==='redline';}
-// Whether some drive mode shows the Redline display (the mode not known yet).
-function rpmOutputPossible(cfg,name){return ['redline','nosport','bc'].includes(cfg['all'+name+'Output'])||['redline','bc'].includes(cfg['sport'+name+'Output']);}
-// BC mode (1.3.42, the cluster only): in Sport its own row decides (BC mode, or Redline over an All modes BC mode);
-// in the other modes the All modes row.
-// 1.3.48: the HUD too (name 'Hud'); 'Cluster' when not given
-function bcModeNow(cfg,mode,name){const n=name==='Hud'?'Hud':'Cluster',s=cfg['sport'+n+'Output'],a=cfg['all'+n+'Output'];return sportMode(mode)?s==='bc'||s!=='redline'&&a==='bc':a==='bc';}
+// Drive-mode display (1.3.84): per display, each group of drive modes has its output (the Redline app, the stock
+// display or BC mode) and its screen (null: the common one, the design / layout rows; else its own {design, aux, alert,
+// layout}, set up like a BC page's). Stored as JSON in hudModeSetup / clusterModeSetup; a group not saved there follows
+// the older rows (Sport mode / All modes RPM display), so nothing changes until the setup is touched.
+//   sport: Sport, Sport+, Sport Individual, the PHEV Sport modes, Boost
+//   comfort: Comfort, Comfort+, Comfort Individual, PHEV Hybrid (Comfort / Standard); also the mode not known yet
+//   eco: Eco Pro, Eco Pro+, Eco Pro Individual, PHEV Hybrid Eco
+//   other: Adaptive, PHEV Electric, Battery control, off-road, traction, ease ...; 'comfort' (the default): as Comfort
+const MODE_GROUPS=['sport','comfort','eco','other'],MODE_OUTS=['redline','stock','bc'];
+function groupOf(mode){const m=String(mode||'');if(!m)return 'comfort';if(sportMode(m)||m==='BOOST')return 'sport';
+ if(/^ECO_PRO/.test(m)||m==='PHEV_HYBRID_ECO')return 'eco';if(/^COMFORT/.test(m)||m==='PHEV_HYBRID_COMFORT'||m==='PHEV_HYBRID_STANDARD')return 'comfort';return 'other';}
+const dispOf=(name)=>/^h/i.test(String(name||''))?'hud':'cluster',capOf=(d)=>d==='hud'?'Hud':'Cluster';
+// the older rows' meaning for a group
+function legacyOut(cfg,d,g){const s=cfg['sport'+capOf(d)+'Output'],a=cfg['all'+capOf(d)+'Output'];
+ if(g==='sport')return s==='bc'?'bc':a==='redline'||s==='redline'?'redline':a==='bc'?'bc':'stock';
+ if(g==='other')return 'comfort';
+ return a==='redline'||a==='nosport'?'redline':a==='bc'?'bc':'stock';}
+const screenOk=(v)=>v&&typeof v==='object'&&typeof v.design==='string'?{design:v.design,aux:typeof v.aux==='string'?v.aux:undefined,alert:typeof v.alert==='string'?v.alert:undefined,layout:v.layout&&typeof v.layout==='object'?v.layout:{}}:null;
+/** Every group's {out, screen} for a display ('hud' / 'cluster'), from the saved setup, else from the older rows. */
+function modeSetup(cfg,d){d=dispOf(d);let saved={};try{saved=JSON.parse(cfg[d+'ModeSetup']||'{}')||{};}catch(e){saved={};}
+ const out={};MODE_GROUPS.forEach(g=>{const v=saved[g]||{},ok=MODE_OUTS.concat(g==='other'?['comfort']:[]);out[g]={out:ok.includes(v.out)?v.out:legacyOut(cfg,d,g),screen:screenOk(v.screen)};});return out;}
+/** The group in force for a drive mode: 'other' set to follow Comfort gives Comfort's. */
+function modeEntry(cfg,d,mode){const all=modeSetup(cfg,d),g=groupOf(mode);return g==='other'&&all.other.out==='comfort'?Object.assign({group:'comfort'},all.comfort):Object.assign({group:g},all[g]);}
+// The older names, now from the drive-mode setup: the Redline display in this mode; outside Sport (the policy's
+// 'all'); in some mode (the mode not known yet); BC mode now.
+function rpmOutput(cfg,name,mode){return modeEntry(cfg,dispOf(name),mode).out==='redline';}
+// the policy's 'all' (shown at once) or 'sport' (Sport modes only, after the mode has held for a second): as the older
+// rows had it while the setup is not saved (Sport by its own row: 'sport'); a saved setup decides every mode itself
+function allOutput(cfg,name,mode){if(!rpmOutput(cfg,name,mode))return false;if(!sportMode(mode))return true;const d=dispOf(name);
+ let saved=null;try{saved=JSON.parse(cfg[d+'ModeSetup']||'null');}catch(e){}if(saved&&saved.sport&&saved.sport.out)return true;return cfg['all'+capOf(d)+'Output']==='redline';}
+function rpmOutputPossible(cfg,name){const all=modeSetup(cfg,dispOf(name));return MODE_GROUPS.some(g=>all[g].out==='redline'||all[g].out==='bc');}
+// BC mode (1.3.42 the cluster, 1.3.48 the HUD; 'Cluster' when not given)
+function bcModeNow(cfg,mode,name){return modeEntry(cfg,dispOf(name||'Cluster'),mode).out==='bc';}
+/** A group's screen as settings values for that display (design, aux, alert style, positions / sizes), or null. */
+function screenValues(screen,d){if(!screen)return null;const v={};v[d+'Design']=screen.design;if(screen.aux!==undefined)v[d+'AuxConfig']=screen.aux;if(screen.alert!==undefined)v[d+'AlertStyle']=screen.alert;
+ Object.keys(screen.layout||{}).forEach(k=>{if(k.indexOf(d)===0&&/(OffsetX|OffsetY|WidthScale|HeightScale|Hidden)$/.test(k))v[k]=screen.layout[k];});return v;}
 // HUD turn signals: the pair (Turn: position and size of both), then each side's own position.
 const TURN_STYLES=['arrow','chevron3','chevron'],TURN_COLORS={green:'#2fd65a',blue:'#3d8bff',orange:'#ff9a1f'};
 const TURN_PARTS=[{key:'Turn',label:'Both turn signals',prefix:'hudTurn',scale:'hudTurnScale'},{key:'TurnLeft',label:'Left turn signal',prefix:'hudTurnLeft',scale:'hudTurnScale'},{key:'TurnRight',label:'Right turn signal',prefix:'hudTurnRight',scale:'hudTurnScale'}];
@@ -175,4 +202,4 @@ function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig'])
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !cfg[d+'RpmGaugeHidden']&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={laneRect,carMeterFaces,bcModeNow,HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={MODE_GROUPS,MODE_OUTS,groupOf,modeSetup,modeEntry,screenValues,legacyOut,laneRect,carMeterFaces,bcModeNow,HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

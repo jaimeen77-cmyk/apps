@@ -91,7 +91,7 @@ async function checkSettingsEntry(file, id, version) {
         labels.length = 0; const before=frames;handlers.BTN_HUD();
         const deadline=Date.now()+1000;while(frames===before&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,5));
         assert(frames>before,'coalesced installed UI must deliver its next frame');
-        assert(labels.includes(t('Sport mode RPM display')), 'installed HUD tab must be wired');
+        assert(labels.includes(t('Drive-mode display'))||labels.includes('주행 모드별 표시'), 'installed HUD tab must be wired');
         assert(!spec.settings.some((s) => s.key === 'frameRate'), 'saved 60fps must not recreate the old menu');
     } finally { Canvas.prototype.text = original; }
 }

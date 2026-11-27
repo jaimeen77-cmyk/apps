@@ -345,7 +345,8 @@ function start(ctx) {
             // The Car layout's picture (car-meter.js: the car's state, held against noise, and frame) or My picture's
             // GIFs (my-picture.js: stop / drive / reverse, the folder looked at every 5 s), per display
             // the speed for Calm clock (1.3.71), Navigation focus and G-G trail (1.3.72): the vehicle speed the alerts read, whole km/h, only while that layout is on
-            if(['rl-calm','rl-navfocus','rl-gg'].includes(config.clusterDesign)||['rl-calm','rl-gg'].includes(config.hudDesign))controller.aux.speedNow=carSpeed.at!==null&&at-carSpeed.at<=2000&&typeof carSpeed.v==='number'?Math.round(carSpeed.v):null;
+            const scrC=require('./policy').screenSettings(config,'cluster',controller.policy.mode),scrH=require('./policy').screenSettings(config,'hud',controller.policy.mode);
+            if(['rl-calm','rl-navfocus','rl-gg'].includes(scrC.clusterDesign)||['rl-calm','rl-gg'].includes(scrH.hudDesign))controller.aux.speedNow=carSpeed.at!==null&&at-carSpeed.at<=2000&&typeof carSpeed.v==='number'?Math.round(carSpeed.v):null;
             const carFaces=carMeterFaces(config);
             if(carFaces.length){const CM=require('./car-meter'),MP=require('./my-picture'),stage=require('./redline-hud').gearOf(gearbox.gear).stage,g={lat:controller.aux.gLat,long:controller.aux.gLong};
                 const speed=carSpeed.at!==null&&at-carSpeed.at<=2000?carSpeed.v:null;   // (a speed older than 2 s is not known)

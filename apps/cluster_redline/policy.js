@@ -153,4 +153,18 @@ class Policy {
             shift: show && this.rpm >= shiftSpec(cfg, this.mode).shift, config: cfg };
     }
 }
-module.exports = { Policy, DEFAULTS, FRAME_RATE, PROFILES, settings, modeOf, SPORT };
+// The settings a display draws with in a drive mode (1.3.84): its group's own screen over the common one, when the
+// group shows the Redline app with a screen of its own; else the settings as they are. Kept per normalised settings
+// (the same object while nothing changes), so a frame does not normalise again.
+const SCREENS = new WeakMap();
+function screenSettings(cfg, display, mode) {
+    const d = display === 'hud' ? 'hud' : 'cluster', e = displayConfig.modeEntry(cfg, d, mode);
+    if (e.out !== 'redline' || !e.screen) return cfg;
+    const snap = cfg[NORMALISED], key = d + '|' + e.group;
+    let per = snap && SCREENS.get(snap);
+    if (per && per[key]) return per[key];
+    const out = settings(Object.assign({}, cfg, displayConfig.screenValues(e.screen, d)));
+    if (snap) { if (!per) { per = {}; SCREENS.set(snap, per); } per[key] = out; }
+    return out;
+}
+module.exports = { Policy, DEFAULTS, FRAME_RATE, PROFILES, settings, modeOf, SPORT, screenSettings };
