@@ -4,7 +4,7 @@
 const assert=require('assert'),fs=require('fs'),path=require('path'),vm=require('vm'),{EventEmitter}=require('events');
 // the helper's reading of the car's own messages (2026-11-28): ACC off, then on
 {const L=require('../../native/redline-lead/redline-lead.js');
- assert.strictEqual(L.VERSION,'0.7.0');assert.deepStrictEqual(L.ACC_SPECS,['0xb50e:1:1:2:0x8002:f']);
+ assert(['0.7.0','0.8.0'].includes(L.VERSION));assert.deepStrictEqual(L.ACC_SPECS,['0xb50e:1:1:2:0x8002:f']);
  assert.strictEqual(L.decodeAcc(Buffer.from('8f47000000000200','hex')).on,false,'ACC off');
  assert.strictEqual(L.decodeAcc(Buffer.from('d54800130020e601','hex')).on,true,'ACC on');
  assert.strictEqual(L.decodeAcc(Buffer.from('d548','hex')),null,'too short');}

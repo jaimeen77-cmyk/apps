@@ -7,7 +7,7 @@ const ui=load('settings-ui.js',{'./kit/i18n':{t:x=>x},'./kit/gauges':{},'./setti
 function canvas(){const c={labels:[],textWidth:(s,z)=>String(s).length*z/2,text(s){this.labels.push(s);}};for(const n of ['clear','line','polyline','fillRect','roundRect','gradientRect'])c[n]=()=>{};return c;}
 const saved=store({autoStart:false,appEnabled:false}),page=new ui.SettingsPage(saved,null,'draft');
 let cv=page.draw(canvas());
-assert.strictEqual(page.keys().join(','),'appEnabled,driverProfiles,hudLamps,vehiclePreset','Basic (1.3.48): App operation, Settings per driver, HUD lamps, Vehicle preset');
+assert.strictEqual(page.keys().join(','),'appEnabled,driverProfiles,hudLamps,vehiclePreset,qrLogs','Basic (1.3.48): App operation, Settings per driver, HUD lamps, Vehicle preset; QR log collection (1.3.100)');
 for(const r of cv.targets)assert(r.x>=0&&r.y>=0&&r.x+r.w<=1600&&r.y+r.h<=520);
 cv.targets.find(r=>r.id==='operation-true').act();assert.strictEqual(saved.get('appEnabled'),true);assert.strictEqual(saved.get('autoStart'),true,'Start: auto start too (1.3.48)');
 cv.targets.find(r=>r.id==='operation-false').act();assert.strictEqual(saved.get('appEnabled'),false);assert.strictEqual(saved.get('autoStart'),false,'Stop: no auto start');

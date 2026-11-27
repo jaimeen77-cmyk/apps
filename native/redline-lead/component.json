@@ -1,7 +1,7 @@
 {
   "id": "redline-lead",
   "kind": "tool",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "title": "Cluster Redline lead-car helper",
   "description": "The car ahead, the road users and the lane lines for Cluster Redline's HUD, from the front camera's objects and lane boundaries and the radar (read only, root: apps are not allowed these services)",
   "mguHmi": [

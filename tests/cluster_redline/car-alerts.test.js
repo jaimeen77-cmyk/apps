@@ -106,7 +106,7 @@ const ok=(events)=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInVie
   const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),A=require(path.join(dir,'alert-draw'));
   const count=cv=>{let k=0;for(let i=3;i<cv.d.length;i+=4)if(cv.d[i])k++;return k;};
   const one=k=>count(A.draw({[k]:SAMPLE[k]}));assert(one('speeding')>500&&one('school')>500&&one('camera')>500,'each icon draws');
-  assert(count(A.draw(SAMPLE))>one('camera')+one('school'),'all three side by side');assert.strictEqual(count(A.draw(null)),0);
+  assert.strictEqual(A.key(SAMPLE),A.key({camera:SAMPLE.camera}),'1.3.99: one badge, the camera first');assert.strictEqual(A.pick({school:SAMPLE.school,speeding:SAMPLE.speeding}).kind,'school','then the school zone');assert.strictEqual(count(A.draw(null)),0);
   const s=A.drawSized(SAMPLE,231,105);assert(s.w<=231&&s.h<=105);
   const {SettingsPage}=require(path.join(dir,'settings-ui')),{Canvas}=require(path.join(dir,'kit/canvas')),spec=require(path.join(dir,'kit/app-spec.json'));
   const vals={};spec.settings.forEach(x=>{vals[x.key]=x.default;});

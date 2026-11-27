@@ -43,3 +43,8 @@ Test by hand on the unit (root): `/var/opt/redline-lead/current/redline-someip 0
   alive, chl, displayXCC u16, activeFunction...). On the user's car (2026-11-28, instance 1): bytes 3-5 `00 00 00` with
   ACC off, `13 00 20` with it on; `decodeAcc` reads on when any of them is not 0. Sent as `acc: {on, child, rx, avail,
   value: {on, xcc, active, at}}`.
+- 0.8.0: `share.js` gives both of Cluster Redline's logs from its data folder (`{t: 'cmd', share: true, dir}`; 0.5.0's
+  `{file}` still taken): `nav-probe.log` and `road-alerts.log` (the cut-in / pedestrian warning recording), each with its
+  older `.1` part first, and both together as `redline-logs.tar.gz`. Only those two names in an
+  `/var/opt/public/oap/oap_<n>/data` folder; a symlink is never followed (the app's folder is the app's to write, the
+  helper reads as root).

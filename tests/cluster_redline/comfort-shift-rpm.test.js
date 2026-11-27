@@ -28,7 +28,7 @@ page.change(-1);assert.strictEqual(values.comfortShiftRpm,2250);page.activate(at
 
 // Seven rows fit the Basic tab; in Korean nothing is left in English.
 const english=[];let bottom=0;
-const draw=()=>{const cv=new Canvas(1600,520),text=cv.text;cv.text=function(v,x,y,z,c,o){const shown=o&&o.literal?String(v):t(v);bottom=Math.max(bottom,y);if(/[A-Za-z]{4,}/.test(shown.replace(/\b(HUD|RPM|MGU|cluster|render)\b/g,'')))english.push(shown);return text.apply(this,arguments);};page.draw(cv,null,null);return cv;};
+const draw=()=>{const cv=new Canvas(1600,520),text=cv.text;cv.text=function(v,x,y,z,c,o){const shown=o&&o.literal?String(v):t(v);bottom=Math.max(bottom,y);if(/[A-Za-z]{4,}/.test(shown.replace(/\b(HUD|RPM|MGU|cluster|render)\b|(nav-probe|road-alerts)\.log/g,'')))english.push(shown);return text.apply(this,arguments);};page.draw(cv,null,null);return cv;};
 page.back();page.focus=at;draw();assert(bottom<=515,'last row inside the screen ('+bottom+')');
 page.activate(at);draw();
 if(getLanguage()==='ko')assert.deepStrictEqual(english,[],'Korean: '+english.join(' | '));

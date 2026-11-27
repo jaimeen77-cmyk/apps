@@ -2,6 +2,43 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.100 (cut-in and pedestrian / cyclist warnings on the lane picture; QR log collection)
+
+- **New: cut-in and pedestrian / cyclist warnings** on the HUD lane picture, **on by default**. HUD lamps → **Cut-in and pedestrian warnings** (끼어들기·보행자 경고) turns them off. They show with the lane lines (from the lead-car helper's camera objects and lane lines).
+- **Cut-in**:
+  - A vehicle that drove beside us in the next lane for at least 1 s, now coming into our lane at 0.5-2.5 m/s, 3-35 m ahead, with us at 20 km/h or more.
+  - Bends and our own lane change are allowed for: the lane's angle is taken off the sideways place, and nothing is judged for 2 s while a line is under our car.
+  - Cars crossing at junctions and cars overtaking beside us do not warn.
+- **Pedestrian / cyclist**: reached within 2.5 s (from 5 km/h), and in our path then or now (within 1.3 m of the car's axis).
+- **Shown**: that road user at its place on the picture, lit amber (red once it is on our line, and always red for a pedestrian or cyclist), with an arrow towards our lane; "Cut-in" / "Pedestrian" / "Cyclist" and the distance in the top corner away from it. One object warns again only after 3 s; a warning stays up to 2.5 s.
+- **Where the rules come from**: the user's 32 recorded scenes (1.3.89 scene clips, 2026-11-27, city driving), worked out in another session and checked here again: on those they warn once, at the one real cut-in (35 m ahead, about 1 s before the car reached the middle of our lane), and never otherwise. The earlier idea (warn when the car ahead changes to a nearer one) missed that cut-in: the camera had already taken the car as the one ahead while it was still in the next lane. Missed cases could not be checked (only one real cut-in was recorded).
+- **New: QR log collection** (Basic settings, last row; 기본설정 → QR 로그 수집), for checking the warnings on the car:
+  - **QR On / Off**: the lead-car helper (**0.8.0**) opens a read-only page for the phone with **both logs**: `nav-probe.log` (Received turns) and `road-alerts.log` (warnings), each on its own, or **both together** as `redline-logs.tar.gz`. (The Received turns screen's QR button opens this screen now.)
+  - **Received turns recording** (nav-probe.log) is switched here now (moved from Navigation display → Received turns, which shows its state).
+  - **Warning recording** (off by default): each cut-in / pedestrian warning writes 5 s before it and 3 s after it (the camera objects, lane lines and speed; no position).
+  - **Save a miss**: when a cut-in or a person was not warned, it writes the last 20 s.
+  - **Delete logs**: deletes both logs; pressed twice within 5 s.
+  - **Size**: the warnings log keeps at most 3 MB (1.5 MB parts, the oldest part goes: about 150 warnings or 60 misses); nav-probe.log as before (1 MB parts).
+  - **Helper 0.8.0**: gives only those two files of the app's own data folder, never a symlink (the helper reads as root; 0.5.0-0.7.0 could have followed one).
+- Cluster Redline requires redline-lead 0.8.0.
+- Tests: `road-log` (recording, parts, Delete logs, the helper's page: two files only, no symlink, tar.gz), `road-alerts` (a cut-in after driving beside us, red on the line, none for crossing, overtaking, our lane change or under 20 km/h, a pedestrian in our path, the lane picture, on by default); the replay of the 32 scenes gives the same single warning.
+
+## Cluster Redline 1.3.99 (speed cameras from the public list, one new alert badge)
+
+- **Speed camera alerts without the car navigation's guidance.** The car's own navigation sends camera events only while it guides a route. Cluster Redline now also uses the public camera list with the car's position from the lead-car helper (redline-lead 0.6.0+, checked on the user's car: about once a second, in Korea).
+  - **The list**: 공공데이터포털 전국무인교통단속카메라표준데이터 (44,650 cameras, data as of 2026-10). Kept: the 22,488 that check speed and have a limit, plus signal cameras inside children's and elderly zones. Section cameras with their length. Built into the app (`speed-cams-data.js`, 360 KB, read only while the alerts run) by `tools/speed-cams/fetch.py` and `build.py`.
+  - **Which camera**: ahead along the way the car is going, within 25 m to the side, getting nearer. From 300 m, or from 500 m at 80 km/h and up. Let go once passed. Between positions the distance is carried on with the speed.
+  - **Section cameras**: after the section's start camera, the average speed (distance over time) and what is left of the section.
+  - **A limit of the list**: it has no direction a camera faces. On a road with both directions close together, a camera for the other direction can show.
+  - Nothing is written anywhere; positions are not kept.
+- **One badge, the new design** (the user's choice), in the vehicle alerts' place (NAV Position / size):
+  - The speed limit sign on the left. On the right: what it is, how far (or the section's average), and the speed now.
+  - Cyan within the limit. Amber edge in a children's or elderly zone. Red over the limit, with "Slow down" (a section: by its average).
+  - One alert at a time: a speed camera, then a children's zone, then speeding against a recognised sign.
+- **The car navigation's own events come first**: while it sends a camera, that one shows (it knows the direction). The list fills in otherwise.
+- **New option** (Navigation display settings): **Speed cameras**: Navigation + public camera list (default) / Navigation only.
+- Tests: `speed-cams` (the list, ahead / passed / behind / to the side, zone, section average, range by speed, stale position, the worker's badge with the navigation first, Navigation only), `car-alerts` (one badge).
+
 ## Cluster Redline 1.3.98 (the Redline HUD hides Waze on Map's HUD map in Sport)
 
 - **Fix: on the HUD, Waze on Map's map and the Redline HUD showed on top of each other.**

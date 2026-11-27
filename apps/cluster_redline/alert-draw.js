@@ -1,69 +1,58 @@
 'use strict';
-// Vehicle alert icons for the HUD (vehicle-alerts.js decides what shows). The speeding sign and the children
-// crossing triangle are the 1.2.54-1.2.57 traffic alert drawings (traffic-draw.js, removed in 1.2.58); the speed
-// camera is new. Up to three alerts side by side, W x H, transparent ground; drawn at the final size.
+// Vehicle alerts on the HUD (1.3.99, the user's choice of the new design): one badge, the most important alert only.
+//   speed camera (the car navigation's own event, else the public list: speed-cams.js), its section, a children's or
+//   elderly zone camera > a children's zone from the navigation or a children sign > speeding against a recognised sign.
+// The badge: the speed limit sign on the left; on the right what it is, how far (or the section's average speed), and the
+// speed now. Cyan while within the limit, amber edge in a children's or elderly zone, red over the limit (a section: its
+// average). Drawn in a 140 x 62 design, at the final size (the NAV tab's Position / size, 330 x 150 at 100 %).
 const {Canvas,ScaledCanvas}=require('./kit/canvas');
 const {tr}=require('./strings');
-const SLOT=110,W=SLOT*3,H=150;
-const RED='#ff122f',AMBER='#ffbf00',WHITE='#f5f7fb',GREY='#c4c9d2',BLUE='#3d9bff';
-function curve(points,a,b,c){for(let i=1;i<=8;i++){const t=i/8,u=1-t;points.push([u*u*a[0]+2*u*t*b[0]+t*t*c[0],u*u*a[1]+2*u*t*b[1]+t*t*c[1]]);}}
-function triangle(cv,x,y,w,h,width,color){
- const points=[[x+w*.42,y+h*.09]];
- curve(points,points[0],[x+w*.5,y-h*.06],[x+w*.58,y+h*.09]);
- points.push([x+w*.96,y+h*.84]);curve(points,points[points.length-1],[x+w*1.04,y+h],[x+w*.87,y+h]);
- points.push([x+w*.13,y+h]);curve(points,points[points.length-1],[x-w*.04,y+h],[x+w*.04,y+h*.84]);
- points.push(points[0]);cv.polyline(points,width,color);
-}
-function warning(cv,x,y){
- cv.quad([[x+18,y+1],[x-1,y+32],[x+37,y+32]],'#05070b');triangle(cv,x,y,36,31,3.8,RED);
- cv.line(x+18,y+10,x+18,y+19,3.6,RED);cv.circle(x+18,y+25,2,RED);
-}
-function children(cv,x,y){
- triangle(cv,x+3,y+1,82,75,6.4,AMBER);
- const q=p=>cv.quad(p.map(([a,b])=>[x+a,y+b]),AMBER),line=(a,b,c,d,w)=>cv.line(x+a,y+b,x+c,y+d,w,AMBER);
- // Filled shirt, shorts, dress, ponytail and walking limbs (the 1.2.55 design sample's silhouettes).
- cv.circle(x+35,y+32,6,AMBER);q([[30,28],[40,28],[43,31],[35,32]]);
- cv.roundRect(x+32,y+36,6,7,2,AMBER);q([[29,40],[38,39],[42,52],[27,52]]);
- line(29,43,25,50,6.5);line(38,43,47,49,5.7);
- q([[28,50],[35,51],[32,58],[25,55]]);q([[34,51],[41,51],[43,57],[36,58]]);
- line(29,55,23,63,5.8);line(23,63,28,68,5.8);line(37,55,42,68,5.8);line(42,68,48,68,5.8);
- cv.circle(x+57,y+43,5,AMBER);cv.circle(x+50,y+43,3.2,AMBER);q([[50,41],[53,42],[50,50],[46,51]]);
- q([[53,49],[59,49],[62,60],[51,60]]);q([[52,55],[60,55],[65,63],[48,63]]);
- line(54,51,48,56,4.5);line(59,51,65,55,4.5);
- line(53,62,47,69,4.4);line(47,69,50,71,4.4);line(60,62,63,69,4.4);line(63,69,68,69,4.4);
-}
-// A speed camera: a camera body with its lens, in a blue ring (a section camera: two bodies).
-function camera(cv,cx,cy,section){
- cv.arc(cx,cy,30,38,0,360,BLUE);
- const body=(x,y,s)=>{cv.roundRect(x-15*s,y-9*s,30*s,20*s,4*s,WHITE);cv.roundRect(x-6*s,y-13*s,12*s,5*s,2*s,WHITE);cv.arc(x,y+1*s,4*s,7.5*s,0,360,'#05070b');cv.circle(x,y+1*s,3*s,'#7fb8ff');};
- if(section){body(cx-10,cy-4,.7);body(cx+10,cy+6,.7);}else body(cx,cy,1);
-}
-function fit(cv,text,size,max){let s=size;while(s>11&&cv.textWidth(text,s,{literal:true})>max)s--;return s;}
-function label(cv,x,head,sub,subColor){
- cv.text(head,x,105,fit(cv,head,17,SLOT-6),WHITE,{align:'center',literal:true});
- if(sub)cv.text(sub,x,130,fit(cv,sub,16,SLOT-6),subColor||GREY,{align:'center',literal:true});
-}
-function paint(cv,v){
- if(!v)return cv;
- let slot=0;const at=()=>slot++*SLOT+SLOT/2;
- if(v.speeding){
-  const x=at();cv.arc(x,42,40,45,0,360,[255,18,47,25]);cv.arc(x,42,38,41,0,360,[255,18,47,80]);cv.arc(x,42,28.5,38.5,0,360,RED);
-  cv.text(v.speeding.limit?String(v.speeding.limit):'!',x,58,v.speeding.limit>=100?36:45,WHITE,{align:'center',font:'bold'});
-  warning(cv,x+17,57);label(cv,x,tr('Speeding'),tr('Over limit'),RED);
+const W=330,H=150,BW=140,BH=62,SLOT=W;
+const CYAN=[62,200,245],AMBER=[255,154,31],RED=[255,52,58];
+const hex=c=>'#'+c.map(v=>v.toString(16).padStart(2,'0')).join('');
+const dist=m=>m>=1000?(Math.round(m/100)/10)+' km':(m>=100?Math.round(m/50)*50:Math.max(0,Math.round(m/10)*10))+' m';
+/** The one thing to show, or null: {kind, limit, title, main, sub, colour, over, bar} */
+function pick(v){
+ if(!v)return null;
+ const speed=typeof v.speed==='number'?Math.round(v.speed):null,now=speed!==null?tr('Now')+' '+speed+' km/h':'';
+ const c=v.camera,s=v.school;
+ if(c){
+  const limit=c.limit||null;
+  if(c.section&&c.inside){
+   const avg=typeof c.avg==='number'?c.avg:null,over=limit!==null&&avg!==null&&avg>limit;
+   return {kind:'section',limit,title:tr('Section camera')+(typeof c.remain==='number'?' · '+tr('left')+' '+dist(c.remain):''),main:avg!==null?tr('Average')+' '+avg:tr('In the section'),sub:now,over,zone:null,bar:null};
+  }
+  const over=limit!==null&&speed!==null&&speed>limit,m=typeof c.m==='number'?c.m:null;
+  const title=c.zone==='child'?tr('School zone'):c.zone==='elder'?tr('Elderly zone'):tr(c.section?'Section camera':'Speed camera');
+  return {kind:'camera',limit,title:over?title+' · '+tr('Slow down'):title,main:m!==null?dist(m):c.text||'',sub:now,over,zone:c.zone||null,bar:m!==null?Math.max(0,Math.min(1,1-m/500)):null};
  }
- if(v.school){
-  const x=at();children(cv,x-44,2);
-  label(cv,x,tr('School zone'),v.school.sign?tr('Sign detected'):v.school.inside?tr('In the zone'):v.school.text||'');
+ if(s){
+  const limit=s.limit||30,over=speed!==null&&speed>limit;
+  return {kind:'school',limit,title:tr('School zone'),main:s.sign?tr('Sign detected'):s.inside?tr('In the zone'):typeof s.m==='number'?dist(s.m):s.text||'',sub:now,over,zone:'child',bar:null};
  }
- if(v.camera){
-  const x=at(),c=v.camera;camera(cv,x,42,c.section);
-  const sub=[c.limit?c.limit+' km/h':null,c.inside?tr('In the section'):c.text].filter(Boolean).join(' · ');
-  label(cv,x,tr(c.section?'Section camera':'Speed camera'),sub);
- }
+ if(v.speeding){const limit=v.speeding.limit||null;return {kind:'speeding',limit,title:tr('Speeding'),main:speed!==null?speed+' km/h':tr('Over limit'),sub:tr('Over limit'),over:true,zone:null,bar:null};}
+ return null;
+}
+function badge(cv,p){
+ const col=p.over?RED:p.zone?AMBER:CYAN;
+ cv.roundRect(1,1,BW-2,BH-2,9,p.over?[90,8,12,235]:[10,14,20,225]);
+ cv.strokeRoundRect(1,1,BW-2,BH-2,9,1.6,col.concat([255]));
+ const cx=31,cy=31,r=24;cv.circle(cx,cy,r,[255,255,255,255]);cv.circle(cx,cy,r-5,[230,30,40,255]);cv.circle(cx,cy,r-9,[255,255,255,255]);
+ cv.text(p.limit?String(p.limit):'!',cx,cy+7,p.limit>=100?16:19,'#111111',{font:'bold',align:'center',literal:true});
+ const fit=(t,size,max)=>{let s=size;while(s>5&&cv.textWidth(t,s,{literal:true})>max)s-=0.5;return s;};
+ cv.text(p.title,62,15,fit(p.title,7.5,74),p.zone&&!p.over?'#ffb547':'#c1cddd',{literal:true});
+ cv.text(p.main,62,36,fit(p.main,17,74),p.over?'#ff5a5f':'#ffffff',{font:'bold',literal:true});
+ if(p.sub)cv.text(p.sub,62,52,fit(p.sub,8.5,74),p.over?'#ff8a8e':hex(col),{literal:true});
+ if(p.bar!==null&&p.bar!==undefined){cv.roundRect(62,56,62,3,1.5,[255,255,255,40]);if(p.bar>0)cv.roundRect(62,56,Math.max(3,62*p.bar),3,1.5,col.concat([255]));}
+}
+function paint(cv,v,k,ox,oy){
+ const p=pick(v);if(!p)return cv;
+ const s=new ScaledCanvas(BW,BH,k);s.clear([0,0,0,0]);badge(s,p);const im=s.canvas;cv.drawImage(im.d,im.w,im.h,Math.round(ox),Math.round(oy),im.w,im.h);
  return cv;
 }
-function draw(v){return paint(new Canvas(W,H).clear([0,0,0,0]),v);}
+const K=Math.min(W/BW,H/BH);
+function draw(v){const cv=new Canvas(W,H).clear([0,0,0,0]);return paint(cv,v,K,(W-BW*K)/2,(H-BH*K)/2);}
 // At w x h (the Position / size scale), anti-aliased at that size rather than resampled.
-function drawSized(v,w,h){const cv=new ScaledCanvas(W,H,Math.min(w/W,h/H));cv.clear([0,0,0,0]);paint(cv,v);return cv.canvas;}
-function key(v){return v?JSON.stringify([v.speeding&&v.speeding.limit,!!v.speeding,v.school&&[v.school.sign,v.school.inside,v.school.text],v.camera&&[v.camera.section,v.camera.inside,v.camera.text,v.camera.limit]]):'';}
-module.exports={W,H,SLOT,draw,drawSized,key};
+function drawSized(v,w,h){const k=Math.min(w/BW,h/BH),cv=new Canvas(w,h).clear([0,0,0,0]);return paint(cv,v,k,(w-BW*k)/2,(h-BH*k)/2);}
+function key(v){const p=pick(v);return p?JSON.stringify(p):'';}
+module.exports={W,H,SLOT,BW,BH,draw,drawSized,key,pick,dist};
