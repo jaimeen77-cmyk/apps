@@ -29,3 +29,11 @@ Test by hand on the unit (root): `/var/opt/redline-lead/current/redline-someip 0
   is on (`{t: 'cmd', share: true, file}` on the socket; only `/var/opt/public/oap/oap_<n>/data/nav-probe.log` can be
   given). A page on port 18885 (18884 is the GIF player's own, for Cluster Redline's GIFs) and one firewall rule of its own (tag `redline-lead-share`, private senders, any
   interface: the car's own Wi-Fi or one it joined), both gone when the app stops asking or leaves.
+- 0.6.0: the car's GPS position for Cluster Redline's Position check (and the speed camera warnings to come), while
+  the app asks for it (`{t: 'cmd', position: true}` each second; 5 s without it and it stops). A second
+  redline-someip subscribes `0xfb0c:128:4:1:0x8001:f` (Positioning.currentLocation, map matched) and
+  `0xfb0c:128:4:4:0x8004:f` (rawPositionData, GNSS); `decodeWgs` finds the Wgs84Coordinate3D {coordinatesValid,
+  heightValid, longitude double, latitude double} in each. Sent on the socket as `position: {on, child, rx, avail, map,
+  raw}`; never written to a file or the log. Checked on the user's car (2026-11-28): Positioning is offered on instance
+  128 to uid 0 (the app's uid gets nothing); NavigationStatus and PositioningCAN are not offered on any instance.
+  Test by hand: `sleep 20 | /var/opt/redline-lead/current/redline-someip 0xfb0c:128:4:1:0x8001:f`

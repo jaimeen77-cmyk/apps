@@ -59,29 +59,29 @@ const cat={
  const cur=watched.find((w)=>/Positioning$/.test(w.i)),gnss=watched.find((w)=>/Gnss$/.test(w.i));
  cur.h.currentPosition({currentPosition:{latitude:375665000,longitude:1269780000,altitude:30},heading:12});
  let st=pos.status(0);assert(st.fix&&near(st.fix.lat,37.5665)&&near(st.fix.lon,126.978)&&st.fix.korea,'1e-7 degrees, in Korea');
- assert.strictEqual(st.candidates[0].unit,'1e-7 deg');assert(st.candidates[0].inUse);assert.strictEqual(st.fix.heading,null,'no heading before 12 m');
+ assert.strictEqual(st.candidates[2].unit,'1e-7 deg');assert(st.candidates[2].inUse);assert.strictEqual(st.fix.heading,null,'no heading before 12 m');
  // 100 m north a second later: heading 0; the event source too, but the field has more fixes
  t=1000;cur.h.currentPosition({currentPosition:{latitude:375674000,longitude:1269780000}});
  gnss.h.fix({wgs84Lat:37.5674,wgs84Lon:126.978});
- st=pos.status(1000);assert.strictEqual(st.fix.heading,0,'north');assert(st.candidates[0].inUse&&!st.candidates[1].inUse);assert.strictEqual(st.candidates[1].unit,'deg');
- assert.strictEqual(st.candidates[0].rate,2,'2 per second');
+ st=pos.status(1000);assert.strictEqual(st.fix.heading,0,'north');assert(st.candidates[2].inUse&&!st.candidates[3].inUse);assert.strictEqual(st.candidates[3].unit,'deg');
+ assert.strictEqual(st.candidates[2].rate,2,'2 per second');
  // the field goes quiet: the event takes over after 3 s
- t=4500;gnss.h.fix({wgs84Lat:37.568,wgs84Lon:126.978});st=pos.status(4500);assert(st.candidates[1].inUse,'the fresh one');
+ t=4500;gnss.h.fix({wgs84Lat:37.568,wgs84Lon:126.978});st=pos.status(4500);assert(st.candidates[3].inUse,'the fresh one');
  // a reply without a pair: counted, its keys (never values) logged once
- t=4600;cur.h.currentPosition({nothing:1});t=4900;cur.h.currentPosition({nothing:2});assert.strictEqual(pos.status(4900).candidates[0].misses,2);
+ t=4600;cur.h.currentPosition({nothing:1});t=4900;cur.h.currentPosition({nothing:2});assert.strictEqual(pos.status(4900).candidates[2].misses,2);
  // faster than 5 a second: the extra values are not looked at
- t=4950;cur.h.currentPosition({nothing:3});assert.strictEqual(pos.status(4950).candidates[0].misses,2);
+ t=4950;cur.h.currentPosition({nothing:3});assert.strictEqual(pos.status(4950).candidates[2].misses,2);
  assert(logs.filter((l)=>/sent no lat\/lon pair/.test(l)).length===1&&!logs.some((l)=>/37\.5|126\.9/.test(l)),'no position in the log');
  pos.sync(false);assert.strictEqual(shut,2,'off: let go');
  // a getter-only field: read by our own timer once a second while on, never after
  {let reads=0;const sig={watch:()=>Promise.resolve({available:true,proxy:{getValue:()=>{reads++;return Promise.resolve({latitude:37.5,longitude:127});}},shutdown(){}})};
   const pp=new P.Position(sig,log,()=>Date.now(),{list:[{iface:'a.b.Pos',inst:'1',name:'pos',kind:'field',poll:true}],note:''});
   pp.sync(true);await new Promise((r)=>setTimeout(r,1150));const n=reads;assert(n>=1,'polled');pp.sync(false);await new Promise((r)=>setTimeout(r,1100));assert.strictEqual(reads,n,'the timer stops with the check');
-  assert(pp.status(Date.now()).candidates[0].received>=1);}
+  assert(pp.status(Date.now()).candidates[2].received>=1);}
  // a reply after off is ignored (an old subscription)
  cur.h.currentPosition({currentPosition:{latitude:1,longitude:1}});assert.strictEqual(pos.status(5000).fix,null);
  // without candidates
- assert.deepStrictEqual(new P.Position(signals,log,()=>0,{list:[],note:'x'}).status(0).candidates,[]);
+ assert.deepStrictEqual(new P.Position(signals,log,()=>0,{list:[],note:'x'}).status(0).candidates.map((c)=>c.kind),['helper','helper'],'only the helper sources');
  // settings: off by default
  const {settings}=require('../../apps/cluster_redline/policy');assert.strictEqual(settings({}).positionCheck,'off');assert.strictEqual(settings({positionCheck:'on'}).positionCheck,'on');
  // the install (store-build.js) with this catalog: the manifest and position-candidates.json
@@ -102,5 +102,13 @@ const cat={
    page.draw(new Canvas(1600,520),null,{position:pos.status(4500)});page.layoutActions.find((x)=>x.id==='position-on').act();assert.strictEqual(v.positionCheck,'on');
    texts.length=0;page.draw(new Canvas(1600,520),null,{position:{on:true,note:'',candidates:st.candidates,fix:{lat:37.5665,lon:126.978,korea:true,heading:0}}});
    assert(texts.some((x)=>/37\.5665, 126\.9780/.test(x)),'the position shown');page.back();assert.strictEqual(page.open,'navMode');}finally{Canvas.prototype.text=t0;}}
+ // 1.3.96: the helper's position (redline-lead 0.6.0) first; its state shown while it is missing
+ {let t=0;const p=new P.Position({watch:()=>Promise.resolve({available:true,shutdown(){}})},{info(){},warn(){}},()=>t,{list:[],note:''});
+  p.sync(true);p.fromHelper(undefined,0,'absent');let st=p.status(0);assert.strictEqual(st.candidates[0].name,'redline-lead.Positioning.currentLocation');assert(/not installed/.test(st.candidates[0].error));
+  p.fromHelper(undefined,0,'connected');assert(/older/.test(p.status(0).candidates[0].error));
+  for(let k=0;k<8;k++){t=k*500;p.fromHelper({avail:true,map:{lat:37.5665,lon:126.978,valid:true,at:t},raw:{lat:null,lon:null,valid:false,at:t}},t,'connected');}
+  st=p.status(t);assert(st.fix&&Math.abs(st.fix.lat-37.5665)<1e-9&&st.fix.korea,'the helper position used');assert(st.candidates[0].inUse&&st.candidates[0].received===8&&st.candidates[1].misses===8);
+  p.fromHelper({avail:true,map:{lat:37.6,lon:127,valid:true,at:t}},t,'connected');assert.strictEqual(p.status(t).candidates[0].received,8,'the same message counted once');
+  p.sync(false);p.fromHelper({avail:true,map:{lat:37.6,lon:127,valid:true,at:t+1}},t+1,'connected');assert.strictEqual(p.status(t+1).candidates[0].received,8,'off: nothing taken');}
  console.log('PASS: position check: catalog search and ranking, read only manifest entries, units, the fresh source, heading, nothing logged, off by default, the install, the screen');
 })().catch((e)=>{console.error(e);process.exitCode=1;});

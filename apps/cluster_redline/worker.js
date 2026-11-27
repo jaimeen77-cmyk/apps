@@ -481,8 +481,12 @@ function start(ctx) {
             const speedKmh = carSpeed.at !== null && at - carSpeed.at <= 2000 ? carSpeed.v : null;
             const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : lead ? lead.frontGap(at) : null) : false;
             // (1.3.95) the nav-probe.log for a phone: the helper's page open while the screen asks for it, engine on or not
-            {const on = config.appEnabled && config.navShare === 'on' && !!navProbeFile; shareHelper.sync(on, mono());
-             if (on && at - shareCmdAt >= 1000) { shareCmdAt = at; shareHelper.send({ t: 'cmd', share: true, file: navProbeFile }); }}
+            // (1.3.96) the same connection asks the helper (0.6.0) for the car's position while the Position check is on
+            {const shareOn = config.appEnabled && config.navShare === 'on' && !!navProbeFile, posOn = !!position && live && config.appEnabled && config.positionCheck === 'on';
+             shareHelper.sync(shareOn || posOn, mono());
+             if ((shareOn || posOn) && at - shareCmdAt >= 1000) { shareCmdAt = at; const cmd = { t: 'cmd' };
+                 if (shareOn) { cmd.share = true; cmd.file = navProbeFile; } if (posOn) cmd.position = true; shareHelper.send(cmd); }
+             if (posOn) position.fromHelper(shareHelper.last && shareHelper.last.position, at, shareHelper.state);}
             // (1.3.91) shown from the bumper: the correction (Lead-car headway, -2 m by default) on the distance and the time gap
             const leadShown = leadNow ? Object.assign({}, corrected(leadNow, config.hudHeadwayCorrection), { go: going }) : going ? corrected({ gap: departure.nearest || 0, go: true }, config.hudHeadwayCorrection) : null;
             headwayOverlay.tick(headwayOn ? leadShown : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));

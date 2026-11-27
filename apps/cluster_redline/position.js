@@ -57,7 +57,10 @@ class Position {
  constructor(signals,log,clock,candidates){
   this.signals=signals;this.log=log||{info(){},warn(){}};this.clock=clock||Date.now;
   const c=candidates||loadCandidates();this.note=c.note;
-  this.cands=c.list.map((x)=>Object.assign({count:0,misses:0,last:null,first:null,scale:null,error:null,shapeLogged:false,sub:null,seenAt:null,skipped:0},x));this.timer=null;
+  // 1.3.96: the position the helper (redline-lead 0.6.0, root) reads from Positioning (0xFB0C, instance 128), which the
+  // app's own uid is not given: the map-matched position and the raw GNSS one, first in the list
+  const viaHelper=[{iface:'redline-lead.Positioning',inst:'128',name:'currentLocation',kind:'helper',key:'map'},{iface:'redline-lead.Positioning',inst:'128',name:'rawPositionData',kind:'helper',key:'raw'}];
+  this.cands=viaHelper.concat(c.list).map((x)=>Object.assign({count:0,misses:0,last:null,first:null,scale:null,error:null,shapeLogged:false,sub:null,seenAt:null,skipped:0},x));this.timer=null;
   this.on=false;this.token=0;this.best=null;this.anchor=null;this.heading=null;
  }
  /** on: the check wanted. Subscribes every candidate, or lets them go. */
@@ -66,7 +69,7 @@ class Position {
   if(this.on||!this.signals||!this.signals.watch)return;
   this.on=true;const token=++this.token,groups={};
   this.cands.forEach((c)=>{const k=c.iface+'|'+(c.inst||'1');(groups[k]=groups[k]||[]).push(c);});
-  Object.keys(groups).forEach((k)=>{const list=groups[k],c0=list[0],handlers={};
+  Object.keys(groups).filter((k)=>groups[k][0].kind!=='helper').forEach((k)=>{const list=groups[k],c0=list[0],handlers={};
    list.forEach((c)=>{handlers[c.name]=(v)=>{if(token===this.token)this.value(c,v,this.clock());};});
    Promise.resolve().then(()=>this.signals.watch(c0.iface,c0.inst||'1',handlers,this.log,{})).then((s)=>{
     if(token!==this.token){try{s.shutdown();}catch(e){}return;}
@@ -74,9 +77,23 @@ class Position {
     this.log.info('position: '+c0.iface+' ('+list.map((c)=>c.name).join(', ')+')'+(err?' error: '+err:' watched'));
    },(e)=>{if(token===this.token)list.forEach((c)=>{c.error=String(e&&e.message||e).slice(0,120);});});
   });
+  this.cands.filter((c)=>c.kind==='helper').forEach((c)=>{c.error='waiting for the helper';});
   if(this.cands.some((c)=>c.poll))this.timer=setInterval(()=>{if(token!==this.token)return;
    this.cands.forEach((c)=>{const px=c.poll&&c.sub&&c.sub.available&&c.sub.proxy;if(!px||!px.getValue)return;
     Promise.resolve().then(()=>px.getValue(c.name,3000)).then((v)=>{if(token===this.token)this.value(c,v,this.clock());},()=>{});});},POLL_MS);
+ }
+ /** The helper's position (its message's position: {avail, map, raw} or undefined) and its connection state. */
+ fromHelper(p,now,state){
+  if(!this.on)return;
+  this.cands.filter((c)=>c.kind==='helper').forEach((c)=>{
+   if(state!=='connected'){c.error=state==='absent'?'helper not installed (redline-lead 0.6.0)':'helper '+state;c.sub=null;return;}
+   if(!p){c.error='helper older than 0.6.0';c.sub=null;return;}
+   c.error=null;c.sub={available:p.avail===null||p.avail===undefined?null:!!p.avail};
+   const v=p[c.key];if(!v||v.at===c.helperAt)return;c.helperAt=v.at;
+   if(v.lat===null||v.lat===undefined){c.misses++;return;}
+   if(!v.valid){c.misses++;return;}
+   this.value(c,{latitude:v.lat,longitude:v.lon},now);
+  });
  }
  value(c,v,now){
   if(c.seenAt!==null&&now-c.seenAt<MIN_GAP_MS&&now>=c.seenAt){c.skipped++;return;}c.seenAt=now;

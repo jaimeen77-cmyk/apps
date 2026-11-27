@@ -667,7 +667,7 @@ class SettingsPage{
   else{
    const fx=p.fix;
    cv.text(cfg.positionCheck!=='on'?tr('Off: nothing is read'):fx?tr('Position')+' '+fx.lat.toFixed(4)+', '+fx.lon.toFixed(4)+' · '+tr(fx.korea?'in Korea':'outside Korea')+' · '+tr('heading')+' '+(fx.heading===null?'-':fx.heading+'°'):tr('no position yet'),100,262,24,cfg.positionCheck!=='on'?'#91a1b6':fx&&fx.korea?'#5ee08f':'#ffad45',{literal:true});
-   cands.slice(0,6).forEach((c,i)=>{let line=(c.inUse?'> ':'   ')+c.name+' · '+tr('received')+' '+c.received+(c.rate!==null?' ('+c.rate+'/s)':'')+' · '+tr('unit')+' '+f(c.unit)+(c.age!==null?' · '+c.age+' s':'')+(c.misses?' · '+tr('no pair')+' '+c.misses:'')+(c.available===false?' · '+tr('not offered'):'')+(c.error?' · '+c.error:'');
+   cands.slice(0,6).forEach((c,i)=>{let line=(c.inUse?'> ':'   ')+c.name+' · '+tr('received')+' '+c.received+(c.rate!==null?' ('+c.rate+'/s)':'')+' · '+tr('unit')+' '+f(c.unit)+(c.age!==null?' · '+c.age+' s':'')+(c.misses?' · '+tr('no pair')+' '+c.misses:'')+(c.available===false?' · '+tr('not offered'):'')+(c.error?' · '+tr(c.error):'');
     let size=17;while(size>13&&cv.textWidth(line,size,{literal:true})>1440)size--;while(cv.textWidth(line,size,{literal:true})>1440&&line.length>8)line=line.slice(0,-2);
     cv.text(line,100,300+i*24,size,c.inUse?'#5ee08f':c.received?'#c1cddd':c.error||c.available===false?'#ffad45':'#7f8b9a',{literal:true});});
   }
