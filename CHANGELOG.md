@@ -2,6 +2,14 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.101 (moving-off alert speed; favourites keep the options added since)
+
+- **New: how soon the moving-off alert comes.** The headway screen's bottom row has a **Moving-off alert** button (출발 알림); each press goes to the next:
+  - **Off** · **Faster** (the car ahead 1 m further, held 0.2 s) · **Quick** (1.5 m, 0.3 s: the 1.3.95 values, the default) · **Relaxed** (3 m, 0.5 s: as before 1.3.95).
+  - Standing, the gap the camera measures moves 0.15 m at most (the user's clips of 2026-11-27), so Faster stays clear of it.
+- **Favourites (and drivers' settings) keep the options added since they were made**: drive-mode display (HUD and cluster), BC follow, lane lines (on / off, lane colour, warning sensitivity), the 3D navigation icons, the next-turn box's place and size, the calm clock's tone, the greetings, My picture's GIFs and the moving-off alert. Checks, logs and the car's own state (Position check, nav-probe and log recording, the BC page in step) stay out.
+- Tests: `lead-departure` (each speed in order, the default, off, no alert from the camera at rest; the setting's range; the favourite keys).
+
 ## Cluster Redline 1.3.100 (cut-in and pedestrian / cyclist warnings on the lane picture; QR log collection)
 
 - **New: cut-in and pedestrian / cyclist warnings** on the HUD lane picture, **on by default**. HUD lamps → **Cut-in and pedestrian warnings** (끼어들기·보행자 경고) turns them off. They show with the lane lines (from the lead-car helper's camera objects and lane lines).

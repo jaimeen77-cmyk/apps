@@ -27,6 +27,13 @@ steps=[];for(let t=0;t<=6000;t+=100)steps.push([t,t<500?0:null,t<3000?6:9]);asse
  lv.helper.last.cam.at=3000;assert.strictEqual(lv.frontGap(1500),null,'an old list: none');}
 // the next stop alerts again
 const d=new LeadDeparture();let n=0;const go=(t0)=>{for(let t=t0;t<t0+7000;t+=100)if(d.tick(t,0,'D',t<t0+3000?4:9))n++;for(let t=t0+7000;t<t0+9000;t+=100)d.tick(t,30,'D',20);};go(0);const first=n;go(10000);assert(n>first,'again at the next stop');
+// (1.3.101) how soon: faster 1 m / 0.2 s, quick 1.5 m / 0.3 s (default), relaxed 3 m / 0.5 s, off none
+{const pull=(level)=>{const d=new LeadDeparture();for(let t=0;t<=9000;t+=100){const g=t<4000?4:4+(t-4000)/1000;if(d.tick(t,0,'D',g,level))return t;}return null;};   // 1 m a second
+ const f=pull('faster'),q=pull('quick'),r=pull('relaxed'),dflt=pull(undefined);
+ assert(f>=5000&&f<=5300,'faster: 1 m then 0.2 s '+f);assert(q>=5500&&q<=5900,'quick: 1.5 m then 0.3 s '+q);assert(r>=7000&&r<=7600,'relaxed: 3 m then 0.5 s '+r);
+ assert(f<q&&q<r,'in that order');assert.strictEqual(dflt,q,'quick is the default');assert.strictEqual(pull('off'),null,'off: none');
+ // standing still with the gap moving 0.15 m (the camera at rest, the user's clips): no alert even when faster
+ const d=new LeadDeparture();let n=0;for(let t=0;t<=10000;t+=100)if(d.tick(t,0,'D',8.3+0.15*Math.sin(t/300),'faster'))n++;assert.strictEqual(n,0,'no alert from the camera at rest');}
 // the badge and the lane picture
 if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),Hw=require(path.join(dir,'headway-overlay')),X=require(path.join(dir,'lane-lines')),A=require(path.join(dir,'hud-art'));
  assert.strictEqual(Hw.content({gap:7,go:true},'detail').color,'#3ddc6a');
@@ -34,5 +41,10 @@ if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/ja
  const lit=(im)=>{let n=0;for(let i=3;i<im.d.length;i+=4)if(im.d[i]>200)n++;return n;};
  const none=X.draw(base,112,84),car=X.draw(Object.assign({},base,{lead:{gap:12,level:'ok',type:3}}),112,84);assert(lit(car)>lit(none),'the car ahead drawn');
  const truck=X.draw(Object.assign({},base,{lead:{gap:12,level:'ok',type:4}}),112,84);assert(lit(truck)>lit(car),'a truck is wider');
- assert(A.loadedSets().includes('veh'),'the road users set read once drawn');}
+ assert(A.loadedSets().includes('veh'),'the road users set read once drawn');
+ // (1.3.101) the setting: kept in range, in favourites and drivers' settings with the options added since
+ const D=require(path.join(dir,'display-config')),{settings}=require(path.join(dir,'policy')),UI=require(path.join(dir,'settings-ui'));
+ assert.strictEqual(settings({}).hudHeadwayDepart,'quick');assert.strictEqual(settings({hudHeadwayDepart:'faster'}).hudHeadwayDepart,'faster');assert.strictEqual(settings({hudHeadwayDepart:'x'}).hudHeadwayDepart,'quick');
+ const fav=UI.favKeys([]);['hudHeadwayDepart','hudModeSetup','clusterModeSetup','bcFollow','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','hudThenOffsetX','hudThenScale','calmTone','greetHello','myPicIds','clusterYieldAcc','hudHideWaze','hudRoadAlerts'].forEach(k=>assert(fav.includes(k),'favourites keep '+k));
+ ['positionCheck','navProbeLog','navShare','bcIndex','bcCluster','logClearAt'].forEach(k=>assert(!fav.includes(k),'not a favourite: '+k));}
 console.log('PASS: lead car departure: standing behind it, it moves off or is lost close by, once a stop, not in P; the car ahead in the lane picture by class');

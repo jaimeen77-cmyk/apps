@@ -479,7 +479,7 @@ function start(ctx) {
             if (position) position.sync(live && config.positionCheck === 'on');
             const leadNow = lead && (headwayOn || lanesOn) ? lead.read(at) : null;
             const speedKmh = carSpeed.at !== null && at - carSpeed.at <= 2000 ? carSpeed.v : null;
-            const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : lead ? lead.frontGap(at) : null) : false;
+            const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : lead ? lead.frontGap(at) : null, config.hudHeadwayDepart) : false;
             // (1.3.95) the nav-probe.log for a phone: the helper's page open while the screen asks for it, engine on or not
             // (1.3.96) the same connection asks the helper (0.6.0) for the car's position while the Position check is on
             // (1.3.97) and whether the cruise control (ACC) shows on the cluster: the cluster then gives way (2 s after it goes)

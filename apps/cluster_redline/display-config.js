@@ -46,7 +46,7 @@ const HEADWAY_PARTS=[{key:'Headway',label:'Lead-car headway',prefix:'hudHeadway'
 // Lane lines (lane-lines.js, 1.3.77): just above the headway badge, at its size
 function laneRect(cfg){const h0=headwayRect(cfg),s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(84*s);return {x:Math.max(0,Math.min(800-w,Math.round(h0.x+(h0.w-w)/2))),y:Math.max(0,h0.y-h-4),w,h};}
 function headwayRect(cfg){const s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(60*s);return {x:Math.max(0,Math.min(800-w,Math.round((800-w)/2+(cfg.hudHeadwayOffsetX||0)))),y:Math.max(0,Math.min(480-h,Math.round(238+(cfg.hudHeadwayOffsetY||0)))),w,h};}
-Object.assign(defaults,{hudHeadway:'off',hudHeadwayCorrection:-2,hudHeadwayOffsetX:0,hudHeadwayOffsetY:0,hudHeadwayScale:100,hudHeadwayHidden:false});
+Object.assign(defaults,{hudHeadway:'off',hudHeadwayCorrection:-2,hudHeadwayOffsetX:0,hudHeadwayOffsetY:0,hudHeadwayScale:100,hudHeadwayHidden:false,hudHeadwayDepart:'quick'});
 // Following the BC button (bc-follow.js, 1.3.40): on / off, the head unit's list (ID7 / ID8), each page's setup (JSON),
 // where the next drive starts (the page reached last / the first page); bcIndex: the page in step now; bcCluster: what
 // it asks of the cluster ('redline' shows it in every mode, 'yield' steps it aside for Waze / the stock map, '' leaves
@@ -110,6 +110,7 @@ function normalize(raw,out){
  out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.navProbeLog=raw.navProbeLog==='on'?'on':'off';out.positionCheck=raw.positionCheck==='on'?'on':'off';out.calmTone=raw.calmTone==='warm'?'warm':'cool';out.hudLaneLines=raw.hudLaneLines==='on'?'on':'off';out.hudLaneSurface=raw.hudLaneSurface==='green'?'green':'dark';out.hudLaneSensitivity=raw.hudLaneSensitivity==='off'||raw.hudLaneSensitivity==='normal'?raw.hudLaneSensitivity:'low';out.navShare=raw.navShare==='on'?'on':'off';out.navProbeReset95=raw.navProbeReset95===true;out.myPicIds=typeof raw.myPicIds==='string'&&raw.myPicIds.length<2000?raw.myPicIds:'';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
  // the distance correction (1.3.91, issue appsKOR#5): the car measures from its sensor behind the windscreen, not from
  // the bumper; 0 to -3 m in 0.5 m steps, -2 m by default
+ out.hudHeadwayDepart=['off','faster','quick','relaxed'].includes(raw.hudHeadwayDepart)?raw.hudHeadwayDepart:'quick';   // the moving-off alert's speed (1.3.101)
  {const v=raw.hudHeadwayCorrection;out.hudHeadwayCorrection=typeof v==='number'&&isFinite(v)?Math.max(-3,Math.min(0,Math.round(v*2)/2)):-2;}
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudHeadway'+s];if(typeof v==='number'&&isFinite(v))out['hudHeadway'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  if(typeof raw.hudHeadwayScale==='number'&&isFinite(raw.hudHeadwayScale))out.hudHeadwayScale=Math.max(20,Math.min(200,Math.round(raw.hudHeadwayScale/5)*5));out.greetHello=raw.greetHello==='off'?'off':'on';out.greetBye=raw.greetBye==='off'?'off':'on';
