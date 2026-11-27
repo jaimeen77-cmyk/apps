@@ -50,7 +50,7 @@ assert.strictEqual(L.read(950,'off',{sensitivity:'off',speed:60}).levels.right,'
 const d3=JSON.parse(JSON.stringify(d));d3.lines[1].y=-0.8;msg({rx:8,data:d3,at:10000});assert.strictEqual(L.read(0,'off',{sensitivity:'off',speed:10}).levels.right,'over');
 msg({rx:6,data:d2,at:10000});
 {const k=L.read(1300,'off');assert(k&&k.held,'stale: the last lines kept');assert.strictEqual(k.levels.right,'ok','no warning on an old place');}
-assert(L.read(2900,'off')&&L.read(2900,'off').held,'kept up to 3 s after the last good');assert.strictEqual(L.read(3200,'off'),null,'then gone');
+assert(L.read(2900,'off')&&!L.read(2900,'off').faded,'kept as they were up to 3 s');{const f=L.read(9000,'off');assert(f&&f.faded&&f.levels.right==='ok','then faded, never gone, no warning');}
 msg({rx:7,data:d2,at:5000});t=2000;{const o=L.read(2000,'off');assert(!o||o.held,'an old lane list (helper at - lane at) is not taken (at most the held last ones)');}
 assert.strictEqual(L.status(0).rx,7);assert.strictEqual(L.status(0).helper,'connected');
 L.sync(false);assert.strictEqual(L.read(0,'off'),null);assert.strictEqual(L.status(0).helper,'off');
@@ -77,4 +77,10 @@ if(process.argv[2]){const X=require(path.join(path.resolve(process.argv[2]),'sou
  const g=X.draw(Object.assign({surface:'green'},v),112,84),dk=X.draw(v,112,84),at=(im,x,y)=>Array.from(im.d.slice((y*im.w+x)*4,(y*im.w+x)*4+4));
  const near=at(g,40,80),far=at(g,52,20);assert(near[1]>near[0]&&near[1]>near[2]&&near[1]>180,'lime near the car '+near);assert(near[1]>far[1],'brighter towards the car '+near+' / '+far);
  assert(at(dk,40,80)[1]<90,'dark stays dark');}
+// (1.3.95) faded: the road and the lines faint, the cars as ever
+if(process.argv[2]){const X=require(path.join(path.resolve(process.argv[2]),'source/javascript','lane-lines'));
+ const v0={width:3.3,left:{y:1.6,slope:0,type:'solid',color:'white',margin:0.65},right:{y:-1.6,slope:0,type:'solid',color:'white',margin:0.65},levels:{left:'ok',right:'ok'}};
+ const sum=(im,x0,x1,y0,y1)=>{let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)n+=im.d[(y*im.w+x)*4+3];return n;};
+ const a=X.draw(v0,112,84),b=X.draw(Object.assign({},v0,{faded:true}),112,84);
+ assert(sum(b,0,112,0,40)<sum(a,0,112,0,40)*0.6,'the road ahead fainter');assert(Math.abs(sum(b,40,72,60,84)-sum(a,40,72,60,84))<sum(a,40,72,60,84)*0.35,'our car still there');}
 console.log('lane-lines ok');

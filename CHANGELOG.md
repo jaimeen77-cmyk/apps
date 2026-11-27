@@ -13,7 +13,10 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
   - **Off** (no amber)
 - Red (over the line) and blue (a lane change with the turn signal) are shown at once, as before.
 - **Lane lines drawn straight ahead.** The user found the lines swinging and bending right and left: the camera's heading of each line moved them about. They are now straight, at the line's place by the car, and that place is smoothed (a third of the way a frame; a jump over 0.8 m, another line, is taken at once).
-- **Lane lines no longer vanish when the camera loses the lines for a moment** (38 % of the user's town driving had none: junctions, worn paint, a close car hiding them). The last lines stay on the HUD for up to 3 s, without warnings; only then the picture goes.
+- **Lane lines no longer vanish when the camera loses the lines** (38 % of the user's town driving had none: junctions, worn paint, a close car hiding them).
+  - The last lines stay as they were for 3 s, without warnings.
+  - After that the road and the lines are faint (a third of their strength), while the car ahead and our car stay as ever, until the lines come back.
+  - With no lines seen yet, a usual 3.3 m lane is drawn faint.
 - **Lead car departure: from the user's drive (none in 26 minutes before), two causes and quicker.**
   - At a light, the camera often says nothing of the lane, so no car followed. The car right in front is now taken from the helper's objects: the nearest within 1.2 m of our axis.
   - At rest the car sends no speed, which reset the check each time. A speed that stops coming while we stand still counts as a stand.

@@ -43,7 +43,11 @@ class LaneLines {
     read(now, indicator, o) {
         // (1.3.95) lines lost (no list, or none seen: 38 % of the user's town driving) for up to 3 s: the last ones kept on the
         // HUD as they were, without warnings (an old place warns nothing); only then the picture goes
-        const hold = () => { if (this.good && now - this.good.at <= HOLD_MS) { const k = JSON.parse(JSON.stringify(this.good.e)); k.levels = { left: k.left ? 'ok' : null, right: k.right ? 'ok' : null }; k.held = true; this.shown = k; return k; } this.shown = null; return null; };
+        const hold = () => {
+            // after the 3 s: the same lines (or a usual 3.3 m lane) faded, the cars still shown (1.3.95, the user's choice)
+            const base = this.good ? this.good.e : { left: { y: 1.65, type: 'dashed', color: 'white', margin: 0.7 }, right: { y: -1.65, type: 'dashed', color: 'white', margin: 0.7 }, width: 3.3 };
+            if (!this.good && this.helper.status().state !== 'connected') { this.shown = null; return null; }
+            const k = JSON.parse(JSON.stringify(base)); k.levels = { left: k.left ? 'ok' : null, right: k.right ? 'ok' : null }; k.held = true; k.faded = !this.good || now - this.good.at > HOLD_MS; this.shown = k; return k; };
         if (!this.last || this.at === null || now - this.at > STALE_MS) return hold();
         const e = egoLines(this.last); if (!e || (!e.left && !e.right)) return hold();
         // (1.3.95) each line's place smoothed (a third of the way to the new one a frame; a jump over 0.8 m is taken at
@@ -87,7 +91,9 @@ function draw(v, w, h) {
     const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
     // (1.3.95) straight ahead: the line's place at the car, not its bend (the camera's heading swung it about)
     const yAt = (s) => s.y;
+    let fade = v.faded ? 0.3 : 1;   // (1.3.95) lines lost over 3 s: the road and the lines faint
     const strip = (fy0, fy1, d0, d1, c) => {
+        if (fade < 1 && c && c.length === 4) c = [c[0], c[1], c[2], Math.round(c[3] * fade)];
         const n = Math.max(2, Math.ceil((d1 - d0) / 2)), a = [], b = [];
         for (let i = 0; i <= n; i++) { const d = d0 + (d1 - d0) * i / n; a.push(project(d, fy0(d))); b.unshift(project(d, fy1(d))); }
         cv.fill(a.concat(b), c);
@@ -113,7 +119,7 @@ function draw(v, w, h) {
         const yNear = project(NEAR_D, 0)[1], yFar = project(FAR_D, 0)[1];
         if (px) for (let py = Math.max(0, Math.floor(yFar * k)); py < Math.min(c.h, Math.ceil(yNear * k)); py++) {
             const y = (py + 0.5) / k, d = F * EYE / (y - HZ) - D; if (d < NEAR_D || d > FAR_D) continue;
-            const t = (d - NEAR_D) / (FAR_D - NEAR_D), tt = Math.pow(t, 0.6), alpha = (210 - 150 * tt) / 255;
+            const t = (d - NEAR_D) / (FAR_D - NEAR_D), tt = Math.pow(t, 0.6), alpha = (210 - 150 * tt) / 255 * fade;
             sides.forEach(([e0, e1, pal]) => {
                 const col = [0, 1, 2].map((i) => pal[0][i] + (pal[1][i] - pal[0][i]) * tt);
                 let xa = project(d, e0(d))[0] * k, xb = project(d, e1(d))[0] * k; if (xa > xb) { const q = xa; xa = xb; xb = q; }
@@ -140,6 +146,7 @@ function draw(v, w, h) {
     };
     mark(L, lv.left); mark(R, lv.right);
     // the car in the middle, over the lines (a line it is on goes under it)
+    fade = 1;   // the cars at full strength
     // (1.3.87) the car ahead in our lane at its distance (its rear: our front + the gap; camera metres from the windscreen)
     if (v.lead && typeof v.lead.gap === 'number') {
         const L0 = v.lead, art0 = require('./hud-art'), d = Math.min(FAR_D - 2, CAR_D + 4.7 + L0.gap), [lx, ly] = project(d, 0);
@@ -172,7 +179,7 @@ class LaneOverlay {
         if (!l) { const ref = this.client.image({ target: 'hud', klass: 'overlay', z: 12, x: r.x, y: r.y, w: r.w, h: r.h, iw: r.w, ih: r.h, visible: false }); if (!ref) return false; l = this.layer = { ref, x: r.x, y: r.y, w: r.w, h: r.h, key: null, visible: false }; }
         v = Object.assign({}, v, { surface });
         const ld = v.lead && typeof v.lead.gap === 'number' ? [Math.round(v.lead.gap * 2) / 2, v.lead.level, Math.round(v.lead.closing || 0), v.lead.type, !!v.lead.go] : null;
-        const key = JSON.stringify([v.left, v.right, v.levels, v.width, surface, ld]);
+        const key = JSON.stringify([v.left, v.right, v.levels, v.width, surface, ld, !!v.faded]);
         if (l.key !== key) { const im = draw(v, r.w, r.h), px = Buffer.alloc(r.w * r.h * 4);
             for (let y = 0; y < Math.min(r.h, im.h); y++) Buffer.from(im.d.buffer, im.d.byteOffset + y * im.w * 4, Math.min(r.w, im.w) * 4).copy(px, y * r.w * 4);
             this.client.pixels(l.ref, null, px); l.key = key; }
