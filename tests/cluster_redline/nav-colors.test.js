@@ -4,7 +4,7 @@
 // Optional argument: a built stage (dist/cluster_redline) to draw.
 const assert=require('assert'),path=require('path');
 const {settings}=require('../../apps/cluster_redline/policy'),D=require('../../apps/cluster_redline/display-config'),K=require('../../apps/cluster_redline/render-state');
-assert.deepStrictEqual(D.NAV_COLOR_NAMES,['orange','green','blue','white']);
+assert.deepStrictEqual(D.NAV_COLOR_NAMES,['orange','green','blue','white','lime']);
 assert.strictEqual(settings({}).navColor,'blue');assert.strictEqual(settings({}).navTextColor,'white','defaults as before: blue arrow, white text');
 assert.strictEqual(settings({navColor:'gray'}).navColor,'white','grey is no longer offered');
 D.NAV_COLOR_NAMES.forEach(c=>{assert.strictEqual(settings({navColor:c}).navColor,c);assert.strictEqual(settings({navTextColor:c}).navTextColor,c);});

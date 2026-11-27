@@ -113,14 +113,16 @@ function iconOf(state){
  if(/^ARRIVAL/.test(m||''))return m==='ARRIVAL_LEFT'?'arrival-left':'arrival-right';
  return ICON[m]||null;
 }
+// the neon colour (1.3.86) has its own icons, the user's second sheet, as they are (not tinted)
+const NEON=()=>require('./display-config').NAV_COLORS.lime,ROUND={nav:[0.505,0.47,0.12],neon:[0.5,0.5,0.1]};
 // paint the icon fitted in the box (x, y, w, h), bottom-centred; the roundabout's exit number over its middle
 function icon(cv,state,color,x,y,w,h,small){
  const name=state&&state.arrowStyle!=='drawn'?iconOf(state):null,art=typeof cv.art==='function'?cv.art:cv&&cv.d?(n,a,b,c,d,o)=>require('./hud-art').paint(cv,n,a,b,c,d,o):null;if(!name||!art)return false;
- const A=require('./hud-art'),sz=A.size('nav/'+name);if(!sz)return false;
+ const set=String(color).toLowerCase()===NEON()?'neon':'nav',A=require('./hud-art'),sz=A.size(set+'/'+name);if(!sz)return false;
  const k=Math.min(w/sz.w,h/sz.h),iw=sz.w*k,ih=sz.h*k,ix=x+(w-iw)/2,iy=y+h-ih;
- const tint=DEFAULT_BLUE.indexOf(String(color).toLowerCase())>=0?null:color;
- if(art('nav/'+name,ix,iy,iw,ih,{tint})===false)return false;
- if(name==='roundabout'&&!small&&state.exitNumber){const cx=ix+iw*0.505,cy=iy+ih*0.47,r=iw*0.12;
+ const tint=set==='neon'||DEFAULT_BLUE.indexOf(String(color).toLowerCase())>=0?null:color;
+ if(art(set+'/'+name,ix,iy,iw,ih,{tint})===false)return false;
+ if(name==='roundabout'&&!small&&state.exitNumber){const R=ROUND[set],cx=ix+iw*R[0],cy=iy+ih*R[1],r=iw*R[2];
   cv.arc(cx,cy,0,r,0,360,'#141a22');cv.text(String(state.exitNumber),cx,cy+r*0.62,r*1.7,WHITE,{align:'center',font:'num',literal:true});}
  return true;
 }
