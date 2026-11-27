@@ -148,7 +148,7 @@ class SettingsPage{
   if(item.key==='vehiclePreset'){const e=options(this.settings.schema.find(s=>s.key==='engineProfile'),cfg).find(o=>o[0]===cfg.engineProfile);return (e?t(e[1]):'')+' · '+cfg.powerUnit+' · '+(cfg.torqueUnit==='kgfm'?'kgf·m':'Nm')+' · '+cfg.shiftRpm+' rpm';}
   if(item.key==='driverProfiles')return this.driverValue();
   if(item.key==='hudDoorAlert')return this.doorValue(cfg);
-  if(item.key==='navColor')return tr(cfg.navArrowStyle==='drawn'?'Drawn arrows':'Icons')+' · '+tr('Arrow')+' '+tr(NAV_COLOR_LABELS[cfg.navColor])+' · '+tr('Text')+' '+tr(NAV_COLOR_LABELS[cfg.navTextColor]);
+  if(item.key==='navColor')return tr(cfg.navArrowStyle==='drawn'?'Drawn arrows':'3D')+' · '+tr('Arrow')+' '+tr(NAV_COLOR_LABELS[cfg.navColor])+' · '+tr('Text')+' '+tr(NAV_COLOR_LABELS[cfg.navTextColor]);
   // the blind spot warning is set on the same screen: named here while it is on
   if(item.key==='turn')return (cfg.hudTurnSignals==='on'?tr('On')+' · '+tr(TURN_STYLE_LABELS[cfg.hudTurnStyle])+' · '+tr(TURN_COLOR_LABELS[cfg.hudTurnColor]):tr('Off'))+(cfg.hudTurnBlindSpot==='on'?' · '+tr('Blind spot on'):'');
   // Navigation display (1.3.36): its own screen, with the next turn on the HUD; both named here
@@ -659,7 +659,7 @@ class SettingsPage{
   });
   // the arrow style (1.3.82, after the colours so their buttons keep their order): the icons from the user's sheet or the drawn arrows
   cv.text(tr('Arrow style'),1180,126,28,'#ef4050',{literal:true});
-  [['icon','Icons'],['drawn','Drawn arrows']].forEach(([v,l],i)=>this.button(cv,local,tr(l),1164,146+i*76,352,62,()=>set('navArrowStyle',v),cfg.navArrowStyle===v,'navArrowStyle-'+v));
+  [['icon','3D'],['drawn','Drawn arrows']].forEach(([v,l],i)=>this.button(cv,local,tr(l),1164,146+i*76,352,62,()=>set('navArrowStyle',v),cfg.navArrowStyle===v,'navArrowStyle-'+v));
   // preview: a right turn with its distance, and a road name, as the HUD draws them
   cv.roundRect(84,340,700,100,10,[0,0,0,170]);
   NAV.draw({visible:true,maneuver:'RIGHT',color:cfg.navColor,textColor:cfg.navTextColor,distanceText:'300 m',arrowStyle:cfg.navArrowStyle},vector(cv,104,342,0.86));
