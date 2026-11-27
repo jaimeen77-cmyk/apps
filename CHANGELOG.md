@@ -30,12 +30,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
   - Its width follows the class, and a tall one is kept inside the picture.
   - Its headway step glows on the road under it: cyan, amber or red, green pulling away.
   - The distance and the closing speed sit small in the picture's empty top right corner.
-- **New: Lead car departure alert** (HUD lamps → 앞차 출발 알림, off by default). It works like this:
+- **New: Lead car departure alert**, part of the headway badge with no setting of its own. It works like this:
   - We stand (under 1 km/h) for 2 s with a car ahead within 15 m.
   - The car then moves 3 m further than its nearest, or is lost having been within 10 m, for half a second.
   - The alert then shows for 3 s, once per stop. It does not run in P, or once we move.
-  - With the lane lines on, the car ahead turns green with an arrow and "출발" in the corner. Otherwise the headway badge shows "출발" in green, even when the badge is off.
-- The car ahead is read when the badge, the lane lines or the alert needs it. The badge can be turned off while the lane picture shows the car ahead.
+  - The headway badge shows "출발" in green. With the lane lines on, the car ahead also turns green with an arrow, and "출발" appears in the corner.
+  - The headway screen says so.
+- The car ahead is read when the badge or the lane lines need it. The badge can be turned off while the lane picture still shows the car ahead (without the departure alert).
 - Tests: new `lead-departure` covers the stop, the moving off, a car lost close by or far away, P, moving first and the next stop, plus the badge and the lane picture by class.
 
 ## Cluster Redline 1.3.86 (neon navigation colour; the pictures one file a set)

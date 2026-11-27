@@ -469,14 +469,13 @@ function start(ctx) {
             // (1.3.87) the car ahead is read for the badge, for the lane lines (drawn in the road) and for the departure alert
             const headwayOn = live && config.appEnabled && config.hudHeadway !== 'off';
             const lanesOn = live && config.appEnabled && config.hudLaneLines === 'on';
-            departureOn = live && config.appEnabled && config.hudLeadDeparture === 'on';
-            if (lead) lead.sync(headwayOn || lanesOn || departureOn);
-            const leadNow = lead && (headwayOn || lanesOn || departureOn) ? lead.read(at) : null;
+            departureOn = headwayOn;   // the departure alert comes with the headway badge (no setting of its own)
+            if (lead) lead.sync(headwayOn || lanesOn);
+            const leadNow = lead && (headwayOn || lanesOn) ? lead.read(at) : null;
             const speedKmh = carSpeed.at !== null && at - carSpeed.at <= 2000 ? carSpeed.v : null;
             const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : null) : false;
             const leadShown = leadNow ? Object.assign({}, leadNow, { go: going }) : going ? { gap: departure.nearest || 0, go: true } : null;
-            // the badge: as set; with the departure and no lane lines, also while it shows when the badge is off
-            headwayOverlay.tick(headwayOn || going && !lanesOn ? leadShown : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));
+            headwayOverlay.tick(headwayOn ? leadShown : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));
             laneLines.sync(lanesOn);
             const lanesNow = lanesOn ? laneLines.read(at, controller.turn && controller.turn.indicator) : null;
             laneOverlay.tick(lanesNow ? Object.assign({}, lanesNow, { lead: leadShown }) : null, config, !!(pv && pv.part === 'Headway' && config.hudLaneLines === 'on'));
