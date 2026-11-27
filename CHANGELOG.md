@@ -22,6 +22,23 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.81 (guidance icons from the user's sheet)
+
+- **The HUD's guidance icons are cut from the user's icon sheet**, with their glow:
+  - turns, slight turns and U-turns
+  - straight on and roundabouts (the exit number drawn over the middle)
+  - lane changes and arrivals (left / right)
+  - highway entries and exits (left, straight, right)
+  - The icons stand where the drawn arrows were: the turn box, the small "then" arrow and Navigation focus.
+  - Forks and branches keep their drawn diagrams.
+  - The chosen navigation colour (orange, green, white) turns the icons' blue; their greys stay.
+- **Lane guidance uses the sheet's lane arrows.**
+  - The other lanes' arrows are grey. The lane to take is lit in the navigation colour, with a glow.
+  - Right turns are mirrored from the left ones. A lane's other directions are dimmer.
+  - Directions without a picture fall back to the drawn arrows.
+- Tools: `tools/hud-art/cut-nav.py` cuts the sheet into `tools/hud-art/nav/`. `make.py` embeds them in `hud-art.js`, which can also tint and mirror.
+- Tests: `nav-icons-art`. `nav-colors` now checks the arrow's hue.
+
 ## Cluster Redline 1.3.80 (the cars from the user's picture)
 
 - **The car in the lane-lines picture and the headway badge's car icons are cut from the user's own reference picture**, with their glow, instead of drawn.

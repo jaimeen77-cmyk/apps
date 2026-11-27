@@ -507,7 +507,7 @@ function drawVu(cv,f,h){
 const NF={blue:'#45b8ff',text:'#eef3f8',dim:'#7b8796',ring:'#1c242e',lane:'#141a21',laneOn:'#16405e'};
 const TURN_KO={LEFT:'좌회전',RIGHT:'우회전',SLIGHT_LEFT:'왼쪽 방향',SLIGHT_RIGHT:'오른쪽 방향',SHARP_LEFT:'급좌회전',SHARP_RIGHT:'급우회전',STRAIGHT_ON:'직진',UTURN_LEFT:'유턴',UTURN_RIGHT:'유턴',ROUNDABOUT:'회전교차로',KEEP_LEFT:'왼쪽 유지',KEEP_RIGHT:'오른쪽 유지',LANE_LEFT:'왼쪽 차로',LANE_RIGHT:'오른쪽 차로'};
 function navArrow(cv,state,x,y,s,color,small){const N=require('./nav-draw'),m=p=>[x+p[0]*s,y+p[1]*s];
- return N.arrow({polyline:(pts,w,c)=>cv.polyline(pts.map(m),w*s,c),quad:(pts,c)=>cv.quad(pts.map(m),c),text:(t,tx,ty,size,c,o)=>cv.text(t,x+tx*s,y+ty*s,size*s,c,Object.assign({literal:true},o))},state,color,small);}
+ return N.arrow({art:(n,ax,ay,w,h,o)=>require('./hud-art').paint(cv,n,x+ax*s,y+ay*s,w*s,h*s,o),arc:(ax,ay,r0,r1,a0,a1,c,o)=>cv.arc(x+ax*s,y+ay*s,r0*s,r1*s,a0,a1,c,o),polyline:(pts,w,c)=>cv.polyline(pts.map(m),w*s,c),quad:(pts,c)=>cv.quad(pts.map(m),c),text:(t,tx,ty,size,c,o)=>cv.text(t,x+tx*s,y+ty*s,size*s,c,Object.assign({literal:true},o))},state,color,small);}
 function drawNavFocus(cv,f,h){
  const d=f.d,n=f.nav,ko=language()==='ko',max=f.max;
  if(want(f,'nav')){if(cv.reserve)cv.reserve(290,30,508,440);
