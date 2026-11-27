@@ -83,24 +83,31 @@ const COLORS = { white: [232, 238, 246, 255], yellow: [255, 206, 58, 255], near:
 // and tints the half of the lane on its side; red also glows under the car; with the turn signal (a lane change) only
 // that side's line turns cyan. A point d metres ahead of the car and y metres to its left: x = cx - F y / (d + D),
 // y = HZ + F EYE / (d + D). The lines are 15 cm (a double line two of 12 cm), dashes 3 m on and 5 m off.
-const F = 454, D = 20, EYE = 4.07, HZ = -26, NEAR_D = -3.2, FAR_D = 38, MARK = 0.15, CAR_D = -1.6;
+// the lane in the picture: 2.2 m, our car (drawn at 0.66 of its 1.9 m) about half of it, as the user's reference
+const PIC_LANE = 2.2;
+const F = 454, D = 20, EYE = 4.07, HZ = -26, NEAR_D = -3.2, FAR_D = 38, MARK = 0.1, CAR_D = -1.6;
 function project(d, y) { const q = d + D; return [W / 2 - F * y / q, HZ + F * EYE / q]; }
 const px2m = (px, d) => px * (d + D) / F;
 function draw(v, w, h) {
     const { ScaledCanvas } = require('./kit/canvas');
     const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
-    // (1.3.95) straight ahead: the line's place at the car, not its bend (the camera's heading swung it about)
+    // (1.3.97, the user's request) one lane of a fixed width with our car fitted in it: the lines never move or widen with
+    // what the camera measures; a warning colours only the half of the lane on its side (and that side's line), and a
+    // line the camera does not see is drawn where it would be (virtual), so the picture always looks the same
     const yAt = (s) => s.y;
-    let fade = v.faded ? 0.3 : 1;   // (1.3.95) lines lost over 3 s: the road and the lines faint
+    let fade = 1;
     const strip = (fy0, fy1, d0, d1, c) => {
         if (fade < 1 && c && c.length === 4) c = [c[0], c[1], c[2], Math.round(c[3] * fade)];
         const n = Math.max(2, Math.ceil((d1 - d0) / 2)), a = [], b = [];
-        for (let i = 0; i <= n; i++) { const d = d0 + (d1 - d0) * i / n; a.push(project(d, fy0(d))); b.unshift(project(d, fy1(d))); }
+        for (let i = 0; i < n; i++) { const d = d0 + (d1 - d0) * i / n; a.push(project(d, fy0(d))); b.unshift(project(d, fy1(d))); }
+        a.push(project(d1, fy0(d1))); b.unshift(project(d1, fy1(d1)));
         cv.fill(a.concat(b), c);
     };
-    const L = v.left, R = v.right, lw = typeof v.width === 'number' && v.width > 2 && v.width < 5 ? v.width : 3.3;
-    const fl = L ? (d) => yAt(L, d) : (d) => yAt(R, d) + lw, fr = R ? (d) => yAt(R, d) : (d) => yAt(L, d) - lw;
-    const lv = v.levels || {}, worst = ['over', 'near'].find((x) => lv.left === x || lv.right === x) || null;
+    const virt = (s, y) => Object.assign({ type: 'dashed', color: 'white' }, s ? { type: s.type, color: s.color } : { virtual: true }, { y });
+    const L = virt(v.left, PIC_LANE / 2), R = virt(v.right, -PIC_LANE / 2);
+    const fl = () => PIC_LANE / 2, fr = () => -PIC_LANE / 2;
+    const lv0 = v.levels || {}, lv = { left: v.left ? lv0.left : null, right: v.right ? lv0.right : null };
+    const worst = ['over', 'near'].find((x) => lv.left === x || lv.right === x) || null;
     // the road: dark, a little beyond the lines, lighter near the car; the grid
     strip((d) => fl(d) + 0.45, (d) => fr(d) - 0.45, NEAR_D, FAR_D, [20, 24, 30, 230]);
     strip((d) => fl(d) + 0.45, (d) => fr(d) - 0.45, NEAR_D, 8, [36, 41, 49, 120]);
@@ -132,14 +139,14 @@ function draw(v, w, h) {
             });
         }
     } else { tint(1, lv.left); tint(-1, lv.right); }
-    if (worst === 'over') { const c = COLORS.over; [[1.15, 26], [0.85, 32], [0.55, 40]].forEach(([wd, a]) => strip(() => wd, () => -wd, NEAR_D, CAR_D + 0.6, [c[0], c[1], c[2], a])); }
+    // (1.3.97) no red glow under the car any more: only the warned half of the lane is coloured
     // the lines: a soft glow under each painted line
     const mark = (s, lvl) => {
         if (!s) return;
-        const c = worst ? COLORS[worst] : lvl === 'change' ? COLORS.change : COLORS[s.color] || COLORS.white;
-        const edges = s.type === 'double' ? [[-0.2, -0.07], [0.07, 0.2]] : s.type === 'edge' ? [[-0.1, 0.1]] : [[-MARK / 2, MARK / 2]];
+        const c = lvl === 'over' || lvl === 'near' ? COLORS[lvl] : lvl === 'change' ? COLORS.change : COLORS[s.color] || COLORS.white;
+        const edges = s.type === 'double' ? [[-0.14, -0.05], [0.05, 0.14]] : s.type === 'edge' ? [[-0.07, 0.07]] : [[-MARK / 2, MARK / 2]];
         const pieces = s.type === 'dashed' || s.type === 'dotted' ? (() => { const out = [], on = s.type === 'dotted' ? 0.8 : 3, per = s.type === 'dotted' ? 2.4 : 8; for (let d = NEAR_D - 1; d < FAR_D; d += per) out.push([Math.max(NEAR_D, d), Math.min(FAR_D, d + on)]); return out; })() : [[NEAR_D, FAR_D]];
-        [[3.2, 38], [1.6, 80], [0, 255]].forEach(([pad, a]) => edges.forEach(([e0, e1]) => pieces.forEach(([d0, d1]) => {
+        [[1.6, 34], [0.8, 70], [0, 255]].forEach(([pad, a]) => edges.forEach(([e0, e1]) => pieces.forEach(([d0, d1]) => {
             if (d1 <= d0) return;
             strip((d) => yAt(s, d) + e1 + px2m(pad, d) + px2m(0.35, d), (d) => yAt(s, d) + e0 - px2m(pad, d) - px2m(0.35, d), d0, d1, [c[0], c[1], c[2], a === 255 ? c[3] : a]);
         })));

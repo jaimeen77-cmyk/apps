@@ -483,7 +483,7 @@ function start(ctx) {
             // (1.3.95) the nav-probe.log for a phone: the helper's page open while the screen asks for it, engine on or not
             // (1.3.96) the same connection asks the helper (0.6.0) for the car's position while the Position check is on
             // (1.3.97) and whether the cruise control (ACC) shows on the cluster: the cluster then gives way (2 s after it goes)
-            {const shareOn = config.appEnabled && config.navShare === 'on' && !!navProbeFile, posOn = !!position && live && config.appEnabled && config.positionCheck === 'on', accOn = live && config.appEnabled;
+            {const shareOn = config.appEnabled && config.navShare === 'on' && !!navProbeFile, posOn = !!position && live && config.appEnabled && config.positionCheck === 'on', accOn = live && config.appEnabled && config.clusterYieldAcc !== 'off';
              shareHelper.sync(shareOn || posOn || accOn, mono());
              if ((shareOn || posOn || accOn) && at - shareCmdAt >= 1000) { shareCmdAt = at; const cmd = { t: 'cmd' };
                  if (shareOn) { cmd.share = true; cmd.file = navProbeFile; } if (posOn) cmd.position = true; if (accOn) cmd.acc = true; shareHelper.send(cmd); }

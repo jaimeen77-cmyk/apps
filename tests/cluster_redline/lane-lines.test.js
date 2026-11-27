@@ -77,10 +77,17 @@ if(process.argv[2]){const X=require(path.join(path.resolve(process.argv[2]),'sou
  const g=X.draw(Object.assign({surface:'green'},v),112,84),dk=X.draw(v,112,84),at=(im,x,y)=>Array.from(im.d.slice((y*im.w+x)*4,(y*im.w+x)*4+4));
  const near=at(g,40,80),far=at(g,52,20);assert(near[1]>near[0]&&near[1]>near[2]&&near[1]>180,'lime near the car '+near);assert(near[1]>far[1],'brighter towards the car '+near+' / '+far);
  assert(at(dk,40,80)[1]<90,'dark stays dark');}
-// (1.3.95) faded: the road and the lines faint, the cars as ever
+// (1.3.97) the picture always the same: no fading when lines are lost; one lane of a fixed width (the lines do not move with
+// what is measured); a warning colours only its side's half; a line not seen is drawn where it would be
 if(process.argv[2]){const X=require(path.join(path.resolve(process.argv[2]),'source/javascript','lane-lines'));
  const v0={width:3.3,left:{y:1.6,slope:0,type:'solid',color:'white',margin:0.65},right:{y:-1.6,slope:0,type:'solid',color:'white',margin:0.65},levels:{left:'ok',right:'ok'}};
  const sum=(im,x0,x1,y0,y1)=>{let n=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)n+=im.d[(y*im.w+x)*4+3];return n;};
  const a=X.draw(v0,112,84),b=X.draw(Object.assign({},v0,{faded:true}),112,84);
- assert(sum(b,0,112,0,40)<sum(a,0,112,0,40)*0.6,'the road ahead fainter');assert(Math.abs(sum(b,40,72,60,84)-sum(a,40,72,60,84))<sum(a,40,72,60,84)*0.35,'our car still there');}
+ assert.strictEqual(sum(b,0,112,0,84),sum(a,0,112,0,84),'no fading');
+ const wide=X.draw(Object.assign({},v0,{left:Object.assign({},v0.left,{y:2.4}),right:Object.assign({},v0.right,{y:-2.4})}),112,84);
+ assert.deepStrictEqual(Array.from(wide.d),Array.from(a.d),'the lane does not widen with the measured lines');
+ const noLeft=X.draw(Object.assign({},v0,{left:null,levels:{left:null,right:'ok'}}),112,84);assert(sum(noLeft,0,40,40,84)>sum(a,0,40,40,84)*0.6,'a line not seen drawn (virtual)');
+ const px=(im,x,y)=>Array.from(im.d.slice((y*im.w+x)*4,(y*im.w+x)*4+4));
+ const warn=X.draw(Object.assign({},v0,{levels:{left:'ok',right:'over'}}),112,84),r=px(warn,70,76),l=px(warn,42,76),l0=px(a,42,76);
+ assert(r[0]>r[1]+60&&r[0]>r[2]+60,'the right half red '+r);assert.deepStrictEqual(l,l0,'the left half unchanged');}
 console.log('lane-lines ok');
