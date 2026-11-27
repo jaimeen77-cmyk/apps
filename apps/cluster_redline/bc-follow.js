@@ -49,7 +49,9 @@ const shared={now:{cluster:false,hud:false},listeners:[]};
 function setNow(on){const next=typeof on==='object'&&on?{cluster:!!on.cluster,hud:!!on.hud}:{cluster:!!on,hud:false};
  const changed=DISPLAYS.filter(d=>next[d]!==shared.now[d]);if(!changed.length)return;shared.now=next;
  shared.listeners.slice().forEach(f=>{try{f(changed.filter(d=>next[d]));}catch(e){}});}
-const bcOf=(get,d)=>get('sport'+NAME[d]+'Output')==='bc'||get('all'+NAME[d]+'Output')==='bc';
+// a display in BC mode in some drive mode (1.3.84: the drive-mode setup, else the older rows)
+const bcOf=(get,d)=>{const D=require('./display-config'),c={};['sport','all'].forEach(m=>{c[m+NAME[d]+'Output']=get(m+NAME[d]+'Output');});c[d+'ModeSetup']=get(d+'ModeSetup');
+ const all=D.modeSetup(c,d);return D.MODE_GROUPS.some(g=>all[g].out==='bc');};
 const anyBc=(get)=>DISPLAYS.some(d=>bcOf(get,d));
 function parse(text,fallback){try{const v=JSON.parse(text||'');return v&&typeof v==='object'?v:fallback;}catch(e){return fallback;}}
 /** Every page's setup for a head unit and a display ('cluster' when not given): the saved one, else the default. */
@@ -62,7 +64,7 @@ class BcFollow {
  constructor(o){
   this.settings=o.settings;this.signals=o.signals;this.log=o.log||{warn(){},info(){}};this.apply=o.apply;this.changed=o.changed||(()=>{});this.clock=o.clock||Date.now;
   this.sub=null;this.state='off';this.error=null;this.token=0;this.held=false;this.lastPress=-Infinity;this.presses=0;
-  this.settings.onChange((k)=>{if(/^(sport|all)(Cluster|Hud)Output$/.test(k)||k==='bcHmi')this.sync(true);});
+  this.settings.onChange((k)=>{if(/^(sport|all)(Cluster|Hud)Output$/.test(k)||/ModeSetup$/.test(k)||k==='bcHmi')this.sync(true);});
   this.onNow=(ds)=>{if(ds&&ds.length)this.show();};shared.listeners.push(this.onNow);
   if(this.get('bcStart')==='first')this.settings.set('bcIndex',0);
   this.sync(true);

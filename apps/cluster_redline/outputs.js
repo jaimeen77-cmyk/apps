@@ -1,7 +1,7 @@
 'use strict';
 const { EventEmitter } = require('events');
 const { Controller } = require('./controller');
-const { Policy, settings } = require('./policy');
+const { Policy, settings, screenSettings } = require('./policy');
 const { Telemetry } = require('./telemetry');
 const D=require('./display-config'),{navAllowed,rpmOutput}=D;
 const { tr } = require('./strings');
@@ -86,9 +86,11 @@ class Outputs {
         this.turnInLayer=turnInLayer;
         order.forEach((name) => {
             // Turn signal and blind spot parts are previewed on their own overlay layers, not by the Redline face.
-            const out=this[name],pv=preview&&preview.display===name&&!/^(Turn|Blind|CarAlert|Door)/.test(preview.part||'')?preview:null,local=pv?previewConfig(cfg,name,pv):cfg;
+            const out=this[name],pv=preview&&preview.display===name&&!/^(Turn|Blind|CarAlert|Door)/.test(preview.part||'')?preview:null;
             // BC mode (bc-follow.js, a cluster RPM row set to it): the page shows the Redline cluster...
             const bcNow=!pv&&D.bcModeNow(cfg,this.policy.mode,name==='hud'?'Hud':'Cluster'),bcShow=bcNow&&(name==='hud'||cfg.bcCluster!=='yield');
+            // the drive mode's own screen (1.3.84) over the common one; the layout editor and BC mode keep theirs
+            const local=pv?previewConfig(cfg,name,pv):bcNow?cfg:screenSettings(cfg,name,this.policy.mode);
             const rpm=pv&&pv.tab!=='nav'?true:(bcShow||rpmOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode))&&D.faceVisible(local,name);
             const navigation=pv&&pv.tab==='nav'?sampleNavigation():this.navigation;
             const nav=name==='hud'&&(pv&&pv.tab==='nav'||navAllowed(local,this.policy.mode)&&navigation&&navigation.visible);

@@ -8,7 +8,9 @@ try{
   page.selectTab(i);const cv=page.draw(new Canvas(1600,520));assert.strictEqual(cv.tabRects.length,5);for(const r of cv.targets)assert(r.x>=0&&r.y>=0&&r.x+r.w<=1600&&r.y+r.h<=520);
   const full=new Canvas(1600,520);full.chrome={};page.draw(full);assert.strictEqual(full.chrome.tabs.tabs.length,5);
  }
- page.selectTab(1);page.activate(0);page.choose(0);assert.strictEqual(values.sportHudOutput,'redline');page.activate(1);page.choose(1);assert.strictEqual(values.allHudOutput,'nosport');page.activate(1);page.choose(2);assert.strictEqual(values.allHudOutput,'stock');
+ // 1.3.84: the drive-mode display screen replaces the Sport / All modes rows: a group's output, written for every group
+ page.selectTab(1);page.activate(0);assert.strictEqual(page.open,'modes');{const cv=page.draw(new Canvas(1600,520));cv.targets.find(t=>t.id==='mode-sport-redline').run();}
+ assert.strictEqual(JSON.parse(values.hudModeSetup).sport.out,'redline');assert.deepStrictEqual(Object.keys(JSON.parse(values.hudModeSetup)),['sport','comfort','eco','other']);page.back();
  page.activate(page.keys().indexOf('design'));page.draw(new Canvas(1600,520));page.choose(1);page.back();assert.strictEqual(values.hudAlertStyle,'circle');
  page.selectTab(2);page.activate(page.keys().indexOf('design'));page.draw(new Canvas(1600,520));page.choose(0);page.back();assert.strictEqual(values.clusterAlertStyle,'bar');
  if(require(dir+'/kit/locale.json').language==='ko'){
