@@ -27,12 +27,13 @@
 // displayDriverAssistenceSystemLongitudinalGuidance (eventgroup 2, a field): crc u8, alive u8, chl u8, displayXCC u16,
 // activeFunctionDriverAssistenceSystemLDM u8 (XCC_AKTIV 1), ... On the user's car (2026-11-28): bytes 3-5 all 0 with
 // ACC off, 13 00 20 with it on (decodeAcc: on when any is not 0).
+// 0.8.0: share.js gives both of the app's logs (nav-probe.log, road-alerts.log) and both together, from {share, dir}.
 // Serves /run/redline-lead/lead.sock (0666, JSON lines). Subscribes only while a client is connected.
 const net = require('net'), fs = require('fs'), path = require('path'), { spawn } = require('child_process');
 const DIR = process.env.REDLINE_LEAD_DIR || '/run/redline-lead', SOCK = path.join(DIR, 'lead.sock');
 const BIN = process.env.REDLINE_SOMEIP || path.join(__dirname, 'redline-someip');
 // 0.5.0: the app's nav-probe.log for a phone (share.js), while the app asks for it (0.4.0's scene clips are gone)
-const VERSION = '0.7.0', { Share } = require('./share');
+const VERSION = '0.8.0', { Share } = require('./share');
 const SPECS = ['0xf139:1:2:1:0x8001,0x8002', '0x3539:1:1:1:0x8001:f', '0x3539:1:1:2:0x8002:f', '0xd024:1:1:3:0x8003'];
 const ACC_SPECS = ['0xb50e:1:1:2:0x8002:f'];   // instance 1 (offered on the user's car)
 const POS_SPECS = ['0xfb0c:128:4:1:0x8001:f', '0xfb0c:128:4:4:0x8004:f'];
@@ -213,7 +214,7 @@ function stopChild() { if (!child) return; try { child.stdin.end(); } catch (e) 
 function message() { return JSON.stringify({ t: 'lead', v: VERSION, at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar, lane: state.lane, share: share.status(), position: state.position.on ? state.position : undefined, acc: state.acc.on ? state.acc : undefined }) + '\n'; }
 // the app's commands (0.5.0), one JSON line each: {t: 'cmd', share: bool, file: its nav-probe.log}
 function command(l) { let c = null; try { c = JSON.parse(l); } catch (e) { return; } if (!c || c.t !== 'cmd') return;
-    if (typeof c.share === 'boolean') share.sync(c.share, typeof c.file === 'string' ? c.file : null);
+    if (typeof c.share === 'boolean') share.sync(c.share, c);   // 0.8.0: {dir} (its two logs); 0.5.0's {file} still taken
     if (typeof c.position === 'boolean') syncPos(c.position);
     if (typeof c.acc === 'boolean') syncAcc(c.acc); }
 function schedule() { if (sendTimer || !clients.size) return; sendTimer = setTimeout(() => { sendTimer = null; const m = message(); clients.forEach((s) => { try { s.write(m); } catch (e) {} }); }, SEND_MS); }

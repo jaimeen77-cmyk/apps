@@ -2,7 +2,7 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## Cluster Redline 1.3.100 (cut-in and pedestrian / cyclist warnings on the lane picture)
+## Cluster Redline 1.3.100 (cut-in and pedestrian / cyclist warnings on the lane picture; QR log collection)
 
 - **New: cut-in and pedestrian / cyclist warnings** on the HUD lane picture, **on by default**. HUD lamps → **Cut-in and pedestrian warnings** (끼어들기·보행자 경고) turns them off. They show with the lane lines (from the lead-car helper's camera objects and lane lines).
 - **Cut-in**:
@@ -12,7 +12,15 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - **Pedestrian / cyclist**: reached within 2.5 s (from 5 km/h), and in our path then or now (within 1.3 m of the car's axis).
 - **Shown**: that road user at its place on the picture, lit amber (red once it is on our line, and always red for a pedestrian or cyclist), with an arrow towards our lane; "Cut-in" / "Pedestrian" / "Cyclist" and the distance in the top corner away from it. One object warns again only after 3 s; a warning stays up to 2.5 s.
 - **Where the rules come from**: the user's 32 recorded scenes (1.3.89 scene clips, 2026-11-27, city driving), worked out in another session and checked here again: on those they warn once, at the one real cut-in (35 m ahead, about 1 s before the car reached the middle of our lane), and never otherwise. The earlier idea (warn when the car ahead changes to a nearer one) missed that cut-in: the camera had already taken the car as the one ahead while it was still in the next lane. Missed cases could not be checked (only one real cut-in was recorded).
-- Tests: `road-alerts` (a cut-in after driving beside us, red on the line, none for crossing, overtaking, our lane change or under 20 km/h, a pedestrian in our path, the lane picture, on by default); the replay of the 32 scenes gives the same single warning.
+- **New: QR log collection** (Basic settings, last row; 기본설정 → QR 로그 수집), for checking the warnings on the car:
+  - **QR On / Off**: the lead-car helper (**0.8.0**) opens a read-only page for the phone with **both logs**: `nav-probe.log` (Received turns) and `road-alerts.log` (warnings), each on its own, or **both together** as `redline-logs.tar.gz`. (The Received turns screen's QR button opens this screen now.)
+  - **Warning recording** (off by default): each cut-in / pedestrian warning writes 5 s before it and 3 s after it (the camera objects, lane lines and speed; no position).
+  - **Save a miss**: when a cut-in or a person was not warned, it writes the last 20 s.
+  - **Delete logs**: deletes both logs; pressed twice within 5 s.
+  - **Size**: the warnings log keeps at most 3 MB (1.5 MB parts, the oldest part goes: about 150 warnings or 60 misses); nav-probe.log as before (1 MB parts).
+  - **Helper 0.8.0**: gives only those two files of the app's own data folder, never a symlink (the helper reads as root; 0.5.0-0.7.0 could have followed one).
+- Cluster Redline requires redline-lead 0.8.0.
+- Tests: `road-log` (recording, parts, Delete logs, the helper's page: two files only, no symlink, tar.gz), `road-alerts` (a cut-in after driving beside us, red on the line, none for crossing, overtaking, our lane change or under 20 km/h, a pedestrian in our path, the lane picture, on by default); the replay of the 32 scenes gives the same single warning.
 
 ## Cluster Redline 1.3.99 (speed cameras from the public list, one new alert badge)
 

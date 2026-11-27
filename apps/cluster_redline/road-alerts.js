@@ -72,7 +72,7 @@ class RoadAlerts {
     fromHelper(m, speed) {
         const c = m && m.cam; if (!c || !Array.isArray(c.objects) || typeof c.at !== 'number' || c.at === this.frameAt) return;
         this.frameAt = c.at; const lines = m.lane && m.lane.data && Array.isArray(m.lane.data.lines) ? m.lane.data.lines : [];
-        this.frame(c.at, speed, c.objects, lines);
+        return this.frame(c.at, speed, c.objects, lines);
     }
     /** For the lane picture: {type, x, y, dir, level, label, kind} or null. */
     view(now) {

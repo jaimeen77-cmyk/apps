@@ -18,7 +18,7 @@ const PROFILES = {
 };
 // Zero RPM settings mean the selected profile's defaults, rather than engine-off.
 const FRAME_RATE = 20;
-const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, comfortShiftRpm: 0, clusterYieldGuidance: 'off', clusterYieldAcc: 'on', hudHideWaze: 'sport', hudRoadAlerts: 'on', frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
+const DEFAULTS = { appEnabled: true, autoStart: true, engineProfile: 'petrol', displayMode: 'sport', powerUnit: 'PS', torqueUnit: 'Nm', shiftRpm: 0, comfortShiftRpm: 0, clusterYieldGuidance: 'off', clusterYieldAcc: 'on', hudHideWaze: 'sport', hudRoadAlerts: 'on', roadLog: 'off', roadLogMissAt: 0, logClearAt: 0, frameRate: FRAME_RATE, displayTarget: 'map', widgetScale: 80 };
 Object.assign(DEFAULTS,{hudTrafficMode:'off'});
 Object.assign(DEFAULTS, { sportClusterOutput: 'redline', sportHudOutput: 'stock', allClusterOutput: 'stock', allHudOutput: 'stock',
     clusterOffsetX: 0, clusterOffsetY: 0, clusterWidthScale: 80, clusterHeightScale: 80,
@@ -84,6 +84,8 @@ function full(raw) {
     out.comfortShiftRpm = [2000, 2250, 2500, 2750, 3000, 3250, 3500, 4000, 4500, 5000].indexOf(raw.comfortShiftRpm) >= 0 ? raw.comfortShiftRpm : 0;
     // Cluster yields while route guidance (Waze included) shows on the HUD (kept outside app.json): off / on ('phone';
     // the earlier third choice 'any' reads as on).
+    out.roadLog = raw.roadLog === 'on' ? 'on' : 'off';
+    ['roadLogMissAt', 'logClearAt'].forEach((k) => { out[k] = typeof raw[k] === 'number' && isFinite(raw[k]) ? raw[k] : 0; });
     out.hudRoadAlerts = raw.hudRoadAlerts === 'off' ? 'off' : 'on';
     out.hudHideWaze = raw.hudHideWaze === 'always' || raw.hudHideWaze === 'off' ? raw.hudHideWaze : 'sport';
     out.clusterYieldAcc = raw.clusterYieldAcc === 'off' ? 'off' : 'on';
