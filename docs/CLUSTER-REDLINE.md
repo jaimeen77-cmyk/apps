@@ -1,4 +1,4 @@
-# Cluster Redline 1.3.91 user guide
+# Cluster Redline 1.3.92 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [The apps](../README.md) · [Changelog](../CHANGELOG.md)
 
@@ -37,7 +37,7 @@ For each drive mode you choose the Redline screen, the stock one or BC mode, and
 3. Installed with it:
    - The cluster renderer **`cluster-render` 0.4.0 or later**. It comes from the Store's default source (`robertnisipeanu/idrive-apps`), which must be registered.
    - **Cluster Redline lead-car helper (`redline-lead`) 0.4.0**, from this source. It **only reads** the front camera's and the radar's car ahead, the lane lines and the road users, as root (some cars keep them from apps). The lead-car headway, lane lines and scene recording use it.
-4. Open the app: **v1.3.91** at the top right means it is done.
+4. Open the app: **v1.3.92** at the top right means it is done.
 
 It installs on iDrive 7 and iDrive 8. See [Installation](INSTALL.md) for details.
 
@@ -93,7 +93,7 @@ Now switch the drive mode to Sport and the Redline screen shows on the cluster.
 
 While you adjust their position / size, the turn arrows, blind spot and door pictures show on the HUD as a preview; they go when you leave the screen.
 
-On the HUD (from the left: the default lane colour with teal 1.6 s, the lime green lane with orange 1.2 s, the car ahead moving off):
+On the HUD (from the left: the default lane colour with teal 1.6 s, the lime green lane with orange 1.2 s, the car ahead moving off with the **Moving off** badge):
 
 ![Lane lines and lead-car headway on the HUD](../screenshots/cluster_redline/manual/face-hud-lanes-en.jpg)
 

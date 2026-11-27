@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.92 (English: the departure badge reads "Moving off")
+
+- **Fix (English edition): the lead car departure badge showed "Mig"** instead of "Moving off". The badge's big place uses the thin figures' atlas, which holds the digits and units only, so the letters it lacked dropped out. A word there now goes in the bold face, which has every letter; the time gap and the distance ("1.6s", "6 m") stay in thin figures. The Korean edition drew "출발" from its Hangul atlas and looks as before.
+- Tests: `headway` (the departure word in bold, the figures thin; run against the built package).
+
 ## Cluster Redline 1.3.91 (lead-car headway: distance from the bumper)
 
 - **Fix: the lead-car distance read about 2 m too far** (issue appsKOR#5: right behind a car it showed 2 m). The car measures from its sensor behind the windscreen, not from the front bumper. HUD lamps → Lead-car headway now has a **Distance correction** (0 to −3 m in 0.5 m steps, **−2 m by default**) taken off the distance shown, never under 0 m; the time gap and its colour use the corrected distance. The car's own values at the bottom of the screen stay as sent.

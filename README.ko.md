@@ -16,7 +16,7 @@ BMW iDrive 7·8 헤드유닛의 **MGU Store**에서 설치하는 앱 모음입�
 
 ## 앱 소개
 
-### 계기판 레드라인 1.3.91 · iDrive 7·8 · 한국어/English
+### 계기판 레드라인 1.3.92 · iDrive 7·8 · 한국어/English
 
 ![계기판 레드라인](screenshots/cluster_redline/manual/face-cluster-gauges-boost-torque-ko.jpg)
 
