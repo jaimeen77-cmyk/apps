@@ -3,16 +3,19 @@
 // from its own G, gear and speed.
 //   reverse gear: reversing lamps lit         standing still: the road still, the engine idling
 //   braking: brake lamps lit, the nose dipping
-//   cornering (three steps): a lean, the tail stepping out, a full drift   accelerating: flames from the exhaust
-//   otherwise: driving straight on
+//   cornering (four steps): a lean, the tail stepping out, sliding with smoke, a full drift   accelerating: flames
+//   from the exhaust   otherwise: driving straight on
 // A new state fades in over the old one (FADE_MS), so a change does not jump.
-// The frames (car-meter-frames.js, tools/car-meter/) are original drawings, small palette images; each state's
-// frames are unpacked on first use and scaled to the element's size once (kept while that state and size last).
+// The frames (car-meter-frames.js, made by tools/car-meter/m3.py, 1.3.89) are the owner's BMW M3: seen from behind,
+// with each side's bend drawn on its own (steps 1-3), and the owner's drift picture for step 4 (a left bend; a right
+// one is it mirrored). Small palette images; each state's frames are unpacked on first use and scaled to the
+// element's size once (kept while that state and size last).
 const zlib=require('zlib');
 const isNum=x=>typeof x==='number'&&isFinite(x);
-// G thresholds. Lateral G is positive to the left (ISO 8855, as the meter's dot is drawn). Cornering has three
-// steps (TURN): leaning into the bend, the tail stepping out with a little smoke, a full drift.
-const TH={brake:-0.18,accel:0.12,turn:0.10},TURN=[0.10,0.25,0.35];
+// G thresholds. Lateral G is positive to the left (ISO 8855, as the meter's dot is drawn). Cornering has four
+// steps (TURN): leaning into the bend, the tail stepping out with a little smoke, sliding in a cloud of it, and
+// (1.3.89) a full drift from 0.50 G.
+const TH={brake:-0.18,accel:0.12,turn:0.10},TURN=[0.10,0.25,0.35,0.50];
 const HOLD_MS=400,CONFIRM_MS=150,FPS=10,FADE_MS=300,FADE_STEPS=6;
 // Two sets: the cluster's (the car on a night road) and the HUD's (the car alone on black, which is clear on the
 // glass), each loaded on first use.
@@ -24,7 +27,7 @@ function frames(set){
  return (data[k]={W:src.W,H:src.H,N:src.N,pal,states});
 }
 // What the car is doing, from its G, gear and speed (km/h, null when unknown): 'reverse', 'stop', 'brake',
-// 'left1'..'left3', 'right1'..'right3', 'accel' or 'cruise'. Standing still: under 1 km/h, or in P when the
+// 'left1'..'left4', 'right1'..'right4', 'accel' or 'cruise'. Standing still: under 1 km/h, or in P when the
 // speed is not known.
 function want(g,stage,speed){
  if(stage==='R')return 'reverse';
@@ -32,11 +35,14 @@ function want(g,stage,speed){
  const lat=g&&isNum(g.lat)?g.lat:0,lon=g&&isNum(g.long)?g.long:0,a=Math.abs(lat);
  // braking and cornering at once: whichever is further past its threshold
  const b=lon<=TH.brake?lon/TH.brake:0,t=a>=TH.turn?a/TH.turn:0;
- if(b||t){if(b>=t)return 'brake';const step=a>=TURN[2]?3:a>=TURN[1]?2:1;return (lat>0?'left':'right')+step;}
+ if(b||t){if(b>=t)return 'brake';const step=a>=TURN[3]?4:a>=TURN[2]?3:a>=TURN[1]?2:1;return (lat>0?'left':'right')+step;}
  return lon>=TH.accel?'accel':'cruise';
 }
-// A state's pictures: the cornering ones are the right-hand drift, mirrored for a left one.
-function look(s){const m=/^(left|right)([123])$/.exec(s);return m?{state:'turn'+m[2],mirror:m[1]==='left'}:{state:s,mirror:false};}
+// A state's pictures: each side's own for cornering steps 1-3 ('turn2', 'turn2_left'); step 4 is the drift picture,
+// a left bend, mirrored for a right one (1.3.89; before, every left bend was the right one mirrored).
+function look(s){const m=/^(left|right)([1234])$/.exec(s);if(!m)return {state:s,mirror:false};
+ if(m[2]==='4')return {state:'drift',mirror:m[1]==='right'};
+ return {state:'turn'+m[2]+(m[1]==='left'?'_left':''),mirror:false};}
 // A new state must last CONFIRM_MS and the shown one HOLD_MS, so a single noisy sample does not flicker.
 const shown={};
 function pick(display,g,stage,now,speed){

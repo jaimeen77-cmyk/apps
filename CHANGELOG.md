@@ -22,6 +22,13 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.89 (Animation: the M3, four cornering steps)
+
+- **The Animation layout's car is now the owner's BMW M3** (cluster and HUD), seen from behind on the night road: driving, standing still (exhaust vapour), braking (tail lamps and the third brake lamp, the tail lifting), accelerating (flames from the four pipes, the tail squatting), reversing (white lamps) and cornering.
+- **Cornering in four steps** (sideways G): leaning out of the bend from 0.10 G, the tail stepping out from 0.25 G, sliding in smoke from 0.35 G, and **a drift from 0.50 G**: the owner's drift picture, the car swaying about its front wheels and its tyre smoke flowing. Steps 1-3 have each side drawn on its own, so a left bend's badge reads the right way round; the drift picture is a left bend and a right drift is it mirrored.
+- The pictures are made by `tools/car-meter/m3.py` (from `tools/hud-art/vehicles/own.png` and `tools/car-meter/m3-drift.png`; numpy, Pillow, OpenCV). `car-meter-frames.js` (320 x 180) and `car-meter-hud-frames.js` (240 x 135) keep their format: 12 states of 8 frames, one 256-colour palette a set. They are larger than before (about 1.9 MB and 0.8 MB).
+- Tests: `car-meter` (step 4, each side's pictures, the mirrored right drift, the new states).
+
 ## Cluster Redline 1.3.88 (lead-car helper 0.3.0: every camera object)
 
 - **redline-lead 0.3.0** sends every object the front camera measures, not only the car followed, nearest first. Each object has its id, its class (pedestrian, cyclist, motorbike, car, truck / bus / van ...), its place (metres ahead, metres to the left) and its lane. It is the base for the pedestrian / cyclist warning, the cut-in warning and the road users around. This version shows nothing new yet.

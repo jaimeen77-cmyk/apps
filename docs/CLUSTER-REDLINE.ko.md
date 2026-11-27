@@ -205,7 +205,7 @@ RPM 표시에서 **BC 모드**를 고르면, 왼쪽 레버의 **BC 버튼**으�
 |---|---|
 | ![자동차 그림](../screenshots/cluster_redline/manual/face-cluster-animation-car-ko.jpg) | ![내 GIF](../screenshots/cluster_redline/manual/face-cluster-animation-gif-ko.jpg) |
 
-- **자동차 그림**: GIF를 넣지 않으면 나옵니다. 차의 G와 기어에 따라 브레이크등, 좌우 3단계 드리프트, 가속 불꽃, 후진등, 정차가 바뀝니다.
+- **자동차 그림**: GIF를 넣지 않으면 나옵니다. 내 M3 그림으로, 차의 G와 기어에 따라 브레이크등, 좌우 4단계 코너링(0.10·0.25·0.35 G, 0.50 G부터는 드리프트), 가속 불꽃, 후진등, 정차가 바뀝니다.
 - **내 그림(내 GIF)**: [GIF 플레이어](../apps/gif_home/README.ko.md)에 휴대폰으로 올린 GIF를 가져와, 주행·정지·후진·좌회전·우회전 장면마다 다른 GIF를 보여 줍니다. 가운데 그림 자리에 GIF가 나오고, 기어·회전수·부가정보·G 미터는 그대로 나옵니다.
 
 #### 내 그림 넣기
