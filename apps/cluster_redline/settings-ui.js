@@ -571,6 +571,7 @@ class SettingsPage{
   cv.text(tr('Lead-car headway'),100,126,32,'#ef4050',{literal:true});
   [['off','Off'],['simple','Simple'],['detail','Detailed']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*488,146,474,64,()=>set('hudHeadway',o[0]),cfg.hudHeadway===o[0],'headway-'+o[0]));
   cv.text(tr('The car ahead as the radar measures it: time gap at your speed and distance (Detailed: closing speed too).'),100,252,21,'#c1cddd',{literal:true});
+  cv.text(tr('Standing behind a car that moves off: Moving off in green for 3 s.'),330,122,18,'#3ddc6a',{literal:true});
   {const hh=this.liveState&&this.liveState.headway;
    if(hh&&hh.unsupported)cv.text(tr('Neither the radar nor the Drive assist view is offered to apps on this car (the cluster gets them directly): the badge cannot show here.'),100,284,19,'#ffad45',{literal:true});
    else cv.text(tr('Under 1.0 s red · 1.0 to 1.5 s amber · 1.5 s and over cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}

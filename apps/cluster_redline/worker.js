@@ -36,6 +36,7 @@ const DOOR = require('./door-alert');
 const {LeadVehicle} = require('./lead-vehicle');
 const {HeadwayOverlay} = require('./headway-overlay');
 const {LaneLines, LaneOverlay} = require('./lane-lines');
+const {LeadDeparture} = require('./lead-departure');
 const {BlindSpot} = require('./blind-spot');
 const {BlindSpotOverlay} = require('./blind-spot-overlay');
 const driverGreeting = require('./driver-greeting');
@@ -104,7 +105,7 @@ function start(ctx) {
     // the HUD headway badge (lead-vehicle.js): made once the manifest's instances can be read, below
     let lead=null;const headwayOverlay=new HeadwayOverlay(client);
     // the HUD lane lines (lane-lines.js, 1.3.77): from the root helper, only while on
-    const laneLines=new LaneLines(mono),laneOverlay=new LaneOverlay(client);
+    const laneLines=new LaneLines(mono),laneOverlay=new LaneOverlay(client),departure=new LeadDeparture();let departureOn=false;
     const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',greetingNow=null;
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
@@ -465,12 +466,19 @@ function start(ctx) {
             // a door switch lost with its provider or an error: no stale open door on the HUD
             if (doorSub && doorSub.error || config.hudDoorAlert === 'off') doors.clear();
             // The HUD headway badge (lead-vehicle.js): the car ahead read only while it is on; the preview shows a sample.
+            // (1.3.87) the car ahead is read for the badge, for the lane lines (drawn in the road) and for the departure alert
             const headwayOn = live && config.appEnabled && config.hudHeadway !== 'off';
-            if (lead) lead.sync(headwayOn);
-            headwayOverlay.tick(headwayOn && lead ? lead.read(at) : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));
             const lanesOn = live && config.appEnabled && config.hudLaneLines === 'on';
+            departureOn = headwayOn;   // the departure alert comes with the headway badge (no setting of its own)
+            if (lead) lead.sync(headwayOn || lanesOn);
+            const leadNow = lead && (headwayOn || lanesOn) ? lead.read(at) : null;
+            const speedKmh = carSpeed.at !== null && at - carSpeed.at <= 2000 ? carSpeed.v : null;
+            const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : null) : false;
+            const leadShown = leadNow ? Object.assign({}, leadNow, { go: going }) : going ? { gap: departure.nearest || 0, go: true } : null;
+            headwayOverlay.tick(headwayOn ? leadShown : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));
             laneLines.sync(lanesOn);
-            laneOverlay.tick(lanesOn ? laneLines.read(at, controller.turn && controller.turn.indicator) : null, config, !!(pv && pv.part === 'Headway' && config.hudLaneLines === 'on'));
+            const lanesNow = lanesOn ? laneLines.read(at, controller.turn && controller.turn.indicator) : null;
+            laneOverlay.tick(lanesNow ? Object.assign({}, lanesNow, { lead: leadShown }) : null, config, !!(pv && pv.part === 'Headway' && config.hudLaneLines === 'on'));
             doorOverlay.tick(pv && pv.part === 'Door' ? DOOR.SAMPLE : live && config.appEnabled && config.hudDoorAlert !== 'off' ? doors.open : null, config);
             // The blind spot warning (blind-spot.js): the door mirror lamps read from the BDC while it is on and the
             // engine runs; signs beside the turn arrows (blind-spot-overlay.js).
@@ -495,7 +503,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, laneLines: Object.assign({ on: config.hudLaneLines === 'on' }, laneLines.status(at)), headway: lead ? Object.assign({ mode: config.hudHeadway, now: lead.read(at) }, lead.status(at)) : { mode: config.hudHeadway, state: 'not_started' }, blindSpot: Object.assign({ on: config.hudTurnBlindSpot === 'on' }, blindSpot.status(at), blindSpot.read(at)), doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice(), lids: Object.assign({}, doors.lidNames), names: doors.names.slice(0, 24) }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, laneLines: Object.assign({ on: config.hudLaneLines === 'on' }, laneLines.status(at)), departure: Object.assign({ on: departureOn }, departure.status(at)), headway: lead ? Object.assign({ mode: config.hudHeadway, now: lead.read(at) }, lead.status(at)) : { mode: config.hudHeadway, state: 'not_started' }, blindSpot: Object.assign({ on: config.hudTurnBlindSpot === 'on' }, blindSpot.status(at), blindSpot.read(at)), doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice(), lids: Object.assign({}, doors.lidNames), names: doors.names.slice(0, 24) }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     navProbe:navProbe.status(),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},

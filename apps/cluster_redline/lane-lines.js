@@ -50,7 +50,7 @@ const COLORS = { white: [232, 238, 246, 255], yellow: [255, 206, 58, 255], near:
 // and tints the half of the lane on its side; red also glows under the car; with the turn signal (a lane change) only
 // that side's line turns cyan. A point d metres ahead of the car and y metres to its left: x = cx - F y / (d + D),
 // y = HZ + F EYE / (d + D). The lines are 15 cm (a double line two of 12 cm), dashes 3 m on and 5 m off.
-const F = 454, D = 20, EYE = 4.07, HZ = -26, NEAR_D = -3.2, FAR_D = 38, MARK = 0.15, CAR_D = 1.5;
+const F = 454, D = 20, EYE = 4.07, HZ = -26, NEAR_D = -3.2, FAR_D = 38, MARK = 0.15, CAR_D = -1.6;
 function project(d, y) { const q = d + D; return [W / 2 - F * y / q, HZ + F * EYE / q]; }
 const px2m = (px, d) => px * (d + D) / F;
 function draw(v, w, h) {
@@ -110,22 +110,39 @@ function draw(v, w, h) {
     };
     mark(L, lv.left); mark(R, lv.right);
     // the car in the middle, over the lines (a line it is on goes under it)
+    // (1.3.87) the car ahead in our lane at its distance (its rear: our front + the gap; camera metres from the windscreen)
+    if (v.lead && typeof v.lead.gap === 'number') {
+        const L0 = v.lead, art0 = require('./hud-art'), d = Math.min(FAR_D - 2, CAR_D + 4.7 + L0.gap), [lx, ly] = project(d, 0);
+        // the road user seen from behind by its class (camera: 2 motorbike, 3 car, 4 truck / bus / van ...), its real width
+        const T = { 0: ['pedestrian', 0.55], 1: ['bicycle', 0.6], 2: ['motorbike', 0.8], 4: ['truck', 2.5] }[L0.type] || ['car', 1.85];
+        const name = 'veh/' + T[0], sz0 = art0.size(name), fit = Math.min(1, (ly - 2) / (T[1] * F / (d + D) * 0.95 * sz0.h / sz0.w)), lw = T[1] * F / (d + D) * 0.95 * fit, lh = lw * sz0.h / sz0.w;   // a tall one kept inside the picture
+        // its colour step as a glow on the road under it (green pulling away)
+        const gc = L0.go ? [61, 220, 106] : L0.level === 'red' ? [255, 52, 58] : L0.level === 'amber' ? [255, 154, 31] : [62, 200, 245];
+        [[1.5, 30], [1.25, 45], [1.05, 70]].forEach(([k0, a0]) => cv.roundRect(lx - lw * k0 / 2, ly - lh * 0.25 - (k0 - 1) * lw * 0.3, lw * k0, lh * 0.35 + (k0 - 1) * lw * 0.6, lw * 0.25 * k0, gc.concat([a0])));
+        art0.paint(cv, name, lx - lw / 2, ly - lh, lw, lh);
+        // the numbers in the picture's empty top right corner (the road is narrow there), small
+        const col = L0.go ? '#3ddc6a' : L0.level === 'red' ? '#ff343a' : L0.level === 'amber' ? '#ff9a1f' : '#3ec8f5';
+        cv.text(Math.round(L0.gap) + ' m', W - 2, 9, 9, '#e6edf5', { font: 'bold', align: 'right', literal: true });
+        if (L0.closing) cv.text((L0.closing > 0 ? '+' : '') + Math.round(L0.closing) + ' km/h', W - 2, 17, 6.5, col, { align: 'right', literal: true });
+        if (L0.go) { cv.triangle([[lx - 4, ly - lh - 1], [lx + 4, ly - lh - 1], [lx, ly - lh - 6]], '#3ddc6a'); cv.text(require('./strings').tr('Moving off'), 2, 9, 9, '#3ddc6a', { font: 'bold', literal: true }); }
+    }
     // (1.3.80) the car cut from the user's reference picture (hud-art.js), its shadow included
-    const [, by] = project(CAR_D, 0), cw = 1.9 * F / (CAR_D + D) * 0.86, art = require('./hud-art'), sz = art.size('car'), ch = cw * sz.h / sz.w;
-    art.paint(cv, 'car', W / 2 - cw / 2, by - ch + 2, cw, ch);
+    const [, by] = project(CAR_D, 0), cw = 1.9 * F / (CAR_D + D) * 0.66, art = require('./hud-art'), OWN = art.size('veh/own') ? 'veh/own' : 'car', sz = art.size(OWN), ch = cw * sz.h / sz.w;   // (1.3.87) our car: the user's own, seen from behind
+    art.paint(cv, OWN, W / 2 - cw / 2, by - ch + 2, cw, ch);
     return cv.canvas;
 }
 class LaneOverlay {
     constructor(client) { this.client = client; this.layer = null; }
     tick(value, cfg, preview) {
         const surface = cfg.hudLaneSurface === 'green' ? 'green' : 'dark';
-        let v = preview ? { left: { y: 1.7, type: 'dashed', color: 'white', margin: 0.75 }, right: { y: -1.05, type: 'solid', color: 'white', margin: 0.1 }, levels: { left: 'ok', right: 'near' } } : value;
+        let v = preview ? { left: { y: 1.7, type: 'dashed', color: 'white', margin: 0.75 }, right: { y: -1.05, type: 'solid', color: 'white', margin: 0.1 }, levels: { left: 'ok', right: 'near' }, lead: { gap: 22, level: 'ok', closing: -3, type: 3 } } : value;
         if (!v || (cfg.hudLaneLines !== 'on' && !preview)) { this.hide(); return false; }
         const r = require('./display-config').laneRect(cfg); let l = this.layer;
         if (l && (l.w !== r.w || l.h !== r.h)) { this.client.drop(l.ref); l = this.layer = null; }
         if (!l) { const ref = this.client.image({ target: 'hud', klass: 'overlay', z: 12, x: r.x, y: r.y, w: r.w, h: r.h, iw: r.w, ih: r.h, visible: false }); if (!ref) return false; l = this.layer = { ref, x: r.x, y: r.y, w: r.w, h: r.h, key: null, visible: false }; }
         v = Object.assign({}, v, { surface });
-        const key = JSON.stringify([v.left, v.right, v.levels, v.width, surface]);
+        const ld = v.lead && typeof v.lead.gap === 'number' ? [Math.round(v.lead.gap * 2) / 2, v.lead.level, Math.round(v.lead.closing || 0), v.lead.type, !!v.lead.go] : null;
+        const key = JSON.stringify([v.left, v.right, v.levels, v.width, surface, ld]);
         if (l.key !== key) { const im = draw(v, r.w, r.h), px = Buffer.alloc(r.w * r.h * 4);
             for (let y = 0; y < Math.min(r.h, im.h); y++) Buffer.from(im.d.buffer, im.d.byteOffset + y * im.w * 4, Math.min(r.w, im.w) * 4).copy(px, y * r.w * 4);
             this.client.pixels(l.ref, null, px); l.key = key; }

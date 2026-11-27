@@ -22,6 +22,23 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.87 (the car ahead in the lane picture; lead car departure alert)
+
+- **Lane lines: the car ahead on the road.**
+  - It is drawn in our lane at its distance, with our car lower and a little smaller at the bottom. Our car is now the user's own, a BMW M3 seen from behind (`vehicles/own.png`, cut with `cut-vehicles.py <picture> own`).
+  - It is a road user seen from behind, by the front camera's class: car, truck (the camera's truck / bus / van), motorbike, bicycle, pedestrian. These are cut from the user's road picture (`tools/hud-art/cut-vehicles.py`, `hud-art-veh.js`, read only once drawn).
+  - Its width follows the class, and a tall one is kept inside the picture.
+  - Its headway step glows on the road under it: cyan, amber or red, green pulling away.
+  - The distance and the closing speed sit small in the picture's empty top right corner.
+- **New: Lead car departure alert**, part of the headway badge with no setting of its own. It works like this:
+  - We stand (under 1 km/h) for 2 s with a car ahead within 15 m.
+  - The car then moves 3 m further than its nearest, or is lost having been within 10 m, for half a second.
+  - The alert then shows for 3 s, once per stop. It does not run in P, or once we move.
+  - The headway badge shows "출발" in green. With the lane lines on, the car ahead also turns green with an arrow, and "출발" appears in the corner.
+  - The headway screen says so.
+- The car ahead is read when the badge or the lane lines need it. The badge can be turned off while the lane picture still shows the car ahead (without the departure alert).
+- Tests: new `lead-departure` covers the stop, the moving off, a car lost close by or far away, P, moving first and the next stop, plus the badge and the lane picture by class.
+
 ## Cluster Redline 1.3.86 (neon navigation colour; the pictures one file a set)
 
 - **New navigation colour: Neon (형광)**, beside orange, green, blue and white, for the arrow and the text.

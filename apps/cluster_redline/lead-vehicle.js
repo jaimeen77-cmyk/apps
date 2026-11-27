@@ -32,7 +32,7 @@ class LeadVehicle {
         this.helper=new LeadHelper((m,now)=>this.fromHelper(m,now),this.clock);
         this.camera=new CameraObjects(signals,log,instanceOf,this.clock,(m,id,now)=>{this.cameraAt=now;this.fromAssist(m,id,now,'camera');},(now)=>{if(this.source==='camera'&&!this.radarFresh(now))this.reset();});
     }
-    reset(){this.gap=null;this.at=null;this.fineAt=null;this.object=null;this.closing=null;this.ref=null;this.source=null;this.cameraAt=null;}
+    reset(){this.type=null;this.gap=null;this.at=null;this.fineAt=null;this.object=null;this.closing=null;this.ref=null;this.source=null;this.cameraAt=null;}
     fromHelper(m,now){
         const f=m.radar&&m.radar.front,g=m.radar&&m.radar.gap,c=m.cam;
         // the radar, only a valid reading (its "no car" values would clear the camera's car too)
@@ -40,7 +40,7 @@ class LeadVehicle {
         if(g&&g.status>=1&&g.status<=4&&g.gap>0&&g.gap<250)this.sampleGap({statusMeasurementVehicleDrivingAhead:g.status,gapVehicleDrivingAhead:g.gap},now);
         // the camera's car in our lane, while its lists are fresh
         const fresh=c&&typeof c.at==='number'&&typeof m.at==='number'&&m.at-c.at<1500;
-        if(fresh&&c.lead&&typeof c.lead.m==='number'){this.cameraAt=now;this.fromAssist(c.lead.m,c.lead.id,now,'camera');}
+        if(fresh&&c.lead&&typeof c.lead.m==='number'){this.cameraAt=now;this.fromAssist(c.lead.m,c.lead.id,now,'camera');this.type=typeof c.lead.type==='number'?c.lead.type:null;}
         else if(this.source==='camera'&&!this.radarFresh(now))this.reset();
     }
     radarFresh(now){return this.radarAt!==null&&now-this.radarAt<STALE_MS;}
@@ -112,7 +112,7 @@ class LeadVehicle {
         if(this.state==='off'||this.gap===null||this.at===null||now-this.at>STALE_MS)return null;
         const speed=this.speedAt!==null&&now-this.speedAt<=STALE_MS?this.speed:null;
         const headway=speed!==null&&speed>=SLOW_KMH?Math.max(0.1,Math.min(9.9,this.gap/(speed/3.6))):null;
-        return {gap:this.gap,headway,closing:this.closing,level:level(headway)};
+        return {gap:this.gap,headway,closing:this.closing,level:level(headway),type:this.type===undefined?null:this.type};   // (type: the camera's class, 1.3.87)
     }
     // nothing of the car ahead offered to the app at all, 10 s after subscribing (1.3.70): the radar's service and the
     // Drive assist view's two sources not offered (or not in the catalog), nothing received. The user's car is so:
