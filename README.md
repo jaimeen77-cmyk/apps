@@ -86,5 +86,5 @@ The pictures in the guides are drawn by the apps' own drawing code from the actu
 - **Cluster Redline** 1.3.10 and later: **permission required** ([apps/cluster_redline/LICENSE](apps/cluster_redline/LICENSE)). Installing and using it in your own car is free; copying, redistributing, modifying or commercial use needs permission. Up to 1.3.9: MIT. Components by others keep their own licenses ([NOTICE](NOTICE.cluster-redline.md)).
 - **GIF player**: GPL-3.0, as the original GIF Home (NamelsMissing/mgu-apps) ([NOTICE](NOTICE.gif-home.md)).
 - **Spotify (Korean edition)**: GPL-3.0, as the original Spotify (hexlay/idrive7-custom-apps) ([NOTICE](NOTICE.spotify.md)).
-- **8게임즈**: MIT, as the original Parked Games ([NOTICE](apps/parked_games/NOTICE)).
+- **8게임즈**: MIT, as the original Parked Games Maksim (GitHub: MaxxxFoka)([NOTICE](apps/parked_games/NOTICE)).
 - The other apps and the runtime kit: MIT ([LICENSE](LICENSE)). MGU Monitor's sources: [NOTICE](apps/storage/NOTICE).
