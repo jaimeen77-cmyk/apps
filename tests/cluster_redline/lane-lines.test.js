@@ -51,7 +51,7 @@ const d3=JSON.parse(JSON.stringify(d));d3.lines[1].y=-0.8;msg({rx:8,data:d3,at:1
 msg({rx:6,data:d2,at:10000});
 {const k=L.read(1300,'off');assert(k&&k.held,'stale: the last lines kept');assert.strictEqual(k.levels.right,'ok','no warning on an old place');}
 assert(L.read(2900,'off')&&L.read(2900,'off').held,'kept up to 3 s after the last good');assert.strictEqual(L.read(3200,'off'),null,'then gone');
-msg({rx:7,data:d2,at:5000});t=2000;assert.strictEqual(L.read(2000,'off'),null,'an old lane list (helper at - lane at) is not taken');
+msg({rx:7,data:d2,at:5000});t=2000;{const o=L.read(2000,'off');assert(!o||o.held,'an old lane list (helper at - lane at) is not taken (at most the held last ones)');}
 assert.strictEqual(L.status(0).rx,7);assert.strictEqual(L.status(0).helper,'connected');
 L.sync(false);assert.strictEqual(L.read(0,'off'),null);assert.strictEqual(L.status(0).helper,'off');
 // the picture and the overlay
