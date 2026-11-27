@@ -30,13 +30,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
     - a pedestrian or cyclist on our path within 30 m
     - a car beside us coming into our lane
     - the car ahead moving off
-  - The driver can keep a scene by pressing BC three times quickly, or with Save now. In BC mode the three presses also turn the pages.
-  - At most 50 clips / 5 MB are kept; the oldest go first.
+  - The driver can keep a scene with Save now on the screen.
+  - The clips are numbered in order: `001-1127-1010-보행자자전거.jsonl`, `002-...-끼어들기`, `003-...-직접저장`. The number goes on after a clear.
+  - **Delete all clips** asks once, then deletes on a second press within 5 s. Otherwise at most 50 clips / 5 MB are kept, the oldest going first.
 - **Download by QR.** The screen shows a QR code with the head unit's address on the car's Wi-Fi. With the phone joined to the car's Wi-Fi (as for the GIF player's phone page), scanning it opens a page with each clip and "모두 받기".
   - The page is read only.
   - It and its firewall rule are there only while recording is on.
 - **redline-lead 0.4.0** (`clips.js`, `share.js`, commands from the app on its socket). Cluster Redline requires it, so the Store updates it.
-- Tests: `redline-lead` checks the clips: off keeps nothing; a pedestrian, a cut-in, the button and departure in one clip; 20 s before and 10 s after.
+- Tests: `redline-lead` checks the clips: off keeps nothing; a pedestrian, a cut-in, the button and departure in one clip; 20 s before and 10 s after; numbering in order, kept through a clear.
 
 ## Cluster Redline 1.3.88 (lead-car helper 0.3.0: every camera object)
 

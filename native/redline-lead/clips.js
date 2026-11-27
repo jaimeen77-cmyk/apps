@@ -5,12 +5,13 @@
 //   vru        a pedestrian or a cyclist within 30 m ahead and 2.5 m of our path
 //   cutin      a vehicle in a lane beside us, within 40 m, coming 0.6 m nearer our lane in a second
 //   departure  the app's lead car departure alert
-//   button     the driver (BC pressed three times, or Save now on the settings screen)
-// One file a clip (JSON lines: a header, then the frames) in DIR, at most MAX_FILES / MAX_BYTES (the oldest go).
+//   button     the driver (Save now on the settings screen)
+// One file a clip (JSON lines: a header, then the frames) in DIR, at most MAX_FILES / MAX_BYTES (the oldest go),
+// numbered in order: 001-1127-1010-보행자자전거.jsonl (the number goes on after a clear: kept in DIR/.seq).
 const fs = require('fs'), path = require('path');
 const DIR = process.env.REDLINE_CLIPS_DIR || '/var/opt/public/redline-clips';
 const KEEP_MS = 30000, BEFORE_MS = 20000, AFTER_MS = 10000, FRAME_MS = 100, AUTO_GAP_MS = 15000, MAX_FILES = 50, MAX_BYTES = 5 * 1024 * 1024;
-const VEHICLE = [2, 3, 4, 5, 6];
+const VEHICLE = [2, 3, 4, 5, 6], LABEL = { vru: '보행자자전거', cutin: '끼어들기', departure: '앞차출발', button: '직접저장' };
 class Clips {
     constructor(o) {
         o = o || {}; this.dir = o.dir || DIR; this.fs = o.fs || fs; this.clock = o.clock || Date.now; this.version = o.version || '';
@@ -61,24 +62,33 @@ class Clips {
         const p = this.pending; this.pending = null;
         const frames = this.frames.filter((f) => f.t >= p.at - BEFORE_MS && f.t <= p.until);
         if (!frames.length) return null;
-        const d = new Date(p.at), two = (n) => (n < 10 ? '0' : '') + n;
-        const name = d.getFullYear() + two(d.getMonth() + 1) + two(d.getDate()) + '-' + two(d.getHours()) + two(d.getMinutes()) + two(d.getSeconds()) + '-' + p.why + '.jsonl';
+        const d = new Date(p.at), two = (n) => (n < 10 ? '0' : '') + n, seq = this.nextSeq(), label = p.why.split('+').map((w) => LABEL[w] || w).join('+');
+        const name = ('00' + seq).slice(-Math.max(3, String(seq).length)) + '-' + two(d.getMonth() + 1) + two(d.getDate()) + '-' + two(d.getHours()) + two(d.getMinutes()) + '-' + label + '.jsonl';
         const body = JSON.stringify({ clip: name, why: p.why, at: d.toISOString(), helper: this.version, frames: frames.length, keys: 'o: [id, type, x, y, tube]; ln.l: [y, type, color, angle]' }) + '\n' +
             frames.map((f) => JSON.stringify(Object.assign({}, f, { t: f.t - p.at }))).join('\n') + '\n';
         try {
             try { this.fs.mkdirSync(this.dir); } catch (e) {}
-            this.fs.writeFileSync(path.join(this.dir, name), body); this.saved++; this.error = null; this.trim();
+            this.fs.writeFileSync(path.join(this.dir, name), body); this.fs.writeFileSync(path.join(this.dir, '.seq'), String(seq)); this.lastSeq = seq; this.saved++; this.error = null; this.trim();
         } catch (e) { this.error = String(e.message || e).slice(0, 120); return null; }
         return name;
     }
+    // the next clip's number: one past the last kept (DIR/.seq) or the highest file's
+    nextSeq() {
+        let n = 0; try { n = parseInt(String(this.fs.readFileSync(path.join(this.dir, '.seq'))), 10) || 0; } catch (e) {}
+        this.list().forEach((c) => { const m = /^(\d+)-/.exec(c.name); if (m) n = Math.max(n, parseInt(m[1], 10)); });
+        return n + 1;
+    }
+    /** Every clip deleted (the numbering goes on). */
+    clear() { this.list().forEach((c) => { try { this.fs.unlinkSync(path.join(this.dir, c.name)); } catch (e) {} }); this.pending = null; this.cleared = (this.cleared || 0) + 1; }
     list() {
-        let names = []; try { names = this.fs.readdirSync(this.dir).filter((n) => /\.jsonl$/.test(n)).sort(); } catch (e) {}
+        let names = []; try { names = this.fs.readdirSync(this.dir).filter((n) => /\.jsonl$/.test(n)).sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0) || (a < b ? -1 : 1)); } catch (e) {}
         return names.map((n) => { let size = 0; try { size = this.fs.statSync(path.join(this.dir, n)).size; } catch (e) {} return { name: n, size }; });
     }
     trim() {
         const l = this.list(); let total = l.reduce((a, c) => a + c.size, 0);
         while (l.length && (l.length > MAX_FILES || total > MAX_BYTES)) { const c = l.shift(); total -= c.size; try { this.fs.unlinkSync(path.join(this.dir, c.name)); } catch (e) {} }
     }
-    status() { const l = this.list(); return { on: this.on, clips: l.length, bytes: l.reduce((a, c) => a + c.size, 0), saved: this.saved, pending: this.pending ? this.pending.why : null, error: this.error }; }
+    status() { const l = this.list(); let last = this.lastSeq || 0; l.forEach((c) => { const m = /^(\d+)-/.exec(c.name); if (m) last = Math.max(last, parseInt(m[1], 10)); });
+        return { on: this.on, last, clips: l.length, bytes: l.reduce((a, c) => a + c.size, 0), saved: this.saved, pending: this.pending ? this.pending.why : null, error: this.error }; }
 }
 module.exports = { Clips, DIR, KEEP_MS, BEFORE_MS, AFTER_MS };

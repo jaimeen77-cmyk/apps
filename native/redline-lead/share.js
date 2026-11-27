@@ -41,9 +41,10 @@ class Share {
             list.forEach((c) => { try { r.write(fs.readFileSync(path.join(dir, c.name))); } catch (e) {} });
             return r.end();
         }
-        const m = /^\/clip\/([0-9A-Za-z+._-]+\.jsonl)$/.exec(u);
+        // only a clip of the list (its name as listed: no other path can be asked for)
+        const m = /^\/clip\/([^/]+\.jsonl)$/.exec(u);
         if (m && list.some((c) => c.name === m[1])) {
-            r.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Content-Disposition': 'attachment; filename="' + m[1] + '"' });
+            r.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Content-Disposition': "attachment; filename=\"clip.jsonl\"; filename*=UTF-8''" + encodeURIComponent(m[1]) });
             return fs.createReadStream(path.join(dir, m[1])).pipe(r);
         }
         if (u !== '/') { r.writeHead(404); return r.end(); }
@@ -51,7 +52,7 @@ class Share {
         r.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         r.end('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Redline scene clips</title>' +
             '<style>body{font:16px sans-serif;background:#111;color:#eee;margin:16px}a{color:#5ab0ff}li{margin:8px 0}</style>' +
-            '<h2>Cluster Redline 상황 기록 (' + list.length + ')</h2><p><a href="/all.jsonl">모두 받기 (한 파일)</a></p><ul>' +
+            '<h2>Cluster Redline 상황 기록 (' + list.length + ')</h2><p>번호순 · 지우기는 차 화면의 "기록 모두 지우기"</p><p><a href="/all.jsonl">모두 받기 (한 파일)</a></p><ul>' +
             list.slice().reverse().map((c) => '<li><a href="/clip/' + encodeURIComponent(c.name) + '">' + esc(c.name) + '</a> · ' + kb(c.size) + '</li>').join('') + '</ul>');
     }
     status() { return { url: this.url(), listening: !!this.server, rule: this.rule, error: this.error }; }

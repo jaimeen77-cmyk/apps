@@ -27,7 +27,7 @@ Test by hand on the unit (root): `/var/opt/redline-lead/current/redline-someip 0
   gear, save}` lines on the socket). The last 30 s of the camera's objects, the car followed, the lane lines, the
   speed and gear are kept at 10 frames a second. A clip (20 s before, 10 s after) is saved for a pedestrian / cyclist
   within 30 m and 2.5 m of our path, a vehicle beside us coming 0.6 m nearer our lane in a second, the app's lead car
-  departure alert, or the driver (BC three times, Save now). Clips go to `/var/opt/public/redline-clips/`, at most 50
+  departure alert, or the driver (Save now). Clips are numbered in order (`001-MMDD-HHMM-<scene>.jsonl`, the number kept in `.seq` through a clear); `{t: 'cmd', clear: true}` deletes them all. Clips go to `/var/opt/public/redline-clips/`, at most 50
   files / 5 MB, the oldest go first. `share.js` serves them read-only to a phone on the car's Wi-Fi (`wlan_bridge`,
   port 18884: the list, each clip, all in one file) with a firewall rule of its own (tag `redline-lead-clips`), both
   only while recording is on.

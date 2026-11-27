@@ -127,11 +127,12 @@ function startChild() {
 }
 function stopChild() { if (!child) return; try { child.stdin.end(); } catch (e) {} const c = child; setTimeout(() => { try { c.kill('SIGTERM'); } catch (e) {} }, 1000); }
 function message() { return JSON.stringify({ t: 'lead', v: VERSION, at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar, lane: state.lane, rec: Object.assign(clips.status(), share.status()) }) + '\n'; }
-// the app's commands (0.4.0), one JSON line each: {t: 'cmd', rec: bool, speed, gear, save: 'button' | 'departure'}
+// the app's commands (0.4.0), one JSON line each: {t: 'cmd', rec: bool, speed, gear, save: 'button' | 'departure', clear: true}
 function command(l) { let c = null; try { c = JSON.parse(l); } catch (e) { return; } if (!c || c.t !== 'cmd') return;
     if (typeof c.rec === 'boolean') { clips.set(c.rec); share.sync(c.rec); }
     if (c.speed !== undefined || c.gear !== undefined) clips.vehicle(c.speed, c.gear);
-    if (typeof c.save === 'string') clips.save(c.save); }
+    if (typeof c.save === 'string') clips.save(c.save);
+    if (c.clear === true) clips.clear(); }
 function schedule() { if (sendTimer || !clients.size) return; sendTimer = setTimeout(() => { sendTimer = null; const m = message(); clients.forEach((s) => { try { s.write(m); } catch (e) {} }); }, SEND_MS); }
 
 function serve() {

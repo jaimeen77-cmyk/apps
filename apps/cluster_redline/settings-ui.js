@@ -108,7 +108,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','calmTone','hudLaneLines','hudLaneSurface','navArrowStyle','hudClips','clipSaveAt','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','calmTone','hudLaneLines','hudLaneSurface','navArrowStyle','hudClips','clipSaveAt','clipClearAt','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:this.sub&&SUBMENUS[this.sub]?SUBMENUS[this.sub]:GROUPS[this.tab];}
  item(){return this.itemOf(this.keys()[this.focus]);}
@@ -618,8 +618,11 @@ class SettingsPage{
   cv.text(tr('Scene recording'),100,126,32,'#ef4050',{literal:true});
   [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*266,146,254,64,()=>set('hudClips',o[0]),cfg.hudClips===o[0],'clips-'+o[0]));
   this.button(cv,local,tr('Save now'),84,226,520,64,()=>set('clipSaveAt',Date.now()),false,'clips-save');
-  const lines=[tr('Pedestrians, cyclists, cut-ins and the car ahead moving off are kept by themselves (20 s before, 10 s after).'),tr('BC pressed three times quickly, or Save now: the scene now.'),
-   !x||!(x.state==='connected'||x.lines>0)?tr('Lead-car helper')+': '+tr('not installed (Store: Cluster Redline lead-car helper)'):!rec?tr('helper 0.2 (update)').replace('0.2','0.3'):tr('Clips')+' '+rec.clips+' · '+Math.round((rec.bytes||0)/1024)+' KB'+(rec.pending?' · '+tr('saving')+' ('+rec.pending+')':'')+(rec.error?' · '+rec.error:'')];
+  // delete every clip: a second press within 5 s (the first only asks)
+  const sure=this.clipsAsk&&Date.now()-this.clipsAsk<5000;
+  this.button(cv,local,tr(sure?'Press again to delete':'Delete all clips'),616,226,420,64,()=>{if(this.clipsAsk&&Date.now()-this.clipsAsk<5000){this.clipsAsk=0;set('clipClearAt',Date.now());}else{this.clipsAsk=Date.now();this.changed();}},sure,'clips-clear');
+  const lines=[tr('Pedestrians, cyclists, cut-ins and the car ahead moving off are kept by themselves (20 s before, 10 s after).'),tr('Save now: the scene now (20 s before, 10 s after). Numbered in order: 001, 002 ...'),
+   !x||!(x.state==='connected'||x.lines>0)?tr('Lead-car helper')+': '+tr('not installed (Store: Cluster Redline lead-car helper)'):!rec?tr('helper 0.2 (update)').replace('0.2','0.3'):tr('Clips')+' '+rec.clips+' · '+Math.round((rec.bytes||0)/1024)+' KB'+(rec.last?' · '+tr('last number')+' '+('00'+rec.last).slice(-3):'')+(rec.pending?' · '+tr('saving')+' ('+rec.pending+')':'')+(rec.error?' · '+rec.error:'')];
   lines.forEach((l,i)=>cv.text(l,100,322+i*30,17,i<2?'#c1cddd':'#5ee08f',{literal:true}));
   // the QR code: the page's address on the car's Wi-Fi (the phone joined to it)
   const url=rec&&rec.url;
