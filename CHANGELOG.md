@@ -22,6 +22,22 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.87 (the car ahead in the lane picture; lead car departure alert)
+
+- **Lane lines: the car ahead on the road.**
+  - It is drawn in our lane at its distance, with our car lower and a little smaller at the bottom.
+  - It is a road user seen from behind, by the front camera's class: car, truck (the camera's truck / bus / van), motorbike, bicycle, pedestrian. These are cut from the user's road picture (`tools/hud-art/cut-vehicles.py`, `hud-art-veh.js`, read only once drawn).
+  - Its width follows the class, and a tall one is kept inside the picture.
+  - Its headway step glows on the road under it: cyan, amber or red, green pulling away.
+  - The distance and the closing speed sit small in the picture's empty top right corner.
+- **New: Lead car departure alert** (HUD lamps → 앞차 출발 알림, off by default). It works like this:
+  - We stand (under 1 km/h) for 2 s with a car ahead within 15 m.
+  - The car then moves 3 m further than its nearest, or is lost having been within 10 m, for half a second.
+  - The alert then shows for 3 s, once per stop. It does not run in P, or once we move.
+  - With the lane lines on, the car ahead turns green with an arrow and "출발" in the corner. Otherwise the headway badge shows "출발" in green, even when the badge is off.
+- The car ahead is read when the badge, the lane lines or the alert needs it. The badge can be turned off while the lane picture shows the car ahead.
+- Tests: new `lead-departure` covers the stop, the moving off, a car lost close by or far away, P, moving first and the next stop, plus the badge and the lane picture by class.
+
 ## Cluster Redline 1.3.86 (neon navigation colour; the pictures one file a set)
 
 - **New navigation colour: Neon (형광)**, beside orange, green, blue and white, for the arrow and the text.

@@ -2,7 +2,7 @@
 // Lane lines on the HUD (1.3.77): the helper's LaneBoundaries decode (0xD024, 1193 bytes), the car's own lane lines,
 // the near / over / lane-change levels, the overlay above the headway badge, the settings screen.
 const assert=require('assert'),path=require('path');
-const Module=require('module'),orig=Module._load;let lineCalls=0;Module._load=function(n){if(n==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}}return {ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}line(){lineCalls++;}fill(){lineCalls++;}}};}return orig.apply(this,arguments);};
+const Module=require('module'),orig=Module._load;let lineCalls=0;Module._load=function(n){if(n==='./kit/canvas'){class C{constructor(w,h){this.w=w;this.h=h;this.d=new Uint8Array(w*h*4);}}return {ScaledCanvas:class{constructor(w,h,k){this.canvas=new C(Math.round(w*k),Math.round(h*k));}clear(){}roundRect(){}text(){}triangle(){}line(){lineCalls++;}fill(){lineCalls++;}}};}return orig.apply(this,arguments);};
 const {decodeLanes,SPECS}=require('../../native/redline-lead/redline-lead');
 const {LaneLines,LaneOverlay,egoLines,levelOf,draw}=require('../../apps/cluster_redline/lane-lines');
 const D=require('../../apps/cluster_redline/display-config'),{settings}=require('../../apps/cluster_redline/policy');

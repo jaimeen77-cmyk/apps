@@ -10,6 +10,8 @@ const COLORS={red:'#ff2b3a',amber:'#ff9a1f',ok:'#3ec8f5'},DIST='#a9c4e6',CLOSE='
 const fmtClosing=(k)=>{const r=Math.round(k);return (r>0?'+':r<0?'-':'')+Math.abs(r)+' km/h';};
 /** What the badge shows: { big (with its unit), dist, closing, color } (mode: 'simple' or 'detail'). */
 function content(v,mode) {
+    // the car ahead pulling away (lead-departure.js, 1.3.87): 'Moving off' in green, the distance under it
+    if(v.go)return {big:require('./strings').tr('Moving off'),dist:Math.round(v.gap||0)+' m',closing:null,color:'#3ddc6a'};
     const color=COLORS[v.level]||COLORS.ok,gap=Math.round(v.gap)+' m';
     const closing=mode==='detail'&&v.closing!==null&&Math.abs(v.closing)>=0.5?fmtClosing(v.closing):null;
     // below 12 km/h there is no time gap: the distance takes the big place
@@ -20,9 +22,9 @@ function content(v,mode) {
 // closing speed (in the colour). Red (under 1.0 s) adds the gap bars under the car.
 const RGB={red:[255,52,58],amber:[255,154,31],ok:[62,200,245]};
 function paint(cv,v,mode) {
-    const c=content(v,mode),col=c.color,rgb=RGB[v.level]||RGB.ok;
+    const c=content(v,mode),col=c.color,rgb=v.go?[61,220,106]:RGB[v.level]||RGB.ok;
     // (1.3.80) the icon cut from the user's reference picture, its glow included (hud-art.js)
-    const art=require('./hud-art'),name=v.level==='red'?'red':v.level==='amber'?'amber':'ok',sz=art.size(name),iw=34,ih=iw*sz.h/sz.w;art.paint(cv,name,0,35-ih,iw,ih);
+    const art=require('./hud-art'),name=v.level==='red'?'red':v.level==='amber'?'amber':'ok',sz=art.size(name),iw=34,ih=iw*sz.h/sz.w;art.paint(cv,name,0,35-ih,iw,ih,v.go?{tint:'#3ddc6a'}:undefined);
     if(v.level==='red')[36.5,39.5].forEach((y,i)=>cv.fillRect(6+i*2,y,22-i*4,1.6,col));
     let size=30;while(size>18&&cv.textWidth(c.big,size,{font:'light',literal:true})>W-40)size--;
     cv.text(c.big,38,31,size,col,{font:'light',literal:true});
