@@ -32,6 +32,11 @@ license texts follow.
   taken from it. The time gap / colour steps follow the user's specification.
 - `bc-diag.js` (the BC button check, 1.3.39) and `bc-follow.js` (following the BC button, 1.3.40): written for this app; the signals it reads for the BC button are those
   chyiz's `idrive7-cluster-metrics` (GPL-3.0) reads; no code is taken from it.
+- `position-config.js`, `position.js` (the Position check, 1.3.93): the search of the unit's catalog for latitude /
+  longitude fields, its ranking, and the decoding of the pair and its unit follow SpeedCam's `tools/store_build.py` and
+  `apps/speedcam_ua/position.js` (Zakh294/bmw-sugar-apps, MIT, Copyright (c) 2026 Zakhar Vityk), written anew in
+  JavaScript for this app with Korea's bounds. MIT licence: the above copyright notice and this permission notice shall
+  be included in all copies or substantial portions of the Software (https://opensource.org/license/mit).
 - Korean font: Noto Sans CJK KR, OFL-1.1, supplied by the Korean-enabled kit.
 - `mguAppStartType: autostart`: `robertnisipeanu/mgu-store` deploy documentation (version 0.7.17,
   observed 2026-11-05).

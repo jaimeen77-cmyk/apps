@@ -254,6 +254,12 @@ function build(options) {
         Object.keys(missing).forEach((what) => console.log('  this unit has no ' + what + ' - built without it: ' + missing[what]));
         if (Object.keys(missing).length && fs.existsSync(path.join(stage, 'javascript/kit')))
             fs.writeFileSync(path.join(stage, 'javascript/kit/missing-interfaces.json'), JSON.stringify(missing, null, 1));
+        // Cluster Redline (1.3.93): the car's GPS position, wherever this unit's catalog carries it (position-config.js),
+        // added read-only; the candidates go with the package for position.js
+        if (fs.existsSync(path.join(stage, 'javascript/position.js')) && fs.existsSync(path.join(ROOT, 'apps/cluster_redline/position-config.js'))) {
+            const list = require('../apps/cluster_redline/position-config').filterPosition(manifest, catalog);
+            fs.writeFileSync(path.join(stage, 'javascript/position-candidates.json'), JSON.stringify({ list, note: Object.keys(catalog.interfaces || {}).length ? list.length + ' found in this unit\'s catalog' : 'built without the car\'s catalog' }, null, 1));
+        }
         fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 2) + '\n');
         // As the App Kit's build.py does with the Store's "sdk": "oap-sdk": the oap-sdk module the Store made on
         // this head unit from its own donor goes into the package (it is never in this repository). Without it
