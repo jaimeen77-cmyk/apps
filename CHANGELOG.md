@@ -14,6 +14,7 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - **Where the rules come from**: the user's 32 recorded scenes (1.3.89 scene clips, 2026-11-27, city driving), worked out in another session and checked here again: on those they warn once, at the one real cut-in (35 m ahead, about 1 s before the car reached the middle of our lane), and never otherwise. The earlier idea (warn when the car ahead changes to a nearer one) missed that cut-in: the camera had already taken the car as the one ahead while it was still in the next lane. Missed cases could not be checked (only one real cut-in was recorded).
 - **New: QR log collection** (Basic settings, last row; 기본설정 → QR 로그 수집), for checking the warnings on the car:
   - **QR On / Off**: the lead-car helper (**0.8.0**) opens a read-only page for the phone with **both logs**: `nav-probe.log` (Received turns) and `road-alerts.log` (warnings), each on its own, or **both together** as `redline-logs.tar.gz`. (The Received turns screen's QR button opens this screen now.)
+  - **Received turns recording** (nav-probe.log) is switched here now (moved from Navigation display → Received turns, which shows its state).
   - **Warning recording** (off by default): each cut-in / pedestrian warning writes 5 s before it and 3 s after it (the camera objects, lane lines and speed; no position).
   - **Save a miss**: when a cut-in or a person was not warned, it writes the last 20 s.
   - **Delete logs**: deletes both logs; pressed twice within 5 s.

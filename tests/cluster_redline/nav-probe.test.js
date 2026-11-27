@@ -52,8 +52,11 @@ if(process.argv[2]){
  page.focus=page.keys().indexOf('navDisplayMode');page.activate();
  const live={navProbe:p.status()},scr=()=>{const cv=new Canvas(1600,520);page.draw(cv,'',live);return cv;};
  scr().targets.find(t=>t.id==='navlog').run();assert.strictEqual(page.open,'navLog');
- scr().targets.find(t=>t.id==='navprobe-on').run();assert.strictEqual(v.navProbeLog,'on');
+ assert(!scr().targets.some(t=>t.id==='navprobe-on'),'1.3.100: the recording is switched in QR log collection, not here');
  if(process.argv[3])require('fs').writeFileSync(process.argv[3],scr().png());
  page.back();assert.strictEqual(page.open,'navMode','back to Navigation display');
+ // 1.3.100: Basic settings → QR log collection switches it
+ page.back();page.selectTab(0);page.activate(page.keys().indexOf('qrLogs'));assert.strictEqual(page.open,'qrLogs');
+ scr().targets.find(t=>t.id==='navprobe-on').run();assert.strictEqual(v.navProbeLog,'on');scr().targets.find(t=>t.id==='navprobe-off').run();assert.strictEqual(v.navProbeLog,'off');
 }
 console.log('PASS: navigation record: raw values per turn, newest first, one line per turn, the file while on (whole turn, route list once, 1 MB + .1, errors shown), the setting, Received turns screen'+(process.argv[2]?'':' (no package: screen not checked)'));

@@ -159,7 +159,7 @@ class SettingsPage{
   if(item.key==='design'){const d=this.display(),n=designNow(cfg,d),a=D.auxConfig(cfg[d+'AuxConfig']);
    return tr(JAM[n]||RL.NAMES[n])+' · '+(a.mode==='off'?tr('No auxiliary information'):a.items.map(k=>tr(D.LABELS[k])).join(' / '));}
   if(item.key==='layout')return t('Adjust');
-  if(item.key==='qrLogs')return 'QR '+tr(cfg.navShare==='on'?'On':'Off')+' · '+tr('Warning recording')+' '+tr(cfg.roadLog==='on'?'On':'Off');
+  if(item.key==='qrLogs')return 'QR '+tr(cfg.navShare==='on'?'On':'Off')+' · '+tr('Received turns recording')+' '+tr(cfg.navProbeLog==='on'?'On':'Off')+' · '+tr('Warning recording')+' '+tr(cfg.roadLog==='on'?'On':'Off');
   if(item.key==='hudLamps')return [[cfg.hudHeadway!=='off','Lead-car headway'],[cfg.hudLaneLines==='on','Lane lines'],[cfg.hudTurnSignals==='on','Turn signals on HUD'],[cfg.hudDoorAlert!=='off','Door-open warning']].filter(x=>x[0]).map(x=>tr(x[1])).join(' · ')||tr('Off');
   if(item.key==='vehiclePreset'){const e=options(this.settings.schema.find(s=>s.key==='engineProfile'),cfg).find(o=>o[0]===cfg.engineProfile);return (e?t(e[1]):'')+' · '+cfg.powerUnit+' · '+(cfg.torqueUnit==='kgfm'?'kgf·m':'Nm')+' · '+cfg.shiftRpm+' rpm';}
   if(item.key==='driverProfiles')return this.driverValue();
@@ -660,12 +660,14 @@ class SettingsPage{
   cv.text(tr('QR log collection'),100,126,32,'#ef4050',{literal:true});
   [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,'QR '+tr(o[1]),84+i*266,146,254,64,()=>set('navShare',o[0]),cfg.navShare===o[0],'qrlog-'+o[0]));
   const st=!x||cfg.navShare!=='on'?tr('QR off'):x.state!=='connected'?tr('Lead-car helper')+': '+tr('not installed (Store: Cluster Redline lead-car helper)'):!x.listening?tr('opening the page'):tr('Page open')+' · '+tr('scan the code with the phone on the same Wi-Fi as the car');
-  const lines=[['nav-probe.log · '+kb(x&&x.navProbeSize)+' · '+tr('Received turns')+' '+tr(cfg.navProbeLog==='on'?'On':'Off'),'#c1cddd'],
+  const lines=[['nav-probe.log · '+kb(x&&x.navProbeSize)+' · '+tr('Received turns recording')+' '+tr(cfg.navProbeLog==='on'?'On':'Off'),'#c1cddd'],
    ['road-alerts.log · '+kb(rl.size)+' · '+tr('Warning recording')+' '+tr(cfg.roadLog==='on'?'On':'Off')+(rl.saved?' · '+rl.saved+' '+tr('saved'):'')+(rl.error?' · '+rl.error:''),'#c1cddd'],
    [st,x&&x.listening?'#5ee08f':'#ffad45']];
-  lines.forEach((l,i)=>cv.text(l[0],100,250+i*30,18,l[1],{literal:true}));
-  cv.text(tr('Warning recording'),100,394,22,'#f3f5f7',{literal:true});
-  [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),300+i*196,358,184,56,()=>set('roadLog',o[0]),cfg.roadLog===o[0],'roadlog-'+o[0]));
+  lines.forEach((l,i)=>cv.text(l[0],100,240+i*28,18,l[1],{literal:true}));
+  // (1.3.100) both recordings switched here: the received turns (nav-probe.log) and the warnings (road-alerts.log)
+  [['navProbeLog','Received turns recording','navprobe'],['roadLog','Warning recording','roadlog']].forEach(([k,label,id],r)=>{const y=330+r*58;
+   cv.text(tr(label),100,y+35,22,'#f3f5f7',{literal:true});
+   [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),380+i*196,y,184,52,()=>set(k,o[0]),(cfg[k]==='on'?'on':'off')===o[0],id+'-'+o[0]));});
   this.button(cv,local,tr('Save a miss'),84,448,300,64,()=>{set('roadLogMissAt',Date.now());},false,'roadlog-miss');
   const armed=this.clearArmed&&Date.now()-this.clearArmed<5000;
   this.button(cv,local,armed?tr('Press again to delete'):tr('Delete logs'),400,448,300,64,()=>{if(this.clearArmed&&Date.now()-this.clearArmed<5000){this.clearArmed=null;set('logClearAt',Date.now());}else{this.clearArmed=Date.now();this.changed();}},!!armed,'qrlog-clear');
@@ -717,8 +719,8 @@ class SettingsPage{
  drawNavLog(cv,cfg,targets){
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();},p=this.liveState&&this.liveState.navProbe;
   cv.text(tr('Received turns'),100,126,32,'#ef4050',{literal:true});
-  cv.text(tr('Record to a file'),100,189,26,'#f3f5f7',{literal:true});
-  [['on','On'],['off','Off']].forEach((o,j)=>this.button(cv,local,tr(o[1]),820+j*366,146,352,64,()=>set('navProbeLog',o[0]),(cfg.navProbeLog==='on'?'on':'off')===o[0],'navprobe-'+o[0]));
+  // (1.3.100) the recording is switched in Basic settings → QR log collection; shown here
+  cv.text(tr('Record to a file')+' (nav-probe.log): '+tr(cfg.navProbeLog==='on'?'On':'Off')+' · '+tr('switched in Basic settings → QR log collection'),100,189,22,cfg.navProbeLog==='on'?'#5ee08f':'#c1cddd',{literal:true});
   const turns=p&&p.turns||[];
   if(!turns.length)cv.text(tr(p?'No turns received yet · start route guidance':'waiting for the background app'),100,270,22,'#91a1b6',{literal:true});
   turns.slice(0,6).forEach((e,i)=>{let line=navLogLine(e),size=18;while(size>13&&cv.textWidth(line,size,{literal:true})>1440)size--;
