@@ -15,11 +15,11 @@ Apps for BMW iDrive 7 and 8 head units, installed from **MGU Store**. Every app 
 
 ## The apps
 
-### Cluster Redline 1.3.67 · iDrive 7·8 · English/Korean
+### Cluster Redline 1.3.91 · iDrive 7·8 · English/Korean
 
 ![Cluster Redline](screenshots/cluster_redline/manual/face-cluster-gauges-boost-torque-en.jpg)
 
-Draws rpm, shift alerts, the gear and auxiliary information (boost, torque, oil temperature…) on the instrument cluster and the HUD. 20 designs on the cluster and 18 on the HUD, an Animation layout (an animated car or your own GIFs), following the BC button, HUD navigation and vehicle alerts, settings per driver and favourites.
+Draws rpm, shift alerts, the gear and auxiliary information (boost, torque, oil temperature…) on the instrument cluster and the HUD. 24 designs on the cluster and 20 on the HUD (Calm clock, Retro VU meters, Navigation focus and G-G trail among them), an Animation layout (the owner's M3 or your own GIFs), a screen per drive-mode group, following the BC button, HUD navigation with 3D or neon icons, vehicle alerts, the lead-car headway with a departure alert, lane lines, scene recording, settings per driver and favourites.
 → **[User guide](docs/CLUSTER-REDLINE.md)**
 
 ### MGU Monitor 1.1.10 · iDrive 7·8 · English/Korean
