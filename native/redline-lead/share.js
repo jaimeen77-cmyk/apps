@@ -5,7 +5,8 @@
 // stops asking or leaves. Only that one file of the app's data folder can ever be given; nothing can be sent to the car.
 // (0.4.0 served scene clips; those are gone.)
 const http = require('http'), fs = require('fs'), os = require('os'), child = require('child_process');
-const PORT = 18884, BRIDGE = 'wlan_bridge', TAG = 'redline-lead-share';
+// 18885: 18884 is the GIF player's (127.0.0.1, lending GIFs to Cluster Redline); sharing it, one of the two could not listen
+const PORT = 18885, BRIDGE = 'wlan_bridge', TAG = 'redline-lead-share';
 const LOCAL = ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '169.254.0.0/16'], CHAIN = ['ip', 'filter', 'input'];
 // the only file that can be given: an OAP app's nav-probe.log
 const ALLOWED = /^\/var\/opt\/public\/oap\/oap_\d+\/data\/nav-probe\.log$/;

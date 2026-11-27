@@ -15,7 +15,7 @@ assert.strictEqual(L.leadOf(r,p).id,5,'the car followed: the nearest vehicle in 
 assert.deepStrictEqual(L.objectsOf(r,L.decodePosition(pos(objs,78))),[],'two different instants: nothing');
 console.log('PASS: redline-lead 0.3.0 objects: every measured object of one instant, nearest first; the car followed unchanged');
 // 0.5.0: the nav-probe.log page: only an app's own nav-probe.log can be given; the scene clips (0.4.0) are gone
-{const {ALLOWED,addresses}=require('../../native/redline-lead/share');
+{const {ALLOWED,addresses,PORT}=require('../../native/redline-lead/share');assert.notStrictEqual(PORT,require('../../apps/cluster_redline/my-picture-source').PORT,'the nav-probe page must not take the GIF player port');
  assert(ALLOWED.test('/var/opt/public/oap/oap_12211/data/nav-probe.log'));
  ['/etc/shadow','/var/opt/public/oap/oap_12211/data/../../../../etc/shadow','/var/opt/public/oap/oap_1/data/other.log','/var/opt/public/redline-clips/001.jsonl'].forEach(f=>assert(!ALLOWED.test(f),f));
  assert(Array.isArray(addresses()));

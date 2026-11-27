@@ -27,5 +27,5 @@ Test by hand on the unit (root): `/var/opt/redline-lead/current/redline-someip 0
   criteria are set from the clips already taken).
 - 0.5.0: `share.js` gives Cluster Redline's `nav-probe.log` to a phone, read only, while the app's "Download by QR"
   is on (`{t: 'cmd', share: true, file}` on the socket; only `/var/opt/public/oap/oap_<n>/data/nav-probe.log` can be
-  given). A page on port 18884 and one firewall rule of its own (tag `redline-lead-share`, private senders, any
+  given). A page on port 18885 (18884 is the GIF player's own, for Cluster Redline's GIFs) and one firewall rule of its own (tag `redline-lead-share`, private senders, any
   interface: the car's own Wi-Fi or one it joined), both gone when the app stops asking or leaves.

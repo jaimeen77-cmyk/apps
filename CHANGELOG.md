@@ -29,6 +29,8 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
   - The car's own Wi-Fi address comes first; **Next address** steps through the others, for a Wi-Fi the car joined.
   - The firewall rule lets private addresses in on any interface.
   - Only that one file can be given.
+  - The page is on port **18885**. 0.4.0 used 18884, which is also the port the GIF player uses to lend its GIFs to Cluster Redline. With the GIF player running, the page could not open: that is why the QR earlier showed but the page did not load.
+- **Checked: settings and animations switched at random** (13,000+ random settings taps with the Animation layout, 5 own GIFs and the engine running; real drawing). No error, no growing memory, slowest step 0.2 s.
 - Cluster Redline requires redline-lead 0.5.0.
 - Tests: `lane-lines` covers the 0.7 s, the release, low / normal / off, low speed and red at once.
 
