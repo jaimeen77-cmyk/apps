@@ -73,7 +73,29 @@ function draw(v, w, h) {
     // the warned half of the lane: from the middle to the line, in the warning's colour
     const tint = (side, lvl) => { if (!lvl || lvl === 'ok') return; const c = COLORS[lvl], a = lvl === 'over' ? 92 : lvl === 'near' ? 78 : 46, mid = (d) => (fl(d) + fr(d)) / 2;
         strip(side > 0 ? fl : mid, side > 0 ? mid : fr, NEAR_D, FAR_D, [c[0], c[1], c[2], a]); };
-    tint(1, lv.left); tint(-1, lv.right);
+    if (v.surface === 'green') {
+        // (1.3.85) the lane lit like the user's reference: brighter towards the car (bottom), dim far ahead (top); a warned
+        // half in its colour instead (amber, red, cyan)
+        const SURF = { ok: [[200, 255, 80], [30, 140, 60]], near: [[255, 200, 70], [180, 80, 10]], over: [[255, 90, 70], [150, 20, 20]], change: [[120, 235, 255], [20, 100, 200]] };
+        // painted row by row on the pixels (no bands, no seams): each screen row is one distance ahead
+        const c = cv.canvas, k = cv.k, px = c && c.d, mid = (d) => (fl(d) + fr(d)) / 2;
+        const sides = [[fl, mid, SURF[lv.left && lv.left !== 'ok' ? lv.left : 'ok']], [mid, fr, SURF[lv.right && lv.right !== 'ok' ? lv.right : 'ok']]];
+        const yNear = project(NEAR_D, 0)[1], yFar = project(FAR_D, 0)[1];
+        if (px) for (let py = Math.max(0, Math.floor(yFar * k)); py < Math.min(c.h, Math.ceil(yNear * k)); py++) {
+            const y = (py + 0.5) / k, d = F * EYE / (y - HZ) - D; if (d < NEAR_D || d > FAR_D) continue;
+            const t = (d - NEAR_D) / (FAR_D - NEAR_D), tt = Math.pow(t, 0.6), alpha = (210 - 150 * tt) / 255;
+            sides.forEach(([e0, e1, pal]) => {
+                const col = [0, 1, 2].map((i) => pal[0][i] + (pal[1][i] - pal[0][i]) * tt);
+                let xa = project(d, e0(d))[0] * k, xb = project(d, e1(d))[0] * k; if (xa > xb) { const q = xa; xa = xb; xb = q; }
+                for (let x = Math.max(0, Math.floor(xa)); x < Math.min(c.w, Math.ceil(xb)); x++) {
+                    const cover = Math.min(x + 1, xb) - Math.max(x, xa), a = alpha * Math.max(0, Math.min(1, cover)); if (a <= 0) continue;
+                    const i = (py * c.w + x) * 4, da = px[i + 3] / 255, oa = a + da * (1 - a);
+                    for (let ch = 0; ch < 3; ch++) px[i + ch] = Math.round((col[ch] * a + px[i + ch] * da * (1 - a)) / oa);
+                    px[i + 3] = Math.round(oa * 255);
+                }
+            });
+        }
+    } else { tint(1, lv.left); tint(-1, lv.right); }
     if (worst === 'over') { const c = COLORS.over; [[1.15, 26], [0.85, 32], [0.55, 40]].forEach(([wd, a]) => strip(() => wd, () => -wd, NEAR_D, CAR_D + 0.6, [c[0], c[1], c[2], a])); }
     // the lines: a soft glow under each painted line
     const mark = (s, lvl) => {
@@ -96,12 +118,14 @@ function draw(v, w, h) {
 class LaneOverlay {
     constructor(client) { this.client = client; this.layer = null; }
     tick(value, cfg, preview) {
-        const v = preview ? { left: { y: 1.7, type: 'dashed', color: 'white', margin: 0.75 }, right: { y: -1.05, type: 'solid', color: 'white', margin: 0.1 }, levels: { left: 'ok', right: 'near' } } : value;
+        const surface = cfg.hudLaneSurface === 'green' ? 'green' : 'dark';
+        let v = preview ? { left: { y: 1.7, type: 'dashed', color: 'white', margin: 0.75 }, right: { y: -1.05, type: 'solid', color: 'white', margin: 0.1 }, levels: { left: 'ok', right: 'near' } } : value;
         if (!v || (cfg.hudLaneLines !== 'on' && !preview)) { this.hide(); return false; }
         const r = require('./display-config').laneRect(cfg); let l = this.layer;
         if (l && (l.w !== r.w || l.h !== r.h)) { this.client.drop(l.ref); l = this.layer = null; }
         if (!l) { const ref = this.client.image({ target: 'hud', klass: 'overlay', z: 12, x: r.x, y: r.y, w: r.w, h: r.h, iw: r.w, ih: r.h, visible: false }); if (!ref) return false; l = this.layer = { ref, x: r.x, y: r.y, w: r.w, h: r.h, key: null, visible: false }; }
-        const key = JSON.stringify([v.left, v.right, v.levels, v.width]);
+        v = Object.assign({}, v, { surface });
+        const key = JSON.stringify([v.left, v.right, v.levels, v.width, surface]);
         if (l.key !== key) { const im = draw(v, r.w, r.h), px = Buffer.alloc(r.w * r.h * 4);
             for (let y = 0; y < Math.min(r.h, im.h); y++) Buffer.from(im.d.buffer, im.d.byteOffset + y * im.w * 4, Math.min(r.w, im.w) * 4).copy(px, y * r.w * 4);
             this.client.pixels(l.ref, null, px); l.key = key; }

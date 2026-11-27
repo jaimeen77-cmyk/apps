@@ -22,6 +22,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.85 (lane lines: lime green lane)
+
+- **New: Lane colour** on the Lane lines screen (HUD lamps → 차선 표시 → 바닥색): **Default** (the dark road) or **Lime green**, as the user's reference.
+  - The lane between the lines is lit green: bright yellow-green near the car, deeper and fainter far ahead.
+  - It is painted row by row on the pixels, so the gradient has no bands.
+  - A warned half takes its colour in the same gradient: amber within 15 cm, red over the line, cyan for a lane change.
+- Tests: `lane-lines` checks the setting, green near the car and brighter there than far ahead, and that the default stays dark.
+
 ## Cluster Redline 1.3.84 (drive-mode display: per mode output and screen)
 
 - **New: Drive-mode display** (HUD tab and Cluster tab, 주행 모드별 표시). It replaces the two rows "Sport mode RPM display" and "All modes RPM display".

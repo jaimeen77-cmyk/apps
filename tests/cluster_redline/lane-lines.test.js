@@ -57,4 +57,11 @@ O.close();assert.strictEqual(layers.size,0);
 // the real canvas of a built package: the picture has pixels
 if(process.argv[2]){Module._load=orig;const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),X=require(path.join(dir,'lane-lines'));
  const p=X.draw({left:e.left,right:e.right,levels:{left:'near',right:'ok'}},112,84);let lit=0;for(let i=3;i<p.d.length;i+=4)if(p.d[i])lit++;assert(lit>200,'drawn '+lit);}
+// the lane's colour (1.3.85): dark by default; lime green painted brighter towards the car
+{const {settings}=require('../../apps/cluster_redline/policy');assert.strictEqual(settings({}).hudLaneSurface,'dark');assert.strictEqual(settings({hudLaneSurface:'green'}).hudLaneSurface,'green');}
+if(process.argv[2]){const X=require(path.join(path.resolve(process.argv[2]),'source/javascript','lane-lines'));
+ const v={left:{y:1.6,slope:0,type:'dashed',color:'white',margin:0.65},right:{y:-1.6,slope:0,type:'solid',color:'white',margin:0.65},levels:{left:'ok',right:'ok'},width:3.2};
+ const g=X.draw(Object.assign({surface:'green'},v),112,84),dk=X.draw(v,112,84),at=(im,x,y)=>Array.from(im.d.slice((y*im.w+x)*4,(y*im.w+x)*4+4));
+ const near=at(g,40,80),far=at(g,52,20);assert(near[1]>near[0]&&near[1]>near[2]&&near[1]>180,'lime near the car '+near);assert(near[1]>far[1],'brighter towards the car '+near+' / '+far);
+ assert(at(dk,40,80)[1]<90,'dark stays dark');}
 console.log('lane-lines ok');
