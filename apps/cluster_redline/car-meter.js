@@ -38,11 +38,10 @@ function want(g,stage,speed){
  if(b||t){if(b>=t)return 'brake';const step=a>=TURN[3]?4:a>=TURN[2]?3:a>=TURN[1]?2:1;return (lat>0?'left':'right')+step;}
  return lon>=TH.accel?'accel':'cruise';
 }
-// A state's pictures: each side's own for cornering steps 1-3 ('turn2', 'turn2_left'); step 4 is the drift picture,
-// a left bend, mirrored for a right one (1.3.90; before, every left bend was the right one mirrored).
+// A state's pictures: cornering steps 1-3 are the owner's left-bend pictures ('turn2_left', 1.3.94), step 4 the drift
+// picture, also a left bend; a right bend is them mirrored when drawn (only the left ones are kept: a smaller set).
 function look(s){const m=/^(left|right)([1234])$/.exec(s);if(!m)return {state:s,mirror:false};
- if(m[2]==='4')return {state:'drift',mirror:m[1]==='right'};
- return {state:'turn'+m[2]+(m[1]==='left'?'_left':''),mirror:false};}
+ return {state:m[2]==='4'?'drift':'turn'+m[2]+'_left',mirror:m[1]==='right'};}
 // A new state must last CONFIRM_MS and the shown one HOLD_MS, so a single noisy sample does not flicker.
 const shown={};
 function pick(display,g,stage,now,speed){
@@ -77,7 +76,7 @@ function rgba(f,w,h){
  const key=(f.set||'cluster')+'|'+f.state+'|'+(f.mirror?1:0)+'|'+w+'|'+h;let list=scaledCache.get(key);
  if(!list){if(scaledCache.size>=6)scaledCache.clear();list=[];scaledCache.set(key,list);}   // (a fade on each display: 4)
  if(list[f.i])return list[f.i];
- const D=frames(f.set),sw=D.W,sh=D.H,src=D.states[f.state],off=f.i*sw*sh,pal=D.pal,out=new Uint8ClampedArray(w*h*4);
+ const D=frames(f.set),sw=D.W,sh=D.H,src=D.states[f.state]||D.states.cruise,off=(D.states[f.state]?f.i:0)*sw*sh,pal=D.pal,out=new Uint8ClampedArray(w*h*4);
  const fade=Math.max(1,Math.round(Math.min(w,h)*0.14)),hud=f.set==='hud';
  for(let y=0;y<h;y++){
   const fy=Math.max(0,Math.min(sh-1,(y+0.5)*sh/h-0.5)),y0=Math.floor(fy),y1=Math.min(sh-1,y0+1),ty=fy-y0;

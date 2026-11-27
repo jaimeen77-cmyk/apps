@@ -44,9 +44,9 @@ REAR_SCENES = {
 }
 # (1.3.94) cornering steps 1-3 are the owner's pictures of the M3 in a left bend, its nose turned 10, 20 and 30 degrees
 # into it about the tail lamps (Turned below); a right bend is them mirrored
-# the app's states, in this order: a right bend's own pictures, a left bend's own, the drift (a left one)
-STATES = ['stop', 'cruise', 'accel', 'brake', 'reverse', 'turn1', 'turn2', 'turn3',
-          'turn1_left', 'turn2_left', 'turn3_left', 'drift']
+# the app's states, in this order
+# (1.3.94) only the left bends' pictures: car-meter.js mirrors them for a right bend, as the drift
+STATES = ['stop', 'cruise', 'accel', 'brake', 'reverse', 'turn1_left', 'turn2_left', 'turn3_left', 'drift']
 
 
 def road(cfg, f, nf):
@@ -313,7 +313,7 @@ def render(state, nf, hud):
     return [rear_frame(state, f, nf, hud, REAR) for f in range(nf)]
 
 
-COLOURS = 160      # fewer colours and a slight smoothing: about a quarter smaller than 256 colours
+COLOURS = 128      # fewer colours and a slight smoothing (1.3.94: 128, from 160)
 
 
 def palette_of(pix, k, seed=1, iters=20):
