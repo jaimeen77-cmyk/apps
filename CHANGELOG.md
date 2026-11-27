@@ -2,6 +2,20 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.96 (Position check gets the car's position through the helper)
+
+- **Fix: the Position check showed nothing.** The car's position services are not given to the app's own account. Checked on the user's car (root, 2026-11-28):
+  - **Positioning** (0xFB0C) is offered on instance 128 (Main_Instance) and sends `currentLocation` (326 bytes).
+  - NavigationStatus and PositioningCAN are offered on no instance.
+- **The lead-car helper 0.6.0 reads it** as root, the way it reads the camera and the lanes:
+  - `currentLocation` (map matched) and `rawPositionData` (GNSS).
+  - The latitude and longitude come out of each one's Wgs84Coordinate3D (`coordinatesValid`, `heightValid`, longitude, latitude as doubles).
+  - It reads only while the Position check is on (the app asks every second; 5 s without asking and it stops).
+  - Nothing is written to a file or a log.
+- **Position check screen**: the two helper sources come first (`redline-lead.Positioning.currentLocation`, `rawPositionData`), with the helper's state when it is missing or older than 0.6.0.
+- Cluster Redline requires redline-lead 0.6.0.
+- Tests: `redline-lead` (the coordinate found inside a longer message, none in empty or random bytes), `position` (the helper's position used, the state shown).
+
 ## Cluster Redline 1.3.95 (lane lines calmer and kept; departure alert works at lights; log collection cleaned up)
 
 - The user found the amber lane warning too frequent. It was shown at once whenever the car's side came within 15 cm of a line.

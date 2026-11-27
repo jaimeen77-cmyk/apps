@@ -16,13 +16,20 @@
 //   0xD024 LaneBoundaries (0.2.0): the lane lines the camera sees (decodeLanes)
 // 0.3.0: also every object the camera measures (cam.objects: id, class, place, lane), not only the car followed: for
 // Cluster Redline's lead car departure (the car in front when the camera's lane is unknown) and the warnings to come
+// 0.6.0: the car's GPS position while the app asks for it ({t: 'cmd', position: true}): 0xFB0C Positioning (major 4,
+// instance 128 = Main_Instance; tested on the user's car 2026-11-28: offered to uid 0, not to the app),
+//   0x8001 currentLocation (eventgroup 1, a field: PositioningTypes.CurrentLocation, the map-matched position)
+//   0x8004 rawPositionData (eventgroup 4: RawGNSSPositionData {fixType, utcDateTime, heading, position})
+// each holding a Wgs84Coordinate3D {coordinatesValid bool, heightValid bool, longitude double, latitude double, height}
+// (decodeWgs finds it). A second redline-someip runs only while asked; the position is never written anywhere.
 // Serves /run/redline-lead/lead.sock (0666, JSON lines). Subscribes only while a client is connected.
 const net = require('net'), fs = require('fs'), path = require('path'), { spawn } = require('child_process');
 const DIR = process.env.REDLINE_LEAD_DIR || '/run/redline-lead', SOCK = path.join(DIR, 'lead.sock');
 const BIN = process.env.REDLINE_SOMEIP || path.join(__dirname, 'redline-someip');
 // 0.5.0: the app's nav-probe.log for a phone (share.js), while the app asks for it (0.4.0's scene clips are gone)
-const VERSION = '0.5.0', { Share } = require('./share');
+const VERSION = '0.6.0', { Share } = require('./share');
 const SPECS = ['0xf139:1:2:1:0x8001,0x8002', '0x3539:1:1:1:0x8001:f', '0x3539:1:1:2:0x8002:f', '0xd024:1:1:3:0x8003'];
+const POS_SPECS = ['0xfb0c:128:4:1:0x8001:f', '0xfb0c:128:4:4:0x8004:f'];
 const VEHICLE = [2, 3, 4, 5, 6], MEASURED = [0, 1, 2], IDLE_STOP_MS = 15000, SEND_MS = 100;
 const log = (s) => { try { process.stdout.write(new Date().toISOString() + ' ' + s + '\n'); } catch (e) {} };
 
@@ -91,10 +98,27 @@ function leadOf(rec, pos) {
     }
     return best;
 }
+// A Wgs84Coordinate3D inside b: {lat, lon, valid, off, endian} or null. The first place where a bool byte, a bool byte,
+// then two doubles read as a longitude and a latitude on Earth (not 0 / 0); big endian (SOME/IP) first.
+function decodeWgs(b) {
+    if (!b || b.length < 18) return null;
+    // coordinatesValid set first (a fix), then any; big endian first
+    for (const valid of [1, 0]) for (const be of [true, false]) {
+        for (let o = 0; o + 18 <= b.length; o++) {
+            if (b[o] !== valid || b[o + 1] > 1) continue;
+            const lon = be ? b.readDoubleBE(o + 2) : b.readDoubleLE(o + 2), lat = be ? b.readDoubleBE(o + 10) : b.readDoubleLE(o + 10);
+            // on Earth, both away from 0 (other bytes read as doubles are mostly tiny, huge or not numbers)
+            if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180 || Math.abs(lat) < 1e-4 || Math.abs(lon) < 1e-4) continue;
+            return { lat, lon, valid: valid === 1, off: o, endian: be ? 'be' : 'le' };
+        }
+    }
+    return null;
+}
 
-const state = { lane: { rx: 0, data: null, at: null }, cam: { rx: 0, lead: null, n: null, at: null, objects: [] }, radar: { rx: 0, front: null, gap: null, at: null }, avail: {}, child: 'off', error: null };
+const state = { lane: { rx: 0, data: null, at: null }, cam: { rx: 0, lead: null, n: null, at: null, objects: [] }, radar: { rx: 0, front: null, gap: null, at: null }, avail: {}, child: 'off', error: null,
+    position: { on: false, child: 'off', rx: 0, avail: null, map: null, raw: null } };
 const share = new Share(log);
-let child = null, buf = '', rec = null, pos = null, clients = new Set(), stopTimer = null, sendTimer = null, restartTimer = null;
+let posChild = null, posBuf = '', posWanted = false, child = null, buf = '', rec = null, pos = null, clients = new Set(), stopTimer = null, sendTimer = null, restartTimer = null;
 function onLine(l) {
     const p = l.split(' ');
     if (p[0] === 'ok') { state.child = 'registered'; return; }
@@ -115,6 +139,31 @@ function onLine(l) {
     }
     schedule();
 }
+function onPosLine(l) {
+    const p = l.split(' '), P = state.position;
+    if (p[0] === 'ok') { P.child = 'registered'; return; }
+    if (p[0] === 'av') { if (p[1] === '0xfb0c') P.avail = p[3] === '1'; return; }
+    if (p[0] === 'error') { P.child = 'error'; return; }
+    if (p[0] !== 'ev' || p.length < 4 || p[1] !== '0xfb0c') return;
+    let b; try { b = Buffer.from(p[3], 'hex'); } catch (e) { return; }
+    P.rx++; const w = decodeWgs(b), at = Date.now();
+    const v = w ? { lat: w.lat, lon: w.lon, valid: w.valid, off: w.off, endian: w.endian, len: b.length, at } : { lat: null, lon: null, valid: false, len: b.length, at };
+    if (p[2] === '0x8001') P.map = v; else if (p[2] === '0x8004') { v.fix = b[0] <= 3 ? b[0] : null; P.raw = v; }
+    schedule();
+}
+function startPos() {
+    if (posChild) return;
+    try { posChild = spawn(BIN, POS_SPECS, { stdio: ['pipe', 'pipe', 'inherit'] }); } catch (e) { state.position.child = 'error'; return; }
+    const c = posChild; state.position.child = 'starting'; posBuf = '';
+    c.stdout.on('data', (d) => { if (posChild !== c) return; posBuf += d; let i; while ((i = posBuf.indexOf('\n')) >= 0) { const l = posBuf.slice(0, i); posBuf = posBuf.slice(i + 1); onPosLine(l.trim()); } if (posBuf.length > 1e6) posBuf = ''; });
+    c.on('error', () => { state.position.child = 'error'; });
+    c.on('exit', () => { if (posChild === c) { posChild = null; state.position.child = 'off'; } });
+}
+function stopPos() { const c = posChild; posChild = null; state.position.child = 'off'; state.position.map = null; state.position.raw = null; state.position.rx = 0; state.position.avail = null;
+    if (!c) return; try { c.stdin.end(); } catch (e) {} setTimeout(() => { try { c.kill('SIGTERM'); } catch (e) {} }, 1000); }
+// the app asks again every second while it wants the position; 5 s without asking ends it
+let posAskedAt = 0;
+function syncPos(on) { posWanted = on; state.position.on = on; if (on) { posAskedAt = Date.now(); startPos(); } else stopPos(); }
 function startChild() {
     if (child) return;
     try { child = spawn(BIN, SPECS, { stdio: ['pipe', 'pipe', 'inherit'] }); } catch (e) { state.error = String(e.message || e); return; }
@@ -126,10 +175,11 @@ function startChild() {
     log('redline-someip started');
 }
 function stopChild() { if (!child) return; try { child.stdin.end(); } catch (e) {} const c = child; setTimeout(() => { try { c.kill('SIGTERM'); } catch (e) {} }, 1000); }
-function message() { return JSON.stringify({ t: 'lead', v: VERSION, at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar, lane: state.lane, share: share.status() }) + '\n'; }
+function message() { return JSON.stringify({ t: 'lead', v: VERSION, at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar, lane: state.lane, share: share.status(), position: state.position.on ? state.position : undefined }) + '\n'; }
 // the app's commands (0.5.0), one JSON line each: {t: 'cmd', share: bool, file: its nav-probe.log}
 function command(l) { let c = null; try { c = JSON.parse(l); } catch (e) { return; } if (!c || c.t !== 'cmd') return;
-    if (typeof c.share === 'boolean') share.sync(c.share, typeof c.file === 'string' ? c.file : null); }
+    if (typeof c.share === 'boolean') share.sync(c.share, typeof c.file === 'string' ? c.file : null);
+    if (typeof c.position === 'boolean') syncPos(c.position); }
 function schedule() { if (sendTimer || !clients.size) return; sendTimer = setTimeout(() => { sendTimer = null; const m = message(); clients.forEach((s) => { try { s.write(m); } catch (e) {} }); }, SEND_MS); }
 
 function serve() {
@@ -138,12 +188,12 @@ function serve() {
     const server = net.createServer((s) => {
         clients.add(s); if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; } startChild(); s.write(message());
         let cb = ''; s.on('error', () => {}); s.on('data', (d) => { cb += d; let i; while ((i = cb.indexOf('\n')) >= 0) { const l = cb.slice(0, i); cb = cb.slice(i + 1); command(l); } if (cb.length > 65536) cb = ''; });
-        s.on('close', () => { clients.delete(s); if (!clients.size && !stopTimer) stopTimer = setTimeout(() => { stopTimer = null; if (!clients.size) { stopChild(); share.sync(false); } }, IDLE_STOP_MS); });
+        s.on('close', () => { clients.delete(s); if (!clients.size && !stopTimer) stopTimer = setTimeout(() => { stopTimer = null; if (!clients.size) { stopChild(); share.sync(false); syncPos(false); } }, IDLE_STOP_MS); });
     });
     server.listen(SOCK, () => { try { fs.chmodSync(SOCK, 0o666); } catch (e) {} log('listening ' + SOCK); });
-    setInterval(() => { if (clients.size) schedule(); }, 1000);   // a heartbeat with the counts, also when nothing comes
-    const bye = () => { stopChild(); share.stop(); try { fs.unlinkSync(SOCK); } catch (e) {} setTimeout(() => process.exit(0), 300); };
+    setInterval(() => { if (clients.size) schedule(); if (posWanted && Date.now() - posAskedAt > 5000) syncPos(false); }, 1000);   // a heartbeat with the counts, also when nothing comes
+    const bye = () => { stopChild(); stopPos(); share.stop(); try { fs.unlinkSync(SOCK); } catch (e) {} setTimeout(() => process.exit(0), 300); };
     process.on('SIGTERM', bye); process.on('SIGINT', bye);
 }
 if (require.main === module) serve();
-module.exports = { VERSION, decodeRecognition, decodePosition, decodeFront, decodeGap, decodeLanes, leadOf, objectsOf, SPECS };
+module.exports = { VERSION, decodeRecognition, decodePosition, decodeFront, decodeGap, decodeLanes, leadOf, objectsOf, decodeWgs, SPECS, POS_SPECS };
