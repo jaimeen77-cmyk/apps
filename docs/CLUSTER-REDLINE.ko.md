@@ -255,9 +255,17 @@ HUD에는 이렇게 보입니다(왼쪽부터: 기본 바닥색과 청록 1.6초
 
 디자인 목록에서 **애니메이션**을 고르면 내 GIF 화면이 열립니다.
 
-| GIF를 넣지 않았을 때: 자동차 그림 | 내 GIF를 넣었을 때 |
-|---|---|
-| ![자동차 그림](../screenshots/cluster_redline/manual/face-cluster-animation-car-ko.jpg) | ![내 GIF](../screenshots/cluster_redline/manual/face-cluster-animation-gif-ko.jpg) |
+**GIF를 넣지 않았을 때: 자동차 그림**(M3). 주행 → 가속 → 제동 → 좌 코너 1~3단계 → 드리프트 → 우 코너 → 우 드리프트 → 정차 → 후진 순서로 바뀌는 모습입니다(실제 패키지로 그린 예시, 오른쪽 위 노란 글씨는 설명용).
+
+![자동차 그림 애니메이션](../screenshots/cluster_redline/manual/car-animation-ko.gif)
+
+**내 GIF를 넣었을 때**: 실제 차에서 찍은 화면입니다(휴대폰 이름은 가림).
+
+![실제 차: 내 GIF](../screenshots/cluster_redline/manual/car-mygif-real.gif)
+
+| 내 GIF (PC 미리보기) |
+|---|
+| ![내 GIF](../screenshots/cluster_redline/manual/face-cluster-animation-gif-ko.jpg) |
 
 - **자동차 그림**: GIF를 넣지 않으면 나옵니다. 내 M3 그림으로, 차의 G와 기어에 따라 브레이크등, 좌우 4단계 코너링(0.10·0.25·0.35 G, 0.50 G부터는 드리프트), 가속 불꽃, 후진등, 정차가 바뀝니다.
 - **내 그림(내 GIF)**: [GIF 플레이어](../apps/gif_home/README.ko.md)에 휴대폰으로 올린 GIF를 가져와, 주행·정지·후진·좌회전·우회전 장면마다 다른 GIF를 보여 줍니다. 가운데 그림 자리에 GIF가 나오고, 기어·회전수·부가정보·G 미터는 그대로 나옵니다.

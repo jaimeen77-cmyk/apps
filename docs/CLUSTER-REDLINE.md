@@ -255,9 +255,17 @@ The cluster has **24 designs** (pictures: [10. All designs](#cluster-24)): Jam t
 
 Choosing **Animation** in the design list opens the My GIFs screen.
 
-| No GIF: the animated car | With your GIF |
-|---|---|
-| ![Animated car](../screenshots/cluster_redline/manual/face-cluster-animation-car-en.jpg) | ![Your GIF](../screenshots/cluster_redline/manual/face-cluster-animation-gif-en.jpg) |
+**No GIF: the animated car** (the M3), going through driving → accelerating → braking → left bend steps 1–3 → drift → right bend → right drift → standing still → reverse (drawn by the actual package; the yellow caption at the top right is only for this guide).
+
+![Animated car](../screenshots/cluster_redline/manual/car-animation-en.gif)
+
+**With your GIF**, filmed on the car (the phone's name hidden; the car's language is Korean):
+
+![On the car: your GIF](../screenshots/cluster_redline/manual/car-mygif-real.gif)
+
+| Your GIF (PC preview) |
+|---|
+| ![Your GIF](../screenshots/cluster_redline/manual/face-cluster-animation-gif-en.jpg) |
 
 - **The animated car** (the owner's M3) shows when no GIF is added: brake lights, four cornering steps left and right (from 0.10, 0.25 and 0.35 G, and a drift from 0.50 G), flames when accelerating, reversing lamps and standing still, from the car's G and gear.
 - **Your pictures (your GIFs)** come from the [GIF player](../apps/gif_home/README.md): the GIFs you uploaded to it from your phone, a different one for driving, standing still, reverse, turning left and turning right. The GIF takes the picture's place; the gear, rpm, auxiliary information and G-meter stay.
