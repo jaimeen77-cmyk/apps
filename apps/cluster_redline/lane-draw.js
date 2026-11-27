@@ -49,6 +49,23 @@ function paint(cv,parts,map,k,width,color){
    spans.forEach(s=>{if(s[1]>s[0])cv.arc(c[0],c[1],r-hw,r+hw,s[0],s[1],color);});}
  });
 }
+// The lane arrows as pictures (1.3.81, tools/hud-art/nav lg-*): each direction's icon (a right one mirrored from the
+// left), bottom-centred in the lane; the lane's other directions dimmer; true when every direction had one.
+const LG={STRAIGHT_ON:['lg-straight',false],SLIGHT_LEFT:['lg-slight-left',false],SLIGHT_RIGHT:['lg-slight-right',false],LEFT:['lg-left',false],RIGHT:['lg-left',true],
+ HARD_LEFT:['lg-left',false],HARD_RIGHT:['lg-left',true],UTURN_LEFT:['lg-uturn-left',false],UTURN_RIGHT:['lg-uturn-left',true]};
+const BLUE=['#29c5ff','#37c6ff'];
+function laneIcons(cv,s,cx,lane,selected){
+ const A=require('./hud-art'),all=lane.other.map(d=>[d,'other']).concat(lane.directions.map(d=>[d,lane.highlighted?'on':'dim']));
+ if(!all.length||!all.every(([d])=>LG[d]&&A.size('nav/'+LG[d][0])))return false;
+ const tint=BLUE.indexOf(String(selected).toLowerCase())>=0?null:selected;
+ all.sort((p,q)=>(p[1]==='on')-(q[1]==='on')).forEach(([d,kind])=>{
+  const [base,flip]=LG[d],g=A.size('nav/'+base),k=Math.min((CELL-3)/g.w,(BOTTOM-TOP)/g.h);
+  let name='nav/'+base,w=g.w*k,h=g.h*k,y=BOTTOM-h,x=cx-w/2;
+  if(kind==='on'){const on=A.size(name+'-on');if(on){name+='-on';const pad=8,kk=k;w=on.w*kk;h=on.h*kk;x=cx-w/2;y=BOTTOM-h+pad*kk;}}
+  A.paint(cv,name,x*s,y*s,w*s,h*s,{flip,tint:kind==='on'?tint:null,alpha:kind==='other'?0.4:kind==='dim'?0.85:1});
+ });
+ return true;
+}
 function drawSized(state,w,h){
  const s=(w||W)/W,cv=new Canvas(Math.max(1,Math.round(w||W)),Math.max(1,Math.round(h||H*s)));cv.clear([0,0,0,0]);
  if(!state||!state.visible||!Array.isArray(state.lanes)||!state.lanes.length)return cv;
@@ -62,6 +79,8 @@ function drawSized(state,w,h){
   const cx=left+CELL*(i+0.5),on=lane.highlighted;
   const list=lane.other.map(d=>({d,color:OTHER})).concat(lane.directions.map(d=>({d,color:on?selected:DIM})));
   const all=lane.directions.concat(lane.other),side=d=>(d.match(/LEFT|RIGHT/)||[''])[0],paired=d=>(d==='LEFT'||d==='RIGHT'||/^UTURN_/.test(d))&&all.includes(side(d))&&all.includes('UTURN_'+side(d));
+  // (1.3.81) the arrows from the user's icon sheet: grey, the selected lane's lit (in its colour); drawn ones otherwise
+  if(laneIcons(cv,s,cx,lane,selected))list.length=0;
   const shapes=list.map(e=>Object.assign(e,{parts:glyph(e.d,paired(e.d))})).filter(e=>e.parts);
   if(shapes.length){
    // One transform per lane: centre the combined glyph; shrink only a lane whose

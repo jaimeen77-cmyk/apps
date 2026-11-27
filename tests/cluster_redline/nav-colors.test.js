@@ -17,9 +17,13 @@ if(process.argv[2]){
  const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),NAV=require(path.join(dir,'nav-draw')),TEXT=require(path.join(dir,'nav-text'));
  const rgb=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
  const has=(cv,hex,box)=>{const [r,g,b]=rgb(hex);let n=0;for(let y=box[1];y<box[3];y++)for(let x=box[0];x<box[2];x++){const p=(y*cv.w+x)*4;if(cv.d[p+3]>200&&Math.abs(cv.d[p]-r)<12&&Math.abs(cv.d[p+1]-g)<12&&Math.abs(cv.d[p+2]-b)<12)n++;}return n;};
+ // the arrow is a shaded picture (1.3.81): its lit pixels carry the colour's hue (white: no hue), not one flat value
+ const hsv=(r,g,b)=>{const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d)h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;return [(h*60+360)%360,mx?d/mx:0,mx];};
+ const tone=(cv,hex,box)=>{const T=hsv(...rgb(hex));let n=0,ok=0;for(let y=box[1];y<box[3];y++)for(let x=box[0];x<box[2];x++){const p=(y*cv.w+x)*4;if(cv.d[p+3]<200)continue;const q=hsv(cv.d[p],cv.d[p+1],cv.d[p+2]);if(q[2]<120)continue;n++;
+  if(T[1]<0.15?q[1]<0.2:q[1]>0.3&&Math.min(Math.abs(q[0]-T[0]),360-Math.abs(q[0]-T[0]))<22)ok++;}return n>100&&ok/n>0.6;};
  D.NAV_COLOR_NAMES.forEach(a=>D.NAV_COLOR_NAMES.forEach(t=>{
   const cv=NAV.draw(Object.assign({},nav,{color:a,textColor:t}));
-  assert(has(cv,D.NAV_COLORS[a],[0,0,104,112])>100,'arrow '+a);assert(has(cv,D.NAV_COLORS[t],[104,30,240,90])>30,'distance '+t);
+  assert(tone(cv,D.NAV_COLORS[a],[0,0,104,112]),'arrow '+a);assert(has(cv,D.NAV_COLORS[t],[104,30,240,90])>30,'distance '+t);
  }));
  assert(has(TEXT.draw(Object.assign({},nav,{textColor:'orange'})),D.NAV_COLORS.orange,[0,0,240,48])>30,'road name orange');
  const {SettingsPage}=require(path.join(dir,'settings-ui')),{Canvas}=require(path.join(dir,'kit/canvas')),spec=require(path.join(dir,'kit/app-spec.json'));

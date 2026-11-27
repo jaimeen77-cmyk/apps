@@ -70,7 +70,7 @@ function draw(state,target) {
     if(!state||!state.visible)return cv;
     const kind=diagramKind(state),color0=arrowColor(state),ink=textColor(state);
     if(kind){
-        roadDiagram(cv,state,color0);const info=highwayInfo(state),text=state.distanceText||'';let size=40;
+        if(!(kind!=='branch'&&!/^KEEP_/.test(state.maneuver||'')&&icon(cv,state,color0,4,8,96,98)))roadDiagram(cv,state,color0);const info=highwayInfo(state),text=state.distanceText||'';let size=40;
         while(size>20&&cv.textWidth(text,size,{font:'num',literal:true})>130)size--;
         if(info){let ls=22;while(ls>14&&cv.textWidth(info.label,ls,{font:'bold'})>130)ls--;cv.text(info.label,108,32,ls,ink,{font:'bold'});cv.text(text,108,84,size,ink,{font:'num',literal:true});}
         else cv.text(text,108,67,size,ink,{font:'num',literal:true});
@@ -99,11 +99,34 @@ function drawThen(state,target){
 }
 const withAlpha=(c,a)=>{const m=/^#([0-9a-f]{6})$/i.exec(c);if(!m)return c;const n=parseInt(m[1],16);return [n>>16&255,n>>8&255,n&255,Math.round(a*255)];};
 // a view of cv drawn at scale s from (ox, oy)
-function at(cv,s,ox,oy){const P=v=>[ox+v[0]*s,oy+v[1]*s];return {line:(a,b,c,d,w,col)=>cv.line(ox+a*s,oy+b*s,ox+c*s,oy+d*s,w*s,col),polyline:(p,w,c)=>cv.polyline(p.map(P),Math.max(2.5,w*s),c),
+function at(cv,s,ox,oy){const P=v=>[ox+v[0]*s,oy+v[1]*s];return {art:typeof cv.art==='function'?(n,x,y,w,h,o)=>cv.art(n,ox+x*s,oy+y*s,w*s,h*s,o):(n,x,y,w,h,o)=>require('./hud-art').paint(cv,n,ox+x*s,oy+y*s,w*s,h*s,o),line:(a,b,c,d,w,col)=>cv.line(ox+a*s,oy+b*s,ox+c*s,oy+d*s,w*s,col),polyline:(p,w,c)=>cv.polyline(p.map(P),Math.max(2.5,w*s),c),
  quad:(p,c)=>cv.quad(p.map(P),c),arc:(x,y,r0,r1,a0,a1,c,o)=>cv.arc(ox+x*s,oy+y*s,r0*s,r1*s,a0,a1,c,o),
  text:(t,x,y,size,c,o)=>cv.text(t,ox+x*s,oy+y*s,size*s,c,o),textWidth:(t,size,o)=>cv.textWidth(t,size*s,o)/s};}
+// The guidance icons (1.3.81): cut from the user's icon sheet (tools/hud-art/nav, hud-art.js), in the sheet's blue or
+// turned to the chosen navigation colour. A view that cannot paint pixels (cv.art missing or false) gets the drawn arrows.
+const ICON={LEFT:'left',RIGHT:'right',HARD_LEFT:'left',HARD_RIGHT:'right',SHARP_LEFT:'left',SHARP_RIGHT:'right',SLIGHT_LEFT:'slight-left',SLIGHT_RIGHT:'slight-right',
+ STRAIGHT_ON:'straight',UTURN_LEFT:'uturn-left',UTURN_RIGHT:'uturn-right',ROUNDABOUT:'roundabout',LANE_LEFT:'lane-left',LANE_RIGHT:'lane-right',ARRIVAL_LEFT:'arrival-left',ARRIVAL_RIGHT:'arrival-right'};
+const DEFAULT_BLUE=['#37c6ff','#29c5ff','#45b8ff'];
+function iconOf(state){
+ const m=state&&state.maneuver,info=highwayInfo(state);
+ if(info)return (info.action==='exit'?'out-':'in-')+(info.side==='LEFT'?'left':info.side==='RIGHT'?'right':'straight');
+ if(/^ARRIVAL/.test(m||''))return m==='ARRIVAL_LEFT'?'arrival-left':'arrival-right';
+ return ICON[m]||null;
+}
+// paint the icon fitted in the box (x, y, w, h), bottom-centred; the roundabout's exit number over its middle
+function icon(cv,state,color,x,y,w,h,small){
+ const name=iconOf(state),art=typeof cv.art==='function'?cv.art:cv&&cv.d?(n,a,b,c,d,o)=>require('./hud-art').paint(cv,n,a,b,c,d,o):null;if(!name||!art)return false;
+ const A=require('./hud-art'),sz=A.size('nav/'+name);if(!sz)return false;
+ const k=Math.min(w/sz.w,h/sz.h),iw=sz.w*k,ih=sz.h*k,ix=x+(w-iw)/2,iy=y+h-ih;
+ const tint=DEFAULT_BLUE.indexOf(String(color).toLowerCase())>=0?null:color;
+ if(art('nav/'+name,ix,iy,iw,ih,{tint})===false)return false;
+ if(name==='roundabout'&&!small&&state.exitNumber){const cx=ix+iw*0.505,cy=iy+ih*0.47,r=iw*0.12;
+  cv.arc(cx,cy,0,r,0,360,'#141a22');cv.text(String(state.exitNumber),cx,cy+r*0.62,r*1.7,WHITE,{align:'center',font:'num',literal:true});}
+ return true;
+}
 /** The turn's arrow in the 104 x 112 box; false for a turn it has no arrow for. small: the "then" arrow (no number). */
 function arrow(cv,state,color,small){
+    if(icon(cv,state,color,4,8,96,98,small))return true;
     const dir=state.maneuver,FLAG='#e5322d';
     const line=(points)=>cv.polyline(points,10,color);
     const mirror=(points)=>points.map((p)=>[104-p[0],p[1]]);
@@ -138,7 +161,7 @@ function arrow(cv,state,color,small){
 }
 // Paint at the final HUD size: the same 240x112 drawing through a scaled view,
 // so no resampled image loses thin strokes.
-function scaled(cv,s){return {line:(a,b,c,d,w,col)=>cv.line(a*s,b*s,c*s,d*s,w*s,col),polyline:(p,w,c)=>cv.polyline(p.map(v=>[v[0]*s,v[1]*s]),w*s,c),
+function scaled(cv,s){return {art:(n,x,y,w,h,o)=>require('./hud-art').paint(cv,n,x*s,y*s,w*s,h*s,o),line:(a,b,c,d,w,col)=>cv.line(a*s,b*s,c*s,d*s,w*s,col),polyline:(p,w,c)=>cv.polyline(p.map(v=>[v[0]*s,v[1]*s]),w*s,c),
  quad:(p,c)=>cv.quad(p.map(v=>[v[0]*s,v[1]*s]),c),arc:(x,y,r0,r1,a0,a1,c,o)=>cv.arc(x*s,y*s,r0*s,r1*s,a0,a1,c,o),
  text:(t,x,y,size,c,o)=>cv.text(t,x*s,y*s,size*s,c,o),textWidth:(t,size,o)=>cv.textWidth(t,size*s,o)/s};}
 function drawSized(state,w,h){const s=(w||W)/W,cv=new Canvas(Math.max(1,Math.round(w||W)),Math.max(1,Math.round(h||H*s)));cv.clear([0,0,0,0]);draw(state,scaled(cv,s));return cv;}
