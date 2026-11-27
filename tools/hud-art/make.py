@@ -36,6 +36,12 @@ for st in ('nav', 'neon'):
         if f.endswith('.png') and f not in SKIP: SETS[st].append((st + '/' + f[:-4], os.path.join(st, f)))
     for n in ['lg-uturn-left', 'lg-slight-left', 'lg-left', 'lg-straight', 'lg-slight-right']:
         extras[st][st + '/' + n + '-on'] = lane_on(Image.open(os.path.join(D, n + '.png')).convert('RGBA'), *LIT[st])
+# (1.3.87) the road users seen from behind, from the user's road picture (vehicles/), at most 120 px high
+SETS['veh'] = []
+for f in sorted(os.listdir(os.path.join(HERE, 'vehicles'))):
+    if f.endswith('.png'):
+        im = Image.open(os.path.join(HERE, 'vehicles', f)).convert('RGBA'); k = min(1.0, 120.0 / im.size[1], 120.0 / im.size[0])
+        extras.setdefault('veh', {})['veh/' + f[:-4]] = im.resize((max(1, round(im.size[0] * k)), max(1, round(im.size[1] * k))), Image.LANCZOS)
 DATA = {}
 for st in SETS:
     parts = []
@@ -55,7 +61,7 @@ function rgb(h, s, v) { const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)
     const t = [[c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x]][k]; return t.map((q) => Math.round((q + m) * 255)); }
 const hex = (c) => { if (Array.isArray(c)) return c; const m = /^#([0-9a-f]{6})$/i.exec(c || ''); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 // tint: the picture's colour (its blue) turned to this one, its greys kept; flip: mirrored left to right
-const SET_FILES = { nav: './hud-art-nav', neon: './hud-art-neon' }, loaded = {};
+const SET_FILES = { nav: './hud-art-nav', neon: './hud-art-neon', veh: './hud-art-veh' }, loaded = {};
 // a picture's data: its set's file read the first time a picture of that set is wanted
 function art(name) {
     const st = SET_FILES[String(name).split('/')[0]] ? String(name).split('/')[0] : 'cars';

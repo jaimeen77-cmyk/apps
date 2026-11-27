@@ -8,7 +8,7 @@ function rgb(h, s, v) { const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)
     const t = [[c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x]][k]; return t.map((q) => Math.round((q + m) * 255)); }
 const hex = (c) => { if (Array.isArray(c)) return c; const m = /^#([0-9a-f]{6})$/i.exec(c || ''); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
 // tint: the picture's colour (its blue) turned to this one, its greys kept; flip: mirrored left to right
-const SET_FILES = { nav: './hud-art-nav', neon: './hud-art-neon' }, loaded = {};
+const SET_FILES = { nav: './hud-art-nav', neon: './hud-art-neon', veh: './hud-art-veh' }, loaded = {};
 // a picture's data: its set's file read the first time a picture of that set is wanted
 function art(name) {
     const st = SET_FILES[String(name).split('/')[0]] ? String(name).split('/')[0] : 'cars';
