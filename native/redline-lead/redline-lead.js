@@ -22,13 +22,19 @@
 //   0x8004 rawPositionData (eventgroup 4: RawGNSSPositionData {fixType, utcDateTime, heading, position})
 // each holding a Wgs84Coordinate3D {coordinatesValid bool, heightValid bool, longitude double, latitude double, height}
 // (decodeWgs finds it). A second redline-someip runs only while asked; the position is never written anywhere.
+// 0.7.0: whether the cruise control (ACC) shows on the cluster, while the app asks ({t: 'cmd', acc: true}), so Cluster
+// Redline gives the cluster back to the car's own ACC display: 0xB50E FASuS (major 1) 0x8002
+// displayDriverAssistenceSystemLongitudinalGuidance (eventgroup 2, a field): crc u8, alive u8, chl u8, displayXCC u16,
+// activeFunctionDriverAssistenceSystemLDM u8 (XCC_AKTIV 1), ... On the user's car (2026-11-28): bytes 3-5 all 0 with
+// ACC off, 13 00 20 with it on (decodeAcc: on when any is not 0).
 // Serves /run/redline-lead/lead.sock (0666, JSON lines). Subscribes only while a client is connected.
 const net = require('net'), fs = require('fs'), path = require('path'), { spawn } = require('child_process');
 const DIR = process.env.REDLINE_LEAD_DIR || '/run/redline-lead', SOCK = path.join(DIR, 'lead.sock');
 const BIN = process.env.REDLINE_SOMEIP || path.join(__dirname, 'redline-someip');
 // 0.5.0: the app's nav-probe.log for a phone (share.js), while the app asks for it (0.4.0's scene clips are gone)
-const VERSION = '0.6.0', { Share } = require('./share');
+const VERSION = '0.7.0', { Share } = require('./share');
 const SPECS = ['0xf139:1:2:1:0x8001,0x8002', '0x3539:1:1:1:0x8001:f', '0x3539:1:1:2:0x8002:f', '0xd024:1:1:3:0x8003'];
+const ACC_SPECS = ['0xb50e:1:1:2:0x8002:f'];   // instance 1 (offered on the user's car)
 const POS_SPECS = ['0xfb0c:128:4:1:0x8001:f', '0xfb0c:128:4:4:0x8004:f'];
 const VEHICLE = [2, 3, 4, 5, 6], MEASURED = [0, 1, 2], IDLE_STOP_MS = 15000, SEND_MS = 100;
 const log = (s) => { try { process.stdout.write(new Date().toISOString() + ' ' + s + '\n'); } catch (e) {} };
@@ -114,9 +120,15 @@ function decodeWgs(b) {
     }
     return null;
 }
+/** The ACC display state in FASuS displayDriverAssistenceSystemLongitudinalGuidance: {on, xcc, active} or null. */
+function decodeAcc(b) {
+    if (!b || b.length < 6) return null;
+    return { on: (b[3] | b[4] | b[5]) !== 0, xcc: b.readUInt16BE(3), active: b[5] };
+}
 
 const state = { lane: { rx: 0, data: null, at: null }, cam: { rx: 0, lead: null, n: null, at: null, objects: [] }, radar: { rx: 0, front: null, gap: null, at: null }, avail: {}, child: 'off', error: null,
-    position: { on: false, child: 'off', rx: 0, avail: null, map: null, raw: null } };
+    position: { on: false, child: 'off', rx: 0, avail: null, map: null, raw: null },
+    acc: { on: false, child: 'off', rx: 0, avail: null, value: null } };
 const share = new Share(log);
 let posChild = null, posBuf = '', posWanted = false, child = null, buf = '', rec = null, pos = null, clients = new Set(), stopTimer = null, sendTimer = null, restartTimer = null;
 function onLine(l) {
@@ -161,6 +173,29 @@ function startPos() {
 }
 function stopPos() { const c = posChild; posChild = null; state.position.child = 'off'; state.position.map = null; state.position.raw = null; state.position.rx = 0; state.position.avail = null;
     if (!c) return; try { c.stdin.end(); } catch (e) {} setTimeout(() => { try { c.kill('SIGTERM'); } catch (e) {} }, 1000); }
+// 0.7.0: the ACC display, a third redline-someip of the same kind as the position's, only while the app asks
+let accChild = null, accBuf = '', accAskedAt = 0;
+function onAccLine(l) {
+    const p = l.split(' '), A = state.acc;
+    if (p[0] === 'ok') { A.child = 'registered'; return; }
+    if (p[0] === 'av') { if (p[1] === "0xb50e") A.avail = p[3] === "1"; return; }
+    if (p[0] === 'error') { A.child = 'error'; return; }
+    if (p[0] !== 'ev' || p.length < 4 || p[1] !== '0xb50e' || p[2] !== '0x8002') return;
+    let b; try { b = Buffer.from(p[3], 'hex'); } catch (e) { return; }
+    A.rx++; const v = decodeAcc(b); if (v) { v.at = Date.now(); const changed = !A.value || A.value.on !== v.on; A.value = v; if (changed) schedule(); }
+}
+function syncAcc(on) {
+    state.acc.on = on;
+    if (on) { accAskedAt = Date.now(); if (accChild) return;
+        try { accChild = spawn(BIN, ACC_SPECS, { stdio: ['pipe', 'pipe', 'inherit'] }); } catch (e) { state.acc.child = 'error'; return; }
+        const c = accChild; state.acc.child = 'starting'; accBuf = '';
+        c.stdout.on('data', (d) => { if (accChild !== c) return; accBuf += d; let i; while ((i = accBuf.indexOf('\n')) >= 0) { const l = accBuf.slice(0, i); accBuf = accBuf.slice(i + 1); onAccLine(l.trim()); } if (accBuf.length > 1e6) accBuf = ''; });
+        c.on('error', () => { state.acc.child = 'error'; });
+        c.on('exit', () => { if (accChild === c) { accChild = null; state.acc.child = 'off'; } });
+        return; }
+    const c = accChild; accChild = null; Object.assign(state.acc, { child: 'off', rx: 0, avail: null, value: null });
+    if (c) { try { c.stdin.end(); } catch (e) {} setTimeout(() => { try { c.kill('SIGTERM'); } catch (e) {} }, 1000); }
+}
 // the app asks again every second while it wants the position; 5 s without asking ends it
 let posAskedAt = 0;
 function syncPos(on) { posWanted = on; state.position.on = on; if (on) { posAskedAt = Date.now(); startPos(); } else stopPos(); }
@@ -175,11 +210,12 @@ function startChild() {
     log('redline-someip started');
 }
 function stopChild() { if (!child) return; try { child.stdin.end(); } catch (e) {} const c = child; setTimeout(() => { try { c.kill('SIGTERM'); } catch (e) {} }, 1000); }
-function message() { return JSON.stringify({ t: 'lead', v: VERSION, at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar, lane: state.lane, share: share.status(), position: state.position.on ? state.position : undefined }) + '\n'; }
+function message() { return JSON.stringify({ t: 'lead', v: VERSION, at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar, lane: state.lane, share: share.status(), position: state.position.on ? state.position : undefined, acc: state.acc.on ? state.acc : undefined }) + '\n'; }
 // the app's commands (0.5.0), one JSON line each: {t: 'cmd', share: bool, file: its nav-probe.log}
 function command(l) { let c = null; try { c = JSON.parse(l); } catch (e) { return; } if (!c || c.t !== 'cmd') return;
     if (typeof c.share === 'boolean') share.sync(c.share, typeof c.file === 'string' ? c.file : null);
-    if (typeof c.position === 'boolean') syncPos(c.position); }
+    if (typeof c.position === 'boolean') syncPos(c.position);
+    if (typeof c.acc === 'boolean') syncAcc(c.acc); }
 function schedule() { if (sendTimer || !clients.size) return; sendTimer = setTimeout(() => { sendTimer = null; const m = message(); clients.forEach((s) => { try { s.write(m); } catch (e) {} }); }, SEND_MS); }
 
 function serve() {
@@ -188,12 +224,12 @@ function serve() {
     const server = net.createServer((s) => {
         clients.add(s); if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; } startChild(); s.write(message());
         let cb = ''; s.on('error', () => {}); s.on('data', (d) => { cb += d; let i; while ((i = cb.indexOf('\n')) >= 0) { const l = cb.slice(0, i); cb = cb.slice(i + 1); command(l); } if (cb.length > 65536) cb = ''; });
-        s.on('close', () => { clients.delete(s); if (!clients.size && !stopTimer) stopTimer = setTimeout(() => { stopTimer = null; if (!clients.size) { stopChild(); share.sync(false); syncPos(false); } }, IDLE_STOP_MS); });
+        s.on('close', () => { clients.delete(s); if (!clients.size && !stopTimer) stopTimer = setTimeout(() => { stopTimer = null; if (!clients.size) { stopChild(); share.sync(false); syncPos(false); syncAcc(false); } }, IDLE_STOP_MS); });
     });
     server.listen(SOCK, () => { try { fs.chmodSync(SOCK, 0o666); } catch (e) {} log('listening ' + SOCK); });
-    setInterval(() => { if (clients.size) schedule(); if (posWanted && Date.now() - posAskedAt > 5000) syncPos(false); }, 1000);   // a heartbeat with the counts, also when nothing comes
-    const bye = () => { stopChild(); stopPos(); share.stop(); try { fs.unlinkSync(SOCK); } catch (e) {} setTimeout(() => process.exit(0), 300); };
+    setInterval(() => { if (clients.size) schedule(); if (posWanted && Date.now() - posAskedAt > 5000) syncPos(false); if (state.acc.on && Date.now() - accAskedAt > 5000) syncAcc(false); }, 1000);   // a heartbeat with the counts, also when nothing comes
+    const bye = () => { stopChild(); stopPos(); syncAcc(false); share.stop(); try { fs.unlinkSync(SOCK); } catch (e) {} setTimeout(() => process.exit(0), 300); };
     process.on('SIGTERM', bye); process.on('SIGINT', bye);
 }
 if (require.main === module) serve();
-module.exports = { VERSION, decodeRecognition, decodePosition, decodeFront, decodeGap, decodeLanes, leadOf, objectsOf, decodeWgs, SPECS, POS_SPECS };
+module.exports = { VERSION, decodeRecognition, decodePosition, decodeFront, decodeGap, decodeLanes, leadOf, objectsOf, decodeWgs, decodeAcc, SPECS, POS_SPECS, ACC_SPECS };

@@ -2,6 +2,20 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.97 (the cluster gives way to the cruise control display)
+
+- **Fix: the car's cruise control (ACC) display was hidden behind Cluster Redline on some cars** (reported: shown with the original Redline, not with Cluster Redline).
+  - Cluster Redline's cluster picture takes the cluster's centre from the car's own content there. On cars that show the ACC display in that centre, it was kept away.
+- **The cluster now gives way while ACC shows**, the way it does for route guidance:
+  - The car's own ACC display comes up.
+  - Cluster Redline comes back 2 s after ACC goes off.
+  - The status reads "Cruise control on · cluster released for the car display".
+- **How it knows**: the lead-car helper **0.7.0** reads FASuS `displayDriverAssistenceSystemLongitudinalGuidance` (0xB50E, instance 1) as root, only while the app runs.
+  - Checked on the user's car: bytes 3-5 are `00 00 00` with ACC off and `13 00 20` with it on.
+  - Without the helper nothing changes.
+- Cluster Redline requires redline-lead 0.7.0.
+- Tests: `redline-lead` (ACC off / on from the car's own messages), `acc-yield` (the cluster released while ACC shows, back 2 s after; the HUD untouched).
+
 ## Cluster Redline 1.3.96 (Position check gets the car's position through the helper)
 
 - **Fix: the Position check showed nothing.** The car's position services are not given to the app's own account. Checked on the user's car (root, 2026-11-28):
