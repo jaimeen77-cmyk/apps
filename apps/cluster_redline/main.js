@@ -79,6 +79,10 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     // the Position check (1.3.93) never carries over an app start: whatever a new interface does while it is on, the next
     // start is as without it (an app that stopped in the middle of the check starts with it off)
     if (ctx.settings.get('positionCheck') === 'on') ctx.settings.set('positionCheck', 'off');
+    // 1.3.95: the nav-probe recording off once (the user's clean-up); it can be switched on again, then fetched by QR
+    if (ctx.settings.get('navProbeReset95') !== true) { ctx.settings.set('navProbeLog', 'off'); ctx.settings.set('navProbeReset95', true); }
+    // and the page for it never left open by an earlier run
+    if (ctx.settings.get('navShare') === 'on') ctx.settings.set('navShare', 'off');
     if (ctx.settings.get('bcFollow') === 'on') { if (ctx.settings.get('allClusterOutput') !== 'bc' && ctx.settings.get('sportClusterOutput') !== 'bc') ctx.settings.set('allClusterOutput', 'bc'); ctx.settings.set('bcFollow', 'off'); }
     // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');

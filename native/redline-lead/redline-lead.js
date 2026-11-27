@@ -15,13 +15,13 @@
 // length fields checked against them. The car followed: the nearest vehicle the camera puts in our lane.
 //   0xD024 LaneBoundaries (0.2.0): the lane lines the camera sees (decodeLanes)
 // 0.3.0: also every object the camera measures (cam.objects: id, class, place, lane), not only the car followed: for
-// Cluster Redline's pedestrian / cyclist warning, cut-in warning and the road users around
+// Cluster Redline's lead car departure (the car in front when the camera's lane is unknown) and the warnings to come
 // Serves /run/redline-lead/lead.sock (0666, JSON lines). Subscribes only while a client is connected.
 const net = require('net'), fs = require('fs'), path = require('path'), { spawn } = require('child_process');
 const DIR = process.env.REDLINE_LEAD_DIR || '/run/redline-lead', SOCK = path.join(DIR, 'lead.sock');
 const BIN = process.env.REDLINE_SOMEIP || path.join(__dirname, 'redline-someip');
-// 0.4.0: scene clips (clips.js) and their page for a phone on the car's Wi-Fi (share.js), while the app asks for them
-const VERSION = '0.4.0', { Clips } = require('./clips'), { Share } = require('./share');
+// 0.5.0: the app's nav-probe.log for a phone (share.js), while the app asks for it (0.4.0's scene clips are gone)
+const VERSION = '0.5.0', { Share } = require('./share');
 const SPECS = ['0xf139:1:2:1:0x8001,0x8002', '0x3539:1:1:1:0x8001:f', '0x3539:1:1:2:0x8002:f', '0xd024:1:1:3:0x8003'];
 const VEHICLE = [2, 3, 4, 5, 6], MEASURED = [0, 1, 2], IDLE_STOP_MS = 15000, SEND_MS = 100;
 const log = (s) => { try { process.stdout.write(new Date().toISOString() + ' ' + s + '\n'); } catch (e) {} };
@@ -93,7 +93,7 @@ function leadOf(rec, pos) {
 }
 
 const state = { lane: { rx: 0, data: null, at: null }, cam: { rx: 0, lead: null, n: null, at: null, objects: [] }, radar: { rx: 0, front: null, gap: null, at: null }, avail: {}, child: 'off', error: null };
-const clips = new Clips({ version: VERSION }), share = new Share(clips, log);
+const share = new Share(log);
 let child = null, buf = '', rec = null, pos = null, clients = new Set(), stopTimer = null, sendTimer = null, restartTimer = null;
 function onLine(l) {
     const p = l.split(' ');
@@ -106,7 +106,7 @@ function onLine(l) {
     if (p[1] === '0xf139') {
         state.cam.rx++;
         if (p[2] === '0x8001') rec = decodeRecognition(b); else if (p[2] === '0x8002') pos = decodePosition(b);
-        if (rec && pos && rec.ns === pos.ns && rec.s === pos.s) { state.cam.lead = leadOf(rec, pos); state.cam.objects = objectsOf(rec, pos); state.cam.n = rec.n; state.cam.at = now; clips.frame(state.cam, state.lane.data, now); }
+        if (rec && pos && rec.ns === pos.ns && rec.s === pos.s) { state.cam.lead = leadOf(rec, pos); state.cam.objects = objectsOf(rec, pos); state.cam.n = rec.n; state.cam.at = now; }
     } else if (p[1] === '0xd024') {
         state.lane.rx++; if (p[2] === '0x8003') { state.lane.data = decodeLanes(b); state.lane.at = now; }
     } else if (p[1] === '0x3539') {
@@ -126,13 +126,10 @@ function startChild() {
     log('redline-someip started');
 }
 function stopChild() { if (!child) return; try { child.stdin.end(); } catch (e) {} const c = child; setTimeout(() => { try { c.kill('SIGTERM'); } catch (e) {} }, 1000); }
-function message() { return JSON.stringify({ t: 'lead', v: VERSION, at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar, lane: state.lane, rec: Object.assign(clips.status(), share.status()) }) + '\n'; }
-// the app's commands (0.4.0), one JSON line each: {t: 'cmd', rec: bool, speed, gear, save: 'button' | 'departure', clear: true}
+function message() { return JSON.stringify({ t: 'lead', v: VERSION, at: Date.now(), child: state.child, error: state.error, avail: state.avail, cam: state.cam, radar: state.radar, lane: state.lane, share: share.status() }) + '\n'; }
+// the app's commands (0.5.0), one JSON line each: {t: 'cmd', share: bool, file: its nav-probe.log}
 function command(l) { let c = null; try { c = JSON.parse(l); } catch (e) { return; } if (!c || c.t !== 'cmd') return;
-    if (typeof c.rec === 'boolean') { clips.set(c.rec); share.sync(c.rec); }
-    if (c.speed !== undefined || c.gear !== undefined) clips.vehicle(c.speed, c.gear);
-    if (typeof c.save === 'string') clips.save(c.save);
-    if (c.clear === true) clips.clear(); }
+    if (typeof c.share === 'boolean') share.sync(c.share, typeof c.file === 'string' ? c.file : null); }
 function schedule() { if (sendTimer || !clients.size) return; sendTimer = setTimeout(() => { sendTimer = null; const m = message(); clients.forEach((s) => { try { s.write(m); } catch (e) {} }); }, SEND_MS); }
 
 function serve() {
@@ -141,7 +138,7 @@ function serve() {
     const server = net.createServer((s) => {
         clients.add(s); if (stopTimer) { clearTimeout(stopTimer); stopTimer = null; } startChild(); s.write(message());
         let cb = ''; s.on('error', () => {}); s.on('data', (d) => { cb += d; let i; while ((i = cb.indexOf('\n')) >= 0) { const l = cb.slice(0, i); cb = cb.slice(i + 1); command(l); } if (cb.length > 65536) cb = ''; });
-        s.on('close', () => { clients.delete(s); if (!clients.size && !stopTimer) stopTimer = setTimeout(() => { stopTimer = null; if (!clients.size) { stopChild(); clips.set(false); share.sync(false); } }, IDLE_STOP_MS); });
+        s.on('close', () => { clients.delete(s); if (!clients.size && !stopTimer) stopTimer = setTimeout(() => { stopTimer = null; if (!clients.size) { stopChild(); share.sync(false); } }, IDLE_STOP_MS); });
     });
     server.listen(SOCK, () => { try { fs.chmodSync(SOCK, 0o666); } catch (e) {} log('listening ' + SOCK); });
     setInterval(() => { if (clients.size) schedule(); }, 1000);   // a heartbeat with the counts, also when nothing comes

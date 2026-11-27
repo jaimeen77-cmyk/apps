@@ -29,11 +29,11 @@ class LeadHelper {
         const gone = () => { if (this.sock !== s) return; this.sock = null; this.state = this.lines ? 'lost' : 'absent'; this.retryAt = this.clock() + RETRY_MS; };
         s.on('error', gone); s.on('close', gone);
     }
-    // a command to the helper (0.4.0: scene clips), one JSON line; false while not connected
+    // a command to the helper (0.5.0: the nav-probe.log page), one JSON line; false while not connected
     send(obj) { if (!this.sock || this.state !== 'connected') return false; try { this.sock.write(JSON.stringify(obj) + '\n'); return true; } catch (e) { return false; } }
     status() {
         const m = this.last || {};
-        return { version: m.v || null, rec: m.rec || null, state: this.state, lines: this.lines, child: m.child || null, avail: m.avail || {}, cam: m.cam ? { rx: m.cam.rx, n: m.cam.n, lead: m.cam.lead, objects: Array.isArray(m.cam.objects) ? m.cam.objects.length : null } : null,
+        return { version: m.v || null, state: this.state, lines: this.lines, child: m.child || null, avail: m.avail || {}, cam: m.cam ? { rx: m.cam.rx, n: m.cam.n, lead: m.cam.lead, objects: Array.isArray(m.cam.objects) ? m.cam.objects.length : null } : null,
             radar: m.radar ? { rx: m.radar.rx, gapX: m.radar.front ? m.radar.front.gapX : null, qualifier: m.radar.front ? m.radar.front.qualifier : null, id: m.radar.front ? m.radar.front.id : null } : null };
     }
 }

@@ -107,8 +107,8 @@ function start(ctx) {
     let lead=null,position=null;const headwayOverlay=new HeadwayOverlay(client);
     // the HUD lane lines (lane-lines.js, 1.3.77): from the root helper, only while on
     const laneLines=new LaneLines(mono),laneOverlay=new LaneOverlay(client),departure=new LeadDeparture();let departureOn=false;
-    // scene clips (redline-lead 0.4.0): the setting, the speed and gear to the helper every half second; a save asked
-    let clipsCmdAt=-Infinity,clipSaveSeen=null,clipClearSeen=null,wentBefore=false;
+    // (1.3.95) the nav-probe.log for a phone, through the root helper's page (its own connection, not the car ahead's)
+    const shareHelper=new (require('./lead-helper').LeadHelper)(null,mono),navProbeFile=ctx.dataDir?path.join(ctx.dataDir,'nav-probe.log'):null;let shareCmdAt=-Infinity;
     const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',greetingNow=null;
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
@@ -280,7 +280,7 @@ function start(ctx) {
     }catch(e){ /* No lane capability: existing arrows/RPM continue normally. */ }
     function stop() {
         if (stopped) return;
-        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); vehicleAlerts.stop(); alertOverlay.close(); greetingOverlay.close(); clusterGreeting.close(); if (lead) lead.sync(false); headwayOverlay.close(); laneLines.sync(false); laneOverlay.close(); doorOverlay.close(); blindSpot.release(); blindSpotOverlay.close(); turnOverlay.close(); controller.close();
+        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); vehicleAlerts.stop(); alertOverlay.close(); greetingOverlay.close(); clusterGreeting.close(); if (lead) lead.sync(false); headwayOverlay.close(); laneLines.sync(false); laneOverlay.close(); shareHelper.sync(false); doorOverlay.close(); blindSpot.release(); blindSpotOverlay.close(); turnOverlay.close(); controller.close();
         process.removeListener('exit', stop);
         if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
@@ -475,21 +475,14 @@ function start(ctx) {
             const headwayOn = live && config.appEnabled && config.hudHeadway !== 'off';
             const lanesOn = live && config.appEnabled && config.hudLaneLines === 'on';
             departureOn = headwayOn;   // the departure alert comes with the headway badge (no setting of its own)
-            const clipsOn = live && config.appEnabled && config.hudClips === 'on';
-            if (lead) lead.sync(headwayOn || lanesOn || clipsOn);
+            if (lead) lead.sync(headwayOn || lanesOn);
             if (position) position.sync(live && config.positionCheck === 'on');
             const leadNow = lead && (headwayOn || lanesOn) ? lead.read(at) : null;
             const speedKmh = carSpeed.at !== null && at - carSpeed.at <= 2000 ? carSpeed.v : null;
             const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : lead ? lead.frontGap(at) : null) : false;
-            if (lead && lead.helper) {
-                if (at - clipsCmdAt >= 500) { clipsCmdAt = at; lead.helper.send({ t: 'cmd', rec: clipsOn, speed: speedKmh, gear: controller.gear || null }); }
-                if (clipSaveSeen === null) clipSaveSeen = config.clipSaveAt;
-                if (config.clipSaveAt !== clipSaveSeen) { clipSaveSeen = config.clipSaveAt; if (clipsOn) lead.helper.send({ t: 'cmd', save: 'button' }); }
-                if (clipClearSeen === null) clipClearSeen = config.clipClearAt;
-                if (config.clipClearAt !== clipClearSeen) { clipClearSeen = config.clipClearAt; lead.helper.send({ t: 'cmd', clear: true }); }
-                if (going && !wentBefore && clipsOn) lead.helper.send({ t: 'cmd', save: 'departure' });
-            }
-            wentBefore = going;
+            // (1.3.95) the nav-probe.log for a phone: the helper's page open while the screen asks for it, engine on or not
+            {const on = config.appEnabled && config.navShare === 'on' && !!navProbeFile; shareHelper.sync(on, mono());
+             if (on && at - shareCmdAt >= 1000) { shareCmdAt = at; shareHelper.send({ t: 'cmd', share: true, file: navProbeFile }); }}
             // (1.3.91) shown from the bumper: the correction (Lead-car headway, -2 m by default) on the distance and the time gap
             const leadShown = leadNow ? Object.assign({}, corrected(leadNow, config.hudHeadwayCorrection), { go: going }) : going ? corrected({ gap: departure.nearest || 0, go: true }, config.hudHeadwayCorrection) : null;
             headwayOverlay.tick(headwayOn ? leadShown : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));
@@ -520,7 +513,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, laneLines: Object.assign({ on: config.hudLaneLines === 'on' }, laneLines.status(at)), departure: Object.assign({ on: departureOn }, departure.status(at)), position: position ? position.status(at) : null, headway: lead ? Object.assign({ mode: config.hudHeadway, now: corrected(lead.read(at), config.hudHeadwayCorrection) }, lead.status(at)) : { mode: config.hudHeadway, state: 'not_started' }, blindSpot: Object.assign({ on: config.hudTurnBlindSpot === 'on' }, blindSpot.status(at), blindSpot.read(at)), doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice(), lids: Object.assign({}, doors.lidNames), names: doors.names.slice(0, 24) }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, laneLines: Object.assign({ on: config.hudLaneLines === 'on' }, laneLines.status(at)), departure: Object.assign({ on: departureOn }, departure.status(at)), navShare: Object.assign({ on: config.navShare === 'on' }, shareHelper.status(), (shareHelper.last && shareHelper.last.share) || {}), position: position ? position.status(at) : null, headway: lead ? Object.assign({ mode: config.hudHeadway, now: corrected(lead.read(at), config.hudHeadwayCorrection) }, lead.status(at)) : { mode: config.hudHeadway, state: 'not_started' }, blindSpot: Object.assign({ on: config.hudTurnBlindSpot === 'on' }, blindSpot.status(at), blindSpot.read(at)), doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice(), lids: Object.assign({}, doors.lidNames), names: doors.names.slice(0, 24) }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     navProbe:navProbe.status(),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},

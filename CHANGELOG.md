@@ -2,7 +2,7 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## Cluster Redline 1.3.95 (lane lines: amber less often)
+## Cluster Redline 1.3.95 (lane lines calmer and kept; departure alert works at lights; log collection cleaned up)
 
 - The user found the amber lane warning too frequent. It was shown at once whenever the car's side came within 15 cm of a line.
 - **Amber now only when it lasts**: near a line for **0.7 s**, and off again only 10 cm further out (no flicker at the edge).
@@ -22,6 +22,14 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
   - At rest the car sends no speed, which reset the check each time. A speed that stops coming while we stand still counts as a stand.
   - Quicker: 1 s standing, a car within 20 m, 1.5 m further for 0.3 s (or lost from within 12 m).
   - The same drive replayed: 6 alerts, each a car moving off while we stood.
+- **Log collection cleaned up (the user's choice).** The scene recording (1.3.89) is gone: its screen, its commands and the helper's clips and `log-objects.js`. Clips already on the car stay in `/var/opt/public/redline-clips/`; delete them with `rm -rf` if not wanted. The Position check stays.
+- **The nav-probe log** (Navigation display → Received turns → Record to a file) is switched off once by this update. It can be switched on again.
+- **New: Download by QR** on the Received turns screen. While it is on, the lead-car helper (**0.5.0**) opens a small read-only page with `nav-probe.log`, and the screen shows its address as a QR code.
+  - The page opens whether the engine runs or not, and the QR shows only while the page answers.
+  - The car's own Wi-Fi address comes first; **Next address** steps through the others, for a Wi-Fi the car joined.
+  - The firewall rule lets private addresses in on any interface.
+  - Only that one file can be given.
+- Cluster Redline requires redline-lead 0.5.0.
 - Tests: `lane-lines` covers the 0.7 s, the release, low / normal / off, low speed and red at once.
 
 ## Cluster Redline 1.3.94 (Animation: the M3 turns into the bend)

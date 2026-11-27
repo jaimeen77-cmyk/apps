@@ -23,11 +23,9 @@ Test by hand on the unit (root): `/var/opt/redline-lead/current/redline-someip 0
   2 / 4 beside), mv, lat}], nearest first. For Cluster Redline's pedestrian / cyclist and cut-in warnings and the road
   users around. `log-objects.js [seconds] [file]` records them from the socket (default 20 s to
   `/var/opt/public/redline-objects.log`), to see how they come while driving.
-- 0.4.0: scene clips (`clips.js`) while Cluster Redline's "Scene recording" is on (it sends `{t: 'cmd', rec, speed,
-  gear, save}` lines on the socket). The last 30 s of the camera's objects, the car followed, the lane lines, the
-  speed and gear are kept at 10 frames a second. A clip (20 s before, 10 s after) is saved for a pedestrian / cyclist
-  within 30 m and 2.5 m of our path, a vehicle beside us coming 0.6 m nearer our lane in a second, the app's lead car
-  departure alert, or the driver (Save now). Clips are numbered in order (`001-MMDD-HHMM-<scene>.jsonl`, the number kept in `.seq` through a clear); `{t: 'cmd', clear: true}` deletes them all. Clips go to `/var/opt/public/redline-clips/`, at most 50
-  files / 5 MB, the oldest go first. `share.js` serves them read-only to a phone on the car's Wi-Fi (`wlan_bridge`,
-  port 18884: the list, each clip, all in one file) with a firewall rule of its own (tag `redline-lead-clips`), both
-  only while recording is on.
+- 0.4.0 had scene clips (clips.js) and `log-objects.js`; **0.5.0 removes them** (the user's clean-up: the warnings'
+  criteria are set from the clips already taken).
+- 0.5.0: `share.js` gives Cluster Redline's `nav-probe.log` to a phone, read only, while the app's "Download by QR"
+  is on (`{t: 'cmd', share: true, file}` on the socket; only `/var/opt/public/oap/oap_<n>/data/nav-probe.log` can be
+  given). A page on port 18884 and one firewall rule of its own (tag `redline-lead-share`, private senders, any
+  interface: the car's own Wi-Fi or one it joined), both gone when the app stops asking or leaves.
