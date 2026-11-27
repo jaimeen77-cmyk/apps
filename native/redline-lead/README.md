@@ -18,3 +18,8 @@ received the camera's object list (0xF139, events 0x8001 / 0x8002) and `GapVehic
   visibility, lines: [{y, type, color, existence, ...}]}}`; y: metres to the left of the car's axis.
 
 Test by hand on the unit (root): `/var/opt/redline-lead/current/redline-someip 0xf139:1:2:1:0x8001,0x8002`
+- 0.3.0: also every object the camera measures, not only the car followed: `cam.objects` = [{id, type (0 pedestrian,
+  1 cyclist, 2 motorbike, 3 car, 4 truck / bus / van, 5 other, 6 unknown), x (m ahead), y (m left), tube (1 our lane,
+  2 / 4 beside), mv, lat}], nearest first. For Cluster Redline's pedestrian / cyclist and cut-in warnings and the road
+  users around. `log-objects.js [seconds] [file]` records them from the socket (default 20 s to
+  `/var/opt/public/redline-objects.log`), to see how they come while driving.
