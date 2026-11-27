@@ -1,6 +1,6 @@
 # Car layout pictures
 
-Since Cluster Redline 1.3.89 the pictures (`apps/cluster_redline/car-meter-frames.js` for the cluster,
+Since Cluster Redline 1.3.90 the pictures (`apps/cluster_redline/car-meter-frames.js` for the cluster,
 `car-meter-hud-frames.js` for the HUD) are the owner's BMW M3, made by `m3.py`:
 
 - driving, standing still, braking, accelerating, reversing and cornering steps 1-3: the M3 from behind
@@ -21,7 +21,7 @@ python m3.py sprites ../../apps/cluster_redline/car-meter-hud-frames.js 240 135 
 A new state needs its scene in `m3.py` (`STATES`), its name in `car-meter.js` (`want` / `look`) and the tests in
 `tests/cluster_redline/car-meter.test.js`. The HUD set draws no road (black is clear on the glass).
 
-## Before 1.3.89: the hatchback
+## Before 1.3.90: the hatchback
 
 Up to 1.3.88 the pictures were original low-poly 3D renders of a generic white-over-black 1980s hatchback at night
 (no logos or lettering), eight states with a left bend the right one mirrored. Python 3 only, no packages; `m3.py`

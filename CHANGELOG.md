@@ -22,12 +22,28 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
-## Cluster Redline 1.3.89 (Animation: the M3, four cornering steps)
+## Cluster Redline 1.3.90 (Animation: the M3, four cornering steps)
 
 - **The Animation layout's car is now the owner's BMW M3** (cluster and HUD), seen from behind on the night road: driving, standing still (exhaust vapour), braking (tail lamps and the third brake lamp, the tail lifting), accelerating (flames from the four pipes, the tail squatting), reversing (white lamps) and cornering.
 - **Cornering in four steps** (sideways G): leaning out of the bend from 0.10 G, the tail stepping out from 0.25 G, sliding in smoke from 0.35 G, and **a drift from 0.50 G**: the owner's drift picture, the car swaying about its front wheels and its tyre smoke flowing. Steps 1-3 have each side drawn on its own, so a left bend's badge reads the right way round; the drift picture is a left bend and a right drift is it mirrored.
 - The pictures are made by `tools/car-meter/m3.py` (from `tools/hud-art/vehicles/own.png` and `tools/car-meter/m3-drift.png`; numpy, Pillow, OpenCV). `car-meter-frames.js` (320 x 180) and `car-meter-hud-frames.js` (240 x 135) keep their format: 12 states of 8 frames, one palette a set (160 colours chosen by k-means, the yellow lines, lamps and flames kept; frames slightly smoothed). They are larger than before (about 1.5 MB and 0.6 MB, from 0.6 MB and 0.16 MB).
 - Tests: `car-meter` (step 4, each side's pictures, the mirrored right drift, the new states).
+## Cluster Redline 1.3.89 (scene recording, downloaded by QR; lead-car helper 0.4.0)
+
+- **New: Scene recording** (HUD lamps → 앞차 간격 → 상황 기록, off by default). It records the scenes needed to set the pedestrian / cyclist warning, the cut-in warning and the road users around, without SSH.
+  - The helper keeps the last 30 s of what the front camera measures (objects, the car followed, lane lines) with our speed and gear.
+  - Clips (20 s before, 10 s after) are saved by themselves for:
+    - a pedestrian or cyclist on our path within 30 m
+    - a car beside us coming into our lane
+    - the car ahead moving off
+  - The driver can keep a scene with Save now on the screen.
+  - The clips are numbered in order: `001-1127-1010-보행자자전거.jsonl`, `002-...-끼어들기`, `003-...-직접저장`. The number goes on after a clear.
+  - **Delete all clips** asks once, then deletes on a second press within 5 s. Otherwise at most 50 clips / 5 MB are kept, the oldest going first.
+- **Download by QR.** The screen shows a QR code with the head unit's address on the car's Wi-Fi. With the phone joined to the car's Wi-Fi (as for the GIF player's phone page), scanning it opens a page with each clip and "모두 받기".
+  - The page is read only.
+  - It and its firewall rule are there only while recording is on.
+- **redline-lead 0.4.0** (`clips.js`, `share.js`, commands from the app on its socket). Cluster Redline requires it, so the Store updates it.
+- Tests: `redline-lead` checks the clips: off keeps nothing; a pedestrian, a cut-in, the button and departure in one clip; 20 s before and 10 s after; numbering in order, kept through a clear.
 
 ## Cluster Redline 1.3.88 (lead-car helper 0.3.0: every camera object)
 

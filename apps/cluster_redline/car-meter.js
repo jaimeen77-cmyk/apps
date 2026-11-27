@@ -6,7 +6,7 @@
 //   cornering (four steps): a lean, the tail stepping out, sliding with smoke, a full drift   accelerating: flames
 //   from the exhaust   otherwise: driving straight on
 // A new state fades in over the old one (FADE_MS), so a change does not jump.
-// The frames (car-meter-frames.js, made by tools/car-meter/m3.py, 1.3.89) are the owner's BMW M3: seen from behind,
+// The frames (car-meter-frames.js, made by tools/car-meter/m3.py, 1.3.90) are the owner's BMW M3: seen from behind,
 // with each side's bend drawn on its own (steps 1-3), and the owner's drift picture for step 4 (a left bend; a right
 // one is it mirrored). Small palette images; each state's frames are unpacked on first use and scaled to the
 // element's size once (kept while that state and size last).
@@ -14,7 +14,7 @@ const zlib=require('zlib');
 const isNum=x=>typeof x==='number'&&isFinite(x);
 // G thresholds. Lateral G is positive to the left (ISO 8855, as the meter's dot is drawn). Cornering has four
 // steps (TURN): leaning into the bend, the tail stepping out with a little smoke, sliding in a cloud of it, and
-// (1.3.89) a full drift from 0.50 G.
+// (1.3.90) a full drift from 0.50 G.
 const TH={brake:-0.18,accel:0.12,turn:0.10},TURN=[0.10,0.25,0.35,0.50];
 const HOLD_MS=400,CONFIRM_MS=150,FPS=10,FADE_MS=300,FADE_STEPS=6;
 // Two sets: the cluster's (the car on a night road) and the HUD's (the car alone on black, which is clear on the
@@ -39,7 +39,7 @@ function want(g,stage,speed){
  return lon>=TH.accel?'accel':'cruise';
 }
 // A state's pictures: each side's own for cornering steps 1-3 ('turn2', 'turn2_left'); step 4 is the drift picture,
-// a left bend, mirrored for a right one (1.3.89; before, every left bend was the right one mirrored).
+// a left bend, mirrored for a right one (1.3.90; before, every left bend was the right one mirrored).
 function look(s){const m=/^(left|right)([1234])$/.exec(s);if(!m)return {state:s,mirror:false};
  if(m[2]==='4')return {state:'drift',mirror:m[1]==='right'};
  return {state:'turn'+m[2]+(m[1]==='left'?'_left':''),mirror:false};}

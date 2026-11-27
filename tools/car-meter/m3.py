@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The Car layout's pictures (car-meter.js) from the owner's BMW M3 pictures (1.3.89).
+"""The Car layout's pictures (car-meter.js) from the owner's BMW M3 pictures (1.3.90).
 
 - driving, standing still, braking, accelerating, reversing and cornering steps 1-3: the M3 seen from behind
   (../hud-art/vehicles/own.png) over render3d.py's night road; the cornering steps lean, step the tail out and smoke
