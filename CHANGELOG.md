@@ -2,6 +2,15 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.94 (Animation: the M3 turns into the bend)
+
+- **Fix: in a bend the Animation car leaned out of it** (a left bend tipped it to the right) instead of turning into it. Cornering steps 1-3 are now the owner's pictures of the M3 in a left bend, **its nose turned into the bend about the tail lamps**: 10° (step 1, from 0.10 G), 20° (step 2, from 0.25 G) and 30° (step 3, from 0.35 G). Step 4 (from 0.50 G) is the drift, as before.
+  - Each picture's car is cut out (OpenCV GrabCut, its tyres added) and sways a little about its tail lamps over the road filled in under it, with tyre smoke from the rear growing with the step. A right bend is them mirrored. The HUD set has the car alone on black.
+  - Pictures: `tools/car-meter/m3-turn10.png`, `m3-turn20.png`, `m3-turn30.png`; the M3 from behind (straight on, braking, accelerating, reversing, standing still) is unchanged.
+- **Smaller sets**: only the left bends' pictures are kept; a right bend (steps 1-4) is them mirrored when drawn (`car-meter.js` look), and the palette has 128 colours (from 160). Cluster 320 x 180: about 1.26 MB (1.3.93: 1.48 MB), HUD 240 x 135: about 0.45 MB (0.60 MB). An unknown state draws the straight-on picture. The guides' moving pictures are redrawn.
+- Step 4 (the drift) still starts at 0.50 G.
+- Tests: `car-meter` (steps 1-3 each their own and not the straight-on picture; a right bend the left one mirrored; an unknown state).
+
 ## Cluster Redline 1.3.93 (Position check: does the app get the car's GPS position?)
 
 - **New: Position check** (NAV tab → Navigation display → 위치 확인, off by default). The first step towards speed camera warnings from a Korean camera list without route guidance: it shows whether the app gets the car's GPS position, and from where. Nothing is warned yet.

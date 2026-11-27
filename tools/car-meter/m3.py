@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """The Car layout's pictures (car-meter.js) from the owner's BMW M3 pictures (1.3.90).
 
-- driving, standing still, braking, accelerating, reversing and cornering steps 1-3: the M3 seen from behind
-  (../hud-art/vehicles/own.png) over render3d.py's night road; the cornering steps lean, step the tail out and smoke
-  more, drawn for each side (a left bend is not the right one mirrored, so the badge reads the right way round);
+- driving, standing still, braking, accelerating and reversing: the M3 seen from behind (../hud-art/vehicles/own.png)
+  over render3d.py's night road;
+- cornering steps 1-3 (1.3.94): the owner's pictures of the M3 in a left bend, its nose turned 10, 20 and 30 degrees
+  about the tail lamps (m3-turn10/20/30.png, Turned); a right bend is them mirrored;
 - cornering step 4 (drift): the owner's drift picture (m3-drift.png, a left bend) with the car swaying about its front
   wheels and its tyre smoke flowing; a right drift is it mirrored.
 
@@ -40,13 +41,12 @@ REAR_SCENES = {
     'accel':   dict(curv=0.0,   cycles=3,  roll=0.0, yaw=0.0,  lift=-3, smoke=0.0, flames=True),
     'brake':   dict(curv=0.0,   cycles=1,  roll=0.0, yaw=0.0,  lift=5,  smoke=0.0, lamps='brake'),
     'reverse': dict(curv=0.0,   cycles=-1, roll=0.0, yaw=0.0,  lift=0,  smoke=0.0, lamps='reverse'),
-    'turn1':   dict(curv=0.014, cycles=2,  roll=2.5, yaw=0.25, lift=0,  smoke=0.0),
-    'turn2':   dict(curv=0.018, cycles=2,  roll=4.0, yaw=0.55, lift=0,  smoke=0.5),
-    'turn3':   dict(curv=0.022, cycles=2,  roll=5.5, yaw=1.0,  lift=0,  smoke=1.0),
 }
-# the app's states, in this order: a right bend's own pictures, a left bend's own, the drift (a left one)
-STATES = ['stop', 'cruise', 'accel', 'brake', 'reverse', 'turn1', 'turn2', 'turn3',
-          'turn1_left', 'turn2_left', 'turn3_left', 'drift']
+# (1.3.94) cornering steps 1-3 are the owner's pictures of the M3 in a left bend, its nose turned 10, 20 and 30 degrees
+# into it about the tail lamps (Turned below); a right bend is them mirrored
+# the app's states, in this order
+# (1.3.94) only the left bends' pictures: car-meter.js mirrors them for a right bend, as the drift
+STATES = ['stop', 'cruise', 'accel', 'brake', 'reverse', 'turn1_left', 'turn2_left', 'turn3_left', 'drift']
 
 
 def road(cfg, f, nf):
@@ -162,6 +162,78 @@ def rear_frame(name, f, nf, hud, src):
     return np.clip(img, 0, 255).astype(np.uint8)
 
 
+# ---------------------------------------------------------------- cornering steps 1-3 (1.3.94)
+TURNED = {
+    # picture, the 16:9 crop round the car, the box for the cut, the dark tyres the cut leaves out, the tail lamps,
+    # the rear tyres (the smoke's sources), how much smoke
+    'turn1_left': dict(file='m3-turn10.png', crop=(0, 410, 832, 878), box=(215, 450, 530, 395), wheels=[(255, 600, 28, 55), (352, 772, 28, 55)],
+                       tails=[(455, 710), (685, 700)], tyres=[(355, 805), (700, 805)], smoke=0.25),
+    'turn2_left': dict(file='m3-turn20.png', crop=(0, 400, 832, 868), box=(215, 440, 545, 395), wheels=[(246, 582, 26, 52), (372, 752, 28, 55)],
+                       tails=[(485, 700), (705, 690)], tyres=[(372, 795), (722, 795)], smoke=0.55),
+    'turn3_left': dict(file='m3-turn30.png', crop=(8, 116, 326, 295), box=(70, 140, 258, 185), wheels=[(182, 292, 20, 24), (94, 226, 13, 22)],
+                       tails=[(222, 266), (292, 250)], tyres=[(178, 300), (292, 286)], smoke=1.0),
+}
+
+
+class Turned:
+    """One of the owner's pictures of the M3 turned into a left bend: the car cut out (GrabCut from a box round it,
+    its tyres added), swaying a little about its tail lamps over the road filled in under it, tyre smoke from the
+    rear growing with the step."""
+
+    def __init__(self, cfg):
+        import cv2
+        self.cv2, self.cfg = cv2, cfg
+        bgr = cv2.imread(os.path.join(HERE, cfg['file']))
+        self.A = bgr[..., ::-1].astype(np.float32)
+        self.IH, self.IW = self.A.shape[:2]
+        self.k = self.IW / 335.0          # sizes below are for the 335 px wide picture
+        mask = np.zeros((self.IH, self.IW), np.uint8)
+        cv2.setRNGSeed(1)
+        cv2.grabCut(bgr, mask, cfg['box'], np.zeros((1, 65), np.float64), np.zeros((1, 65), np.float64), 8, cv2.GC_INIT_WITH_RECT)
+        m = np.where((mask == 1) | (mask == 3), 255, 0).astype(np.uint8)
+        for (cx, cy, rx, ry) in cfg['wheels']: cv2.ellipse(m, (cx, cy), (rx, ry), 0, 0, 360, 255, -1)
+        r = max(3, int(3 * self.k)) | 1
+        m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((r * 2 + 1, r * 2 + 1), np.uint8))
+        self.M = cv2.GaussianBlur(m.astype(np.float32) / 255, (0, 0), 1.0 * self.k)
+        hole = cv2.dilate((self.M > 0.02).astype(np.uint8) * 255, np.ones((r * 3, r * 3), np.uint8))
+        self.ROAD = cv2.inpaint(bgr, hole, 7, cv2.INPAINT_TELEA)[..., ::-1].astype(np.float32)
+        t = cfg['tails']; self.PIVOT = ((t[0][0] + t[1][0]) / 2, (t[0][1] + t[1][1]) / 2)
+        rng = random.Random(9)
+        self.PUFFS = [(s, rng.random(), rng.uniform(-1, 1), rng.uniform(0.7, 1.3)) for s in range(2) for _ in range(int(6 + 14 * cfg['smoke']))]
+
+    def warp(self, img, ang, dx, dy, edge=False):
+        cv2 = self.cv2
+        m = cv2.getRotationMatrix2D(self.PIVOT, ang, 1.0); m[0, 2] += dx; m[1, 2] += dy
+        return cv2.warpAffine(img, m, (self.IW, self.IH), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE if edge else cv2.BORDER_CONSTANT, borderValue=0)
+
+    def frame(self, f, nf, hud):
+        cv2, IW, IH, k, sm_k = self.cv2, self.IW, self.IH, self.k, self.cfg['smoke']
+        ph = f / nf
+        ang = (0.3 + 0.5 * sm_k) * (math.sin(2 * math.pi * ph * 2) + 0.4 * math.sin(2 * math.pi * ph * 3))   # the nose swaying about the tail
+        shx, shy = 0.8 * k * math.sin(2 * math.pi * ph * 3), 0.6 * k * math.cos(2 * math.pi * ph * 2)
+        base = np.zeros_like(self.A) if hud else self.warp(self.ROAD, 0, shx * 0.4, shy * 0.4, True)
+        m = self.warp(self.M, ang, shx, shy)[..., None]
+        img = base * (1 - m) + self.warp(self.A, ang, shx, shy) * m
+        sm = np.zeros((IH, IW), np.float32)
+        for s, off, jit, sz in self.PUFFS:
+            t = (ph + off) % 1.0
+            tx, ty = self.cfg['tyres'][s]
+            x = tx + (70 * t + 20 * jit * t) * k + shx
+            y = ty + (40 * t + 14 * jit * t) * k + shy
+            r = (6 + 36 * t) * sz * k; a = (0.2 + 0.25 * sm_k) * (1 - t) ** 1.3 * (0.7 if s else 1.0)
+            x0, x1 = int(max(0, x - r)), int(min(IW, x + r + 1)); y0, y1 = int(max(0, y - r)), int(min(IH, y + r + 1))
+            if x0 >= x1 or y0 >= y1: continue
+            yy, xx = np.mgrid[y0:y1, x0:x1]
+            w = np.clip(1 - np.hypot(xx - x, yy - y) / r, 0, 1) ** 1.5 * a
+            sm[y0:y1, x0:x1] = 1 - (1 - sm[y0:y1, x0:x1]) * (1 - w)
+        sm = np.clip(sm, 0, 0.85)[..., None]
+        img = img * (1 - sm) + np.array((170, 172, 184), np.float32) * sm
+        for (lx, ly) in self.cfg['tails']:
+            glow(img, lx + shx, ly + shy, 22 * k, 12 * k, (255, 40, 25), 0.28 + 0.06 * math.sin(2 * math.pi * ph * 4))
+        x0, y0, x1, y1 = self.cfg['crop']
+        return np.array(Image.fromarray(np.clip(img, 0, 255)[y0:y1, x0:x1].astype(np.uint8)).resize((W, H), Image.LANCZOS))
+
+
 # ---------------------------------------------------------------- the drift (cornering step 4)
 class Drift:
     CROP = (205, 108, 877, 486)          # 16:9 round the car (picture px)
@@ -226,19 +298,22 @@ class Drift:
 
 
 _drift = None
+_turned = {}
 def render(state, nf, hud):
     """the state's nf frames, W x H RGB"""
     global _drift
     if state == 'drift':
         _drift = _drift or Drift()
         return [_drift.frame(f, nf, hud) for f in range(nf)]
-    if state.endswith('_left'):     # the picture flipped, the frame flipped back: the left bend, badge the right way
-        src = REAR.transpose(Image.FLIP_LEFT_RIGHT)
-        return [np.ascontiguousarray(rear_frame(state[:-5], f, nf, hud, src)[:, ::-1]) for f in range(nf)]
+    left = state if state.endswith('_left') else state + '_left'
+    if left in TURNED:              # cornering steps 1-3: the owner's left-bend pictures; a right bend is them mirrored
+        _turned[left] = _turned.get(left) or Turned(TURNED[left])
+        fr = [_turned[left].frame(f, nf, hud) for f in range(nf)]
+        return fr if state == left else [np.ascontiguousarray(a[:, ::-1]) for a in fr]
     return [rear_frame(state, f, nf, hud, REAR) for f in range(nf)]
 
 
-COLOURS = 160      # fewer colours and a slight smoothing: about a quarter smaller than 256 colours
+COLOURS = 128      # fewer colours and a slight smoothing (1.3.94: 128, from 160)
 
 
 def palette_of(pix, k, seed=1, iters=20):

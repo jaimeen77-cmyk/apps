@@ -12,7 +12,7 @@ assert.strictEqual(CM.want({lat:0,long:0.2},'D'),'accel');
 assert.strictEqual(CM.want({lat:0,long:-0.3},'D'),'brake');
 assert.strictEqual(CM.want({lat:0.4,long:0},'D'),'left3','lateral G positive to the left');
 assert.strictEqual(CM.want({lat:0.09,long:0},'D'),'cruise');assert.strictEqual(CM.want({lat:0.12,long:0},'D'),'left1','step 1 from 0.10 G');assert.strictEqual(CM.want({lat:-0.27,long:0},'D'),'right2','step 2 from 0.25 G');assert.strictEqual(CM.want({lat:-0.36,long:0},'D'),'right3','step 3 from 0.35 G');assert.strictEqual(CM.want({lat:0.49,long:0},'D'),'left3');assert.strictEqual(CM.want({lat:0.5,long:0},'D'),'left4','step 4 (the drift) from 0.50 G');assert.strictEqual(CM.want({lat:-0.7,long:0},'D'),'right4');
-assert.deepStrictEqual(CM.look('left2'),{state:'turn2_left',mirror:false},'a left bend has its own pictures');assert.deepStrictEqual(CM.look('right3'),{state:'turn3',mirror:false});assert.deepStrictEqual(CM.look('left4'),{state:'drift',mirror:false},'the drift picture is a left bend');assert.deepStrictEqual(CM.look('right4'),{state:'drift',mirror:true},'a right drift is it mirrored');assert.deepStrictEqual(CM.look('brake'),{state:'brake',mirror:false});
+assert.deepStrictEqual(CM.look('left2'),{state:'turn2_left',mirror:false},'a left bend has its own pictures');assert.deepStrictEqual(CM.look('right3'),{state:'turn3_left',mirror:true});assert.deepStrictEqual(CM.look('left4'),{state:'drift',mirror:false},'the drift picture is a left bend');assert.deepStrictEqual(CM.look('right4'),{state:'drift',mirror:true},'a right drift is it mirrored');assert.deepStrictEqual(CM.look('brake'),{state:'brake',mirror:false});
 assert.strictEqual(CM.want({lat:-0.4,long:0.3},'D'),'right3','cornering wins over accelerating');
 assert.strictEqual(CM.want({lat:0.25,long:-0.6},'D'),'brake','braking further past its threshold than cornering');
 assert.strictEqual(CM.want({lat:0.5,long:-0.2},'D'),'left4');
@@ -38,7 +38,7 @@ const fr=CM.frameOf('cluster',{lat:0,long:0},'R',2700);assert.deepStrictEqual([f
 assert.notStrictEqual(CM.frameOf('cluster',{},'R',2700).i,CM.frameOf('cluster',{},'R',2800).i,'the frames move on at 10 a second');
 {CM.reset();CM.pick('x',{lat:0.5},'D',0);CM.pick('x',{lat:0.5},'D',1000);const f=CM.frameOf('x',{lat:0.5},'D',1000);assert.deepStrictEqual([f.state,f.mirror],['drift',false],'a left drift: the drift picture');}
 {CM.reset();CM.pick('y',{lat:0.3},'D',0);CM.pick('y',{lat:0.3},'D',1000);const f=CM.frameOf('y',{lat:0.3},'D',1000);assert.deepStrictEqual([f.state,f.mirror],['turn2_left',false],'a left bend: its own pictures, not the right one mirrored');}
-const STATES=['stop','cruise','accel','brake','reverse','turn1','turn2','turn3','turn1_left','turn2_left','turn3_left','drift'];
+const STATES=['stop','cruise','accel','brake','reverse','turn1_left','turn2_left','turn3_left','drift'];
 {const F=CM.frames();STATES.forEach(s=>assert.strictEqual(F.states[s].length,F.W*F.H*F.N,s));assert.strictEqual(F.pal.length,768);}
 
 // the layout: on the cluster and the HUD, with its own elements
@@ -71,8 +71,16 @@ assert(lit(cruise0,pic)>pic.w*pic.h*0.7,'the picture fills its place');
 {const g=el(st(),'gear'),r=el(st(),'readA'),m=el(st(),'gmeter');assert(g.x+g.w<=pic.x+4,'gear on the left');assert(r.y>=pic.y+pic.h*0.8&&m.y>=pic.y+pic.h*0.8,'readouts and G meter along the bottom');}
 assert(diff(cruise0,draw(st(car('cruise',3))),pic)>100,'the road moves frame by frame');
 {const s0=draw(st(car('stop',0))),s3=draw(st(car('stop',3)));assert(diff(s0,s3,pic)<diff(cruise0,draw(st(car('cruise',3))),pic)/3,'standing still: the road does not move');assert(diff(s0,cruise0,pic)>50,'the stopped picture is its own');}
-const right=draw(st(car('turn3'))),left=draw(st(car('turn3_left')));
+const right=draw(st(car('turn3_left',0,true))),left=draw(st(car('turn3_left')));
 assert(diff(right,left,pic)>pic.w*pic.h*0.1,'left and right differ');
+{const bad=draw(st(car('turn3')));assert(diff(bad,cruise0,pic)<pic.w*pic.h*0.02,'an unknown state (the right-bend sets before 1.3.94): the straight-on picture, no crash');}
+// 1.3.94: cornering steps 1-3 are the owner's pictures (nose turned 10, 20, 30 degrees into a left bend), each its own,
+// none the straight-on picture; a right bend's step is the left one mirrored
+{const L=[1,2,3].map((k)=>draw(st(car('turn'+k+'_left'))));
+ L.forEach((im,i)=>{assert(diff(cruise0,im,pic)>pic.w*pic.h*0.1,'step '+(i+1)+' is not the straight-on picture');L.forEach((o,j)=>{if(j>i)assert(diff(im,o,pic)>pic.w*pic.h*0.05,'steps '+(i+1)+' and '+(j+1)+' differ');});});
+ const dl=L[1],dr=draw(st(car('turn2_left',0,true)));let same=0,n=0;const y=pic.y+Math.floor(pic.h*0.5);
+ for(let x=pic.x+Math.floor(pic.w*0.2);x<pic.x+pic.w*0.8;x++){const xm=2*pic.x+pic.w-1-x,a=(y*dl.w+x)*4,b=(y*dr.w+xm)*4;n++;if(Math.abs(dl.d[a]-dr.d[b])<40)same++;}
+ assert(same>n*0.8,'a right bend is the left one mirrored');}
 {const dl=draw(st(car('drift'))),dr=draw(st(car('drift',0,true)));
  let same=0,n=0;const y=pic.y+Math.floor(pic.h*0.45);for(let x=pic.x+Math.floor(pic.w*0.2);x<pic.x+pic.w*0.8;x++){const xm=2*pic.x+pic.w-1-x,a=(y*dl.w+x)*4,b=(y*dr.w+xm)*4;n++;if(Math.abs(dl.d[a]-dr.d[b])<40)same++;}assert(same>n*0.8,'a right drift is the left one mirrored');
  assert(diff(dl,right,pic)>pic.w*pic.h*0.2,'the drift is its own picture');}
@@ -89,9 +97,9 @@ assert.notStrictEqual(K.key(st(car('cruise',0)),'cluster'),K.key(st(car('cruise'
  f=CM.frameOf('fade',{lat:-0.5,long:0},'D',2000,30);f=CM.frameOf('fade',{lat:-0.5,long:0},'D',2200,30);assert.deepStrictEqual([f.state,f.mirror,f.from.state],['drift',true,'brake']);
  f=CM.frameOf('fade',{lat:0.5,long:0},'D',2800,30);f=CM.frameOf('fade',{lat:0.5,long:0},'D',3000,30);assert.deepStrictEqual([f.state,f.mirror,f.from.state,f.from.mirror],['drift',false,'drift',true],'a right drift to a left one fades too');
  // drawn: between the two pictures, and each step repaints
- const half=draw(st({car:{cluster:{state:'brake',mirror:false,i:0,set:'cluster',from:{state:'turn3',mirror:false,i:0,set:'cluster'},t:0.5}}})),A=draw(st(car('turn3'))),B=draw(st(car('brake')));
+ const half=draw(st({car:{cluster:{state:'brake',mirror:false,i:0,set:'cluster',from:{state:'turn3_left',mirror:true,i:0,set:'cluster'},t:0.5}}})),A=draw(st(car('turn3_left',0,true))),B=draw(st(car('brake')));
  assert(diff(half,A,pic)>200&&diff(half,B,pic)>200,'a mix of both');
- const k1=RL.keys(st({car:{cluster:{state:'brake',i:0,set:'cluster',from:{state:'turn3',i:0,set:'cluster'},t:0.5}}}),'cluster')('carpic'),k2=RL.keys(st({car:{cluster:{state:'brake',i:0,set:'cluster',from:{state:'turn3',i:0,set:'cluster'},t:4/6}}}),'cluster')('carpic');assert.notStrictEqual(k1,k2,'each fade step repaints');
+ const k1=RL.keys(st({car:{cluster:{state:'brake',i:0,set:'cluster',from:{state:'turn3_left',i:0,set:'cluster'},t:0.5}}}),'cluster')('carpic'),k2=RL.keys(st({car:{cluster:{state:'brake',i:0,set:'cluster',from:{state:'turn3_left',i:0,set:'cluster'},t:4/6}}}),'cluster')('carpic');assert.notStrictEqual(k1,k2,'each fade step repaints');
  if(process.env.CAR_METER_PREVIEW){const p=new Canvas(half.w,half.h);p.clear('#05070b');p.blit(half,0,0);fs.writeFileSync(path.join(path.resolve(process.env.CAR_METER_PREVIEW),'fade-half.png'),p.png());}}
 // the drive mode colours it: Sport red (neon frame, rpm bar, the word SPORT), Comfort blue, Eco sky blue
 {const red=(im,r)=>{let n=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++){const i=(y*im.w+x)*4;if(im.d[i+3]&&im.d[i]>150&&im.d[i+1]<90&&im.d[i+2]<90)n++;}return n;};
@@ -108,7 +116,7 @@ const HUDC=require(root+'/hud-compose'),hst=(aux,mode)=>Object.assign({},base,{m
  let clear=0,on=0;for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++){const a=im.d[(y*im.w+x)*4+3];if(!a)clear++;else on++;}
  assert(on>r.w*r.h*0.05,'the car shows');assert(clear>r.w*r.h*0.3,'its black ground is clear on the glass (no road, no frame)');
  if(process.env.CAR_METER_PREVIEW){const out=path.resolve(process.env.CAR_METER_PREVIEW);fs.mkdirSync(out,{recursive:true});
-  ['cruise','accel','brake','turn1','turn3','drift'].forEach(s=>{const h=HUDC.draw(hst({car:{hud:{state:s,mirror:false,i:2,set:'hud'}}})),p=new Canvas(h.w,h.h);p.clear('#2a3440');p.blit(h,0,0);fs.writeFileSync(path.join(out,'hud-'+s+'.png'),p.png());});}}
+  ['cruise','accel','brake','turn1_left','turn3_left','drift'].forEach(s=>{const h=HUDC.draw(hst({car:{hud:{state:s,mirror:false,i:2,set:'hud'}}})),p=new Canvas(h.w,h.h);p.clear('#2a3440');p.blit(h,0,0);fs.writeFileSync(path.join(out,'hud-'+s+'.png'),p.png());});}}
 // without the worker's frame (settings preview): the state the G shows now
 assert.deepStrictEqual(RL.frame(st({gLat:0,gLong:-0.5}),0,'cluster').car,{state:'brake',mirror:false,i:0,set:'cluster'});
 assert.strictEqual(RL.frame(hst({gLat:0,gLong:0}),0,'hud').car.set,'hud');
@@ -117,9 +125,9 @@ assert.strictEqual(RL.frame(Object.assign(st(),{config:settings({clusterDesign:'
 {const rings=Object.assign(st(),{config:settings({clusterDesign:'rl-rings'})});assert(RL.elements(rings.config,'cluster').some(e=>e.id==='gmeter'));}
 
 if(process.env.CAR_METER_PREVIEW){const out=path.resolve(process.env.CAR_METER_PREVIEW);fs.mkdirSync(out,{recursive:true});
- [['stop',false],['cruise',false],['accel',false],['brake',false],['reverse',false],['turn1',false],['turn2',false],['turn3',false],['turn3_left',false],['drift',false],['drift',true]].forEach(([s,m])=>{const im=draw(st(car(s,2,m))),p=new Canvas(im.w,im.h);p.clear('#05070b');p.blit(im,0,0);
+ [['stop',false],['cruise',false],['accel',false],['brake',false],['reverse',false],['turn1_left',true],['turn2_left',true],['turn3_left',true],['turn3_left',false],['drift',false],['drift',true]].forEach(([s,m])=>{const im=draw(st(car(s,2,m))),p=new Canvas(im.w,im.h);p.clear('#05070b');p.blit(im,0,0);
   fs.writeFileSync(path.join(out,'layout-'+s+(m?'-left':'')+'.png'),p.png());});
- ['SPORT','COMFORT','ECO_PRO'].forEach(mode=>{const im=draw(Object.assign(st(car('turn3',2)),{mode})),p=new Canvas(im.w,im.h);p.clear('#05070b');p.blit(im,0,0);fs.writeFileSync(path.join(out,'mode-'+mode.toLowerCase()+'.png'),p.png());});}
+ ['SPORT','COMFORT','ECO_PRO'].forEach(mode=>{const im=draw(Object.assign(st(car('turn3_left',2)),{mode})),p=new Canvas(im.w,im.h);p.clear('#05070b');p.blit(im,0,0);fs.writeFileSync(path.join(out,'mode-'+mode.toLowerCase()+'.png'),p.png());});}
 // the settings screen's layout picker on the car records for the GPU renderer: the picture goes as a pixel image
 // (the recorder's blit takes only cached layers: 'Recorder.blit: not a layer', 1.3.49 merge)
 {const rec=require(root+'/kit/record'),CM=require(root+'/car-meter'),r=new rec.Recorder(1600,520);

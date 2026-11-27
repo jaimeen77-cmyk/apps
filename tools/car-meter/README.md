@@ -3,9 +3,11 @@
 Since Cluster Redline 1.3.90 the pictures (`apps/cluster_redline/car-meter-frames.js` for the cluster,
 `car-meter-hud-frames.js` for the HUD) are the owner's BMW M3, made by `m3.py`:
 
-- driving, standing still, braking, accelerating, reversing and cornering steps 1-3: the M3 from behind
-  (`../hud-art/vehicles/own.png`) over `render3d.py`'s night road; each side's bends drawn on their own
-  (`turn1`..`turn3`, `turn1_left`..`turn3_left`);
+- driving, standing still, braking, accelerating and reversing: the M3 from behind (`../hud-art/vehicles/own.png`)
+  over `render3d.py`'s night road;
+- cornering steps 1-3 (1.3.94, `turn1_left`..`turn3_left`): the owner's pictures of the M3 in a left bend, its nose
+  turned 10, 20 and 30 degrees about the tail lamps (`m3-turn10.png`, `m3-turn20.png`, `m3-turn30.png`), cut out with
+  OpenCV's GrabCut and swaying over the road filled in under it; a right bend is them mirrored by `car-meter.js` when drawn (only the left ones are in the sets);
 - cornering step 4 (`drift`): the owner's drift picture (`m3-drift.png`, a left bend), the car swaying about its front
   wheels and its tyre smoke flowing; `car-meter.js` mirrors it for a right drift.
 

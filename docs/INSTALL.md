@@ -31,7 +31,7 @@ If no registered source offers the tool, the Store blocks the install and says w
 
 | Store listing | Version | iDrive 7 | iDrive 8 | Tools installed with it |
 |---|---|:-:|:-:|---|
-| Cluster Redline (English) / 계기판 레드라인 (한국어) | 1.3.93 | ✅ | ✅ | `cluster-render` 0.4.0+, `redline-lead` 0.4.0 (this source, the lead-car and lane helper), `mgu-deploy` 0.7.17+ |
+| Cluster Redline (English) / 계기판 레드라인 (한국어) | 1.3.94 | ✅ | ✅ | `cluster-render` 0.4.0+, `redline-lead` 0.4.0 (this source, the lead-car and lane helper), `mgu-deploy` 0.7.17+ |
 | MGU Monitor (English) / MGU 모니터 (한국어) | 1.1.10 | ✅ | ✅ | `mgu-monitor-names` 0.1.0 (this source), `mgu-deploy` |
 | iDrive Circuit (English) / 아이드라이브 회로 (한국어) | 1.0.5 | ✅ | ✅ | `mgu-deploy` |
 | Seats Easy Access (English) / 시트 Easy Access (한국어) | 0.7.10 | ✅ | ✅ | `iteriodev-comfort` 0.6.1+, `mgu-deploy` 0.7.11+ |

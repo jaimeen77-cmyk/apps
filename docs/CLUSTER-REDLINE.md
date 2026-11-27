@@ -1,4 +1,4 @@
-# Cluster Redline 1.3.93 user guide
+# Cluster Redline 1.3.94 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [The apps](../README.md) · [Changelog](../CHANGELOG.md)
 
@@ -38,7 +38,7 @@ For each drive mode you choose the Redline screen, the stock one or BC mode, and
 3. Installed with it:
    - The cluster renderer **`cluster-render` 0.4.0 or later**. It comes from the Store's default source (`robertnisipeanu/idrive-apps`), which must be registered.
    - **Cluster Redline lead-car helper (`redline-lead`) 0.4.0**, from this source. It **only reads** the front camera's and the radar's car ahead, the lane lines and the road users, as root (some cars keep them from apps). The lead-car headway, lane lines and scene recording use it.
-4. Open the app: **v1.3.93** at the top right means it is done.
+4. Open the app: **v1.3.94** at the top right means it is done.
 
 It installs on iDrive 7 and iDrive 8. See [Installation](INSTALL.md) for details.
 
@@ -271,7 +271,7 @@ The HUD's Animation design goes through the same M3 scenes (on the HUD black is 
 |---|
 | ![Your GIF](../screenshots/cluster_redline/manual/face-cluster-animation-gif-en.jpg) |
 
-- **The animated car** (the owner's M3) shows when no GIF is added: brake lights, four cornering steps left and right (from 0.10, 0.25 and 0.35 G, and a drift from 0.50 G), flames when accelerating, reversing lamps and standing still, from the car's G and gear.
+- **The animated car** (the owner's M3) shows when no GIF is added: brake lights, four cornering steps left and right (from 1.3.94 the nose turns into the bend about the tail lamps: 10° from 0.10 G, 20° from 0.25 G, 30° from 0.35 G, and a drift from 0.50 G), flames when accelerating, reversing lamps and standing still, from the car's G and gear.
 - **Your pictures (your GIFs)** come from the [GIF player](../apps/gif_home/README.md): the GIFs you uploaded to it from your phone, a different one for driving, standing still, reverse, turning left and turning right. The GIF takes the picture's place; the gear, rpm, auxiliary information and G-meter stay.
 
 #### Adding your pictures
