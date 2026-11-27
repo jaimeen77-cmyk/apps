@@ -154,6 +154,18 @@ function draw(v, w, h) {
     mark(L, lv.left); mark(R, lv.right);
     // the car in the middle, over the lines (a line it is on goes under it)
     fade = 1;   // the cars at full strength
+    // (1.3.100) a cut-in or a pedestrian / cyclist (road-alerts.js): that road user at its place (its side scaled to the
+    // picture's lane), lit in the warning's colour, an arrow towards our lane; what and how far in the top corner away from it
+    if (v.alert) {
+        const A0 = v.alert, art1 = require('./hud-art'), d = Math.min(FAR_D - 2, CAR_D + 4.7 + A0.x), [ax, ay] = project(d, Math.max(-PIC_LANE * 0.9, Math.min(PIC_LANE * 0.9, A0.y * PIC_LANE / 3.3)));
+        const T = { 0: ['pedestrian', 0.55], 1: ['bicycle', 0.6], 2: ['motorbike', 0.8], 4: ['truck', 2.5] }[A0.type] || ['car', 1.85];
+        const nm = 'veh/' + T[0], sz = art1.size(nm), aw = T[1] * F / (d + D) * (A0.type <= 1 ? 1.25 : 0.95), ah = aw * sz.h / sz.w, gc = A0.level === 'red' ? [255, 52, 58] : [255, 154, 31];
+        [[1.3, 28], [1.12, 46], [1.0, 70]].forEach(([k0, a0]) => cv.roundRect(ax - aw * k0 / 2, ay - ah * 0.3 - (k0 - 1) * aw * 0.3, aw * k0, ah * 0.4 + (k0 - 1) * aw * 0.6, aw * 0.25 * k0, gc.concat([a0])));
+        art1.paint(cv, nm, ax - aw / 2, ay - ah, aw, ah);
+        const col = A0.level === 'red' ? '#ff343a' : '#ff9a1f';
+        if (A0.dir) { const sx = ax + (A0.dir > 0 ? -1 : 1) * (aw / 2 + 3), tx = sx + (A0.dir > 0 ? 1 : -1) * 0; cv.triangle(A0.dir > 0 ? [[sx + 4, ay - ah / 2], [sx - 2, ay - ah / 2 - 4], [sx - 2, ay - ah / 2 + 4]] : [[sx - 4, ay - ah / 2], [sx + 2, ay - ah / 2 - 4], [sx + 2, ay - ah / 2 + 4]], col); }
+        const lx0 = A0.y < 0 ? 2 : W - 2, al = A0.y < 0 ? 'left' : 'right'; const label = require('./strings').tr(A0.label); cv.text(label, lx0, 8, 7.5, col, { font: 'bold', align: al, literal: true }); cv.text(Math.round(A0.x) + ' m', lx0, 16, 7, col, { align: al, literal: true });
+    }
     // (1.3.87) the car ahead in our lane at its distance (its rear: our front + the gap; camera metres from the windscreen)
     if (v.lead && typeof v.lead.gap === 'number') {
         const L0 = v.lead, art0 = require('./hud-art'), d = Math.min(FAR_D - 2, CAR_D + 4.7 + L0.gap), [lx, ly] = project(d, 0);
@@ -166,8 +178,8 @@ function draw(v, w, h) {
         art0.paint(cv, name, lx - lw / 2, ly - lh, lw, lh);
         // the numbers in the picture's empty top right corner (the road is narrow there), small
         const col = L0.go ? '#3ddc6a' : L0.level === 'red' ? '#ff343a' : L0.level === 'amber' ? '#ff9a1f' : '#3ec8f5';
-        cv.text(Math.round(L0.gap) + ' m', W - 2, 9, 9, '#e6edf5', { font: 'bold', align: 'right', literal: true });
-        if (L0.closing) cv.text((L0.closing > 0 ? '+' : '') + Math.round(L0.closing) + ' km/h', W - 2, 17, 6.5, col, { align: 'right', literal: true });
+        if (!v.alert) cv.text(Math.round(L0.gap) + ' m', W - 2, 9, 9, '#e6edf5', { font: 'bold', align: 'right', literal: true });
+        if (L0.closing && !v.alert) cv.text((L0.closing > 0 ? '+' : '') + Math.round(L0.closing) + ' km/h', W - 2, 17, 6.5, col, { align: 'right', literal: true });
         if (L0.go) { cv.triangle([[lx - 4, ly - lh - 1], [lx + 4, ly - lh - 1], [lx, ly - lh - 6]], '#3ddc6a'); cv.text(require('./strings').tr('Moving off'), 2, 9, 9, '#3ddc6a', { font: 'bold', literal: true }); }
     }
     // (1.3.80) the car cut from the user's reference picture (hud-art.js), its shadow included
@@ -186,7 +198,8 @@ class LaneOverlay {
         if (!l) { const ref = this.client.image({ target: 'hud', klass: 'overlay', z: 12, x: r.x, y: r.y, w: r.w, h: r.h, iw: r.w, ih: r.h, visible: false }); if (!ref) return false; l = this.layer = { ref, x: r.x, y: r.y, w: r.w, h: r.h, key: null, visible: false }; }
         v = Object.assign({}, v, { surface });
         const ld = v.lead && typeof v.lead.gap === 'number' ? [Math.round(v.lead.gap * 2) / 2, v.lead.level, Math.round(v.lead.closing || 0), v.lead.type, !!v.lead.go] : null;
-        const key = JSON.stringify([v.left, v.right, v.levels, v.width, surface, ld, !!v.faded]);
+        const al = v.alert ? [v.alert.type, Math.round(v.alert.x), Math.round(v.alert.y * 5) / 5, v.alert.level, v.alert.dir] : null;
+        const key = JSON.stringify([v.left, v.right, v.levels, v.width, surface, ld, !!v.faded, al]);
         if (l.key !== key) { const im = draw(v, r.w, r.h), px = Buffer.alloc(r.w * r.h * 4);
             for (let y = 0; y < Math.min(r.h, im.h); y++) Buffer.from(im.d.buffer, im.d.byteOffset + y * im.w * 4, Math.min(r.w, im.w) * 4).copy(px, y * r.w * 4);
             this.client.pixels(l.ref, null, px); l.key = key; }

@@ -2,6 +2,18 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.100 (cut-in and pedestrian / cyclist warnings on the lane picture)
+
+- **New: cut-in and pedestrian / cyclist warnings** on the HUD lane picture, **on by default**. HUD lamps → **Cut-in and pedestrian warnings** (끼어들기·보행자 경고) turns them off. They show with the lane lines (from the lead-car helper's camera objects and lane lines).
+- **Cut-in**:
+  - A vehicle that drove beside us in the next lane for at least 1 s, now coming into our lane at 0.5-2.5 m/s, 3-35 m ahead, with us at 20 km/h or more.
+  - Bends and our own lane change are allowed for: the lane's angle is taken off the sideways place, and nothing is judged for 2 s while a line is under our car.
+  - Cars crossing at junctions and cars overtaking beside us do not warn.
+- **Pedestrian / cyclist**: reached within 2.5 s (from 5 km/h), and in our path then or now (within 1.3 m of the car's axis).
+- **Shown**: that road user at its place on the picture, lit amber (red once it is on our line, and always red for a pedestrian or cyclist), with an arrow towards our lane; "Cut-in" / "Pedestrian" / "Cyclist" and the distance in the top corner away from it. One object warns again only after 3 s; a warning stays up to 2.5 s.
+- **Where the rules come from**: the user's 32 recorded scenes (1.3.89 scene clips, 2026-11-27, city driving), worked out in another session and checked here again: on those they warn once, at the one real cut-in (35 m ahead, about 1 s before the car reached the middle of our lane), and never otherwise. The earlier idea (warn when the car ahead changes to a nearer one) missed that cut-in: the camera had already taken the car as the one ahead while it was still in the next lane. Missed cases could not be checked (only one real cut-in was recorded).
+- Tests: `road-alerts` (a cut-in after driving beside us, red on the line, none for crossing, overtaking, our lane change or under 20 km/h, a pedestrian in our path, the lane picture, on by default); the replay of the 32 scenes gives the same single warning.
+
 ## Cluster Redline 1.3.99 (speed cameras from the public list, one new alert badge)
 
 - **Speed camera alerts without the car navigation's guidance.** The car's own navigation sends camera events only while it guides a route. Cluster Redline now also uses the public camera list with the car's position from the lead-car helper (redline-lead 0.6.0+, checked on the user's car: about once a second, in Korea).
