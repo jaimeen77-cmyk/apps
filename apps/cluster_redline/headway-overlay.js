@@ -26,8 +26,11 @@ function paint(cv,v,mode) {
     // (1.3.80) the icon cut from the user's reference picture, its glow included (hud-art.js)
     const art=require('./hud-art'),name=v.level==='red'?'red':v.level==='amber'?'amber':'ok',sz=art.size(name),iw=34,ih=iw*sz.h/sz.w;art.paint(cv,name,0,35-ih,iw,ih,v.go?{tint:'#3ddc6a'}:undefined);
     if(v.level==='red')[36.5,39.5].forEach((y,i)=>cv.fillRect(6+i*2,y,22-i*4,1.6,col));
-    let size=30;while(size>18&&cv.textWidth(c.big,size,{font:'light',literal:true})>W-40)size--;
-    cv.text(c.big,38,31,size,col,{font:'light',literal:true});
+    // (1.3.92) the thin figures' atlas holds digits and units only: a word ("Moving off") goes in the bold face, which
+    // has every letter (the English edition drew "Mig"); Korean picks its Hangul atlas either way
+    const face=/^[0-9.,\s+\-ms]*$/.test(c.big)?'light':'bold';
+    let size=30;while(size>14&&cv.textWidth(c.big,size,{font:face,literal:true})>W-40)size--;
+    cv.text(c.big,38,31,size,col,{font:face,literal:true});
     cv.fillRect(4,43,104,0.8,[90,100,112,255]);cv.fillRect(4,42.6,22,1.6,col);
     let x=6;
     if(c.dist){cv.text(c.dist,x,57,13,'#d4dbe4',{literal:true});x+=cv.textWidth(c.dist,13,{literal:true})+9;}

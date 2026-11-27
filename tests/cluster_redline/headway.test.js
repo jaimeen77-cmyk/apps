@@ -54,6 +54,11 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  assert.strictEqual(content({gap:36,headway:1.8,closing:-6,level:'ok'},'simple').closing,null,'simple: no closing speed');
  assert.deepStrictEqual(content({gap:6,headway:null,closing:null,level:'ok'},'detail'),{big:'6 m',dist:null,closing:null,color:'#3ec8f5'},'slow: the distance big');
  if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/javascript'),O=require(path.join(dir,'headway-overlay'));
+  // 1.3.92: a word in the big place ("Moving off") in the bold face (the thin one has digits and units only: "Mig")
+  {const {Canvas}=require(path.join(dir,'kit/canvas')),t0=Canvas.prototype.text,seen=[];Canvas.prototype.text=function(v,x,y,sz,c,o){seen.push([String(v),o&&o.font]);return t0.apply(this,arguments);};
+   try{O.draw({gap:6,go:true},'detail',112,60);O.draw({gap:18,headway:1.6,closing:-3,level:'ok'},'detail',112,60);O.draw({gap:6,headway:null,closing:null,level:'ok'},'detail',112,60);}finally{Canvas.prototype.text=t0;}
+   const big=seen.filter(e=>e[1]==='light'||e[1]==='bold');const go=big.find(e=>!/^[0-9.,\s+\-ms]*$/.test(e[0]));
+   assert(go&&go[1]==='bold','the departure word in bold: '+JSON.stringify(big));assert(big.some(e=>e[0]==='1.6s'&&e[1]==='light')&&big.some(e=>e[0]==='6 m'&&e[1]==='light'),'figures stay thin');}
   const cv=O.draw({gap:36,headway:0.8,closing:-6,level:'red'},'detail',112,60);let red=0;for(let i=0;i<cv.d.length;i+=4)if(cv.d[i]>200&&cv.d[i+1]<80&&cv.d[i+3]>200)red++;assert(red>80,'drawn red');}
  // 1.3.65: nothing offered on the manifest's instance for 20 s: subscribed again on instance 1 (as cluster-metrics), once;
  // the screen shows whether the radar's service is offered and on which instance

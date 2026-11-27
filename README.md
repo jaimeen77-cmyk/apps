@@ -15,7 +15,7 @@ Apps for BMW iDrive 7 and 8 head units, installed from **MGU Store**. Every app 
 
 ## The apps
 
-### Cluster Redline 1.3.91 · iDrive 7·8 · English/Korean
+### Cluster Redline 1.3.92 · iDrive 7·8 · English/Korean
 
 ![Cluster Redline](screenshots/cluster_redline/manual/face-cluster-gauges-boost-torque-en.jpg)
 
