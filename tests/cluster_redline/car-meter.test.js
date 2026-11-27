@@ -73,6 +73,13 @@ assert(diff(cruise0,draw(st(car('cruise',3))),pic)>100,'the road moves frame by 
 {const s0=draw(st(car('stop',0))),s3=draw(st(car('stop',3)));assert(diff(s0,s3,pic)<diff(cruise0,draw(st(car('cruise',3))),pic)/3,'standing still: the road does not move');assert(diff(s0,cruise0,pic)>50,'the stopped picture is its own');}
 const right=draw(st(car('turn3'))),left=draw(st(car('turn3_left')));
 assert(diff(right,left,pic)>pic.w*pic.h*0.1,'left and right differ');
+// 1.3.94: cornering steps 1-3 are the owner's pictures (nose turned 10, 20, 30 degrees into a left bend), each its own,
+// none the straight-on picture; a right bend's step is the left one mirrored
+{const L=[1,2,3].map((k)=>draw(st(car('turn'+k+'_left'))));
+ L.forEach((im,i)=>{assert(diff(cruise0,im,pic)>pic.w*pic.h*0.1,'step '+(i+1)+' is not the straight-on picture');L.forEach((o,j)=>{if(j>i)assert(diff(im,o,pic)>pic.w*pic.h*0.05,'steps '+(i+1)+' and '+(j+1)+' differ');});});
+ const dl=L[1],dr=draw(st(car('turn2')));let same=0,n=0;const y=pic.y+Math.floor(pic.h*0.5);
+ for(let x=pic.x+Math.floor(pic.w*0.2);x<pic.x+pic.w*0.8;x++){const xm=2*pic.x+pic.w-1-x,a=(y*dl.w+x)*4,b=(y*dr.w+xm)*4;n++;if(Math.abs(dl.d[a]-dr.d[b])<40)same++;}
+ assert(same>n*0.8,'a right bend is the left one mirrored');}
 {const dl=draw(st(car('drift'))),dr=draw(st(car('drift',0,true)));
  let same=0,n=0;const y=pic.y+Math.floor(pic.h*0.45);for(let x=pic.x+Math.floor(pic.w*0.2);x<pic.x+pic.w*0.8;x++){const xm=2*pic.x+pic.w-1-x,a=(y*dl.w+x)*4,b=(y*dr.w+xm)*4;n++;if(Math.abs(dl.d[a]-dr.d[b])<40)same++;}assert(same>n*0.8,'a right drift is the left one mirrored');
  assert(diff(dl,right,pic)>pic.w*pic.h*0.2,'the drift is its own picture');}
