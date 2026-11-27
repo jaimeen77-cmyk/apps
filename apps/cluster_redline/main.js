@@ -76,6 +76,9 @@ mgu.run({ settingsUI: 'custom', async start(ctx) {
     // 1.3.40-1.3.41 had its own on / off: on becomes BC mode in all drive modes (1.3.42)
     // vehicle alerts (1.3.48): always all of them; the Navigation tab has no option for them any more
     if (ctx.settings.get('hudCarAlerts') !== 'all') ctx.settings.set('hudCarAlerts', 'all');
+    // the Position check (1.3.93) never carries over an app start: whatever a new interface does while it is on, the next
+    // start is as without it (an app that stopped in the middle of the check starts with it off)
+    if (ctx.settings.get('positionCheck') === 'on') ctx.settings.set('positionCheck', 'off');
     if (ctx.settings.get('bcFollow') === 'on') { if (ctx.settings.get('allClusterOutput') !== 'bc' && ctx.settings.get('sportClusterOutput') !== 'bc') ctx.settings.set('allClusterOutput', 'bc'); ctx.settings.set('bcFollow', 'off'); }
     // A preview left by an earlier process ends now; leaving the settings screen ends Position / size.
     if (ctx.settings.get('layoutPreview')) ctx.settings.set('layoutPreview', '');

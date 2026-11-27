@@ -2,6 +2,18 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.93 (Position check: does the app get the car's GPS position?)
+
+- **New: Position check** (NAV tab → Navigation display → 위치 확인, off by default). The first step towards speed camera warnings from a Korean camera list without route guidance: it shows whether the app gets the car's GPS position, and from where. Nothing is warned yet.
+  - **At install**, the Store build searches this unit's SOME/IP catalog for fields and events whose data type holds a latitude and a longitude (`position-config.js`), ranks them (the current / matched position first; destinations, POIs, routes and arrays down), and adds the best four to our manifest **read only** (only interfaces the app does not use yet: an existing proxy is never changed) (fields notified or read, events subscribed). The list goes into the package as `position-candidates.json`.
+  - **While the check is on**, `position.js` watches every candidate, finds the latitude / longitude pair in whatever it sends (5 values a second at most; getter-only fields read once a second by a timer that stops with the check), works out its unit (degrees, 1e-6 / 1e-7 degrees, 2^32 per turn, radians, milliarcseconds…; the one that puts it in Korea first) and uses the candidate with fresh positions. The heading comes from fixes 12 m apart.
+  - The screen: the position (4 decimals), in Korea or not, the heading; each candidate with what it received (count, per second, age, unit, "not offered", errors), the one in use marked `>`.
+  - A position never goes to the log: only key names and counts.
+  - The check is off again at every app start, so whatever a new interface does while it is on, the next start is as without it.
+  - The search, ranking and decoding follow SpeedCam (Zakh294/bmw-sugar-apps, MIT), written anew for this app with Korea's bounds; see NOTICE.
+- If the car does not give apps its position, the next step is the lead-car helper reading it as root, as it does for the car ahead.
+- Tests: new `position` (the catalog search and ranking, the manifest entries, the units, the fresh source, the heading, nothing logged, off by default, the install with a catalog, the screen); `worker` and `worker-navigation` allow the new module.
+
 ## Cluster Redline 1.3.92 (English: the departure badge reads "Moving off")
 
 - **Fix (English edition): the lead car departure badge showed "Mig"** instead of "Moving off". The badge's big place uses the thin figures' atlas, which holds the digits and units only, so the letters it lacked dropped out. A word there now goes in the bold face, which has every letter; the time gap and the distance ("1.6s", "6 m") stay in thin figures. The Korean edition drew "출발" from its Hangul atlas and looks as before.

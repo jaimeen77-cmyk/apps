@@ -34,6 +34,7 @@ const {AlertOverlay} = require('./alert-overlay');
 const {GreetingOverlay} = require('./greeting-overlay');
 const DOOR = require('./door-alert');
 const {LeadVehicle, corrected} = require('./lead-vehicle');
+const {Position} = require('./position');
 const {HeadwayOverlay} = require('./headway-overlay');
 const {LaneLines, LaneOverlay} = require('./lane-lines');
 const {LeadDeparture} = require('./lead-departure');
@@ -103,7 +104,7 @@ function start(ctx) {
     // My picture's GIFs go in <data>/my-pictures/ (made here, so tools/my-pictures.js finds it; my-picture.js loads with the layout)
     if(ctx.dataDir){try{fs.mkdirSync(path.join(ctx.dataDir,'my-pictures'));}catch(e){}}
     // the HUD headway badge (lead-vehicle.js): made once the manifest's instances can be read, below
-    let lead=null;const headwayOverlay=new HeadwayOverlay(client);
+    let lead=null,position=null;const headwayOverlay=new HeadwayOverlay(client);
     // the HUD lane lines (lane-lines.js, 1.3.77): from the root helper, only while on
     const laneLines=new LaneLines(mono),laneOverlay=new LaneOverlay(client),departure=new LeadDeparture();let departureOn=false;
     // scene clips (redline-lead 0.4.0): the setting, the speed and gear to the helper every half second; a save asked
@@ -201,6 +202,8 @@ function start(ctx) {
             } catch (e) { entry.error = String(e && e.message || e); }
         });
         lead = new LeadVehicle(signals, log, instanceOf, mono);
+        // the car's GPS position (position.js, 1.3.93): read only while the Position check is on
+        position = new Position(signals, log, mono);
         // The door-open HUD warning (door-alert.js): the door switches, notified on change.
         try {
             const cfg = signals.loadConfig(DOOR.IFACE);
@@ -474,6 +477,7 @@ function start(ctx) {
             departureOn = headwayOn;   // the departure alert comes with the headway badge (no setting of its own)
             const clipsOn = live && config.appEnabled && config.hudClips === 'on';
             if (lead) lead.sync(headwayOn || lanesOn || clipsOn);
+            if (position) position.sync(live && config.positionCheck === 'on');
             const leadNow = lead && (headwayOn || lanesOn) ? lead.read(at) : null;
             const speedKmh = carSpeed.at !== null && at - carSpeed.at <= 2000 ? carSpeed.v : null;
             const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : null) : false;
@@ -516,7 +520,7 @@ function start(ctx) {
                     gear: state.gear, torqueNm: state.torqueNm, powerPS: state.powerPS, powerEstimated: true,
                     targetName: state.targetName, targetState: state.targetState, targetHolder: state.targetHolder, targetReason: state.targetReason,
                     guidanceRequested: !!state.guidanceRequested, guidanceDisabled: !!state.guidanceDisabled,
-                    outputs: state.outputs, laneLines: Object.assign({ on: config.hudLaneLines === 'on' }, laneLines.status(at)), departure: Object.assign({ on: departureOn }, departure.status(at)), headway: lead ? Object.assign({ mode: config.hudHeadway, now: corrected(lead.read(at), config.hudHeadwayCorrection) }, lead.status(at)) : { mode: config.hudHeadway, state: 'not_started' }, blindSpot: Object.assign({ on: config.hudTurnBlindSpot === 'on' }, blindSpot.status(at), blindSpot.read(at)), doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice(), lids: Object.assign({}, doors.lidNames), names: doors.names.slice(0, 24) }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
+                    outputs: state.outputs, laneLines: Object.assign({ on: config.hudLaneLines === 'on' }, laneLines.status(at)), departure: Object.assign({ on: departureOn }, departure.status(at)), position: position ? position.status(at) : null, headway: lead ? Object.assign({ mode: config.hudHeadway, now: corrected(lead.read(at), config.hudHeadwayCorrection) }, lead.status(at)) : { mode: config.hudHeadway, state: 'not_started' }, blindSpot: Object.assign({ on: config.hudTurnBlindSpot === 'on' }, blindSpot.status(at), blindSpot.read(at)), doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice(), lids: Object.assign({}, doors.lidNames), names: doors.names.slice(0, 24) }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     navProbe:navProbe.status(),
                     auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},

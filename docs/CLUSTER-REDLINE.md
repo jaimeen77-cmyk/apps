@@ -1,4 +1,4 @@
-# Cluster Redline 1.3.92 user guide
+# Cluster Redline 1.3.93 user guide
 
 [한국어](CLUSTER-REDLINE.ko.md) · [Installation](INSTALL.md) · [The apps](../README.md) · [Changelog](../CHANGELOG.md)
 
@@ -38,7 +38,7 @@ For each drive mode you choose the Redline screen, the stock one or BC mode, and
 3. Installed with it:
    - The cluster renderer **`cluster-render` 0.4.0 or later**. It comes from the Store's default source (`robertnisipeanu/idrive-apps`), which must be registered.
    - **Cluster Redline lead-car helper (`redline-lead`) 0.4.0**, from this source. It **only reads** the front camera's and the radar's car ahead, the lane lines and the road users, as root (some cars keep them from apps). The lead-car headway, lane lines and scene recording use it.
-4. Open the app: **v1.3.92** at the top right means it is done.
+4. Open the app: **v1.3.93** at the top right means it is done.
 
 It installs on iDrive 7 and iDrive 8. See [Installation](INSTALL.md) for details.
 
@@ -358,6 +358,13 @@ As on the HUD, plus **Waze map** on the cluster (Redline steps aside for Waze or
 - **Next turn on HUD**: On (default) shows the turn after the next one small under the arrow, e.g. `Then ↰ 120 m`, when it follows within 250 m.
 - **Received turns**: the last 10 turns the navigation (BMW, CarPlay, Android Auto) sent, and the route's turn list (up to 10 turns from 1.3.75). With only one turn in the list, `only one turn: no next turn` shows (the navigation sends just the next turn). Use it to see why the next turn shows or not.
 - Exit / IC and road numbers sent as icons now show in the turn's description too (1.3.75).
+- **Position check** (1.3.93, off by default): for the speed camera warnings to come (from a Korean camera list, without route guidance), whether the app gets the car's GPS position. **Nothing is warned yet.**
+  - At install, the fields and events of this car's catalog that hold a latitude and a longitude are found and up to four are added **read only** (never an interface the app already uses).
+  - While it is on, each is read: the position (4 decimals), in Korea or not, the heading, and per candidate what it received (count, per second, unit, `not offered`). The one in use is marked `>`.
+  - Read only while it is on; a position never goes to the log. It is off again after an app start.
+  - Turn it on, drive a little and send a photo of this screen: the speed camera warnings are the next step.
+
+![Position check](../screenshots/cluster_redline/manual/t3-nav-position-en.jpg)
 
 ### 7-2. Navigation colour
 
