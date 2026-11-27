@@ -5,6 +5,7 @@ import sys, os
 from collections import deque
 from PIL import Image, ImageFilter
 SRC = sys.argv[1]
+ONLY = sys.argv[2] if len(sys.argv) > 2 else None
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vehicles')
 BOXES = {'car': (572, 550, 964, 888), 'truck': (140, 78, 498, 482), 'bus': (610, 20, 924, 462),
          'motorbike': (1168, 428, 1310, 746), 'bicycle': (1112, 134, 1218, 394), 'pedestrian': (1386, 90, 1468, 318)}
@@ -52,5 +53,7 @@ def cut(name, box):
     keep = keep.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(1.0))
     im = c.convert('RGBA'); im.putalpha(keep); bb = im.getbbox(); im = im.crop(bb)
     im.save(os.path.join(OUT, name + '.png')); return im
+# (1.3.87) our own car, from the user's second picture: python3 cut-vehicles.py <picture> own
+if ONLY == 'own': BOXES = {'own': (468, 428, 798, 728)}
 for n, b in BOXES.items():
     print(n, cut(n, b).size)

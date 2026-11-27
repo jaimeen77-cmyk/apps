@@ -127,8 +127,8 @@ function draw(v, w, h) {
         if (L0.go) { cv.triangle([[lx - 4, ly - lh - 1], [lx + 4, ly - lh - 1], [lx, ly - lh - 6]], '#3ddc6a'); cv.text(require('./strings').tr('Moving off'), 2, 9, 9, '#3ddc6a', { font: 'bold', literal: true }); }
     }
     // (1.3.80) the car cut from the user's reference picture (hud-art.js), its shadow included
-    const [, by] = project(CAR_D, 0), cw = 1.9 * F / (CAR_D + D) * 0.66, art = require('./hud-art'), sz = art.size('car'), ch = cw * sz.h / sz.w;
-    art.paint(cv, 'car', W / 2 - cw / 2, by - ch + 2, cw, ch);
+    const [, by] = project(CAR_D, 0), cw = 1.9 * F / (CAR_D + D) * 0.66, art = require('./hud-art'), OWN = art.size('veh/own') ? 'veh/own' : 'car', sz = art.size(OWN), ch = cw * sz.h / sz.w;   // (1.3.87) our car: the user's own, seen from behind
+    art.paint(cv, OWN, W / 2 - cw / 2, by - ch + 2, cw, ch);
     return cv.canvas;
 }
 class LaneOverlay {

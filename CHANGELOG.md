@@ -25,7 +25,7 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 ## Cluster Redline 1.3.87 (the car ahead in the lane picture; lead car departure alert)
 
 - **Lane lines: the car ahead on the road.**
-  - It is drawn in our lane at its distance, with our car lower and a little smaller at the bottom.
+  - It is drawn in our lane at its distance, with our car lower and a little smaller at the bottom. Our car is now the user's own, a BMW M3 seen from behind (`vehicles/own.png`, cut with `cut-vehicles.py <picture> own`).
   - It is a road user seen from behind, by the front camera's class: car, truck (the camera's truck / bus / van), motorbike, bicycle, pedestrian. These are cut from the user's road picture (`tools/hud-art/cut-vehicles.py`, `hud-art-veh.js`, read only once drawn).
   - Its width follows the class, and a tall one is kept inside the picture.
   - Its headway step glows on the road under it: cyan, amber or red, green pulling away.
