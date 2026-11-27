@@ -104,16 +104,19 @@ class Outputs {
             const yielded=name==='cluster'&&!pv&&cfg.clusterYieldGuidance!=='off'&&!!this.guidanceYield;
             // An open door: the cluster gives way so the car's own door-open warning is not covered (door-alert.js).
             const doorYield=name==='cluster'&&!pv&&!!this.doorYield;
+            // the cruise control (ACC) shown on the cluster (1.3.97, the helper's FASuS): the car's own ACC display is not covered
+            const accYield=name==='cluster'&&!pv&&!!this.accYield;
             // the driver greeting (3 s at engine start) has the HUD and the cluster to itself
             const greeting=!pv&&!!this.greetingHold;
             // ...or steps it aside for Waze / the stock map
             const bcYield=name==='cluster'&&bcNow&&cfg.bcCluster==='yield';
-            const blocked=name==='hud' && this.hudBlocked || yielded || doorYield || greeting || bcYield;
+            const blocked=name==='hud' && this.hudBlocked || yielded || doorYield || accYield || greeting || bcYield;
             states[name] = out.tick(now, Object.assign({}, local, { displayMode: pv||bcShow||D.allOutput(local,name==='hud'?'Hud':'Cluster',this.policy.mode)||nav?'all':'sport', displayTarget: name === 'hud' ? 'hud' : 'map', appEnabled: cfg.appEnabled && selected === 'redline' && !blocked }));
             if (selected === 'stock' && cfg.appEnabled) states[name].reason = 'stock';
             else if(greeting && cfg.appEnabled)states[name].reason='greeting';
             else if(bcYield && cfg.appEnabled)states[name].reason='bc_yield';
             else if(doorYield && cfg.appEnabled)states[name].reason='door_yield';
+            else if(accYield && cfg.appEnabled)states[name].reason='acc_yield';
             else if(yielded && cfg.appEnabled)states[name].reason='cluster_yield';
             else if(blocked && cfg.appEnabled)states[name].reason=this.hudBlockReason || 'hud_safety';
         });

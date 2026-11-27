@@ -108,7 +108,7 @@ function start(ctx) {
     // the HUD lane lines (lane-lines.js, 1.3.77): from the root helper, only while on
     const laneLines=new LaneLines(mono),laneOverlay=new LaneOverlay(client),departure=new LeadDeparture();let departureOn=false;
     // (1.3.95) the nav-probe.log for a phone, through the root helper's page (its own connection, not the car ahead's)
-    const shareHelper=new (require('./lead-helper').LeadHelper)(null,mono),navProbeFile=ctx.dataDir?path.join(ctx.dataDir,'nav-probe.log'):null;let shareCmdAt=-Infinity;
+    const shareHelper=new (require('./lead-helper').LeadHelper)(null,mono),navProbeFile=ctx.dataDir?path.join(ctx.dataDir,'nav-probe.log'):null;let shareCmdAt=-Infinity,accSeenAt=-Infinity;const ACC_HOLD_MS=2000;
     const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',greetingNow=null;
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
@@ -482,10 +482,14 @@ function start(ctx) {
             const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : lead ? lead.frontGap(at) : null) : false;
             // (1.3.95) the nav-probe.log for a phone: the helper's page open while the screen asks for it, engine on or not
             // (1.3.96) the same connection asks the helper (0.6.0) for the car's position while the Position check is on
-            {const shareOn = config.appEnabled && config.navShare === 'on' && !!navProbeFile, posOn = !!position && live && config.appEnabled && config.positionCheck === 'on';
-             shareHelper.sync(shareOn || posOn, mono());
-             if ((shareOn || posOn) && at - shareCmdAt >= 1000) { shareCmdAt = at; const cmd = { t: 'cmd' };
-                 if (shareOn) { cmd.share = true; cmd.file = navProbeFile; } if (posOn) cmd.position = true; shareHelper.send(cmd); }
+            // (1.3.97) and whether the cruise control (ACC) shows on the cluster: the cluster then gives way (2 s after it goes)
+            {const shareOn = config.appEnabled && config.navShare === 'on' && !!navProbeFile, posOn = !!position && live && config.appEnabled && config.positionCheck === 'on', accOn = live && config.appEnabled && config.clusterYieldAcc !== 'off';
+             shareHelper.sync(shareOn || posOn || accOn, mono());
+             if ((shareOn || posOn || accOn) && at - shareCmdAt >= 1000) { shareCmdAt = at; const cmd = { t: 'cmd' };
+                 if (shareOn) { cmd.share = true; cmd.file = navProbeFile; } if (posOn) cmd.position = true; if (accOn) cmd.acc = true; shareHelper.send(cmd); }
+             const acc = accOn && shareHelper.state === 'connected' && shareHelper.last && shareHelper.last.acc, accShown = !!(acc && acc.value && acc.value.on);
+             if (accShown) accSeenAt = at;
+             controller.accYield = accOn && at - accSeenAt < ACC_HOLD_MS;
              if (posOn) position.fromHelper(shareHelper.last && shareHelper.last.position, at, shareHelper.state);}
             // (1.3.91) shown from the bumper: the correction (Lead-car headway, -2 m by default) on the distance and the time gap
             const leadShown = leadNow ? Object.assign({}, corrected(leadNow, config.hudHeadwayCorrection), { go: going }) : going ? corrected({ gap: departure.nearest || 0, go: true }, config.hudHeadwayCorrection) : null;

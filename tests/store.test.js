@@ -106,7 +106,7 @@ async function checkSettingsEntry(file, id, version) {
         assert(catalog.components.filter((c) => c.kind === 'app').every((c) => c.script.node === 'tools/store-build.js' && !c.script.network));
         for (const id of ['cluster_redline', 'cluster_redline_en']) {
             assert.strictEqual(catalog.components.find((c) => c.id === id).requires['cluster-render'], '0.4.0');
-            assert.strictEqual(catalog.components.find((c) => c.id === id).requires['redline-lead'], '0.6.0');
+            assert.strictEqual(catalog.components.find((c) => c.id === id).requires['redline-lead'], '0.7.0');
         }
     }
     const identities = new Set();

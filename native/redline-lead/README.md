@@ -37,3 +37,9 @@ Test by hand on the unit (root): `/var/opt/redline-lead/current/redline-someip 0
   raw}`; never written to a file or the log. Checked on the user's car (2026-11-28): Positioning is offered on instance
   128 to uid 0 (the app's uid gets nothing); NavigationStatus and PositioningCAN are not offered on any instance.
   Test by hand: `sleep 20 | /var/opt/redline-lead/current/redline-someip 0xfb0c:128:4:1:0x8001:f`
+- 0.7.0: whether the cruise control (ACC) shows on the cluster, while Cluster Redline asks (`{t: 'cmd', acc: true}`
+  each second; 5 s without it and it stops), so the app can give the cluster back to the car's own ACC display. A third
+  redline-someip subscribes `0xb50e:1:1:2:0x8002:f` (FASuS displayDriverAssistenceSystemLongitudinalGuidance: crc,
+  alive, chl, displayXCC u16, activeFunction...). On the user's car (2026-11-28, instance 1): bytes 3-5 `00 00 00` with
+  ACC off, `13 00 20` with it on; `decodeAcc` reads on when any of them is not 0. Sent as `acc: {on, child, rx, avail,
+  value: {on, xcc, active, at}}`.

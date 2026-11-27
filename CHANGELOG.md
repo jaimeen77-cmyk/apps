@@ -2,6 +2,31 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.97 (the cluster gives way to the cruise control display; lane picture of a fixed lane)
+
+- **Fix: the car's cruise control (ACC) display was hidden behind Cluster Redline on some cars** (reported: shown with the original Redline, not with Cluster Redline).
+  - Cluster Redline's cluster picture takes the cluster's centre from the car's own content there. On cars that show the ACC display in that centre, it was kept away.
+- **The cluster now gives way while ACC shows**, the way it does for route guidance:
+  - The car's own ACC display comes up.
+  - Cluster Redline comes back 2 s after ACC goes off.
+  - The status reads "Cruise control on · cluster released for the car display".
+- **How it knows**: the lead-car helper **0.7.0** reads FASuS `displayDriverAssistenceSystemLongitudinalGuidance` (0xB50E, instance 1) as root, only while the app runs.
+  - Checked on the user's car: bytes 3-5 are `00 00 00` with ACC off and `13 00 20` with it on.
+  - Without the helper nothing changes.
+- **New option** (Cluster display settings, last row): **Cluster · yield to cruise control** (계기판 · 크루즈(ACC)에 양보).
+  - **Yield while the ACC display shows** is the default.
+  - **Do not yield** keeps it as before; the helper is then not asked.
+  - The option is kept in Favorites.
+- **Lane lines picture redrawn** (the user's request and reference):
+  - **One lane of a fixed width**, our car fitted in it (about half of it). The lines no longer move or widen with what the camera measures.
+  - **A warning colours only its side**: near the right line, the lane's right half and the right line turn amber; on the line, red. The same on the left. No more both lines coloured, no red glow under the car.
+  - **A line the camera does not see is drawn where it would be** (a white dashed line); the warnings come from the line that is seen.
+  - **Always the same picture**: no fading when the lines are lost.
+  - The lines (10 cm) and their glow are thinner, to suit the narrower lane.
+  - Line kinds and colours as before: dashed, short dashed, solid, double, road edge; white or yellow.
+- Cluster Redline requires redline-lead 0.7.0.
+- Tests: `lane-lines` (no fading, the lane not widened by the measured lines, a virtual line, only the warned half coloured), `korean-ui` (ACC kept as a term), `redline-lead` (ACC off / on from the car's own messages), `acc-yield` (the cluster released while ACC shows, back 2 s after; the HUD untouched).
+
 ## Cluster Redline 1.3.96 (Position check gets the car's position through the helper)
 
 - **Fix: the Position check showed nothing.** The car's position services are not given to the app's own account. Checked on the user's car (root, 2026-11-28):

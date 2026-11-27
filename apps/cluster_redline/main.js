@@ -37,6 +37,7 @@ const REASONS = {
     renderer_recovering: 'Recovering renderer layer',
     cluster_yield: 'Route guidance active · cluster released',
     door_yield: 'Door open · cluster released for the car warning',
+    acc_yield: 'Cruise control on · cluster released for the car display',
     greeting: 'Driver greeting',
 };
 // No logs: nothing goes to the system log or a log file. The kit's rotating log file (<id>.log) is removed

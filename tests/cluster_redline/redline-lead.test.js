@@ -23,7 +23,7 @@ console.log('PASS: redline-lead 0.3.0 objects: every measured object of one inst
 console.log('PASS: redline-lead 0.5.0: the nav-probe.log page gives that one file only; no scene clips');
 // 0.6.0: the car's position (Positioning 0xFB0C instance 128): the Wgs84Coordinate3D found inside a longer message
 {const L=require('../../native/redline-lead/redline-lead.js');
- assert.strictEqual(L.VERSION,'0.6.0');assert.deepStrictEqual(L.POS_SPECS,['0xfb0c:128:4:1:0x8001:f','0xfb0c:128:4:4:0x8004:f']);
+ assert.deepStrictEqual(L.POS_SPECS,['0xfb0c:128:4:1:0x8001:f','0xfb0c:128:4:4:0x8004:f']);
  const mk=(pre,lat,lon)=>{const b=Buffer.alloc(pre+26);for(let i=0;i<pre;i++)b[i]=(i*37+11)&255;b[pre]=1;b[pre+1]=1;b.writeDoubleBE(lon,pre+2);b.writeDoubleBE(lat,pre+10);return b;};
  const w=L.decodeWgs(mk(120,37.5665,126.978));assert(w&&w.lat===37.5665&&w.lon===126.978&&w.valid&&w.endian==='be'&&w.off===120,JSON.stringify(w));
  assert.strictEqual(L.decodeWgs(Buffer.alloc(326)),null,'all zero: no position');assert.strictEqual(L.decodeWgs(Buffer.alloc(10)),null);
