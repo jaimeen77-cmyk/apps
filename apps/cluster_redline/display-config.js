@@ -55,7 +55,7 @@ Object.assign(defaults,{hudModeSetup:'',clusterModeSetup:'',bcFollow:'off',bcHmi
 // HUD navigation: the turn after the next one under the arrow when it follows close behind (1.3.35)
 Object.assign(defaults,{myPicIds:'',hudNavThen:'on',hudThenOffsetX:0,hudThenOffsetY:0,hudThenScale:70,navProbeLog:'off',positionCheck:'off',calmTone:'cool',hudLaneLines:'off',hudLaneSurface:'dark',hudLaneSensitivity:'low',navShare:'off',navProbeReset95:false});
 Object.assign(defaults,{hudDoorOffsetX:0,hudDoorOffsetY:0,hudDoorScale:75,hudDoorHidden:false});
-Object.assign(defaults,{navArrowStyle:'icon',hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'all',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
+Object.assign(defaults,{navArrowStyle:'icon',hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'all',hudCarCams:'db',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
 ['hud','cluster'].forEach(d=>{
  defaults[d+'AuxConfig']=JSON.stringify({mode:'gauges',items:['boost','torque']});
  PARTS.concat(LEGACY_PARTS).forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=d==='cluster'&&/^Aux(Left|Right)$/.test(p)?50:0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=false;});
@@ -120,7 +120,7 @@ function normalize(raw,out){
  if(typeof raw.hudDoorScale==='number'&&isFinite(raw.hudDoorScale))out.hudDoorScale=Math.max(20,Math.min(200,Math.round(raw.hudDoorScale/5)*5));
  // vehicle alerts (1.3.48): all of them by default and no option any more (main.js sets 'all' at the start); hidden
  // only in the Navigation tab's Position / size
- out.hudCarAlerts=ALERT_MODES.includes(raw.hudCarAlerts)?raw.hudCarAlerts:'all';out.hudCarAlertHidden=raw.hudCarAlertHidden===true;
+ out.hudCarAlerts=ALERT_MODES.includes(raw.hudCarAlerts)?raw.hudCarAlerts:'all';out.hudCarCams=raw.hudCarCams==='nav'?'nav':'db';out.hudCarAlertHidden=raw.hudCarAlertHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudCarAlert'+s];if(typeof v==='number'&&isFinite(v))out['hudCarAlert'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  if(typeof raw.hudCarAlertScale==='number'&&isFinite(raw.hudCarAlertScale))out.hudCarAlertScale=Math.max(20,Math.min(200,Math.round(raw.hudCarAlertScale/5)*5));
  out.layoutPreview=typeof raw.layoutPreview==='string'&&/^(hud|cluster|nav):[A-Za-z]{1,20}@[0-9]{1,15}$/.test(raw.layoutPreview)?raw.layoutPreview:'';

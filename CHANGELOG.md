@@ -2,6 +2,22 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.99 (speed cameras from the public list, one new alert badge)
+
+- **Speed camera alerts without the car navigation's guidance.** The car's own navigation sends camera events only while it guides a route. Cluster Redline now also uses the public camera list with the car's position from the lead-car helper (redline-lead 0.6.0+, checked on the user's car: about once a second, in Korea).
+  - **The list**: 공공데이터포털 전국무인교통단속카메라표준데이터 (44,650 cameras, data as of 2026-10). Kept: the 22,488 that check speed and have a limit, plus signal cameras inside children's and elderly zones. Section cameras with their length. Built into the app (`speed-cams-data.js`, 360 KB, read only while the alerts run) by `tools/speed-cams/fetch.py` and `build.py`.
+  - **Which camera**: ahead along the way the car is going, within 25 m to the side, getting nearer. From 300 m, or from 500 m at 80 km/h and up. Let go once passed. Between positions the distance is carried on with the speed.
+  - **Section cameras**: after the section's start camera, the average speed (distance over time) and what is left of the section.
+  - **A limit of the list**: it has no direction a camera faces. On a road with both directions close together, a camera for the other direction can show.
+  - Nothing is written anywhere; positions are not kept.
+- **One badge, the new design** (the user's choice), in the vehicle alerts' place (NAV Position / size):
+  - The speed limit sign on the left. On the right: what it is, how far (or the section's average), and the speed now.
+  - Cyan within the limit. Amber edge in a children's or elderly zone. Red over the limit, with "Slow down" (a section: by its average).
+  - One alert at a time: a speed camera, then a children's zone, then speeding against a recognised sign.
+- **The car navigation's own events come first**: while it sends a camera, that one shows (it knows the direction). The list fills in otherwise.
+- **New option** (Navigation display settings): **Speed cameras**: Navigation + public camera list (default) / Navigation only.
+- Tests: `speed-cams` (the list, ahead / passed / behind / to the side, zone, section average, range by speed, stale position, the worker's badge with the navigation first, Navigation only), `car-alerts` (one badge).
+
 ## Cluster Redline 1.3.98 (the Redline HUD hides Waze on Map's HUD map in Sport)
 
 - **Fix: on the HUD, Waze on Map's map and the Redline HUD showed on top of each other.**

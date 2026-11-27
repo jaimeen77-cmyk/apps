@@ -452,3 +452,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
   This Source Code Form is "Incompatible With Secondary Licenses", as
   defined by the Mozilla Public License, v. 2.0.
+
+Speed camera list (speed-cams-data.js, 1.3.99): 공공데이터포털 (data.go.kr) 전국무인교통단속카메라표준데이터,
+publicDataPk 15028200, 공공누리 제1유형 (출처표시). Source: 경찰청 및 각 지방자치단체. Reduced to the cameras
+that check speed by tools/speed-cams/build.py.
