@@ -12,6 +12,12 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
   - **Normal** (15 cm, as before but with the 0.7 s)
   - **Off** (no amber)
 - Red (over the line) and blue (a lane change with the turn signal) are shown at once, as before.
+- **Lane lines drawn straight ahead.** The user found the lines swinging and bending right and left: the camera's heading of each line moved them about. They are now straight, at the line's place by the car, and that place is smoothed (a third of the way a frame; a jump over 0.8 m, another line, is taken at once).
+- **Lead car departure: from the user's drive (none in 26 minutes before), two causes and quicker.**
+  - At a light, the camera often says nothing of the lane, so no car followed. The car right in front is now taken from the helper's objects: the nearest within 1.2 m of our axis.
+  - At rest the car sends no speed, which reset the check each time. A speed that stops coming while we stand still counts as a stand.
+  - Quicker: 1 s standing, a car within 20 m, 1.5 m further for 0.3 s (or lost from within 12 m).
+  - The same drive replayed: 6 alerts, each a car moving off while we stood.
 - Tests: `lane-lines` covers the 0.7 s, the release, low / normal / off, low speed and red at once.
 
 ## Cluster Redline 1.3.94 (Animation: the M3 turns into the bend)

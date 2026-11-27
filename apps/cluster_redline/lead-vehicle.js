@@ -33,6 +33,13 @@ class LeadVehicle {
         this.camera=new CameraObjects(signals,log,instanceOf,this.clock,(m,id,now)=>{this.cameraAt=now;this.fromAssist(m,id,now,'camera');},(now)=>{if(this.source==='camera'&&!this.radarFresh(now))this.reset();});
     }
     reset(){this.type=null;this.gap=null;this.at=null;this.fineAt=null;this.object=null;this.closing=null;this.ref=null;this.source=null;this.cameraAt=null;}
+    /** (1.3.95) The car right in front while the camera's lane says nothing (its "unknown" while we stand at a light):
+     *  the nearest vehicle within 1.2 m of our axis, metres, from the helper's object list (0.3.0+), or null. */
+    frontGap(now){
+        const m=this.helper&&this.helper.last,c=m&&m.cam;if(!c||!Array.isArray(c.objects)||typeof c.at!=='number'||typeof m.at!=='number'||m.at-c.at>1500||this.helper.lastAt===null||now-this.helper.lastAt>STALE_MS)return null;
+        const f=c.objects.filter(o=>[2,3,4,5,6].indexOf(o.type)>=0&&o.x>0.4&&o.x<60&&Math.abs(o.y)<1.2).sort((a,b)=>a.x-b.x)[0];
+        return f?f.x:null;
+    }
     fromHelper(m,now){
         const f=m.radar&&m.radar.front,g=m.radar&&m.radar.gap,c=m.cam;
         // the radar, only a valid reading (its "no car" values would clear the camera's car too)

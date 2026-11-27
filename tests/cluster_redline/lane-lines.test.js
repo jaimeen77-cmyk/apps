@@ -37,7 +37,7 @@ assert(r&&r.left.y===1.7&&r.levels.left==='ok'&&r.levels.right==='ok');
 // drifting right: the right line 1.0 m away (margin 0.05): near; the turn signal right: a lane change
 const d2=JSON.parse(JSON.stringify(d));d2.lines[1].y=-1.0;msg({rx:6,data:d2,at:10000});
 // (1.3.95) amber only after 0.7 s near the line; 'normal' 15 cm, 'low' 5 cm (the default), none under 30 km/h or off
-const N={sensitivity:'normal',speed:60};
+const N={sensitivity:'normal',speed:60};for(let i=0;i<30;i++)L.read(0,'off',{sensitivity:'off'});   // (1.3.95: the place is smoothed: settle first)
 assert.strictEqual(L.read(0,'off',N).levels.right,'ok','not at once');assert.strictEqual(L.read(400,'off',N).levels.right,'ok');assert.strictEqual(L.read(800,'off',N).levels.right,'near','after 0.7 s');
 assert.strictEqual(L.read(850,'right',N).levels.right,'change','with the turn signal: a lane change');
 assert.strictEqual(L.read(900,'off',{sensitivity:'normal',speed:20}).levels.right,'ok','slow: none');

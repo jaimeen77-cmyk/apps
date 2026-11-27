@@ -43,6 +43,12 @@ class LaneLines {
     read(now, indicator, o) {
         if (!this.last || this.at === null || now - this.at > STALE_MS) { this.shown = null; return null; }
         const e = egoLines(this.last); if (!e || (!e.left && !e.right)) { this.shown = null; return null; }
+        // (1.3.95) each line's place smoothed (a third of the way to the new one a frame; a jump over 0.8 m is taken at
+        // once: another line), so it does not wobble
+        this.smooth = this.smooth || {};
+        ['left', 'right'].forEach((k) => { const s = e[k]; if (!s) { this.smooth[k] = null; return; } const p = this.smooth[k];
+            const y = p === null || p === undefined || Math.abs(s.y - p) > 0.8 ? s.y : p + (s.y - p) / 3; this.smooth[k] = y;
+            const sign = k === 'left' ? 1 : -1; s.y = Math.round(y * 100) / 100; s.margin = Math.round((sign * y - HALF_CAR) * 100) / 100; });
         const sig = { left: indicator === 'left' || indicator === 'hazard' || indicator === 'both', right: indicator === 'right' || indicator === 'hazard' || indicator === 'both' };
         this.shown = Object.assign(e, { levels: { left: this.levelHeld('left', e.left, sig.left, now, o), right: this.levelHeld('right', e.right, sig.right, now, o) } });
         return this.shown;
@@ -75,7 +81,8 @@ const px2m = (px, d) => px * (d + D) / F;
 function draw(v, w, h) {
     const { ScaledCanvas } = require('./kit/canvas');
     const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
-    const yAt = (s, d) => s.y + (s.slope || 0) * d;
+    // (1.3.95) straight ahead: the line's place at the car, not its bend (the camera's heading swung it about)
+    const yAt = (s) => s.y;
     const strip = (fy0, fy1, d0, d1, c) => {
         const n = Math.max(2, Math.ceil((d1 - d0) / 2)), a = [], b = [];
         for (let i = 0; i <= n; i++) { const d = d0 + (d1 - d0) * i / n; a.push(project(d, fy0(d))); b.unshift(project(d, fy1(d))); }

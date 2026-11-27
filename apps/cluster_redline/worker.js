@@ -480,7 +480,7 @@ function start(ctx) {
             if (position) position.sync(live && config.positionCheck === 'on');
             const leadNow = lead && (headwayOn || lanesOn) ? lead.read(at) : null;
             const speedKmh = carSpeed.at !== null && at - carSpeed.at <= 2000 ? carSpeed.v : null;
-            const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : null) : false;
+            const going = departureOn ? departure.tick(at, speedKmh, controller.gear, leadNow ? leadNow.gap : lead ? lead.frontGap(at) : null) : false;
             if (lead && lead.helper) {
                 if (at - clipsCmdAt >= 500) { clipsCmdAt = at; lead.helper.send({ t: 'cmd', rec: clipsOn, speed: speedKmh, gear: controller.gear || null }); }
                 if (clipSaveSeen === null) clipSaveSeen = config.clipSaveAt;
