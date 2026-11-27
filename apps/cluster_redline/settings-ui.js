@@ -108,7 +108,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','calmTone','hudLaneLines','navArrowStyle','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','calmTone','hudLaneLines','hudLaneSurface','navArrowStyle','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:this.sub&&SUBMENUS[this.sub]?SUBMENUS[this.sub]:GROUPS[this.tab];}
  item(){return this.itemOf(this.keys()[this.focus]);}
@@ -596,7 +596,10 @@ class SettingsPage{
  drawLaneLines(cv,cfg,targets){
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();},x=this.liveState&&this.liveState.laneLines,f=v=>v===null||v===undefined?'-':String(v);
   cv.text(tr('Lane lines'),100,126,32,'#ef4050',{literal:true});
-  [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*732,146,718,64,()=>set('hudLaneLines',o[0]),cfg.hudLaneLines===o[0],'lanes-'+o[0]));
+  [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*366,146,352,64,()=>set('hudLaneLines',o[0]),cfg.hudLaneLines===o[0],'lanes-'+o[0]));
+  // the lane's surface (1.3.85): the dark road, or lit green like the reference
+  cv.text(tr('Lane colour'),830,190,22,'#8d97a4',{literal:true});
+  [['dark','Default'],['green','Lime green']].forEach((o,i)=>this.button(cv,local,tr(o[1]),1000+i*266,146,254,64,()=>set('hudLaneSurface',o[0]),cfg.hudLaneSurface===o[0],'lanesurface-'+o[0]));
   cv.text(tr('The lines either side of the car as the front camera sees them, above the headway badge. Within 15 cm amber, on the line red (blue with the turn signal: a lane change).'),100,252,19,'#c1cddd',{literal:true});
   cv.text(tr('Needs the lead-car helper (installed with Cluster Redline from the Store).'),100,284,19,'#91a1b6',{literal:true});
   if(cfg.hudLaneLines==='on'&&x){const on=x.helper==='connected',n=x.now,side=(s,lb)=>tr(lb)+' '+(s?Math.abs(s.y).toFixed(2)+' m · '+tr(s.type)+' · '+tr(s.color)+' · '+tr('margin')+' '+s.margin.toFixed(2)+' m':'-');
