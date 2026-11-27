@@ -7,7 +7,9 @@
 // its unit worked out (degrees, 1e-6 / 1e-7 degrees, 2^32 per turn, radians, milliarcseconds...), and the candidate
 // giving fresh positions most often is used. The ideas follow SpeedCam's position.js (Zakh294/bmw-sugar-apps, MIT;
 // see NOTICE), written anew here. A position never goes to the log: only key names and counts do.
-const STALE_MS=3000,HEAD_MIN_M=12;
+// a candidate's values are looked at 5 times a second at most (a fast event costs no more); a getter-only field is
+// read once a second by our own timer, which stops with the check
+const STALE_MS=3000,HEAD_MIN_M=12,MIN_GAP_MS=200,POLL_MS=1000;
 // South Korea with a margin (Jeju to the DMZ, Ulleungdo and Dokdo)
 const KR={lat0:32.5,lat1:39,lon0:124,lon1:132};
 const SCALES=[['deg',1],['1e-6 deg',1e-6],['1e-7 deg',1e-7],['1e-5 deg',1e-5],['2^32/turn',360/4294967296],['2^31/180',180/2147483648],
@@ -55,26 +57,29 @@ class Position {
  constructor(signals,log,clock,candidates){
   this.signals=signals;this.log=log||{info(){},warn(){}};this.clock=clock||Date.now;
   const c=candidates||loadCandidates();this.note=c.note;
-  this.cands=c.list.map((x)=>Object.assign({count:0,misses:0,last:null,first:null,scale:null,error:null,shapeLogged:false,sub:null},x));
+  this.cands=c.list.map((x)=>Object.assign({count:0,misses:0,last:null,first:null,scale:null,error:null,shapeLogged:false,sub:null,seenAt:null,skipped:0},x));this.timer=null;
   this.on=false;this.token=0;this.best=null;this.anchor=null;this.heading=null;
  }
  /** on: the check wanted. Subscribes every candidate, or lets them go. */
  sync(on){
-  if(!on){if(this.on){this.token++;this.cands.forEach((c)=>{if(c.sub)try{c.sub.shutdown();}catch(e){}c.sub=null;});}this.on=false;return;}
+  if(!on){if(this.on){this.token++;if(this.timer){clearInterval(this.timer);this.timer=null;}this.cands.forEach((c)=>{if(c.sub)try{c.sub.shutdown();}catch(e){}c.sub=null;});}this.on=false;return;}
   if(this.on||!this.signals||!this.signals.watch)return;
   this.on=true;const token=++this.token,groups={};
   this.cands.forEach((c)=>{const k=c.iface+'|'+(c.inst||'1');(groups[k]=groups[k]||[]).push(c);});
   Object.keys(groups).forEach((k)=>{const list=groups[k],c0=list[0],handlers={};
    list.forEach((c)=>{handlers[c.name]=(v)=>{if(token===this.token)this.value(c,v,this.clock());};});
-   const poll=list.some((c)=>c.poll);
-   Promise.resolve().then(()=>this.signals.watch(c0.iface,c0.inst||'1',handlers,this.log,poll?{pollMs:1000}:{})).then((s)=>{
+   Promise.resolve().then(()=>this.signals.watch(c0.iface,c0.inst||'1',handlers,this.log,{})).then((s)=>{
     if(token!==this.token){try{s.shutdown();}catch(e){}return;}
     const err=s&&s.error?String(s.error):null;list.forEach((c)=>{c.sub=s;c.error=err;});
     this.log.info('position: '+c0.iface+' ('+list.map((c)=>c.name).join(', ')+')'+(err?' error: '+err:' watched'));
    },(e)=>{if(token===this.token)list.forEach((c)=>{c.error=String(e&&e.message||e).slice(0,120);});});
   });
+  if(this.cands.some((c)=>c.poll))this.timer=setInterval(()=>{if(token!==this.token)return;
+   this.cands.forEach((c)=>{const px=c.poll&&c.sub&&c.sub.available&&c.sub.proxy;if(!px||!px.getValue)return;
+    Promise.resolve().then(()=>px.getValue(c.name,3000)).then((v)=>{if(token===this.token)this.value(c,v,this.clock());},()=>{});});},POLL_MS);
  }
  value(c,v,now){
+  if(c.seenAt!==null&&now-c.seenAt<MIN_GAP_MS&&now>=c.seenAt){c.skipped++;return;}c.seenAt=now;
   try{
    const pair=findPair(v);
    if(!pair){c.misses++;if(!c.shapeLogged){c.shapeLogged=true;this.log.info('position: '+c.name+' sent no lat/lon pair; its keys: '+shape(v).slice(0,600));}return;}

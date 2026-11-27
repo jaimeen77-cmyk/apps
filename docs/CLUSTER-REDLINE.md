@@ -359,9 +359,9 @@ As on the HUD, plus **Waze map** on the cluster (Redline steps aside for Waze or
 - **Received turns**: the last 10 turns the navigation (BMW, CarPlay, Android Auto) sent, and the route's turn list (up to 10 turns from 1.3.75). With only one turn in the list, `only one turn: no next turn` shows (the navigation sends just the next turn). Use it to see why the next turn shows or not.
 - Exit / IC and road numbers sent as icons now show in the turn's description too (1.3.75).
 - **Position check** (1.3.93, off by default): for the speed camera warnings to come (from a Korean camera list, without route guidance), whether the app gets the car's GPS position. **Nothing is warned yet.**
-  - At install, the fields and events of this car's catalog that hold a latitude and a longitude are found and up to six are added **read only**.
+  - At install, the fields and events of this car's catalog that hold a latitude and a longitude are found and up to four are added **read only** (never an interface the app already uses).
   - While it is on, each is read: the position (4 decimals), in Korea or not, the heading, and per candidate what it received (count, per second, unit, `not offered`). The one in use is marked `>`.
-  - Read only while it is on; a position never goes to the log.
+  - Read only while it is on; a position never goes to the log. It is off again after an app start.
   - Turn it on, drive a little and send a photo of this screen: the speed camera warnings are the next step.
 
 ![Position check](../screenshots/cluster_redline/manual/t3-nav-position-en.jpg)

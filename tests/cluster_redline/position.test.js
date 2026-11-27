@@ -30,6 +30,16 @@ const cat={
  assert.deepStrictEqual(manifest.proxies['de.bmw.gnss.Gnss'],{instances:'1',broadcasts:['fix']});
  assert.deepStrictEqual(manifest.proxies['de.bmw.infotainment.vehicle.Vehicle2'],{instances:'1',attributes:{statusCarSpeed2:'s'}},'our other inputs untouched');
  assert.deepStrictEqual(PC.filterPosition({},{}),[],'no catalog: nothing');
+ // an interface the app already uses is never changed, even with a position in it
+ {const m2={proxies:{'de.bmw.infotainment.navigation.positioning.Positioning':{instances:'1',attributes:{other:'r'}}}},l2=PC.filterPosition(m2,cat);
+  assert.deepStrictEqual(l2.map((c)=>c.name),['fix']);assert.deepStrictEqual(m2.proxies['de.bmw.infotainment.navigation.positioning.Positioning'],{instances:'1',attributes:{other:'r'}});}
+ // an instance id of 0 (which the install's own check drops) is not used
+ {const c0=JSON.parse(JSON.stringify(cat));c0.instanceIDs['de.bmw.gnss.Gnss']={'1':0};assert(!PC.scan(c0).some((c)=>c.name==='fix'));}
+ // a big catalog with deeply nested types: walked once per type, quickly
+ {const big={instanceIDs:{},interfaces:{},datatypes:{}};
+  for(let t=0;t<4000;t++)big.datatypes['T'+t]={type:'struct',members:Array.from({length:12},(_,m)=>({name:'member'+m+(m===3?'Latitude':m===4?'Longitude':''),dataRef:m<2&&t>0?'T'+(t-1):'Int32'}))};
+  for(let i=0;i<2500;i++){const f={};for(let k=0;k<15;k++)f['field'+k]={dataRef:'T'+((i*15+k)%4000),notifier:{id:32768+k}};big.interfaces['de.bmw.x.I'+i]={fields:f};big.instanceIDs['de.bmw.x.I'+i]={'1':1};}
+  const t0=Date.now();PC.scan(big);const ms=Date.now()-t0;assert(ms<3000,'scan '+ms+' ms');}
  // units: Seoul City Hall (37.5665, 126.9780)
  const near=(a,b)=>Math.abs(a-b)<1e-4;
  [[37.5665,126.978,'deg'],[375665000,1269780000,'1e-7 deg'],[37566500,126978000,'1e-6 deg'],[37.5665*Math.PI/180,126.978*Math.PI/180,'rad'],
@@ -58,9 +68,16 @@ const cat={
  // the field goes quiet: the event takes over after 3 s
  t=4500;gnss.h.fix({wgs84Lat:37.568,wgs84Lon:126.978});st=pos.status(4500);assert(st.candidates[1].inUse,'the fresh one');
  // a reply without a pair: counted, its keys (never values) logged once
- cur.h.currentPosition({nothing:1});cur.h.currentPosition({nothing:2});assert.strictEqual(pos.status(4500).candidates[0].misses,2);
+ t=4600;cur.h.currentPosition({nothing:1});t=4900;cur.h.currentPosition({nothing:2});assert.strictEqual(pos.status(4900).candidates[0].misses,2);
+ // faster than 5 a second: the extra values are not looked at
+ t=4950;cur.h.currentPosition({nothing:3});assert.strictEqual(pos.status(4950).candidates[0].misses,2);
  assert(logs.filter((l)=>/sent no lat\/lon pair/.test(l)).length===1&&!logs.some((l)=>/37\.5|126\.9/.test(l)),'no position in the log');
  pos.sync(false);assert.strictEqual(shut,2,'off: let go');
+ // a getter-only field: read by our own timer once a second while on, never after
+ {let reads=0;const sig={watch:()=>Promise.resolve({available:true,proxy:{getValue:()=>{reads++;return Promise.resolve({latitude:37.5,longitude:127});}},shutdown(){}})};
+  const pp=new P.Position(sig,log,()=>Date.now(),{list:[{iface:'a.b.Pos',inst:'1',name:'pos',kind:'field',poll:true}],note:''});
+  pp.sync(true);await new Promise((r)=>setTimeout(r,1150));const n=reads;assert(n>=1,'polled');pp.sync(false);await new Promise((r)=>setTimeout(r,1100));assert.strictEqual(reads,n,'the timer stops with the check');
+  assert(pp.status(Date.now()).candidates[0].received>=1);}
  // a reply after off is ignored (an old subscription)
  cur.h.currentPosition({currentPosition:{latitude:1,longitude:1}});assert.strictEqual(pos.status(5000).fix,null);
  // without candidates
