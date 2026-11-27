@@ -16,7 +16,7 @@ const sample=(t,rpm=5000,mode=1)=>{out.policy.modeSample(mode,t-1000);out.policy
 sample(1000);let s=out.tick(1000,{sportHudOutput:'redline'});
 assert(s.outputs.cluster.requested&&s.outputs.hud.requested);assert.strictEqual(client.active.size,2);
 const mapRef=out.cluster.ref,hudRef=out.hud.ref;
-assert.strictEqual(client.active.get(hudRef).contend,false);assert.strictEqual(client.active.get(hudRef).exclusive,false);assert.strictEqual(client.active.get(hudRef).guide_hold,false);
+assert.strictEqual(client.active.get(hudRef).contend,false);assert.strictEqual(client.active.get(hudRef).exclusive,1,'1.3.98: in Sport the HUD hides the layers under it (HUD · hide Waze, default)');assert.strictEqual(client.active.get(hudRef).guide_hold,false);
 assert.strictEqual(client.events.filter(e=>e[0]==='pixels').length,1,'a shared initial-frame allowance must pace both outputs');
 out.tick(1250,{sportHudOutput:'redline'});assert.strictEqual(client.events.filter(e=>e[0]==='pixels').length,2);
 assert.strictEqual(out.upload.sent,128);

@@ -175,7 +175,11 @@ class Controller {
             this.layerRate = d.config.frameRate;
             this.layerScale = cfg.widgetScale;
             this.targetName = cfg.displayTarget;
+            this.exclusiveNow = !hud;
         }
+        // (1.3.98) the HUD layer hides the layers under it (Waze on Map's HUD map) while asked (HUD · Hide Waze: in Sport, or
+        // always); changed in place with set, no new layer
+        if (hud && this.ref) { const ex = !!config.hudExclusive; if (this.exclusiveNow !== ex) { this.client.set(this.ref, { exclusive: ex ? 1 : 0 }); this.exclusiveNow = ex; } }
         // The Animation layout's GIF: drawn by the renderer from frames sent once (flipbook.js), so the image leaves it
         // out (a still placeholder: no repaint, nothing sent, for each new frame of it); painted as before until then.
         this.flipbook(now, d, cfg, rect, painter, panel, hud);
