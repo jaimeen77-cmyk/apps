@@ -21,8 +21,8 @@ const defaults={hudTurnBlindSpot:'off',hudTurnSignals:'off',hudTurnStyle:'arrow'
 NAV_PARTS.forEach(p=>{defaults[p.prefix+'Hidden']=false;});
 // Navigation colours: the arrow (navColor, also the recommended lanes) and the text (navTextColor: distance, road and
 // exit names). navTextColor is kept outside app.json, like the turn signal colour.
-const NAV_COLORS={orange:'#ff9a1f',green:'#3ddc6a',blue:'#37c6ff',white:'#f4f7fb'};
-const NAV_COLOR_NAMES=['orange','green','blue','white'];
+const NAV_COLORS={orange:'#ff9a1f',green:'#3ddc6a',blue:'#37c6ff',white:'#f4f7fb',lime:'#b4ff2a'};   // lime: neon (1.3.86)
+const NAV_COLOR_NAMES=['orange','green','blue','white','lime'];
 // Vehicle alerts (vehicle-alerts.js): the car's own speeding, school zone and speed camera alerts on the HUD.
 // Moved and sized in the NAV tab's Position / size with the navigation parts, but drawn on an overlay of their
 // own (alert-overlay.js), so NAV_PARTS (the navigation picture) is unchanged.

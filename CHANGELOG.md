@@ -22,6 +22,18 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.86 (neon navigation colour; the pictures one file a set)
+
+- **New navigation colour: Neon (형광)**, beside orange, green, blue and white, for the arrow and the text.
+  - With the 3D style, neon uses the user's second icon sheet as it is: neon yellow-green with its glow, grey roads, orange arrival flags and its own highway exits.
+  - The lanes come from the same sheet. The lane to take is lit neon. The drawn arrows use the neon colour.
+- **The pictures are now one file per set:** the cars, the blue icons and the neon icons.
+  - `hud-art.js` reads a set's file only the first time a picture of that set is drawn.
+  - Someone not using neon never reads the neon set; someone using only the lane lines never reads the icons.
+- Tools: `cut-nav.py <sheet> neon` cuts the second sheet into `tools/hud-art/neon/`. `make.py` writes `hud-art-cars.js`, `hud-art-nav.js` and `hud-art-neon.js`, and lights the lanes per set.
+- The colour buttons are narrower so five fit.
+- Tests: `nav-icons-art` covers both sets, the neon flag and lanes, and that nothing is read before it is drawn. `nav-colors` covers neon.
+
 ## Cluster Redline 1.3.85 (lane lines: lime green lane)
 
 - **New: Lane colour** on the Lane lines screen (HUD lamps → 차선 표시 → 바닥색): **Default** (the dark road) or **Lime green**, as the user's reference.

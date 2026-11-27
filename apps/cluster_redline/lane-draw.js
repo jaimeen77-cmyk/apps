@@ -55,12 +55,12 @@ const LG={STRAIGHT_ON:['lg-straight',false],SLIGHT_LEFT:['lg-slight-left',false]
  HARD_LEFT:['lg-left',false],HARD_RIGHT:['lg-left',true],UTURN_LEFT:['lg-uturn-left',false],UTURN_RIGHT:['lg-uturn-left',true]};
 const BLUE=['#29c5ff','#37c6ff'];
 function laneIcons(cv,s,cx,lane,selected){
- const A=require('./hud-art'),all=lane.other.map(d=>[d,'other']).concat(lane.directions.map(d=>[d,lane.highlighted?'on':'dim']));
- if(!all.length||!all.every(([d])=>LG[d]&&A.size('nav/'+LG[d][0])))return false;
- const tint=BLUE.indexOf(String(selected).toLowerCase())>=0?null:selected;
+ const A=require('./hud-art'),set=String(selected).toLowerCase()===require('./display-config').NAV_COLORS.lime?'neon':'nav',all=lane.other.map(d=>[d,'other']).concat(lane.directions.map(d=>[d,lane.highlighted?'on':'dim']));
+ if(!all.length||!all.every(([d])=>LG[d]&&A.size(set+'/'+LG[d][0])))return false;
+ const tint=set==='neon'||BLUE.indexOf(String(selected).toLowerCase())>=0?null:selected;
  all.sort((p,q)=>(p[1]==='on')-(q[1]==='on')).forEach(([d,kind])=>{
-  const [base,flip]=LG[d],g=A.size('nav/'+base),k=Math.min((CELL-3)/g.w,(BOTTOM-TOP)/g.h);
-  let name='nav/'+base,w=g.w*k,h=g.h*k,y=BOTTOM-h,x=cx-w/2;
+  const [base,flip]=LG[d],g=A.size(set+'/'+base),k=Math.min((CELL-3)/g.w,(BOTTOM-TOP)/g.h);
+  let name=set+'/'+base,w=g.w*k,h=g.h*k,y=BOTTOM-h,x=cx-w/2;
   if(kind==='on'){const on=A.size(name+'-on');if(on){name+='-on';const pad=8,kk=k;w=on.w*kk;h=on.h*kk;x=cx-w/2;y=BOTTOM-h+pad*kk;}}
   A.paint(cv,name,x*s,y*s,w*s,h*s,{flip,tint:kind==='on'?tint:null,alpha:kind==='other'?0.4:kind==='dim'?0.85:1});
  });

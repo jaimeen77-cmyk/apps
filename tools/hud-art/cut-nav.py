@@ -4,7 +4,8 @@ the grey parts stay (alpha from the brightness over the background, colour un-mi
 import sys, os
 from PIL import Image
 SHEET = sys.argv[1]
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nav')
+SET = sys.argv[2] if len(sys.argv) > 2 else 'nav'
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), SET)
 R1, R2, R3, R4 = (22, 110), (158, 264), (310, 418), (438, 550)
 BOXES = {
  'left': (25, 100, R1), 'right': (208, 282, R1), 'straight': (398, 452, R1), 'slight-left': (568, 637, R1),
@@ -17,6 +18,20 @@ BOXES = {
  'lg-left-b': (499, 574, R4), 'lg-straight': (583, 651, R4), 'lg-straight-b': (660, 726, R4),
  'lg-slight-right': (735, 801, R4), 'lg-slight-right-on': (809, 877, R4),
 }
+# the neon sheet (1.3.86): the same icons, laid out a little lower
+if SET == 'neon':
+    N1, N2, N3, N4 = (44, 132), (186, 282), (338, 446), (474, 573)
+    BOXES = {
+     'left': (24, 98, N1), 'right': (204, 280, N1), 'straight': (392, 452, N1), 'slight-left': (562, 636, N1),
+     'slight-right': (736, 802, N1), 'uturn-left': (896, 978, N1),
+     'uturn-right': (26, 108, N2), 'roundabout': (206, 312, N2), 'lane-left': (418, 470, N2), 'lane-right': (580, 634, N2),
+     'arrival-left': (736, 808, N2), 'arrival-right': (900, 976, N2),
+     'in-left': (16, 104, N3), 'in-straight': (198, 284, N3), 'in-right': (374, 456, N3), 'out-left': (562, 640, N3),
+     'out-straight': (734, 790, N3), 'out-right': (880, 958, N3),
+     'lg-uturn-left': (250, 320, N4), 'lg-slight-left': (332, 400, N4), 'lg-left': (412, 484, N4),
+     'lg-left-b': (494, 564, N4), 'lg-straight': (576, 640, N4), 'lg-straight-b': (652, 708, N4),
+     'lg-slight-right': (722, 790, N4), 'lg-slight-right-on': (798, 866, N4),
+    }
 src = Image.open(SHEET).convert('RGB'); px = src.load()
 def cut(name, x0, x1, ys):
     y0, y1 = ys; W, H = x1 - x0, y1 - y0

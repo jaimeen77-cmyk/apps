@@ -61,7 +61,7 @@ const LANE_ITEM={key:'hudLaneLines',label:'Lane lines',type:'action'};
 const MODES_ITEMS={hudModes:{key:'hudModes',label:'Drive-mode display',type:'action'},clusterModes:{key:'clusterModes',label:'Drive-mode display',type:'action'}};
 const MODE_LABELS={sport:'Sport',comfort:'Comfort',eco:'Eco',other:'Other modes'},OUT_LABELS={redline:'Redline app',stock:'Stock display',bc:'BC mode',comfort:'As Comfort'};
 const HEADWAY_KEYS=Object.keys(D.defaults).filter(k=>/^hudHeadway/.test(k));
-const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White'};
+const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White',lime:'Neon'};
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
 const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen','bcHmi','bcPages','bcHudPages','bcStart'].concat(DOOR_KEYS,HEADWAY_KEYS).concat(TURN_KEYS,ALERT_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
@@ -692,9 +692,9 @@ class SettingsPage{
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
   [['navColor','Arrow colour',126,146],['navTextColor','Text colour',250,266]].forEach(([key,title,ty,by])=>{
    cv.text(tr(title),100,ty,28,'#ef4050',{literal:true});
-   D.NAV_COLOR_NAMES.forEach((name,i)=>{const x=84+i*268;
-    this.button(cv,local,tr(NAV_COLOR_LABELS[name]),x,by,256,62,()=>set(key,name),cfg[key]===name,key+'-'+name);
-    cv.fillRect(x+20,by+50,216,5,D.NAV_COLORS[name]);});
+   D.NAV_COLOR_NAMES.forEach((name,i)=>{const x=84+i*214;
+    this.button(cv,local,tr(NAV_COLOR_LABELS[name]),x,by,204,62,()=>set(key,name),cfg[key]===name,key+'-'+name);
+    cv.fillRect(x+16,by+50,172,5,D.NAV_COLORS[name]);});
   });
   // the arrow style (1.3.82, after the colours so their buttons keep their order): the icons from the user's sheet or the drawn arrows
   cv.text(tr('Arrow style'),1180,126,28,'#ef4050',{literal:true});
