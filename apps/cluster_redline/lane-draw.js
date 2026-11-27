@@ -80,7 +80,7 @@ function drawSized(state,w,h){
   const list=lane.other.map(d=>({d,color:OTHER})).concat(lane.directions.map(d=>({d,color:on?selected:DIM})));
   const all=lane.directions.concat(lane.other),side=d=>(d.match(/LEFT|RIGHT/)||[''])[0],paired=d=>(d==='LEFT'||d==='RIGHT'||/^UTURN_/.test(d))&&all.includes(side(d))&&all.includes('UTURN_'+side(d));
   // (1.3.81) the arrows from the user's icon sheet: grey, the selected lane's lit (in its colour); drawn ones otherwise
-  if(laneIcons(cv,s,cx,lane,selected))list.length=0;
+  if(state.arrowStyle!=='drawn'&&laneIcons(cv,s,cx,lane,selected))list.length=0;
   const shapes=list.map(e=>Object.assign(e,{parts:glyph(e.d,paired(e.d))})).filter(e=>e.parts);
   if(shapes.length){
    // One transform per lane: centre the combined glyph; shrink only a lane whose

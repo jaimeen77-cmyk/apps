@@ -516,10 +516,10 @@ function drawNavFocus(cv,f,h){
    const hw=/^HIGHWAY_(IN|OUT)/.exec(n.branchType||''),desc=(hw?(hw[1]==='OUT'?(ko?'고속도로 진출':'Highway exit'):(ko?'고속도로 진입':'Highway entry'))+(n.description?' · ':''):'')+(n.description||'');
    let line=desc;while(line.length>2&&cv.textWidth(line,26,{font:'bold',literal:true})>500)line=line.slice(0,-2);
    if(line)cv.text(line,544,152,26,NF.dim,{align:'center',font:'bold',literal:true});
-   const s=n.lanes&&n.lanes.length?1.55:1.9,turn=hw?{maneuver:/LEFT/.test(n.branchType)?'SLIGHT_LEFT':/RIGHT/.test(n.branchType)?'SLIGHT_RIGHT':'STRAIGHT_ON'}:n;
-   if(!navArrow(cv,turn,544-52*s,168,s,NF.blue))navArrow(cv,{maneuver:'STRAIGHT_ON'},544-52*s,168,s,NF.blue);
+   const s=n.lanes&&n.lanes.length?1.55:1.9,turn=hw&&n.arrowStyle==='drawn'?{maneuver:/LEFT/.test(n.branchType)?'SLIGHT_LEFT':/RIGHT/.test(n.branchType)?'SLIGHT_RIGHT':'STRAIGHT_ON',arrowStyle:'drawn'}:n;
+   if(!navArrow(cv,turn,544-52*s,168,s,NF.blue))navArrow(cv,{maneuver:'STRAIGHT_ON',arrowStyle:n.arrowStyle},544-52*s,168,s,NF.blue);
    if(n.lanes&&n.lanes.length){const k=n.lanes.length,bw=Math.min(80,400/k-12),x0=544-(k*(bw+12)-12)/2;
-    n.lanes.forEach((l,i)=>{const x=x0+i*(bw+12);rrect(cv,x,364,bw,58,8,l.on?NF.laneOn:NF.lane);navArrow(cv,{maneuver:l.d},x+bw/2-52*0.42,368,0.42,l.on?NF.blue:NF.dim,true);});}
+    n.lanes.forEach((l,i)=>{const x=x0+i*(bw+12);rrect(cv,x,364,bw,58,8,l.on?NF.laneOn:NF.lane);navArrow(cv,{maneuver:l.d,arrowStyle:n.arrowStyle},x+bw/2-52*0.42,368,0.42,l.on?NF.blue:NF.dim,true);});}
    if(n.then){const w=ko?(TURN_KO[n.then.maneuver]||'안내'):String(n.then.maneuver).toLowerCase().replace(/_/g,' ');cv.text((ko?'그다음 ':'Then ')+w+(isNum(n.then.gap)?' '+n.then.gap+' m':''),544,458,20,NF.dim,{align:'center',font:'bold',literal:true});}}
   else{cv.text(isNum(f.speed)?String(f.speed):'--',544,290,140,NF.text,{align:'center',font:'num',literal:true});cv.text('km/h',544,330,24,NF.dim,{align:'center',font:'bold',literal:true});
    cv.text(ko?'길안내 없음':'No route guidance',544,400,18,NF.dim,{align:'center',font:'bold',literal:true});}}

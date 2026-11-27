@@ -89,13 +89,13 @@ const THEN_W=132,THEN_H=44;
 function thenLine(cv,then,color,ink){
     const label=require('./strings').tr('Then');let x=0;
     cv.text(label,x,33,17,withAlpha(ink,0.8),{font:'bold',literal:true});x+=cv.textWidth(label,17,{font:'bold',literal:true})+6;
-    arrow(at(cv,0.3,x,6),{maneuver:then.maneuver,exitNumber:then.exitNumber},color,true);x+=34;
+    arrow(at(cv,0.3,x,6),{maneuver:then.maneuver,exitNumber:then.exitNumber,arrowStyle:then.arrowStyle},color,true);x+=34;
     if(typeof then.gap==='number')cv.text(then.gap+' m',x,33,17,withAlpha(ink,0.8),{font:'num',literal:true});
 }
 function drawThen(state,target){
     const cv=target||new Canvas(THEN_W,THEN_H);if(!target)cv.clear([0,0,0,0]);
     const then=state&&state.visible&&state.then;if(!then||!then.maneuver)return cv;
-    thenLine(cv,then,arrowColor(state),textColor(state));return cv;
+    thenLine(cv,Object.assign({},then,{arrowStyle:state.arrowStyle}),arrowColor(state),textColor(state));return cv;
 }
 const withAlpha=(c,a)=>{const m=/^#([0-9a-f]{6})$/i.exec(c);if(!m)return c;const n=parseInt(m[1],16);return [n>>16&255,n>>8&255,n&255,Math.round(a*255)];};
 // a view of cv drawn at scale s from (ox, oy)
@@ -115,7 +115,7 @@ function iconOf(state){
 }
 // paint the icon fitted in the box (x, y, w, h), bottom-centred; the roundabout's exit number over its middle
 function icon(cv,state,color,x,y,w,h,small){
- const name=iconOf(state),art=typeof cv.art==='function'?cv.art:cv&&cv.d?(n,a,b,c,d,o)=>require('./hud-art').paint(cv,n,a,b,c,d,o):null;if(!name||!art)return false;
+ const name=state&&state.arrowStyle!=='drawn'?iconOf(state):null,art=typeof cv.art==='function'?cv.art:cv&&cv.d?(n,a,b,c,d,o)=>require('./hud-art').paint(cv,n,a,b,c,d,o):null;if(!name||!art)return false;
  const A=require('./hud-art'),sz=A.size('nav/'+name);if(!sz)return false;
  const k=Math.min(w/sz.w,h/sz.h),iw=sz.w*k,ih=sz.h*k,ix=x+(w-iw)/2,iy=y+h-ih;
  const tint=DEFAULT_BLUE.indexOf(String(color).toLowerCase())>=0?null:color;
