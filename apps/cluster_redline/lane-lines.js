@@ -6,6 +6,8 @@
 // yellow as the camera reports. Drawn just above the headway badge, at its size (HUD lamps → Lane lines).
 const { LeadHelper } = require('./lead-helper');
 // NEAR_M 0.15 (1.3.78): with 0.3 a car 30 cm off a 3 m lane's centre was already amber (the user's capture)
+// NEAR_LOW_M (1.3.95): the default step; NEAR_M is 'normal'
+const HOLD_MS = 3000, NEAR_LOW_M = 0.05, NEAR_HOLD_MS = 700, NEAR_RELEASE_M = 0.1, NEAR_KMH = 30;
 const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 84;
 const TYPES = { 1: 'dashed', 2: 'solid', 3: 'dotted', 4: 'edge', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'edge' };
 /** The lines of the car's own lane: {left, right, width} (each {y, type, color, margin} or null) from the helper's list. */
@@ -35,14 +37,45 @@ class LaneLines {
         this.clock = clock || Date.now; this.last = null; this.at = null; this.rx = 0;
         this.helper = new LeadHelper((m, now) => { if (m.lane) { this.rx = m.lane.rx || 0; if (m.lane.data && typeof m.lane.at === 'number' && m.at - m.lane.at < STALE_MS) { this.last = m.lane.data; this.at = now; } } }, this.clock, connect);
     }
-    sync(on) { this.helper.sync(on, this.clock()); if (!on) { this.last = null; this.at = null; } }
-    /** What the HUD shows now, or null: {left, right, width, levels: {left, right}}; indicator: 'left' / 'right' / 'off'. */
-    read(now, indicator) {
-        if (!this.last || this.at === null || now - this.at > STALE_MS) return null;
-        const e = egoLines(this.last); if (!e || (!e.left && !e.right)) return null;
-        return Object.assign(e, { levels: { left: levelOf(e.left, indicator === 'left' || indicator === 'hazard' || indicator === 'both'), right: levelOf(e.right, indicator === 'right' || indicator === 'hazard' || indicator === 'both') } });
+    sync(on) { this.helper.sync(on, this.clock()); if (!on) { this.last = null; this.at = null; this.held = {}; this.good = null; } }
+    /** What the HUD shows now, or null: {left, right, width, levels: {left, right}}; indicator: 'left' / 'right' / 'off';
+     *  o: {speed (km/h or null), sensitivity: 'off' | 'low' | 'normal'} (1.3.95). */
+    read(now, indicator, o) {
+        // (1.3.95) lines lost (no list, or none seen: 38 % of the user's town driving) for up to 3 s: the last ones kept on the
+        // HUD as they were, without warnings (an old place warns nothing); only then the picture goes
+        const hold = () => {
+            // after the 3 s: the same lines (or a usual 3.3 m lane) faded, the cars still shown (1.3.95, the user's choice)
+            const base = this.good ? this.good.e : { left: { y: 1.65, type: 'dashed', color: 'white', margin: 0.7 }, right: { y: -1.65, type: 'dashed', color: 'white', margin: 0.7 }, width: 3.3 };
+            if (!this.good && this.helper.status().state !== 'connected') { this.shown = null; return null; }
+            const k = JSON.parse(JSON.stringify(base)); k.levels = { left: k.left ? 'ok' : null, right: k.right ? 'ok' : null }; k.held = true; k.faded = !this.good || now - this.good.at > HOLD_MS; this.shown = k; return k; };
+        if (!this.last || this.at === null || now - this.at > STALE_MS) return hold();
+        const e = egoLines(this.last); if (!e || (!e.left && !e.right)) return hold();
+        // (1.3.95) each line's place smoothed (a third of the way to the new one a frame; a jump over 0.8 m is taken at
+        // once: another line), so it does not wobble
+        this.smooth = this.smooth || {};
+        ['left', 'right'].forEach((k) => { const s = e[k]; if (!s) { this.smooth[k] = null; return; } const p = this.smooth[k];
+            const y = p === null || p === undefined || Math.abs(s.y - p) > 0.8 ? s.y : p + (s.y - p) / 3; this.smooth[k] = y;
+            const sign = k === 'left' ? 1 : -1; s.y = Math.round(y * 100) / 100; s.margin = Math.round((sign * y - HALF_CAR) * 100) / 100; });
+        const sig = { left: indicator === 'left' || indicator === 'hazard' || indicator === 'both', right: indicator === 'right' || indicator === 'hazard' || indicator === 'both' };
+        this.shown = Object.assign(e, { levels: { left: this.levelHeld('left', e.left, sig.left, now, o), right: this.levelHeld('right', e.right, sig.right, now, o) } });
+        this.good = { e: JSON.parse(JSON.stringify(Object.assign({}, e, { levels: undefined }))), at: now };
+        return this.shown;
     }
-    status(now) { const r = this.read(now, 'off'); return { helper: this.helper.status().state, rx: this.rx, lines: this.last && this.last.lines ? this.last.lines.length : 0, now: r, visibility: this.last ? this.last.visibility : null }; }
+    // (1.3.95) amber only when it lasts: within the step (5 cm low, 15 cm normal) for 0.7 s, off again 10 cm further out;
+    // none under 30 km/h or with the sensitivity off. Over the line (red) and a lane change (blue) at once, as before.
+    levelHeld(side, s, signal, now, o) {
+        if (!s) return null;
+        this.held = this.held || {}; const h = this.held[side] || (this.held[side] = { since: null, on: false });
+        o = o || {}; const sens = o.sensitivity === 'off' || o.sensitivity === 'normal' ? o.sensitivity : 'low', step = sens === 'normal' ? NEAR_M : NEAR_LOW_M;
+        const slow = typeof o.speed === 'number' && o.speed < NEAR_KMH;
+        if (s.margin < 0) { h.since = null; h.on = false; return signal ? 'change' : 'over'; }
+        if (sens === 'off' || slow) { h.since = null; h.on = false; return 'ok'; }
+        if (s.margin < step) { if (h.since === null) h.since = now; if (now - h.since >= NEAR_HOLD_MS) h.on = true; }
+        else if (s.margin >= step + NEAR_RELEASE_M) { h.since = null; h.on = false; }
+        else if (!h.on) h.since = null;
+        return h.on ? (signal ? 'change' : 'near') : 'ok';
+    }
+    status(now) { const r = this.shown || null; return { helper: this.helper.status().state, rx: this.rx, lines: this.last && this.last.lines ? this.last.lines.length : 0, now: r, visibility: this.last ? this.last.visibility : null }; }
 }
 const COLORS = { white: [232, 238, 246, 255], yellow: [255, 206, 58, 255], near: [255, 158, 40, 255], over: [255, 52, 44, 255], change: [56, 214, 255, 255] };
 // The picture (1.3.79, as the user's reference): a dark road in perspective with a faint grid near the car, the lines
@@ -56,8 +89,11 @@ const px2m = (px, d) => px * (d + D) / F;
 function draw(v, w, h) {
     const { ScaledCanvas } = require('./kit/canvas');
     const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
-    const yAt = (s, d) => s.y + (s.slope || 0) * d;
+    // (1.3.95) straight ahead: the line's place at the car, not its bend (the camera's heading swung it about)
+    const yAt = (s) => s.y;
+    let fade = v.faded ? 0.3 : 1;   // (1.3.95) lines lost over 3 s: the road and the lines faint
     const strip = (fy0, fy1, d0, d1, c) => {
+        if (fade < 1 && c && c.length === 4) c = [c[0], c[1], c[2], Math.round(c[3] * fade)];
         const n = Math.max(2, Math.ceil((d1 - d0) / 2)), a = [], b = [];
         for (let i = 0; i <= n; i++) { const d = d0 + (d1 - d0) * i / n; a.push(project(d, fy0(d))); b.unshift(project(d, fy1(d))); }
         cv.fill(a.concat(b), c);
@@ -83,7 +119,7 @@ function draw(v, w, h) {
         const yNear = project(NEAR_D, 0)[1], yFar = project(FAR_D, 0)[1];
         if (px) for (let py = Math.max(0, Math.floor(yFar * k)); py < Math.min(c.h, Math.ceil(yNear * k)); py++) {
             const y = (py + 0.5) / k, d = F * EYE / (y - HZ) - D; if (d < NEAR_D || d > FAR_D) continue;
-            const t = (d - NEAR_D) / (FAR_D - NEAR_D), tt = Math.pow(t, 0.6), alpha = (210 - 150 * tt) / 255;
+            const t = (d - NEAR_D) / (FAR_D - NEAR_D), tt = Math.pow(t, 0.6), alpha = (210 - 150 * tt) / 255 * fade;
             sides.forEach(([e0, e1, pal]) => {
                 const col = [0, 1, 2].map((i) => pal[0][i] + (pal[1][i] - pal[0][i]) * tt);
                 let xa = project(d, e0(d))[0] * k, xb = project(d, e1(d))[0] * k; if (xa > xb) { const q = xa; xa = xb; xb = q; }
@@ -110,6 +146,7 @@ function draw(v, w, h) {
     };
     mark(L, lv.left); mark(R, lv.right);
     // the car in the middle, over the lines (a line it is on goes under it)
+    fade = 1;   // the cars at full strength
     // (1.3.87) the car ahead in our lane at its distance (its rear: our front + the gap; camera metres from the windscreen)
     if (v.lead && typeof v.lead.gap === 'number') {
         const L0 = v.lead, art0 = require('./hud-art'), d = Math.min(FAR_D - 2, CAR_D + 4.7 + L0.gap), [lx, ly] = project(d, 0);
@@ -142,7 +179,7 @@ class LaneOverlay {
         if (!l) { const ref = this.client.image({ target: 'hud', klass: 'overlay', z: 12, x: r.x, y: r.y, w: r.w, h: r.h, iw: r.w, ih: r.h, visible: false }); if (!ref) return false; l = this.layer = { ref, x: r.x, y: r.y, w: r.w, h: r.h, key: null, visible: false }; }
         v = Object.assign({}, v, { surface });
         const ld = v.lead && typeof v.lead.gap === 'number' ? [Math.round(v.lead.gap * 2) / 2, v.lead.level, Math.round(v.lead.closing || 0), v.lead.type, !!v.lead.go] : null;
-        const key = JSON.stringify([v.left, v.right, v.levels, v.width, surface, ld]);
+        const key = JSON.stringify([v.left, v.right, v.levels, v.width, surface, ld, !!v.faded]);
         if (l.key !== key) { const im = draw(v, r.w, r.h), px = Buffer.alloc(r.w * r.h * 4);
             for (let y = 0; y < Math.min(r.h, im.h); y++) Buffer.from(im.d.buffer, im.d.byteOffset + y * im.w * 4, Math.min(r.w, im.w) * 4).copy(px, y * r.w * 4);
             this.client.pixels(l.ref, null, px); l.key = key; }
@@ -153,4 +190,4 @@ class LaneOverlay {
     hide() { const l = this.layer; if (l && l.visible) { this.client.set(l.ref, { visible: false }); l.visible = false; } }
     close() { if (this.layer) this.client.drop(this.layer.ref); this.layer = null; }
 }
-module.exports = { LaneLines, LaneOverlay, egoLines, levelOf, draw, HALF_CAR, NEAR_M };
+module.exports = { LaneLines, LaneOverlay, egoLines, levelOf, draw, HALF_CAR, NEAR_M, NEAR_LOW_M, NEAR_HOLD_MS, NEAR_KMH };

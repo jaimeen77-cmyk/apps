@@ -2,6 +2,38 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.95 (lane lines calmer and kept; departure alert works at lights; log collection cleaned up)
+
+- The user found the amber lane warning too frequent. It was shown at once whenever the car's side came within 15 cm of a line.
+- **Amber now only when it lasts**: near a line for **0.7 s**, and off again only 10 cm further out (no flicker at the edge).
+- **None under 30 km/h** (traffic jams, side streets, car parks).
+- **New: Warning sensitivity** on the Lane lines screen (경고 민감도):
+  - **Low (5 cm, the new default)**
+  - **Normal** (15 cm, as before but with the 0.7 s)
+  - **Off** (no amber)
+- Red (over the line) and blue (a lane change with the turn signal) are shown at once, as before.
+- **Lane lines drawn straight ahead.** The user found the lines swinging and bending right and left: the camera's heading of each line moved them about. They are now straight, at the line's place by the car, and that place is smoothed (a third of the way a frame; a jump over 0.8 m, another line, is taken at once).
+- **Lane lines no longer vanish when the camera loses the lines** (38 % of the user's town driving had none: junctions, worn paint, a close car hiding them).
+  - The last lines stay as they were for 3 s, without warnings.
+  - After that the road and the lines are faint (a third of their strength), while the car ahead and our car stay as ever, until the lines come back.
+  - With no lines seen yet, a usual 3.3 m lane is drawn faint.
+- **Lead car departure: from the user's drive (none in 26 minutes before), two causes and quicker.**
+  - At a light, the camera often says nothing of the lane, so no car followed. The car right in front is now taken from the helper's objects: the nearest within 1.2 m of our axis.
+  - At rest the car sends no speed, which reset the check each time. A speed that stops coming while we stand still counts as a stand.
+  - Quicker: 1 s standing, a car within 20 m, 1.5 m further for 0.3 s (or lost from within 12 m).
+  - The same drive replayed: 6 alerts, each a car moving off while we stood.
+- **Log collection cleaned up (the user's choice).** The scene recording (1.3.89) is gone: its screen, its commands and the helper's clips and `log-objects.js`. Clips already on the car stay in `/var/opt/public/redline-clips/`; delete them with `rm -rf` if not wanted. The Position check stays.
+- **The nav-probe log** (Navigation display → Received turns → Record to a file) is switched off once by this update. It can be switched on again.
+- **New: Download by QR** on the Received turns screen. While it is on, the lead-car helper (**0.5.0**) opens a small read-only page with `nav-probe.log`, and the screen shows its address as a QR code.
+  - The page opens whether the engine runs or not, and the QR shows only while the page answers.
+  - The car's own Wi-Fi address comes first; **Next address** steps through the others, for a Wi-Fi the car joined.
+  - The firewall rule lets private addresses in on any interface.
+  - Only that one file can be given.
+  - The page is on port **18885**. 0.4.0 used 18884, which is also the port the GIF player uses to lend its GIFs to Cluster Redline. With the GIF player running, the page could not open: that is why the QR earlier showed but the page did not load.
+- **Checked: settings and animations switched at random** (13,000+ random settings taps with the Animation layout, 5 own GIFs and the engine running; real drawing). No error, no growing memory, slowest step 0.2 s.
+- Cluster Redline requires redline-lead 0.5.0.
+- Tests: `lane-lines` covers the 0.7 s, the release, low / normal / off, low speed and red at once.
+
 ## Cluster Redline 1.3.94 (Animation: the M3 turns into the bend)
 
 - **Fix: in a bend the Animation car leaned out of it** (a left bend tipped it to the right) instead of turning into it. Cornering steps 1-3 are now the owner's pictures of the M3 in a left bend, **its nose turned into the bend about the tail lamps**: 10° (step 1, from 0.10 G), 20° (step 2, from 0.25 G) and 30° (step 3, from 0.35 G). Step 4 (from 0.50 G) is the drift, as before.

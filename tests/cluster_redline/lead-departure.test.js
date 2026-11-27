@@ -6,18 +6,25 @@ const {LeadDeparture}=require('../../apps/cluster_redline/lead-departure');
 const run=(steps,gear)=>{const d=new LeadDeparture();let shown=[];steps.forEach(([t,v,g])=>{if(d.tick(t,v,gear||'D',g))shown.push(t);});return {d,shown};};
 // stop behind a car 4 m ahead, it pulls away to 8 m: shown from half a second after it went 3 m off, for 3 s
 let steps=[];for(let t=0;t<=8000;t+=100)steps.push([t,0,t<4000?4:4+Math.min(6,(t-4000)/250)]);
-let r=run(steps);assert(r.shown.length>0,'shown');assert(r.shown[0]>=5250&&r.shown[0]<=5400,'after it moved 3 m and held '+r.shown[0]);assert(r.shown[r.shown.length-1]-r.shown[0]<=3000);
+let r=run(steps);assert(r.shown.length>0,'shown');assert(r.shown[0]>=4600&&r.shown[0]<=4800,'after it moved 1.5 m and held 0.3 s '+r.shown[0]);assert(r.shown[r.shown.length-1]-r.shown[0]<=3000);
 assert.strictEqual(r.d.fired,1,'once a stop');
 // in P: never
 assert.strictEqual(run(steps,'P').shown.length,0,'not in P');
 // standing under 2 s: not armed
-steps=[];for(let t=0;t<=4000;t+=100)steps.push([t,0,t<1500?4:12]);assert.strictEqual(run(steps).shown.length,0,'stood too briefly');
+steps=[];for(let t=0;t<=4000;t+=100)steps.push([t,0,t<800?4:12]);assert.strictEqual(run(steps).shown.length,0,'stood too briefly');
 // the car ahead lost from 6 m: shown; from 13 m (lost far): not
 steps=[];for(let t=0;t<=6000;t+=100)steps.push([t,0,t<3000?6:null]);assert(run(steps).shown.length>0,'lost from close by');
 steps=[];for(let t=0;t<=6000;t+=100)steps.push([t,0,t<3000?13:null]);assert.strictEqual(run(steps).shown.length,0,'lost from far');
 // we move off first: no alert; a car beyond 15 m: no alert
 steps=[];for(let t=0;t<=6000;t+=100)steps.push([t,t<3000?0:8,t<3000?5:9]);assert.strictEqual(run(steps).shown.length,0,'we moved first');
-steps=[];for(let t=0;t<=6000;t+=100)steps.push([t,0,t<3000?20:30]);assert.strictEqual(run(steps).shown.length,0,'too far to wait on');
+steps=[];for(let t=0;t<=6000;t+=100)steps.push([t,0,t<3000?25:35]);assert.strictEqual(run(steps).shown.length,0,'too far to wait on');
+// (1.3.95) the car sends no speed while we stand: still a stand
+steps=[];for(let t=0;t<=6000;t+=100)steps.push([t,t<500?0:null,t<3000?6:9]);assert(run(steps).shown.length>0,'no speed at rest: still standing');
+// (1.3.95) the car right in front when the camera's lane says nothing: the nearest vehicle within 1.2 m of our axis
+{const {LeadVehicle}=require('../../apps/cluster_redline/lead-vehicle');const lv=new LeadVehicle({loadConfig(){throw new Error('none');}},null,()=>'1',()=>1000);
+ lv.helper.last={at:5000,cam:{at:4900,objects:[{id:1,type:3,x:7.3,y:0.4,tube:0},{id:2,type:3,x:5,y:3.2,tube:0},{id:3,type:0,x:4,y:0.1,tube:0}]}};lv.helper.lastAt=1000;
+ assert.strictEqual(lv.frontGap(1500),7.3,'the car in front, not the one beside or the pedestrian');
+ lv.helper.last.cam.at=3000;assert.strictEqual(lv.frontGap(1500),null,'an old list: none');}
 // the next stop alerts again
 const d=new LeadDeparture();let n=0;const go=(t0)=>{for(let t=t0;t<t0+7000;t+=100)if(d.tick(t,0,'D',t<t0+3000?4:9))n++;for(let t=t0+7000;t<t0+9000;t+=100)d.tick(t,30,'D',20);};go(0);const first=n;go(10000);assert(n>first,'again at the next stop');
 // the badge and the lane picture

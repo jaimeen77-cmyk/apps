@@ -48,7 +48,7 @@ function navLogLine(e){
 const JAM={'jam-bar':'Jam top alert bar','jam-circle':'Jam circle alert'};
 function designList(display){return Object.keys(JAM).concat(RL.stylesFor(display));}
 function designNow(cfg,display){return RL.active(cfg,display)?RL.style(cfg,display):cfg[display+'AlertStyle']==='circle'?'jam-circle':'jam-bar';}
-const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','navLog','position','headway','bcCheck','bc','myPic','laneLines','modes','clips'];
+const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','navLog','position','headway','bcCheck','bc','myPic','laneLines','modes','navShare'];
 // The BC button check (bc-diag.js, 1.3.39): what the car sends when BC is pressed; main.js sets page.bcDiag
 const BCCHECK_ITEM={key:'bcCheck',label:'BC button check',type:'action'};
 // Following the BC button (bc-follow.js, 1.3.40): its own screen; main.js sets page.bcFollow
@@ -108,7 +108,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','positionCheck','calmTone','hudLaneLines','hudLaneSurface','navArrowStyle','hudClips','clipSaveAt','clipClearAt','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','positionCheck','calmTone','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','navShare','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:this.sub&&SUBMENUS[this.sub]?SUBMENUS[this.sub]:GROUPS[this.tab];}
  item(){return this.itemOf(this.keys()[this.focus]);}
@@ -127,7 +127,7 @@ class SettingsPage{
   if(this.bcEdit&&this.bcEdit.kind==='mode'&&(this.open==='auxMode'||this.open==='auxSelect'||this.open==='design'||this.open==='rlDesign'||this.open==='myPic')){this.modeEditEnd(false);return;}
   if(this.open==='bcCheck'&&this.bcFromFollow||this.bcEdit&&(this.open==='auxMode'||this.open==='auxSelect'||this.open==='design'||this.open==='rlDesign'||this.open==='myPic')){this.open='bc';this.bcEdit=null;this.bcFromFollow=false;this.draft=null;this.choice=0;this.changed();return;}
   if(this.open==='navLog'||this.open==='position'){this.open='navMode';this.choice=0;this.changed();return;}
-  if(this.open==='clips'){this.open='headway';this.choice=0;this.changed();return;}
+  if(this.open==='navShare'){this.open='navLog';this.choice=0;this.changed();return;}
   if(this.open==='myPic'&&!this.bcEdit){this.open='rlDesign';this.choice=Math.max(0,designList(this.display()).indexOf('car'));this.changed();return;}
   if(this.open==='favView'){this.open=null;}
   else if(this.open==='auxMode'){this.open='rlDesign';this.choice=Math.max(0,designList(this.display()).indexOf(designNow(this.config(),this.display())));}
@@ -167,7 +167,7 @@ class SettingsPage{
   if(item.key==='comfortShiftRpm')return cfg.comfortShiftRpm?cfg.comfortShiftRpm+' rpm':tr('Automatic')+' · '+Math.round(cfg.shiftRpm*0.9/100)*100+' rpm';
   const selected=options(item,cfg).find(o=>o[0]===(item.key==='clusterYieldGuidance'||item.key==='hudCarAlerts'?cfg[item.key]:this.settings.get(item.key)));return selected?t(selected[1]):t('Check required');
  }
- change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver'||this.open==='navMode'||this.open==='navLog'||this.open==='position'||this.open==='headway'||this.open==='bcCheck'||this.open==='bc'||this.open==='myPic'||this.open==='laneLines'||this.open==='modes'||this.open==='clips')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
+ change(delta){if(this.tab===FAV_TAB&&!this.open||this.open==='favView')return;if(this.open==='layoutPresets'||this.open==='turn'||this.open==='navColor'||this.open==='door'||this.open==='driver'||this.open==='navMode'||this.open==='navLog'||this.open==='position'||this.open==='headway'||this.open==='bcCheck'||this.open==='bc'||this.open==='myPic'||this.open==='laneLines'||this.open==='modes'||this.open==='navShare')return;if(this.open==='layout'){this.adjust(this.layoutParam,delta);return;}const item=this.item(),list=options(item,this.config());if(!list.length){this.activate();return;}const at=list.findIndex(o=>o[0]===this.settings.get(item.key));this.settings.set(item.key,list[(at+delta+list.length)%list.length][0]);this.changed();}
  activate(index){
   if(index!==undefined)this.focus=index;
   if(this.tab===FAV_TAB&&!this.open){this.favAction(Math.floor(this.focus/3)+1,this.focus%3);return;}
@@ -285,7 +285,7 @@ class SettingsPage{
   else if(this.open==='headway')this.drawHeadway(cv,cfg,targets);
   else if(this.open==='laneLines')this.drawLaneLines(cv,cfg,targets);
   else if(this.open==='modes')this.drawModes(cv,cfg,targets);
-  else if(this.open==='clips')this.drawClips(cv,cfg,targets);
+  else if(this.open==='navShare')this.drawNavShare(cv,cfg,targets);
   else if(this.open==='bcCheck')this.drawBcCheck(cv,cfg,targets);
   else if(this.open==='bc')this.drawBc(cv,cfg,targets);
   else if(this.open==='myPic')this.drawMyPic(cv,cfg,targets);
@@ -599,7 +599,6 @@ class SettingsPage{
   if(h&&cfg.hudHeadway!=='off'&&h.helper){const x=h.helper,cm=x.cam||{},rd=x.radar||{},on=x.state==='connected'||x.lines>0;
    cv.text(tr('Lead-car helper')+': '+(!on?tr('not installed (Store: Cluster Redline lead-car helper)'):tr('connected')+' · '+tr('camera')+' '+tr('received')+' '+(cm.rx||0)+(cm.lead?' · '+tr('car followed')+' #'+cm.lead.id+' '+cm.lead.m+' m':' · '+tr('no car ahead'))+(typeof cm.objects==='number'?' · '+tr('road users')+' '+cm.objects:' · '+tr('helper 0.2 (update)'))+' · '+tr('radar')+' '+(rd.rx||0)+(rd.gapX!==null&&rd.gapX!==undefined?' (gapX '+rd.gapX+')':'')),100,426,16,on?(cm.lead?'#5ee08f':'#c1cddd'):'#ffad45',{literal:true});}
   if(h&&cfg.hudHeadway!=='off')cv.text(tr('From the car')+': '+tr('received')+' '+(h.received||0)+' · status '+f(r.status)+' · gap '+f(r.gap)+' · gapX '+f(r.gapX)+' · object '+f(r.object)+' · qualifier '+f(r.qualifier)+(r.kind?' · '+r.kind:''),100,344,16,'#7f8b9a',{literal:true});
-  this.button(cv,local,tr('Scene recording')+' · '+tr(cfg.hudClips==='on'?'On':'Off'),800,448,396,64,()=>{this.open='clips';this.choice=0;this.changed();},cfg.hudClips==='on','headway-clips');
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='headway';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Headway']);this.setPreview(true);this.changed();},false,'headway-layout');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
@@ -611,33 +610,32 @@ class SettingsPage{
   // the lane's surface (1.3.85): the dark road, or lit green like the reference
   cv.text(tr('Lane colour'),830,190,22,'#8d97a4',{literal:true});
   [['dark','Default'],['green','Lime green']].forEach((o,i)=>this.button(cv,local,tr(o[1]),1000+i*266,146,254,64,()=>set('hudLaneSurface',o[0]),cfg.hudLaneSurface===o[0],'lanesurface-'+o[0]));
-  cv.text(tr('The lines either side of the car as the front camera sees them, above the headway badge. Within 15 cm amber, on the line red (blue with the turn signal: a lane change).'),100,252,19,'#c1cddd',{literal:true});
+  cv.text(tr('The lines either side of the car as the front camera sees them, above the headway badge. Near a line for 0.7 s amber (from 30 km/h), on the line red (blue with the turn signal: a lane change).'),100,252,19,'#c1cddd',{literal:true});
   cv.text(tr('Needs the lead-car helper (installed with Cluster Redline from the Store).'),100,284,19,'#91a1b6',{literal:true});
   if(cfg.hudLaneLines==='on'&&x){const on=x.helper==='connected',n=x.now,side=(s,lb)=>tr(lb)+' '+(s?Math.abs(s.y).toFixed(2)+' m · '+tr(s.type)+' · '+tr(s.color)+' · '+tr('margin')+' '+s.margin.toFixed(2)+' m':'-');
    cv.text(tr('Lead-car helper')+': '+(on?tr('connected'):x.helper==='connecting'?tr('waiting'):tr('not installed (Store: Cluster Redline lead-car helper)'))+' · '+tr('received')+' '+f(x.rx)+' · '+tr('lines')+' '+f(x.lines)+' · '+tr('visibility')+' '+f(x.visibility),100,330,17,on&&x.rx?'#5ee08f':on?'#c1cddd':'#ffad45',{literal:true});
    cv.text(n?side(n.left,'Left')+'   '+side(n.right,'Right')+(n.width!==null?'   '+tr('lane width')+' '+n.width.toFixed(2)+' m':''):tr('no lane lines seen'),100,364,17,n?'#c1cddd':'#7f8b9a',{literal:true});}
+  // the amber warning's sensitivity (1.3.95): off, low (5 cm, the default), normal (15 cm)
+  cv.text(tr('Warning sensitivity'),100,436,18,'#8d97a4',{literal:true});
+  [['off','Off'],['low','Low (5 cm)'],['normal','Normal (15 cm)']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*372,448,360,64,()=>set('hudLaneSensitivity',o[0]),(cfg.hudLaneSensitivity||'low')===o[0],'lanesens-'+o[0]));
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
- // Scene recording (1.3.89, redline-lead 0.4.0): on / off, keep the scene now, and the clips for a phone on the car's
- // Wi-Fi: its address as a QR code (the helper's small page: the list, each clip, all in one file)
- drawClips(cv,cfg,targets){
-  const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();},h=this.liveState&&this.liveState.headway,x=h&&h.helper,rec=x&&x.rec;
-  cv.text(tr('Scene recording'),100,126,32,'#ef4050',{literal:true});
-  [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*266,146,254,64,()=>set('hudClips',o[0]),cfg.hudClips===o[0],'clips-'+o[0]));
-  this.button(cv,local,tr('Save now'),84,226,520,64,()=>set('clipSaveAt',Date.now()),false,'clips-save');
-  // delete every clip: a second press within 5 s (the first only asks)
-  const sure=this.clipsAsk&&Date.now()-this.clipsAsk<5000;
-  this.button(cv,local,tr(sure?'Press again to delete':'Delete all clips'),616,226,420,64,()=>{if(this.clipsAsk&&Date.now()-this.clipsAsk<5000){this.clipsAsk=0;set('clipClearAt',Date.now());}else{this.clipsAsk=Date.now();this.changed();}},sure,'clips-clear');
-  const lines=[tr('Pedestrians, cyclists, cut-ins and the car ahead moving off are kept by themselves (20 s before, 10 s after).'),tr('Save now: the scene now (20 s before, 10 s after). Numbered in order: 001, 002 ...'),
-   !x||!(x.state==='connected'||x.lines>0)?tr('Lead-car helper')+': '+tr('not installed (Store: Cluster Redline lead-car helper)'):!rec?tr('helper 0.2 (update)').replace('0.2','0.3'):tr('Clips')+' '+rec.clips+' · '+Math.round((rec.bytes||0)/1024)+' KB'+(rec.last?' · '+tr('last number')+' '+('00'+rec.last).slice(-3):'')+(rec.pending?' · '+tr('saving')+' ('+rec.pending+')':'')+(rec.error?' · '+rec.error:'')];
-  lines.forEach((l,i)=>cv.text(l,100,322+i*30,17,i<2?'#c1cddd':'#5ee08f',{literal:true}));
-  // the QR code: the page's address on the car's Wi-Fi (the phone joined to it)
-  const url=rec&&rec.url;
-  if(cfg.hudClips==='on'&&url){let code=null;try{code=require('./kit/qr').encode(Buffer.from(url),{ecl:'M'});}catch(e){}
-   if(code){const box=250,m=Math.floor(box/(code.size+8)),side=m*(code.size+8),x0=1300-side/2,y0=118;cv.fillRect(x0,y0,side,side,'#ffffff');
+ // The nav-probe.log for a phone (1.3.95, redline-lead 0.5.0): the helper's small page while this is on, its addresses
+ // as QR codes (the car's own Wi-Fi first; Next address for a Wi-Fi the car joined), shown only while it answers
+ drawNavShare(cv,cfg,targets){
+  const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();},x=this.liveState&&this.liveState.navShare,urls=x&&Array.isArray(x.urls)?x.urls:[];
+  cv.text(tr('Download by QR'),100,126,32,'#ef4050',{literal:true});
+  [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*266,146,254,64,()=>set('navShare',o[0]),cfg.navShare===o[0],'navshare-'+o[0]));
+  const lines=[tr('The phone on the same Wi-Fi as the car (the car\'s own, or one it joined), then scan the code.'),
+   cfg.navProbeLog==='on'?tr('Recording to a file: on'):tr('Recording to a file is off: switch it on in Received turns first.')];
+  const st=!x||cfg.navShare!=='on'?tr('Off'):x.state!=='connected'?tr('Lead-car helper')+': '+tr('not installed (Store: Cluster Redline lead-car helper)'):!x.listening?tr('opening the page'):tr('Page open')+(typeof x.size==='number'?' · nav-probe.log '+Math.max(1,Math.round(x.size/1024))+' KB':' · '+tr('no file yet'));
+  lines.concat([st]).forEach((l,i)=>cv.text(l,100,262+i*32,18,i<2?'#c1cddd':x&&x.listening?'#5ee08f':'#ffad45',{literal:true}));
+  if(cfg.navShare==='on'&&x&&x.listening&&urls.length){
+   const k=(this.shareIndex||0)%urls.length,url=urls[k].url;let code=null;try{code=require('./kit/qr').encode(Buffer.from(url),{ecl:'M'});}catch(e){}
+   if(code){const box=250,m=Math.floor(box/(code.size+8)),side=m*(code.size+8),x0=1300-side/2,y0=104;cv.fillRect(x0,y0,side,side,'#ffffff');
     for(let y=0;y<code.size;y++)for(let xx=0;xx<code.size;xx++)if(code.get(xx,y))cv.fillRect(x0+(xx+4)*m,y0+(y+4)*m,m,m,'#000000');
-    cv.text(url,1300,y0+side+26,17,'#c1cddd',{align:'center',literal:true});cv.text(tr('Phone on the car\'s Wi-Fi: scan to download'),1300,y0+side+50,16,'#91a1b6',{align:'center',literal:true});}}
-  else if(cfg.hudClips==='on')cv.text(tr('Waiting for the car\'s Wi-Fi address'),1300,240,18,'#ffad45',{align:'center',literal:true});
+    cv.text(url+(urls.length>1?'  ('+(k+1)+'/'+urls.length+')':''),1300,y0+side+24,17,'#c1cddd',{align:'center',literal:true});}
+   if(urls.length>1)this.button(cv,local,tr('Next address'),84,448,420,64,()=>{this.shareIndex=(k+1)%urls.length;this.changed();},false,'navshare-next');}
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // Navigation display (1.3.36): in which drive modes the HUD shows route guidance, and the next turn under its arrow
@@ -692,6 +690,7 @@ class SettingsPage{
    cv.text(txt,100,452,18,r?(r.max>=2?'#5ee08f':'#ffad45'):'#91a1b6',{literal:true});}
   const status=tr('Newest first · the same turn again only updates its distance')+(p&&p.recording?' · nav-probe.log '+p.written+' '+tr('lines saved'):'')+(p&&p.error?' · '+p.error:'');
   cv.text(status,100,482,18,'#91a1b6',{literal:true});
+  this.button(cv,local,tr('Download by QR')+' · '+tr(cfg.navShare==='on'?'On':'Off'),800,448,396,64,()=>{this.open='navShare';this.shareIndex=0;this.choice=0;this.changed();},cfg.navShare==='on','navlog-share');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // Settings per driver (1.3.34): the setting itself, the greeting at the engine start and the goodbye when it is
