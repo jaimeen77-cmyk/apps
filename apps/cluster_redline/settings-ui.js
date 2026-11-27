@@ -108,7 +108,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','positionCheck','calmTone','hudLaneLines','hudLaneSurface','navArrowStyle','hudClips','clipSaveAt','clipClearAt','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','positionCheck','calmTone','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','hudClips','clipSaveAt','clipClearAt','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:this.sub&&SUBMENUS[this.sub]?SUBMENUS[this.sub]:GROUPS[this.tab];}
  item(){return this.itemOf(this.keys()[this.focus]);}
@@ -611,11 +611,14 @@ class SettingsPage{
   // the lane's surface (1.3.85): the dark road, or lit green like the reference
   cv.text(tr('Lane colour'),830,190,22,'#8d97a4',{literal:true});
   [['dark','Default'],['green','Lime green']].forEach((o,i)=>this.button(cv,local,tr(o[1]),1000+i*266,146,254,64,()=>set('hudLaneSurface',o[0]),cfg.hudLaneSurface===o[0],'lanesurface-'+o[0]));
-  cv.text(tr('The lines either side of the car as the front camera sees them, above the headway badge. Within 15 cm amber, on the line red (blue with the turn signal: a lane change).'),100,252,19,'#c1cddd',{literal:true});
+  cv.text(tr('The lines either side of the car as the front camera sees them, above the headway badge. Near a line for 0.7 s amber (from 30 km/h), on the line red (blue with the turn signal: a lane change).'),100,252,19,'#c1cddd',{literal:true});
   cv.text(tr('Needs the lead-car helper (installed with Cluster Redline from the Store).'),100,284,19,'#91a1b6',{literal:true});
   if(cfg.hudLaneLines==='on'&&x){const on=x.helper==='connected',n=x.now,side=(s,lb)=>tr(lb)+' '+(s?Math.abs(s.y).toFixed(2)+' m · '+tr(s.type)+' · '+tr(s.color)+' · '+tr('margin')+' '+s.margin.toFixed(2)+' m':'-');
    cv.text(tr('Lead-car helper')+': '+(on?tr('connected'):x.helper==='connecting'?tr('waiting'):tr('not installed (Store: Cluster Redline lead-car helper)'))+' · '+tr('received')+' '+f(x.rx)+' · '+tr('lines')+' '+f(x.lines)+' · '+tr('visibility')+' '+f(x.visibility),100,330,17,on&&x.rx?'#5ee08f':on?'#c1cddd':'#ffad45',{literal:true});
    cv.text(n?side(n.left,'Left')+'   '+side(n.right,'Right')+(n.width!==null?'   '+tr('lane width')+' '+n.width.toFixed(2)+' m':''):tr('no lane lines seen'),100,364,17,n?'#c1cddd':'#7f8b9a',{literal:true});}
+  // the amber warning's sensitivity (1.3.95): off, low (5 cm, the default), normal (15 cm)
+  cv.text(tr('Warning sensitivity'),100,436,18,'#8d97a4',{literal:true});
+  [['off','Off'],['low','Low (5 cm)'],['normal','Normal (15 cm)']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*372,448,360,64,()=>set('hudLaneSensitivity',o[0]),(cfg.hudLaneSensitivity||'low')===o[0],'lanesens-'+o[0]));
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // Scene recording (1.3.89, redline-lead 0.4.0): on / off, keep the scene now, and the clips for a phone on the car's

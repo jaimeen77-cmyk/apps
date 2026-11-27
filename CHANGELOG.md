@@ -2,6 +2,18 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.95 (lane lines: amber less often)
+
+- The user found the amber lane warning too frequent. It was shown at once whenever the car's side came within 15 cm of a line.
+- **Amber now only when it lasts**: near a line for **0.7 s**, and off again only 10 cm further out (no flicker at the edge).
+- **None under 30 km/h** (traffic jams, side streets, car parks).
+- **New: Warning sensitivity** on the Lane lines screen (경고 민감도):
+  - **Low (5 cm, the new default)**
+  - **Normal** (15 cm, as before but with the 0.7 s)
+  - **Off** (no amber)
+- Red (over the line) and blue (a lane change with the turn signal) are shown at once, as before.
+- Tests: `lane-lines` covers the 0.7 s, the release, low / normal / off, low speed and red at once.
+
 ## Cluster Redline 1.3.94 (Animation: the M3 turns into the bend)
 
 - **Fix: in a bend the Animation car leaned out of it** (a left bend tipped it to the right) instead of turning into it. Cornering steps 1-3 are now the owner's pictures of the M3 in a left bend, **its nose turned into the bend about the tail lamps**: 10° (step 1, from 0.10 G), 20° (step 2, from 0.25 G) and 30° (step 3, from 0.35 G). Step 4 (from 0.50 G) is the drift, as before.

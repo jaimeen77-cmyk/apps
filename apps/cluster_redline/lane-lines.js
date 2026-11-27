@@ -6,6 +6,8 @@
 // yellow as the camera reports. Drawn just above the headway badge, at its size (HUD lamps → Lane lines).
 const { LeadHelper } = require('./lead-helper');
 // NEAR_M 0.15 (1.3.78): with 0.3 a car 30 cm off a 3 m lane's centre was already amber (the user's capture)
+// NEAR_LOW_M (1.3.95): the default step; NEAR_M is 'normal'
+const NEAR_LOW_M = 0.05, NEAR_HOLD_MS = 700, NEAR_RELEASE_M = 0.1, NEAR_KMH = 30;
 const HALF_CAR = 0.95, NEAR_M = 0.15, STALE_MS = 1200, W = 112, H = 84;
 const TYPES = { 1: 'dashed', 2: 'solid', 3: 'dotted', 4: 'edge', 5: 'double', 6: 'double', 7: 'double', 8: 'double', 9: 'edge' };
 /** The lines of the car's own lane: {left, right, width} (each {y, type, color, margin} or null) from the helper's list. */
@@ -35,14 +37,31 @@ class LaneLines {
         this.clock = clock || Date.now; this.last = null; this.at = null; this.rx = 0;
         this.helper = new LeadHelper((m, now) => { if (m.lane) { this.rx = m.lane.rx || 0; if (m.lane.data && typeof m.lane.at === 'number' && m.at - m.lane.at < STALE_MS) { this.last = m.lane.data; this.at = now; } } }, this.clock, connect);
     }
-    sync(on) { this.helper.sync(on, this.clock()); if (!on) { this.last = null; this.at = null; } }
-    /** What the HUD shows now, or null: {left, right, width, levels: {left, right}}; indicator: 'left' / 'right' / 'off'. */
-    read(now, indicator) {
-        if (!this.last || this.at === null || now - this.at > STALE_MS) return null;
-        const e = egoLines(this.last); if (!e || (!e.left && !e.right)) return null;
-        return Object.assign(e, { levels: { left: levelOf(e.left, indicator === 'left' || indicator === 'hazard' || indicator === 'both'), right: levelOf(e.right, indicator === 'right' || indicator === 'hazard' || indicator === 'both') } });
+    sync(on) { this.helper.sync(on, this.clock()); if (!on) { this.last = null; this.at = null; this.held = {}; } }
+    /** What the HUD shows now, or null: {left, right, width, levels: {left, right}}; indicator: 'left' / 'right' / 'off';
+     *  o: {speed (km/h or null), sensitivity: 'off' | 'low' | 'normal'} (1.3.95). */
+    read(now, indicator, o) {
+        if (!this.last || this.at === null || now - this.at > STALE_MS) { this.shown = null; return null; }
+        const e = egoLines(this.last); if (!e || (!e.left && !e.right)) { this.shown = null; return null; }
+        const sig = { left: indicator === 'left' || indicator === 'hazard' || indicator === 'both', right: indicator === 'right' || indicator === 'hazard' || indicator === 'both' };
+        this.shown = Object.assign(e, { levels: { left: this.levelHeld('left', e.left, sig.left, now, o), right: this.levelHeld('right', e.right, sig.right, now, o) } });
+        return this.shown;
     }
-    status(now) { const r = this.read(now, 'off'); return { helper: this.helper.status().state, rx: this.rx, lines: this.last && this.last.lines ? this.last.lines.length : 0, now: r, visibility: this.last ? this.last.visibility : null }; }
+    // (1.3.95) amber only when it lasts: within the step (5 cm low, 15 cm normal) for 0.7 s, off again 10 cm further out;
+    // none under 30 km/h or with the sensitivity off. Over the line (red) and a lane change (blue) at once, as before.
+    levelHeld(side, s, signal, now, o) {
+        if (!s) return null;
+        this.held = this.held || {}; const h = this.held[side] || (this.held[side] = { since: null, on: false });
+        o = o || {}; const sens = o.sensitivity === 'off' || o.sensitivity === 'normal' ? o.sensitivity : 'low', step = sens === 'normal' ? NEAR_M : NEAR_LOW_M;
+        const slow = typeof o.speed === 'number' && o.speed < NEAR_KMH;
+        if (s.margin < 0) { h.since = null; h.on = false; return signal ? 'change' : 'over'; }
+        if (sens === 'off' || slow) { h.since = null; h.on = false; return 'ok'; }
+        if (s.margin < step) { if (h.since === null) h.since = now; if (now - h.since >= NEAR_HOLD_MS) h.on = true; }
+        else if (s.margin >= step + NEAR_RELEASE_M) { h.since = null; h.on = false; }
+        else if (!h.on) h.since = null;
+        return h.on ? (signal ? 'change' : 'near') : 'ok';
+    }
+    status(now) { const r = this.shown || null; return { helper: this.helper.status().state, rx: this.rx, lines: this.last && this.last.lines ? this.last.lines.length : 0, now: r, visibility: this.last ? this.last.visibility : null }; }
 }
 const COLORS = { white: [232, 238, 246, 255], yellow: [255, 206, 58, 255], near: [255, 158, 40, 255], over: [255, 52, 44, 255], change: [56, 214, 255, 255] };
 // The picture (1.3.79, as the user's reference): a dark road in perspective with a faint grid near the car, the lines
@@ -153,4 +172,4 @@ class LaneOverlay {
     hide() { const l = this.layer; if (l && l.visible) { this.client.set(l.ref, { visible: false }); l.visible = false; } }
     close() { if (this.layer) this.client.drop(this.layer.ref); this.layer = null; }
 }
-module.exports = { LaneLines, LaneOverlay, egoLines, levelOf, draw, HALF_CAR, NEAR_M };
+module.exports = { LaneLines, LaneOverlay, egoLines, levelOf, draw, HALF_CAR, NEAR_M, NEAR_LOW_M, NEAR_HOLD_MS, NEAR_KMH };

@@ -494,7 +494,7 @@ function start(ctx) {
             const leadShown = leadNow ? Object.assign({}, corrected(leadNow, config.hudHeadwayCorrection), { go: going }) : going ? corrected({ gap: departure.nearest || 0, go: true }, config.hudHeadwayCorrection) : null;
             headwayOverlay.tick(headwayOn ? leadShown : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));
             laneLines.sync(lanesOn);
-            const lanesNow = lanesOn ? laneLines.read(at, controller.turn && controller.turn.indicator) : null;
+            const lanesNow = lanesOn ? laneLines.read(at, controller.turn && controller.turn.indicator, { speed: speedKmh, sensitivity: config.hudLaneSensitivity }) : null;
             laneOverlay.tick(lanesNow ? Object.assign({}, lanesNow, { lead: leadShown }) : null, config, !!(pv && pv.part === 'Headway' && config.hudLaneLines === 'on'));
             doorOverlay.tick(pv && pv.part === 'Door' ? DOOR.SAMPLE : live && config.appEnabled && config.hudDoorAlert !== 'off' ? doors.open : null, config);
             // The blind spot warning (blind-spot.js): the door mirror lamps read from the BDC while it is on and the

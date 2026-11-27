@@ -36,7 +36,19 @@ msg({rx:5,data:d,at:9900});let r=L.read(0,'off');
 assert(r&&r.left.y===1.7&&r.levels.left==='ok'&&r.levels.right==='ok');
 // drifting right: the right line 1.0 m away (margin 0.05): near; the turn signal right: a lane change
 const d2=JSON.parse(JSON.stringify(d));d2.lines[1].y=-1.0;msg({rx:6,data:d2,at:10000});
-assert.strictEqual(L.read(0,'off').levels.right,'near');assert.strictEqual(L.read(0,'right').levels.right,'change');assert.strictEqual(L.read(0,'left').levels.right,'near');
+// (1.3.95) amber only after 0.7 s near the line; 'normal' 15 cm, 'low' 5 cm (the default), none under 30 km/h or off
+const N={sensitivity:'normal',speed:60};
+assert.strictEqual(L.read(0,'off',N).levels.right,'ok','not at once');assert.strictEqual(L.read(400,'off',N).levels.right,'ok');assert.strictEqual(L.read(800,'off',N).levels.right,'near','after 0.7 s');
+assert.strictEqual(L.read(850,'right',N).levels.right,'change','with the turn signal: a lane change');
+assert.strictEqual(L.read(900,'off',{sensitivity:'normal',speed:20}).levels.right,'ok','slow: none');
+L.read(0,'off',{speed:60});assert.strictEqual(L.read(900,'off',{speed:60}).levels.right,'ok','low (default): 5 cm, this is 5 cm out');
+assert.strictEqual(L.read(950,'off',{sensitivity:'off',speed:60}).levels.right,'ok','off');
+// on, it stays until 10 cm further out (no flicker at the edge)
+{const H=new LaneLines(()=>0,()=>{const e=new (require('events').EventEmitter)();e.destroy=()=>{};return e;});const side=(m)=>H.levelHeld('right',{margin:m},false,H.t,{sensitivity:'normal',speed:60});
+ H.t=0;side(0.1);H.t=800;assert.strictEqual(side(0.1),'near');H.t=900;assert.strictEqual(side(0.2),'near','between: still on');H.t=1000;assert.strictEqual(side(0.26),'ok','10 cm out: off');}
+// over the line: red at once, whatever the sensitivity
+const d3=JSON.parse(JSON.stringify(d));d3.lines[1].y=-0.8;msg({rx:8,data:d3,at:10000});assert.strictEqual(L.read(0,'off',{sensitivity:'off',speed:10}).levels.right,'over');
+msg({rx:6,data:d2,at:10000});
 assert.strictEqual(L.read(1300,'off'),null,'stale');
 msg({rx:7,data:d2,at:5000});t=2000;assert.strictEqual(L.read(2000,'off'),null,'an old lane list (helper at - lane at) is not taken');
 assert.strictEqual(L.status(0).rx,7);assert.strictEqual(L.status(0).helper,'connected');
