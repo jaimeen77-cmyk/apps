@@ -54,9 +54,9 @@ function readouts(state,d){
 // point (Redline's plain span) and flash at it, with the comfort/sport shift point of the drive mode.
 // Korean time (UTC+9) for the Classic dial, which is a clock: hours (0-11), minutes, seconds.
 // Navigation focus (1.3.72): the turn the HUD's guidance has (a copy of what it draws), or null without guidance.
-function navOf(n){if(!n||!n.visible||!n.maneuverVisible&&n.maneuverVisible!==undefined||!n.maneuver)return null;
+function navOf(n,style){if(!n||!n.visible||!n.maneuverVisible&&n.maneuverVisible!==undefined||!n.maneuver)return null;
  const l=n.lanes&&n.lanes.visible&&Array.isArray(n.lanes.lanes)?n.lanes.lanes.slice(0,8).map(x=>({d:(x.directions||[])[0]||'STRAIGHT_ON',on:!!x.highlighted})):null;
- return {maneuver:n.maneuver,kind:n.kind||null,branchType:n.branchType||null,exitNumber:n.exitNumber||null,distanceText:n.distanceText||'',description:n.description||'',lanes:l,then:n.then&&n.then.maneuver?{maneuver:n.then.maneuver,gap:n.then.gap}:null};}
+ return {maneuver:n.maneuver,kind:n.kind||null,branchType:n.branchType||null,exitNumber:n.exitNumber||null,distanceText:n.distanceText||'',description:n.description||'',lanes:l,then:n.then&&n.then.maneuver?{maneuver:n.then.maneuver,gap:n.then.gap}:null,arrowStyle:style==='drawn'?'drawn':'icon'};}
 // G-G trail (1.3.72): the sideways and forward G of the last 2.5 s, a point every 80 ms at most (0.02 G steps), and
 // this drive's highest left, right and braking G; kept per display while the app runs.
 const ggTrack={};
@@ -83,7 +83,7 @@ function frame(state,now,d){
  const cfg=state.config,rpm=isNum(state.rpm)?state.rpm:null,spec=shiftSpec(cfg,state.mode),g=gearOf(state.gear);
  const limiter=rpm!==null&&rpm>=cfg.maxRpm-50,flash=!!state.shift||limiter,blink=flash?state.flash!==false:true;
  return {d:{rpm,gear:g.gear,stage:g.stage},shift:spec.shift,redline:cfg.redlineRpm,max:cfg.maxRpm,blink,
-  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,tyres:{temp:(state.aux||{}).tyreTemp||null,bar:(state.aux||{}).tyrePressure||null},g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},car:carOf(state,d),down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,clock:style(cfg,d)==='classic'?kst(state):style(cfg,d)==='calm'||style(cfg,d)==='vu'?calmClock(state):null,nav:style(cfg,d)==='navfocus'?navOf(state.navigation):null,gg:style(cfg,d)==='gg'?ggOf(state,d):null,speed:['calm','navfocus','gg'].includes(style(cfg,d))&&isNum((state.aux||{}).speedNow)?Math.round(state.aux.speedNow):null,tone:cfg.calmTone==='warm'?'warm':'cool',display:d||'hud',
+  cue:{from:spec.shift-1500,at:spec.shift,shift:!!state.shift,limiter},drive:state.mode||null,oil:(state.aux||{}).oil,tyres:{temp:(state.aux||{}).tyreTemp||null,bar:(state.aux||{}).tyrePressure||null},g:{lat:(state.aux||{}).gLat,long:(state.aux||{}).gLong,total:(state.aux||{}).gforce},car:carOf(state,d),down:0,peak:0,chip:null,shake:null,readouts:readouts(state,d),mode:g.mode,clock:style(cfg,d)==='classic'?kst(state):style(cfg,d)==='calm'||style(cfg,d)==='vu'?calmClock(state):null,nav:style(cfg,d)==='navfocus'?navOf(state.navigation,cfg.navArrowStyle):null,gg:style(cfg,d)==='gg'?ggOf(state,d):null,speed:['calm','navfocus','gg'].includes(style(cfg,d))&&isNum((state.aux||{}).speedNow)?Math.round(state.aux.speedNow):null,tone:cfg.calmTone==='warm'?'warm':'cool',display:d||'hud',
   opts:{style:style(cfg,d)||'standard',palette:'colour',gear:true,rpm:true,bar:true,lights:true,gt3:true,dim:true,lightStyle:'gt3',clearLabels:false}};
 }
 function paint(target,state,k,ox,oy,now,d){const {DRAW}=kit();DRAW.drawLayer(DRAW.scaled(target,k,ox||0,oy||0),frame(state,now,d));}

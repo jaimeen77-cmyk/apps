@@ -95,7 +95,7 @@ function cached(cv,key,x,y,w,h,draw){
  const L=G.layer('redline-preview|'+key,Math.ceil(w),Math.ceil(h),r=>draw(r,0,0),cv.textScale||1);cv.blit(L,x,y);
 }
 function vector(cv,x,y,s){
- return {text:(v,a,b,z,c,o)=>cv.text(v,x+a*s,y+b*s,z*s,c,o),textWidth:(v,z,o)=>cv.textWidth(v,z*s,o)/s,
+ return {art:(n,a,b,w,h,o)=>require('./hud-art').paint(cv,n,x+a*s,y+b*s,w*s,h*s,o),text:(v,a,b,z,c,o)=>cv.text(v,x+a*s,y+b*s,z*s,c,o),textWidth:(v,z,o)=>cv.textWidth(v,z*s,o)/s,
   line:(a,b,c,d,w,k)=>cv.line(x+a*s,y+b*s,x+c*s,y+d*s,w*s,k),polyline:(p,w,c)=>cv.polyline(p.map(v=>[x+v[0]*s,y+v[1]*s]),w*s,c),
   quad:(p,c)=>cv.quad(p.map(v=>[x+v[0]*s,y+v[1]*s]),c),arc:(a,b,r0,r1,f,l,c)=>cv.arc(x+a*s,y+b*s,r0*s,r1*s,f,l,c),
   fillRect:(a,b,w,h,c)=>cv.fillRect(x+a*s,y+b*s,w*s,h*s,c),roundRect:(a,b,w,h,r,c)=>cv.roundRect(x+a*s,y+b*s,w*s,h*s,r*s,c),
@@ -105,7 +105,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','calmTone','hudLaneLines','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','calmTone','hudLaneLines','navArrowStyle','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:this.sub&&SUBMENUS[this.sub]?SUBMENUS[this.sub]:GROUPS[this.tab];}
  item(){return this.itemOf(this.keys()[this.focus]);}
@@ -148,7 +148,7 @@ class SettingsPage{
   if(item.key==='vehiclePreset'){const e=options(this.settings.schema.find(s=>s.key==='engineProfile'),cfg).find(o=>o[0]===cfg.engineProfile);return (e?t(e[1]):'')+' · '+cfg.powerUnit+' · '+(cfg.torqueUnit==='kgfm'?'kgf·m':'Nm')+' · '+cfg.shiftRpm+' rpm';}
   if(item.key==='driverProfiles')return this.driverValue();
   if(item.key==='hudDoorAlert')return this.doorValue(cfg);
-  if(item.key==='navColor')return tr('Arrow')+' '+tr(NAV_COLOR_LABELS[cfg.navColor])+' · '+tr('Text')+' '+tr(NAV_COLOR_LABELS[cfg.navTextColor]);
+  if(item.key==='navColor')return tr(cfg.navArrowStyle==='drawn'?'Drawn arrows':'Icons')+' · '+tr('Arrow')+' '+tr(NAV_COLOR_LABELS[cfg.navColor])+' · '+tr('Text')+' '+tr(NAV_COLOR_LABELS[cfg.navTextColor]);
   // the blind spot warning is set on the same screen: named here while it is on
   if(item.key==='turn')return (cfg.hudTurnSignals==='on'?tr('On')+' · '+tr(TURN_STYLE_LABELS[cfg.hudTurnStyle])+' · '+tr(TURN_COLOR_LABELS[cfg.hudTurnColor]):tr('Off'))+(cfg.hudTurnBlindSpot==='on'?' · '+tr('Blind spot on'):'');
   // Navigation display (1.3.36): its own screen, with the next turn on the HUD; both named here
@@ -653,13 +653,16 @@ class SettingsPage{
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
   [['navColor','Arrow colour',126,146],['navTextColor','Text colour',250,266]].forEach(([key,title,ty,by])=>{
    cv.text(tr(title),100,ty,28,'#ef4050',{literal:true});
-   D.NAV_COLOR_NAMES.forEach((name,i)=>{const x=84+i*366;
-    this.button(cv,local,tr(NAV_COLOR_LABELS[name]),x,by,352,62,()=>set(key,name),cfg[key]===name,key+'-'+name);
-    cv.fillRect(x+20,by+50,312,5,D.NAV_COLORS[name]);});
+   D.NAV_COLOR_NAMES.forEach((name,i)=>{const x=84+i*268;
+    this.button(cv,local,tr(NAV_COLOR_LABELS[name]),x,by,256,62,()=>set(key,name),cfg[key]===name,key+'-'+name);
+    cv.fillRect(x+20,by+50,216,5,D.NAV_COLORS[name]);});
   });
+  // the arrow style (1.3.82, after the colours so their buttons keep their order): the icons from the user's sheet or the drawn arrows
+  cv.text(tr('Arrow style'),1180,126,28,'#ef4050',{literal:true});
+  [['icon','Icons'],['drawn','Drawn arrows']].forEach(([v,l],i)=>this.button(cv,local,tr(l),1164,146+i*76,352,62,()=>set('navArrowStyle',v),cfg.navArrowStyle===v,'navArrowStyle-'+v));
   // preview: a right turn with its distance, and a road name, as the HUD draws them
   cv.roundRect(84,340,700,100,10,[0,0,0,170]);
-  NAV.draw({visible:true,maneuver:'RIGHT',color:cfg.navColor,textColor:cfg.navTextColor,distanceText:'300 m'},vector(cv,104,342,0.86));
+  NAV.draw({visible:true,maneuver:'RIGHT',color:cfg.navColor,textColor:cfg.navTextColor,distanceText:'300 m',arrowStyle:cfg.navArrowStyle},vector(cv,104,342,0.86));
   cv.text(tr('Sample road'),560,402,30,D.NAV_COLORS[cfg.navTextColor]||'#f4f7fb',{font:'bold',align:'center',literal:true});
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }

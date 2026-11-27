@@ -21,10 +21,10 @@ function partKey(s,d,name,sub){
 function navKey(s,part){
  const c=s.config,n=s.navigation,on=D.navAllowed(c,s.mode)&&n&&n.visible,p=D.NAV_PARTS.find(p=>p.key===part);
  if(!on||c[p.prefix+'Hidden']||part!=='Lanes'&&n.maneuverVisible===false)return null;
- if(part==='Direction')return [n.kind,n.branchType,n.maneuver,n.exitNumber,n.distanceText,c.navColor,c.navTextColor];
- if(part==='Then')return n.then&&n.then.maneuver?[n.then.maneuver,n.then.exitNumber,n.then.gap,c.navColor,c.navTextColor]:null;
+ if(part==='Direction')return [n.kind,n.branchType,n.maneuver,n.exitNumber,n.distanceText,c.navColor,c.navTextColor,c.navArrowStyle];
+ if(part==='Then')return n.then&&n.then.maneuver?[n.then.maneuver,n.then.exitNumber,n.then.gap,c.navColor,c.navTextColor,c.navArrowStyle]:null;
  if(part==='Text')return n.description?[n.description,c.navTextColor]:null;
- const lanes=n.lanes;return lanes&&lanes.visible?[c.navColor,lanes.lanes]:null;
+ const lanes=n.lanes;return lanes&&lanes.visible?[c.navColor,c.navArrowStyle,lanes.lanes]:null;
 }
 function key(s,d){
  const c=s.config,face=s.renderRpm!==false,values=[];

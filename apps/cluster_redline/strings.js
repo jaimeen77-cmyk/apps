@@ -41,6 +41,7 @@ const KO={
  'not in the catalog':'차 목록에 없음','not offered':'제공 안 됨',
  'Lead-car helper':'앞차 도우미','not installed (Store: Cluster Redline lead-car helper)':'설치 안 됨 (스토어: Cluster Redline 앞차 도우미)','connected':'연결됨','camera':'카메라','radar':'레이더',
  'Front camera objects':'카메라 물체','Navigation':'길안내','Retro VU meters':'레트로 VU 미터','Navigation focus':'길안내 중심','G-G trail':'G-G 궤적',
+ 'Arrow style':'화살표 모양','Icons':'아이콘','Drawn arrows':'기본 화살표',
  'Lane lines':'차선 표시','The lines either side of the car as the front camera sees them, above the headway badge. Within 15 cm amber, on the line red (blue with the turn signal: a lane change).':'전방 카메라가 보는 내 차로 양쪽 차선을 앞차 간격 위에 표시합니다. 15 cm 안이면 주황, 선을 밟으면 빨강 (깜빡이를 켜면 파랑: 차로 변경).','Needs the lead-car helper (installed with Cluster Redline from the Store).':'앞차 도우미가 필요합니다 (스토어에서 Cluster Redline과 함께 설치).','lines':'차선','visibility':'시야','margin':'여유','lane width':'차로 폭','no lane lines seen':'차선 안 보임','dashed':'점선','solid':'실선','dotted':'짧은 점선','edge':'도로 끝','double':'이중선','yellow':'노란색','white':'흰색',
  'Calm clock':'차분한 시계','Colours':'색상','Warm':'따뜻한 색','Cool':'차가운 색',
  'Drive assist view':'주행 보조 화면','objects':'목록','cars':'차량','car followed':'앞차','in use':'사용 중',

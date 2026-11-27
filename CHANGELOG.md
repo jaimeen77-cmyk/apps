@@ -22,6 +22,11 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
 - The Animation screen's orange note now says the order follows the playback settings made on the phone; without the GPU renderer its settings button opens the Phone connection page.
 - `app.json` changes only its version; the new texts are kept in `main.js`, so the Store UI template stays valid.
 
+## Cluster Redline 1.3.82 (arrow style: icons or drawn arrows)
+
+- **New: Arrow style** on the navigation colour screen (NAV tab → Arrow colour / Text colour: 화살표 모양): **Icons** (the user's sheet, the default) or **Drawn arrows** (as up to 1.3.80). It applies to the turn box, the "then" arrow, the lanes and Navigation focus. The screen's preview follows it.
+- The colour buttons are narrower to make room for it. The Navigation tab's summary line names the style.
+
 ## Cluster Redline 1.3.81 (guidance icons from the user's sheet)
 
 - **The HUD's guidance icons are cut from the user's icon sheet**, with their glow:

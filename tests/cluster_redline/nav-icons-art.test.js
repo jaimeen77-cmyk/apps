@@ -14,6 +14,11 @@ if(process.argv[2]){
   assert(lit(N.drawSized(st({maneuver:m}),240,112),[0,0,104,112])>400,'painted '+m));
  assert(lit(N.drawSized(st({maneuver:'ROUNDABOUT',exitNumber:2}),240,112),[0,0,104,112])>800,'roundabout');
  ['IN_LEFT','IN_STRAIGHT','OUT_RIGHT'].forEach(b=>assert(lit(N.drawSized(st({kind:'branch',branchType:'HIGHWAY_'+b}),240,112),[0,0,104,112])>300,'highway '+b));
+ // Arrow style 'drawn' (1.3.82): the drawn arrow again, the same pixels as a view without pictures
+ const {settings}=require('../../apps/cluster_redline/policy');assert.strictEqual(settings({}).navArrowStyle,'icon');assert.strictEqual(settings({navArrowStyle:'drawn'}).navArrowStyle,'drawn');
+ const a=N.drawSized(st({maneuver:'LEFT'}),240,112),b=N.drawSized(st({maneuver:'LEFT',arrowStyle:'drawn'}),240,112);assert(!Buffer.from(a.d).equals(Buffer.from(b.d)),'drawn differs from the icon');
+ const vec=(st0)=>{const cv=new (require(path.join(dir,'kit/canvas')).Canvas)(240,112);cv.clear([0,0,0,0]);N.draw(st0,{line:cv.line.bind(cv),polyline:cv.polyline.bind(cv),quad:cv.quad.bind(cv),arc:cv.arc.bind(cv),text:cv.text.bind(cv),textWidth:cv.textWidth.bind(cv)});return cv;};
+ assert(Buffer.from(b.d).equals(Buffer.from(vec(st({maneuver:'LEFT'})).d)),'drawn: as before');
  // a fork keeps its drawn diagram
  assert(N.diagramKind(st({branchType:'FORK_LEFT'}))==='branch');
  const L=LD.drawSized({visible:true,color:'orange',lanes:[{directions:['LEFT'],other:[],highlighted:false},{directions:['RIGHT'],other:[],highlighted:true}]},240,72);

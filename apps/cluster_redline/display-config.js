@@ -55,7 +55,7 @@ Object.assign(defaults,{bcFollow:'off',bcHmi:'ID7',bcPages:'',bcHudPages:'',bcSt
 // HUD navigation: the turn after the next one under the arrow when it follows close behind (1.3.35)
 Object.assign(defaults,{myPicIds:'',hudNavThen:'on',hudThenOffsetX:0,hudThenOffsetY:0,hudThenScale:70,navProbeLog:'off',calmTone:'cool',hudLaneLines:'off'});
 Object.assign(defaults,{hudDoorOffsetX:0,hudDoorOffsetY:0,hudDoorScale:75,hudDoorHidden:false});
-Object.assign(defaults,{hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'all',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
+Object.assign(defaults,{navArrowStyle:'icon',hudDoorAlert:'on',navTextColor:'white',hudCarAlerts:'all',hudCarAlertOffsetX:-260,hudCarAlertOffsetY:30,hudCarAlertScale:70,hudCarAlertHidden:false});
 ['hud','cluster'].forEach(d=>{
  defaults[d+'AuxConfig']=JSON.stringify({mode:'gauges',items:['boost','torque']});
  PARTS.concat(LEGACY_PARTS).forEach(p=>{defaults[d+p+'OffsetX']=0;defaults[d+p+'OffsetY']=d==='cluster'&&/^Aux(Left|Right)$/.test(p)?50:0;defaults[d+p+'WidthScale']=100;defaults[d+p+'HeightScale']=100;defaults[d+p+'Hidden']=false;});
@@ -79,7 +79,7 @@ function auxConfig(value){
 function normalize(raw,out){
  Object.keys(defaults).forEach(k=>{out[k]=defaults[k];});out.displaySettingsRevision=4;
  out.clusterAlertStyle=['circle','bar'].includes(raw.clusterAlertStyle)?raw.clusterAlertStyle:'circle';
- out.navDisplayMode=['all','excludeSport','stock'].includes(raw.navDisplayMode)?raw.navDisplayMode:'all';out.navColor=raw.navColor==='gray'?'white':NAV_COLOR_NAMES.includes(raw.navColor)?raw.navColor:'blue';out.navTextColor=NAV_COLOR_NAMES.includes(raw.navTextColor)?raw.navTextColor:'white';
+ out.navDisplayMode=['all','excludeSport','stock'].includes(raw.navDisplayMode)?raw.navDisplayMode:'all';out.navColor=raw.navColor==='gray'?'white':NAV_COLOR_NAMES.includes(raw.navColor)?raw.navColor:'blue';out.navTextColor=NAV_COLOR_NAMES.includes(raw.navTextColor)?raw.navTextColor:'white';out.navArrowStyle=raw.navArrowStyle==='drawn'?'drawn':'icon';
  ['hud','cluster'].forEach(d=>{
   let value=raw[d+'AuxConfig'];if(value===undefined&&d==='hud'&&raw.hudAuxDisplay!==undefined)value={mode:raw.hudAuxDisplay,items:['torque','power']};out[d+'AuxConfig']=JSON.stringify(auxConfig(value));
   PARTS.concat(LEGACY_PARTS).forEach(p=>{
