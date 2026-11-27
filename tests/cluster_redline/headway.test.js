@@ -120,5 +120,13 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
   const pos=Buffer.from('01d701780100000f548715c036084691000001e0'+'00'+'00'+'02'+'fc41e40000c0000000'+'0041500000'+'00000000'+'00'.repeat(9*18),'hex');
   const lead=R.leadOf(R.decodeRecognition(rec),R.decodePosition(pos));assert.deepStrictEqual([lead.id,lead.m],[7,13],'the nearest vehicle in our lane, metres as sent (big endian floats)');
   assert.deepStrictEqual(R.decodeFront(Buffer.from('fd0ffd0ffd0ffd0ffd0201','hex')),{id:253,speedX:4093,speedY:4093,gapX:4093,gapY:4093,qualifier:2,ext:1},'the radar parked, as on the car');}
+ // 1.3.91 (issue appsKOR#5): the distance shown from the bumper, -2 m by default (0 to -3 m, 0.5 m steps), the time gap with it
+ {const {corrected}=require('../../apps/cluster_redline/lead-vehicle'),{settings:S}=require('../../apps/cluster_redline/policy');
+  assert.strictEqual(S({}).hudHeadwayCorrection,-2,'-2 m by default');assert.strictEqual(S({hudHeadwayCorrection:-0.7}).hudHeadwayCorrection,-0.5);
+  assert.strictEqual(S({hudHeadwayCorrection:-9}).hudHeadwayCorrection,-3);assert.strictEqual(S({hudHeadwayCorrection:2}).hudHeadwayCorrection,0);assert.strictEqual(S({hudHeadwayCorrection:'x'}).hudHeadwayCorrection,-2);
+  const c=corrected({gap:20,headway:1.0,closing:-3,level:'amber'},-2);assert.strictEqual(c.gap,18);assert(Math.abs(c.headway-0.9)<1e-9);assert.strictEqual(c.level,'red','the time gap from the corrected distance');assert.strictEqual(c.closing,-3);
+  assert.strictEqual(corrected({gap:2,headway:null,closing:null,level:'ok'},-2).gap,0,'right behind it: 0 m');assert.strictEqual(corrected({gap:1.2,headway:null,level:'ok'},-2).gap,0,'never under 0');
+  const raw={gap:20,headway:1,level:'amber'};assert.strictEqual(corrected(raw,0),raw,'0: as the car sends');assert.strictEqual(corrected(null,-2),null);
+  assert.deepStrictEqual(corrected({gap:5,go:true},-2),{gap:3,go:true},'the moving-off badge too');}
  console.log('PASS: HUD headway badge: GapVehicleAhead read only while on, fine distance first, time gap from our speed (none below 12 km/h), closing speed, colour steps, install-time input, settings, overlay'+(process.argv[2]?', drawn':''));
 })().catch(e=>{console.error(e);process.exitCode=1;});

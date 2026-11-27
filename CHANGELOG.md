@@ -2,6 +2,11 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.91 (lead-car headway: distance from the bumper)
+
+- **Fix: the lead-car distance read about 2 m too far** (issue appsKOR#5: right behind a car it showed 2 m). The car measures from its sensor behind the windscreen, not from the front bumper. HUD lamps → Lead-car headway now has a **Distance correction** (0 to −3 m in 0.5 m steps, **−2 m by default**) taken off the distance shown, never under 0 m; the time gap and its colour use the corrected distance. The car's own values at the bottom of the screen stay as sent.
+- Tests: `headway` (the default, the steps and limits, the corrected distance and time gap, 0 m right behind a car).
+
 ## Spotify 2.0.0 (Korean edition): Hangul on the GPU renderer
 
 - **Fix: no text at all on the car** (tabs, buttons and lines blank; the PC preview, drawn in software, was fine). The upstream kit sends a glyph atlas to the GPU renderer whole, and the Korean atlas (1024 x 2976) did not fit the renderer's shared atlas texture beside the other apps' atlases, so every Hangul line was dropped. The template now sends it in pieces of at most 512 rows, as appsKOR's kit does (`fonts.piece`, `record.js`); the software path is unchanged.

@@ -129,4 +129,12 @@ class LeadVehicle {
     }
     status(now){return {unsupported:this.unsupported(now),helper:this.helper?this.helper.status():null,source:this.source,camera:this.camera?this.camera.status():null,assist:this.assist?this.assist.status():null,state:this.state,error:this.error,received:this.received,instance:this.instance||null,available:this.sub?!!this.sub.available:null,raw:Object.assign({},this.raw),ageMs:this.at===null?null:Math.round(now-this.at)};}
 }
-module.exports={LeadVehicle,level,IFACE,FIELDS,STALE_MS,SLOW_KMH,RED_S,AMBER_S};
+/** The car ahead as shown (1.3.91): the distance with the correction added (metres, 0 to -3: the sensor sits behind the
+ *  windscreen, about 2 m behind the bumper), never under 0, and the time gap with it. read() keeps the sensor's own. */
+function corrected(v,offset){
+    if(!v||typeof v.gap!=='number'||!offset)return v;
+    const out=Object.assign({},v,{gap:Math.max(0,v.gap+offset)});
+    if(typeof v.headway==='number'&&v.gap>0){out.headway=Math.max(0.1,Math.min(9.9,v.headway*out.gap/v.gap));out.level=level(out.headway);}
+    return out;
+}
+module.exports={LeadVehicle,level,corrected,IFACE,FIELDS,STALE_MS,SLOW_KMH,RED_S,AMBER_S};

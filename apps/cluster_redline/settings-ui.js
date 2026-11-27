@@ -571,7 +571,13 @@ class SettingsPage{
  drawHeadway(cv,cfg,targets){
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
   cv.text(tr('Lead-car headway'),100,126,32,'#ef4050',{literal:true});
-  [['off','Off'],['simple','Simple'],['detail','Detailed']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*488,146,474,64,()=>set('hudHeadway',o[0]),cfg.hudHeadway===o[0],'headway-'+o[0]));
+  [['off','Off'],['simple','Simple'],['detail','Detailed']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*340,146,326,64,()=>set('hudHeadway',o[0]),cfg.hudHeadway===o[0],'headway-'+o[0]));
+  // the distance correction (1.3.91): the car measures from its sensor behind the windscreen; 0 to -3 m, -2 m by default
+  {const c=typeof cfg.hudHeadwayCorrection==='number'?cfg.hudHeadwayCorrection:-2,step=d=>set('hudHeadwayCorrection',Math.max(-3,Math.min(0,c+d)));
+   cv.text(tr('Distance correction'),1110,140,17,'#91a1b6',{literal:true});
+   this.button(cv,local,'−',1110,146,70,64,()=>step(-0.5),false,'headway-correction-less');
+   cv.roundRect(1192,146,260,64,6,'#1b2027');const t=(c<0?'-':'')+Math.abs(c).toFixed(1)+' m';cv.text(t,1322-cv.textWidth(t,28,{literal:true})/2,188,28,'#f3f5f7',{literal:true});
+   this.button(cv,local,'+',1464,146,70,64,()=>step(0.5),false,'headway-correction-more');}
   cv.text(tr('The car ahead as the radar measures it: time gap at your speed and distance (Detailed: closing speed too).'),100,252,21,'#c1cddd',{literal:true});
   cv.text(tr('Standing behind a car that moves off: Moving off in green for 3 s.'),330,122,18,'#3ddc6a',{literal:true});
   {const hh=this.liveState&&this.liveState.headway;
