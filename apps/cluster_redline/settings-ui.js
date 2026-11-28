@@ -66,7 +66,10 @@ const HEADWAY_KEYS=Object.keys(D.defaults).filter(k=>/^hudHeadway/.test(k));
 const LAUNCH_KEYS=Object.keys(D.defaults).filter(k=>/^hudLaunch/.test(k));
 const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White',lime:'Neon'};
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
-const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','clusterYieldAcc','hudHideWaze','hudCarCams','hudRoadAlerts','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen','bcHmi','bcPages','bcHudPages','bcStart'].concat(DOOR_KEYS,HEADWAY_KEYS,LAUNCH_KEYS).concat(TURN_KEYS,ALERT_KEYS);
+const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','clusterYieldAcc','hudHideWaze','hudCarCams','hudRoadAlerts','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen','bcHmi','bcPages','bcHudPages','bcStart',
+ // (1.3.106) the options added since that a favourite left out: drive-mode display, BC follow, lane lines, the 3D icons, the
+ // next-turn box's place, the calm clock's tone, the greetings, My picture's GIFs (checks, logs and the car's state stay out)
+ 'hudModeSetup','clusterModeSetup','bcFollow','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','hudThenOffsetX','hudThenOffsetY','hudThenScale','hudThenHidden','calmTone','greetHello','greetBye','myPicIds'].concat(DOOR_KEYS,HEADWAY_KEYS,LAUNCH_KEYS).concat(TURN_KEYS,ALERT_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
 // Settings per driver (driver-profiles.js): the whole setup a favourite keeps, plus the favourites themselves, so each
 // driver has their own five favourites.
@@ -414,9 +417,9 @@ class SettingsPage{
  }
  drawAuxSelect(cv,cfg,targets){
   const draft=this.draft,limit=draft.mode==='gauges'?2:4;cv.text(t(draft.mode==='gauges'?'Select gauges':'Select text items')+' (1–'+limit+')',100,128,32,'#ef4050',{literal:true});
-  D.METRICS.forEach((id,i)=>{const index=draft.items.indexOf(id),x=84+(i%4)*369,y=152+Math.floor(i/4)*80,blocked=this.auxBlocked(id,cfg);
-   this.button(cv,targets,index>=0?(index+1)+'. '+tr(D.LABELS[id]):D.GAUGE_ONLY.includes(id)?tr(D.LABELS[id])+' · '+tr('Horizontal gauges only'):tr(D.LABELS[id]),x,y,343,70,()=>this.toggleMetric(id),index>=0,'metric-'+id);
-   if(blocked&&index<0)cv.roundRect(x,y,343,70,6,[0,0,0,150]);   // can't be chosen here: dimmed
+  D.METRICS.forEach((id,i)=>{const index=draft.items.indexOf(id),x=84+(i%5)*292,y=152+Math.floor(i/5)*80,blocked=this.auxBlocked(id,cfg);   // (1.3.106) five a row: 14 items in three rows
+   this.button(cv,targets,index>=0?(index+1)+'. '+tr(D.LABELS[id]):D.GAUGE_ONLY.includes(id)?tr(D.LABELS[id])+' · '+tr('Horizontal gauges only'):tr(D.LABELS[id]),x,y,280,70,()=>this.toggleMetric(id),index>=0,'metric-'+id);
+   if(blocked&&index<0)cv.roundRect(x,y,280,70,6,[0,0,0,150]);   // can't be chosen here: dimmed
   });
   if(draft.mode==='gauges'&&this.auxBlocked('clock',cfg))cv.text(tr('Upright gauges on this layout: no clock.'),1516,410,22,'#ff8a8a',{align:'right'});
   cv.text('Selection order sets the left and right positions.',100,410,24,'#a8b6c8');
@@ -427,7 +430,7 @@ class SettingsPage{
  preview(cv,cfg,x,y,width,display){
   const painter=display==='cluster'?CLUSTER:HUD,clean=Object.assign({},cfg);
   D.PARTS.forEach(p=>['OffsetX','OffsetY','WidthScale','HeightScale'].forEach(k=>{clean[display+p+k]=D.defaults[display+p+k];}));
-  const s=width/painter.W,state={config:clean,rpm:Math.round(cfg.shiftRpm*0.92/10)*10,gear:'M3',shift:false,flash:true,torqueNm:300,powerPS:180,torquePeak:380,powerPeak:220,aux:{boost:0.85,oil:95,outside:18,gforce:0.35,gLat:0.25,gLong:0.24}};
+  const s=width/painter.W,state={config:clean,rpm:Math.round(cfg.shiftRpm*0.92/10)*10,gear:'M3',shift:false,flash:true,torqueNm:300,powerPS:180,torquePeak:380,powerPeak:220,aux:{boost:0.85,oil:95,coolant:90,gearbox:78,outside:18,gforce:0.35,gLat:0.25,gLong:0.24}};
   const target=vector(cv,x,y,s);target.part=(cfg,d,name,bounds,paint)=>paint(vector(cv,x+(cfg[d+name+'OffsetX']||0)*s,y+(cfg[d+name+'OffsetY']||0)*s,s));painter.draw(state,target);
  }
  previewHUD(cv,cfg,x,y,width){this.preview(cv,cfg,x,y,width,'hud');}
@@ -443,7 +446,7 @@ class SettingsPage{
  // The Redline app's nine HUD layouts with live previews (sample: 6300 rpm, 3rd gear).
  drawRedlineDesigns(cv,cfg,targets){
   cv.text(tr('Redline app layouts'),100,126,32,'#ef4050',{literal:true});
-  const d=this.display(),current=RL.style(cfg,d),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,outside:18,clock:'23:00'}};
+  const d=this.display(),current=RL.style(cfg,d),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,coolant:92,gearbox:81,outside:18,clock:'23:00'}};
   // Four columns: the Redline app's nine, then Cluster Redline's five; each preview fitted to its cell.
   // Rows shrink when the list needs a fifth row (the cluster's seventeen layouts).
   const list=designList(d),rows=Math.ceil(list.length/4),pitch=Math.min(80,Math.floor(304/rows)),bh=pitch-4;
@@ -618,6 +621,9 @@ class SettingsPage{
   if(h&&cfg.hudHeadway!=='off'&&h.helper){const x=h.helper,cm=x.cam||{},rd=x.radar||{},on=x.state==='connected'||x.lines>0;
    cv.text(tr('Lead-car helper')+': '+(!on?tr('not installed (Store: Cluster Redline lead-car helper)'):tr('connected')+' · '+tr('camera')+' '+tr('received')+' '+(cm.rx||0)+(cm.lead?' · '+tr('car followed')+' #'+cm.lead.id+' '+cm.lead.m+' m':' · '+tr('no car ahead'))+(typeof cm.objects==='number'?' · '+tr('road users')+' '+cm.objects:' · '+tr('helper 0.2 (update)'))+' · '+tr('radar')+' '+(rd.rx||0)+(rd.gapX!==null&&rd.gapX!==undefined?' (gapX '+rd.gapX+')':'')),100,426,16,on?(cm.lead?'#5ee08f':'#c1cddd'):'#ffad45',{literal:true});}
   if(h&&cfg.hudHeadway!=='off')cv.text(tr('From the car')+': '+tr('received')+' '+(h.received||0)+' · status '+f(r.status)+' · gap '+f(r.gap)+' · gapX '+f(r.gapX)+' · object '+f(r.object)+' · qualifier '+f(r.qualifier)+(r.kind?' · '+r.kind:''),100,344,16,'#7f8b9a',{literal:true});
+   // (1.3.106) how soon the moving-off alert comes: one button, each press the next (off → faster → quick → relaxed)
+   {const DEP=[['off','Off'],['faster','Faster (1 m)'],['quick','Quick (1.5 m)'],['relaxed','Relaxed (3 m)']],cur=DEP.findIndex(o=>o[0]===(cfg.hudHeadwayDepart||'quick'));
+    this.button(cv,local,tr('Moving-off alert')+' · '+tr(DEP[cur<0?2:cur][1]),796,448,402,64,()=>set('hudHeadwayDepart',DEP[((cur<0?2:cur)+1)%DEP.length][0]),false,'headway-depart');}
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='headway';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Headway']);this.setPreview(true);this.changed();},false,'headway-layout');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }

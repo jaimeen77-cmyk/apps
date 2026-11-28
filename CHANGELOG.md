@@ -2,7 +2,7 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## Cluster Redline 1.3.106 (cut-in / pedestrian warnings and the turn arrow, from the user's logs)
+## Cluster Redline 1.3.107 (cut-in / pedestrian warnings and the turn arrow, from the user's logs)
 
 - **Cut-in and pedestrian warnings, fewer false ones.** The user's road-alerts.log (2026-11-28) had 37 warnings: 24 cut-ins and 13 pedestrians/cyclists, most of them wrong. The rules now need:
   - **Cut-in:** the car moved in at least 0.5 m from where it drove beside us, and is now within 2.4 m of our axis. A car that was in our lane in the 3 s before it was beside us does not count: that is our lead weaving, or our own lane change. Sideways speeds are measured against the lane lines, so our own drift in the lane is not read as a car coming in. A car pulling away at up to 1.5 m/s still counts.
@@ -15,6 +15,18 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
   - the turn list is lost;
   - answers stop coming (the last one over 2 s old).
 
+## Cluster Redline 1.3.106 (coolant and gearbox oil temperature readouts; moving-off alert speed; favourites keep the options added since)
+
+- **New readouts: coolant temperature and gearbox oil temperature** (a user's request: oil, coolant and gearbox oil on their own). Both as text and as gauges (thermometers), and in the Redline layouts (`WATER`, `TRANS`; cold / hot tones: coolant under 60 / over 115 °C, gearbox oil under 50 / over 120 °C).
+  - The coolant comes in the same field as the oil temperature (`statusEngineTemperature.temperatureEngineDrive`, as Live Data reads it).
+  - The gearbox oil, as appsKOR's Warm-Up reads it (`gearbox-temp.js`): the gearbox unit (EGS, 0x18) **read only** through the kit's ReadOnlyDiag, `22 6000` (ZF 8HP) else `22 DA12` (taken once it moves), only while the readout shows and the engine runs, every 5 s; else the car's `BasicDataSet.valueTemperatureTransmissionOil`, once it moves (some cars leave it at one number). The signal is added at install where the car's catalog has it (`traffic-config.js`), so the Store template is unchanged.
+  - The item picker has five a row now (14 items in three rows).
+  - To see only the readouts: Position / size → choose the RPM gauge, gear, RPM value and M mark → Hide selected.
+- **New: how soon the moving-off alert comes.** The headway screen's bottom row has a **Moving-off alert** button (출발 알림); each press goes to the next:
+  - **Off** · **Faster** (the car ahead 1 m further, held 0.2 s) · **Quick** (1.5 m, 0.3 s: the 1.3.95 values, the default) · **Relaxed** (3 m, 0.5 s: as before 1.3.95).
+  - Standing, the gap the camera measures moves 0.15 m at most (the user's clips of 2026-11-27), so Faster stays clear of it.
+- **Favourites (and drivers' settings) keep the options added since they were made**: drive-mode display (HUD and cluster), BC follow, lane lines (on / off, lane colour, warning sensitivity), the 3D navigation icons, the next-turn box's place and size, the calm clock's tone, the greetings, My picture's GIFs and the moving-off alert. Checks, logs and the car's own state (Position check, nav-probe and log recording, the BC page in step) stay out.
+- Tests: `lead-departure` (each speed in order, the default, off, no alert from the camera at rest; the setting's range; the favourite keys).
 ## Cluster Redline 1.3.105 (the 0-100 screen on the HUD)
 
 - **New: 0-100 screen** (HUD lamps → **0-100 screen**, off by default), after the user's reference picture:

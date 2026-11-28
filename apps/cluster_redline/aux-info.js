@@ -1,5 +1,6 @@
 'use strict';
 // Same signal scales as the existing Live Data app. No estimated substitutes.
+const BDS='de.bmw.infrastructure.analytics.BasicDataSet';
 const TPMS='de.bmw.infotainment.vehicle.TPMS',CDS='de.bmw.infotainment.vehicle.CDS',CDS2=CDS+'2',FES='de.bmw.infotainment.drivingexcitement.FES',ENV='de.bmw.infrastructure.EnvironmentalInformation',KOMBI='de.bmw.infotainment.KombiIF';
 const {supported:voltageSupported,IFACE:TASU}=require('./battery-voltage');
 function economy(value){
@@ -22,7 +23,8 @@ function tripTime(value){
 const CORNERS=['FL','FR','RL','RR'];
 const SOURCES=[
  {iface:FES,field:'statusSwitchDriveDynamicSport2',members:{boost:['displayBoostPressure',0.01,0,255]}},
- {iface:CDS,field:'statusEngineTemperature',members:{oil:['temperatureEngineOilDrive',1,-48,255]}},
+ // (1.3.106) the coolant temperature comes in the same field as the oil's, as Live Data reads it
+ {iface:CDS,field:'statusEngineTemperature',members:{oil:['temperatureEngineOilDrive',1,-48,255],coolant:['temperatureEngineDrive',1,-48,255]}},
  {iface:CDS2,field:'statusInjectionVolume',members:{oilFallback:['oilTemperature',1,-48,255]}},
  {iface:CDS2,field:'statusLongitudinalAccelerationMassCenter',members:{gLong:['longitudinalAccelerationCentreOfGravity',0.002/9.80665,-65/9.80665,65535]}},
  {iface:CDS2,field:'statusLateralAccelerationMassCenter',members:{gLat:['lateralAccelerationCentreOfGravity',0.002/9.80665,-65/9.80665,65535]}},
@@ -32,13 +34,16 @@ const SOURCES=[
  {iface:KOMBI,field:'statusBordcomputerAverage',members:{economy:[],avgSpeed:[]},decode:{economy,avgSpeed}},
  {iface:KOMBI,field:'statusBordcomputerTravelData',members:{tripTime:[]},decode:{tripTime},optionalField:true},
  // Tyre temperatures (°C + 40) and pressures (0.1 bar a step), as Live Data reads them (x_call reads TPMS, never subscribes).
+ // (1.3.106) the gearbox oil temperature as the car sends it (°C + 48, 255 none), added at install where the catalog
+ // has it (traffic-config.js); gearbox-temp.js asks the gearbox unit first and takes this one only once it has moved
+ {iface:BDS,field:'basicDataSet',members:{gearboxSignal:['valueTemperatureTransmissionOil',1,-48,255]},subscribe:true,keepLast:true},
  {iface:TPMS,field:'statusTyreTemperature',members:Object.assign({},...CORNERS.map(c=>({['t'+c]:['actualValueTemperatureTyre'+c+'H',1,-40,65535,150]}))),poll:true,optionalField:true},
  {iface:TPMS,field:'statusTyrePressure',members:Object.assign({},...CORNERS.map(c=>({['p'+c]:['actualValuePressureTyre'+c+'H',0.1,0,65532]}))),poll:true,optionalField:true}
 ];
 // Which auxiliary item a source member feeds (several members feed one item).
-function auxOf(k){return k==='oilFallback'?'oil':k==='gLat'||k==='gLong'?'gforce':/^[tp](FL|FR|RL|RR)$/.test(k)?'tyres':k;}
+function auxOf(k){return k==='oilFallback'?'oil':k==='gearboxSignal'?'gearbox':k==='gLat'||k==='gLong'?'gforce':/^[tp](FL|FR|RL|RR)$/.test(k)?'tyres':k;}
 SOURCES.forEach(source=>{
- const ids=Object.keys(source.members),slow=ids.some(k=>['oil','oilFallback','outside','batteryCharge','economy','avgSpeed','tripTime'].includes(k)||/^[tp](FL|FR|RL|RR)$/.test(k));
+ const ids=Object.keys(source.members),slow=ids.some(k=>['oil','oilFallback','coolant','gearboxSignal','outside','batteryCharge','economy','avgSpeed','tripTime'].includes(k)||/^[tp](FL|FR|RL|RR)$/.test(k));
  source.pollMs=ids.includes('outside')?10000:slow?5000:1000;
  source.ttlMs=slow?source.pollMs*3:2500;
  // the G-force meter's Car picture reads the G five times a second (worker.js)
@@ -57,7 +62,7 @@ class AuxInfo {
   const get=k=>{const s=this.samples[k];return s&&typeof now==='number'&&now>=s.at&&now-s.at<=s.ttl?s.v:null;};
   const gl=get('gLong'),ga=get('gLat'),gforce=gl!==null&&ga!==null&&Math.abs(gl)<=3&&Math.abs(ga)<=3?Math.sqrt(gl*gl+ga*ga):null;
   const corner=p=>{const o={};let any=false;CORNERS.forEach(c=>{o[c]=get(p+c);if(o[c]!==null)any=true;});return any?o:null;};
-  return {boost:get('boost'),oil:get('oil')===null?get('oilFallback'):get('oil'),outside:get('outside'),batteryCharge:get('batteryCharge'),economy:get('economy'),avgSpeed:get('avgSpeed'),tripTime:get('tripTime'),tyreTemp:corner('t'),tyrePressure:corner('p'),gforce,gLong:gl,gLat:ga};
+  return {boost:get('boost'),oil:get('oil')===null?get('oilFallback'):get('oil'),coolant:get('coolant'),gearboxSignal:get('gearboxSignal'),outside:get('outside'),batteryCharge:get('batteryCharge'),economy:get('economy'),avgSpeed:get('avgSpeed'),tripTime:get('tripTime'),tyreTemp:corner('t'),tyrePressure:corner('p'),gforce,gLong:gl,gLat:ga};
  }
 }
 function validId(n,lo,hi){return Number.isInteger(n)&&n>=lo&&n<=hi;}

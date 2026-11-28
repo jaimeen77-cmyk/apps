@@ -283,7 +283,7 @@ function drawRamp(cv0, f, layer, h) {
         // gauge mode: a row of the ramp's slanted blocks under the row, yellow lit, outlined unlit
         if (bar) {
             // unlit blocks a faint yellow to the end; a temperature gets a round bulb at the left (a thermometer)
-            const temp = it.id === 'oil' || it.id === 'outside', c = it.tone === 'hot' ? RC.red : RC.yellow, x0 = 344, n = 8;
+            const temp = it.id === 'oil' || it.id === 'outside' || it.id === 'coolant' || it.id === 'gearbox', c = it.tone === 'hot' ? RC.red : RC.yellow, x0 = 344, n = 8;
             const pitch = (566 - x0) / n, lit = Math.round(clamp(it.frac, 0, 1) * n), top = y + 7, bot = y + 17, sl = 5;
             if (temp) { require('./rl-thermo').thermo(cv, 344, y + 11, 222, 8, it.frac, c, { glass: RC.band }); return; }
             for (let k = 0; k < n; k++) {
