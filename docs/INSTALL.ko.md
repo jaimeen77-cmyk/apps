@@ -34,7 +34,7 @@ MGU Store에서 **Settings → Add source(소스 추가)**를 열고 아래 소�
 | 계기판 레드라인 (한국어) / Cluster Redline (English) | 1.3.105 | ✅ | ✅ | `cluster-render` 0.4.0+, `redline-lead` 0.8.1(이 소스, 앞차·차선 도우미), `mgu-deploy` 0.7.17+ |
 | MGU 모니터 (한국어) / MGU Monitor (English) | 1.1.10 | ✅ | ✅ | `mgu-monitor-names` 0.1.0(이 소스), `mgu-deploy` |
 | 아이드라이브 회로 (한국어) / iDrive Circuit (English) | 1.0.5 | ✅ | ✅ | `mgu-deploy` |
-| 시트 Easy Access (한국어) / Seats Easy Access (English) | 0.7.10 | ✅ | ✅ | `iteriodev-comfort` 0.6.1+, `mgu-deploy` 0.7.11+ |
+| 시트 Easy Access (한국어) / Seats Easy Access (English) | 0.7.12 | ✅ | ✅ | `iteriodev-comfort` 0.6.1+, `mgu-deploy` 0.7.11+ |
 | 8게임즈 | 0.2.4 | ✅ | — | `idrive7-renderd`, `mgu-inputgate`, `mgu-deploy` |
 | GIF 플레이어 (한국어) | 0.4.8 | ✅ | — | `idrive7-renderd`, `mgu-inputgate`, `mgu-gif-net` 0.1.0(이 소스), `mgu-deploy` |
 | Spotify (한국어) | 2.0.0 | ✅ | — | `idrive7-renderd` 2.1.7+, `mgu-inputgate` 1.0.0+, `mgu-deploy` 0.7.17+ |
