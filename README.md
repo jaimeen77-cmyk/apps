@@ -57,7 +57,7 @@ Plays GIFs uploaded from your phone in the home-screen widget and on its Animati
 The Spotify Connect player and cover-art library of hexlay/idrive7-custom-apps in Korean, with a Hangul font so Korean song titles show. Needs the internet.
 → **[Guide (Korean)](apps/spotify/README.ko.md)**
 
-### Seats Easy Access 0.7.10 · iDrive 7·8 · English/Korean
+### Seats Easy Access 0.7.12 · iDrive 7·8 · English/Korean
 
 <img src="apps/seats_easy_access/screenshots/driver-en.jpg" width="640" alt="Seats Easy Access">
 

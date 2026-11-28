@@ -178,7 +178,9 @@ async function start(ctx, options) {
             const supported = state && state.seats.axes[who].indexOf(a) >= 0;
             const enabled = ready && supported && !easy.actionReady(who, false, false);
             cv.text(tr(labels[a][2]), x + 61, y - 13, 21, '#d4dce5', { align: 'center', literal: true });
-            [-1, 1].forEach((dir, i) => {
+            // the photo faces left, so ◀ is forward. Comfort's +1 is forward (car: fore/aft -1 went back) and up,
+            // so on the two ◀ ▶ axes (fore/aft, backrest) the left arrow sends +1; ▼ ▲ keep -1 / +1.
+            (a === 'SLV' || a === 'LNV' ? [1, -1] : [-1, 1]).forEach((dir, i) => {
                 const bx = x + 68 * i;
                 const id = a + (i ? '_PLUS' : '_MINUS');
                 if (enabled) jogTargets.push({ id, axis: a, dir, x: bx, y, size: 54 });

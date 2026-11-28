@@ -2,6 +2,14 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Seats Easy Access 0.7.12 (◀ moves the seat and the backrest forward)
+
+- **Fix: fore/aft arrows were reversed** (the user, with a photo). The seat picture faces left, but ◀ under "Fore / aft" sent Comfort's −1, which moved the seat back. ◀ now moves the seat forward and ▶ back.
+- **Backrest arrows follow the same rule**: ◀ sent −1 like fore/aft. Comfort's +1 is forward (fore/aft, seen in the car), so ◀ now sends +1 (backrest forward, more upright) and ▶ −1 (reclines). Not yet checked in the car.
+- Height, cushion and headrest (▼ / ▲) are unchanged: ▲ sends +1, the same "up / forward is +1" rule.
+- Driver's and passenger's seat alike. 0.7.11 (fore/aft only) was not released.
+- Test: `seats-screen` presses every arrow and checks the direction each one sends.
+
 ## Cluster Redline 1.3.103 (lead car cyan at the same speed; the lamps keep their place across drive modes)
 
 - **Lead-car headway: cyan at the same speed** (the user). The colours now come only while closing in on the car ahead:
