@@ -660,19 +660,32 @@ class SettingsPage{
  // The 0-100 screen (1.3.105): on / off, its Position / size, the best time and clearing it
  drawLaunch(cv,cfg,targets){
   const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
+  // left: on / off and what it does; right: the runs as a table (the best on top, then the last 10)
   cv.text(tr('0-100 screen'),100,126,32,'#ef4050',{literal:true});
   [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*266,146,254,64,()=>set('hudLaunch',o[0]),cfg.hudLaunch===o[0],'launch-'+o[0]));
-  cv.text(tr('On the HUD: the speed, the acceleration in g with its bar, and the 0-100 km/h time.'),100,262,21,'#c1cddd',{literal:true});
-  cv.text(tr('Timed from the moment the car moves off until 100 km/h; slowing down 10 km/h drops the run. The best is kept.'),100,294,19,'#91a1b6',{literal:true});
-  cv.text(tr('Best')+': '+(cfg.launchBest>0?cfg.launchBest.toFixed(2)+' s':'-'),1110,188,24,cfg.launchBest>0?'#3ddc6a':'#91a1b6',{literal:true});
-  // the last 10 runs, newest first, in two columns (the best in green), with the day and time
-  {const runs=D.launchRuns(cfg),day=at=>{const d=new Date(cfg.clockZone==='utc9'?at+9*3600000:at),u=cfg.clockZone==='utc9';return (u?d.getUTCMonth():d.getMonth())+1+'/'+(u?d.getUTCDate():d.getDate())+' '+D.clockText(cfg,new Date(at));};
-   cv.text(tr('Last 10 runs')+(runs.length?'':' · '+tr('none yet')),100,330,20,'#91a1b6',{literal:true});
-   runs.forEach((r,i)=>{const x=100+Math.floor(i/5)*560,y=360+(i%5)*20,b=cfg.launchBest>0&&Math.abs(r.t-cfg.launchBest)<0.005;
-    cv.text((i+1)+'.  '+r.t.toFixed(2)+' s   '+day(r.at),x,y,17,b?'#3ddc6a':'#c1cddd',{literal:true});});}
-  this.button(cv,local,tr('Position / size'),84,448,500,64,()=>{this.layoutKind='launch';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Launch']);this.setPreview(true);this.changed();},false,'launch-layout');
+  [tr('On the HUD: the speed, the acceleration in g'),tr('with its bar, and the 0-100 km/h time.'),tr('Timed from moving off to 100 km/h;'),tr('slowing down 10 km/h drops the run.')].forEach((l,i)=>cv.text(l,100,262+i*30,i<2?20:18,i<2?'#c1cddd':'#91a1b6',{literal:true}));
+  this.button(cv,local,tr('Position / size'),84,448,300,64,()=>{this.layoutKind='launch';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Launch']);this.setPreview(true);this.changed();},false,'launch-layout');
   const armed=this.launchClearArmed&&Date.now()-this.launchClearArmed<5000;
-  this.button(cv,local,armed?tr('Press again to clear'):tr('Clear the runs'),600,448,400,64,()=>{if(armed){this.launchClearArmed=null;this.settings.set('launchRuns','[]');set('launchBest',0);}else{this.launchClearArmed=Date.now();this.changed();}},!!armed,'launch-clear');
+  this.button(cv,local,armed?tr('Press again to clear'):tr('Clear the runs'),400,448,300,64,()=>{if(armed){this.launchClearArmed=null;this.settings.set('launchRuns','[]');set('launchBest',0);}else{this.launchClearArmed=Date.now();this.changed();}},!!armed,'launch-clear');
+  {const runs=D.launchRuns(cfg),u=cfg.clockZone==='utc9',dt=at=>{const d=new Date(u?at+9*3600000:at);return {day:(u?d.getUTCFullYear():d.getFullYear())+'-'+String((u?d.getUTCMonth():d.getMonth())+1).padStart(2,'0')+'-'+String(u?d.getUTCDate():d.getDate()).padStart(2,'0'),time:D.clockText(cfg,new Date(at))};};
+   const best=cfg.launchBest>0?cfg.launchBest:null,bestRun=best!==null?runs.find(r=>Math.abs(r.t-best)<0.005):null;
+   const X0=740,X1=1540,COLS=[[X0+16,'#','left'],[X0+70,tr('Date'),'left'],[X0+290,tr('Time'),'left'],[X0+560,tr('Run'),'right'],[X1-20,tr('vs best'),'right']],RH=27;
+   cv.roundRect(X0-6,90,X1-X0+12,164+10*RH-84,8,[8,10,14,225]);
+   cv.roundRect(X0,96,X1-X0,30,4,'#1b2027');COLS.forEach(([x,t,al])=>cv.text(t,x,117,17,'#8d97a4',{align:al,literal:true}));
+   // the best, on top
+   cv.roundRect(X0,128,X1-X0,32,4,best!==null?'#123321':'#14181e');
+   cv.text('BEST',COLS[0][0],151,18,best!==null?'#3ddc6a':'#6f7c8a',{font:'bold',literal:true});
+   if(best!==null){const w=bestRun?dt(bestRun.at):null;if(w){cv.text(w.day,COLS[1][0],151,18,'#c9f5d6',{literal:true});cv.text(w.time,COLS[2][0],151,18,'#c9f5d6',{literal:true});}
+    cv.text(best.toFixed(2)+' s',COLS[3][0],151,20,'#3ddc6a',{font:'bold',align:'right',literal:true});}
+   else cv.text(tr('none yet'),COLS[1][0],151,18,'#6f7c8a',{literal:true});
+   // the last 10, newest first; a grid like a sheet
+   for(let i=0;i<10;i++){const y=164+i*RH,r=runs[i];if(i%2)cv.fillRect(X0,y,X1-X0,RH,'#11151a');cv.fillRect(X0,y+RH-1,X1-X0,1,'#262c35');
+    if(!r)continue;const w=dt(r.at),isBest=best!==null&&Math.abs(r.t-best)<0.005,c=isBest?'#3ddc6a':'#c1cddd';
+    cv.text(String(i+1),COLS[0][0],y+20,16,'#8d97a4',{literal:true});cv.text(w.day,COLS[1][0],y+20,16,c,{literal:true});cv.text(w.time,COLS[2][0],y+20,16,c,{literal:true});
+    cv.text(r.t.toFixed(2)+' s',COLS[3][0],y+20,17,c,{font:isBest?'bold':undefined,align:'right',literal:true});
+    if(best!==null)cv.text(isBest?'—':'+'+(r.t-best).toFixed(2),COLS[4][0],y+20,16,isBest?'#3ddc6a':'#8d97a4',{align:'right',literal:true});}
+   [COLS[1][0]-14,COLS[2][0]-14,COLS[3][0]+30].forEach(x=>cv.fillRect(x,96,1,164+10*RH-96,'#262c35'));
+   if(!runs.length)cv.text(tr('No runs yet: they appear here after each 0-100.'),X0+16,164+20,16,'#6f7c8a',{literal:true});}
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // QR log collection (1.3.100): the helper's page (redline-lead 0.8.0) gives nav-probe.log and road-alerts.log to a phone,
