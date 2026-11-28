@@ -50,7 +50,7 @@
       "requires": {
         "mgu-deploy": "0.7.17",
         "cluster-render": "0.4.0",
-        "redline-lead": "0.8.0"
+        "redline-lead": "0.8.1"
       },
       "build": {
         "node": "tools/store-build.js",
@@ -127,7 +127,7 @@
       "requires": {
         "mgu-deploy": "0.7.17",
         "cluster-render": "0.4.0",
-        "redline-lead": "0.8.0"
+        "redline-lead": "0.8.1"
       },
       "build": {
         "node": "tools/store-build.js",
@@ -301,7 +301,7 @@
     },
     {"id": "gif_home_ko", "version": "0.4.8", "kind": "app", "title": "GIF 플레이어 (한국어)", "description": "홈 화면 큰 위젯에 움직이는 GIF · 휴대폰 QR 연결로 GIF 올리기 · 그룹·재생 목록 · iDrive 7 전용 · GPU 렌더러·컨트롤러 연결·GIF 네트워크 도우미 함께 설치", "path": "store/apps/gif_home_ko", "mguHmi": ["ID7"], "requires": {"mgu-deploy": "0.7.17", "idrive7-renderd": "2.1.18", "mgu-inputgate": "1.1.0", "mgu-gif-net": "0.1.0"}, "build": {"node": "tools/store-build.js", "args": ["--template", "gif_home", "--id", "{id}", "--version", "{version}", "--dir", "{dir}", "--language", "ko", "--source", "apps/gif_home"], "sdk": "oap-sdk", "network": false, "shared": ["store/runtime", "tools/store-build.js", "localization/ko-additions.tsv", "apps/gif_home"]}},
     {"id": "spotify_ko", "version": "2.0.0", "kind": "app", "title": "Spotify (한국어)", "description": "Spotify Connect 플레이어 · 플레이리스트·좋아요 표시한 곡·커버 아트 · 휴대폰 QR로 계정 연결 · 한글 곡 제목 표시 · 인터넷 필요 · iDrive 7 전용 · GPU 렌더러·컨트롤러 연결 필요 · hexlay/idrive7-custom-apps 한국어판", "path": "store/apps/spotify_ko", "mguHmi": ["ID7"], "requires": {"mgu-deploy": "0.7.17", "idrive7-renderd": "2.1.7", "mgu-inputgate": "1.0.0"}, "build": {"node": "tools/store-build.js", "args": ["--template", "spotify", "--id", "{id}", "--version", "{version}", "--dir", "{dir}", "--language", "ko", "--source", "apps/spotify"], "sdk": "oap-sdk", "network": false, "shared": ["store/runtime", "tools/store-build.js", "localization/ko-additions.tsv", "apps/spotify"]}},
-    {"id": "redline-lead", "kind": "tool", "version": "0.8.0", "title": "Cluster Redline 앞차 도우미", "description": "Cluster Redline HUD 앞차 간격·차선 표시·주변 물체와 위치 확인용 · 앞 카메라 물체·차선 목록, 레이더, GPS 위치(위치 확인을 켰을 때만, 저장 안 함), 크루즈(ACC) 표시 상태를 루트 권한으로 읽기만 함(앱 권한으로는 막혀 있는 차량) · 우리 코드(MIT) · ID8 미검증", "path": "native/redline-lead", "mguHmi": ["ID7", "ID8"], "uninstallable": true},
+    {"id": "redline-lead", "kind": "tool", "version": "0.8.1", "title": "Cluster Redline 앞차 도우미", "description": "Cluster Redline HUD 앞차 간격·차선 표시·주변 물체와 위치 확인용 · 앞 카메라 물체·차선 목록, 레이더, GPS 위치(위치 확인을 켰을 때만, 저장 안 함), 크루즈(ACC) 표시 상태를 루트 권한으로 읽기만 함(앱 권한으로는 막혀 있는 차량) · 우리 코드(MIT) · ID8 미검증", "path": "native/redline-lead", "mguHmi": ["ID7", "ID8"], "uninstallable": true},
     {"id": "mgu-gif-net", "kind": "tool", "version": "0.1.0", "title": "GIF Home Network Bridge", "description": "GIF 플레이어 네트워크 도우미 · wlan_bridge에서 TCP 18883만 잠시 엽니다 · NamelsMissing/mgu-apps 원본 그대로", "path": "native/gif-net", "mguHmi": ["ID7"], "uninstallable": true}
   ]
 }

@@ -22,7 +22,7 @@ function drive(objAt,o){const r=new RoadAlerts(),hits=[];const kmh=(o&&o.kmh)||4
 {// our own lane change: a line under the car, so the drifting car is not taken
  const {hits}=drive(s=>[{id:7,type:3,x:20,y:s<3?3.3:Math.max(0.3,3.3-(s-3)*1.2)}],{lines:s=>s<3?lines:[{y:0.3,angle:0},{y:-3,angle:0}]});assert.strictEqual(hits.length,0,'our lane change: nothing');}
 {// slow: under 20 km/h no cut-in
- const {hits}=drive(s=>[{id:7,type:3,x:20,y:s<3?3.3:Math.max(0.3,3.3-(s-3)*1.2)}],{kmh:15});assert.strictEqual(hits.length,0,'under 20 km/h: no cut-in');}
+ const {hits}=drive(s=>[{id:7,type:3,x:20,y:s<3?3.3:Math.max(0.3,3.3-(s-3)*1.2)}],{kmh:10});assert.strictEqual(hits.length,0,'under 15 km/h (1.3.102): no cut-in');}
 {// a pedestrian stepping into our path 18 m ahead at 40 km/h (11 m/s: 1.6 s)
  const {hits,r}=drive(s=>s<4?[{id:3,type:0,x:Math.max(2,30-s*11),y:Math.max(0.2,2.6-s*0.8)}]:[]);
  assert(hits.some(h=>h.kind==='vru'),'a pedestrian in our path warns');}
