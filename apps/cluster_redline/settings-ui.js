@@ -596,7 +596,7 @@ class SettingsPage{
   cv.text(tr('Standing behind a car that moves off: Moving off in green for 3 s.'),330,122,18,'#3ddc6a',{literal:true});
   {const hh=this.liveState&&this.liveState.headway;
    if(hh&&hh.unsupported)cv.text(tr('Neither the radar nor the Drive assist view is offered to apps on this car (the cluster gets them directly): the badge cannot show here.'),100,284,19,'#ffad45',{literal:true});
-   else cv.text(tr('Under 0.6 s, or under 1.0 s while closing in, red · under 1.0 s amber · else cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}
+   else cv.text(tr('Colours only while closing in: fast (5 km/h+) under 1.0 s red, under 1.5 s amber; slowly under 1.0 s amber. The same speed: cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}
   // what arrives: the raw values, to check the signal on this car
   const h=this.liveState&&this.liveState.headway,r=h&&h.raw||{},f=v=>v===null||v===undefined?'-':String(v);
   cv.text(this.headwayValue(cfg),100,322,21,h&&h.unsupported?'#ffad45':'#c1cddd',{literal:true});
