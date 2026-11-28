@@ -1,4 +1,4 @@
-# 시트 Easy Access 0.7.11 설명서
+# 시트 Easy Access 0.7.12 설명서
 
 [English](README.md) · [설치 안내](../../docs/INSTALL.ko.md) · [앱 소개](../../README.ko.md)
 
