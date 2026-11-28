@@ -108,7 +108,7 @@ function start(ctx) {
     // the HUD lane lines (lane-lines.js, 1.3.77): from the root helper, only while on
     const laneLines=new LaneLines(mono),laneOverlay=new LaneOverlay(client),departure=new LeadDeparture();let departureOn=false;
     // (1.3.95) the nav-probe.log for a phone, through the root helper's page (its own connection, not the car ahead's)
-    const shareHelper=new (require('./lead-helper').LeadHelper)(null,mono),navProbeFile=ctx.dataDir?path.join(ctx.dataDir,'nav-probe.log'):null;let shareCmdAt=-Infinity,accSeenAt=-Infinity,camAlert=null;const speedCams=new (require('./speed-cams').SpeedCams)(),roadAlerts=new (require('./road-alerts').RoadAlerts)(),roadLog=new (require('./road-log').RoadLog)({dir:ctx.dataDir||null,version:(ctx.spec&&ctx.spec.version)||''});let logStamps=null;const ACC_HOLD_MS=2000;
+    const shareHelper=new (require('./lead-helper').LeadHelper)(null,mono),navProbeFile=ctx.dataDir?path.join(ctx.dataDir,'nav-probe.log'):null;let navArrow=null,shareCmdAt=-Infinity,accSeenAt=-Infinity,camAlert=null;const speedCams=new (require('./speed-cams').SpeedCams)(),roadAlerts=new (require('./road-alerts').RoadAlerts)(),roadLog=new (require('./road-log').RoadLog)({dir:ctx.dataDir||null,version:(ctx.spec&&ctx.spec.version)||''});let logStamps=null;const ACC_HOLD_MS=2000;
     const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',greetingNow=null;
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
@@ -433,6 +433,14 @@ function start(ctx) {
             // the turn after the next one, when it follows close behind (route-events.js next): under the HUD's arrow
             const thenTurn=config.hudNavThen!=='off'&&maneuverState.visible?routeEvents.next(at,routeKey||turnKey,maneuverState):null;
             controller.navigation=Object.assign({},maneuverState,{visible:!!visible,maneuverVisible:!!maneuverState.visible,lanes:laneData,then:thenTurn});
+            // (1.3.101) the arrow going away and coming back (nav-probe.js arrow): why, from what the navigation said then
+            {const vis=!!visible,want=!!hudKey;
+             if(navArrow!==null&&vis!==navArrow&&(want||navArrow)){
+              const views=(hudGuidance.views||[]).map(v=>({ui:v.targetUI,type:v.contentType===undefined?null:v.contentType}));
+              const why=!config.appEnabled?'app_off':!navAllowed(config,controller.policy.mode)?'drive_mode':!commonManeuver.active?(commonManeuver.reason||'guidance_inactive'):!commonManeuver.known?'provider_unknown':!maneuverState.visible?(views.length&&!views.some(v=>v.type===1||v.type==='HIGH_GUIDING')?'hud_view_not_a_turn':'no_turn'):!visible?'parts_hidden':'shown';
+              navProbe.arrow(vis,{why,provider:commonManeuver.provider||maneuvers.provider||null,guidance:commonManeuver.reason||null,hudView:hudGuidance.state,hudError:hudGuidance.lastError||null,views,routeList:routeKey?routeEvents.state:null,routeError:routeKey?routeEvents.lastError||null:null,
+               turnAgeMs:hudGuidance.at!==null&&hudGuidance.at!==undefined?Math.round(at-hudGuidance.at):null,phone:!!phoneNow});}
+             navArrow=vis;}
             // No decoded arrow means non-contending RPM, not disabled HUD.
             // The native renderer still yields to real stock content/popups.
             controller.hudBlocked=rendererInfo.hudGuidanceSafe===false;

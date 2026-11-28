@@ -46,6 +46,15 @@ class NavProbe {
    this.fs.appendFileSync(this.file,text);this.written++;this.error=null;}catch(e){this.error=String(e&&e.message||e).slice(0,80);}
  }
  /**
+  * (1.3.101) The HUD's arrow went away or came back (on: shown now), with why: what the navigation said then
+  * (detail: the guidance state and reason, the provider, what the HUD view sent: its content types, how old the last turn
+  * is). One line a change, while recording; counted for the screen either way.
+  */
+ arrow(on,detail){
+  this.arrowChanges=(this.arrowChanges||0)+1;if(!on)this.arrowHidden=(this.arrowHidden||0)+1;
+  this.write(Object.assign({at:this.wall().toISOString(),source:'arrow',event:on?'shown':'hidden'},detail||{}));
+ }
+ /**
   * A turn received. source: 'dart' (the guidance's current turn) or 'route' (the route's event list, first turn);
   * provider: CAR_PLAY / ANDROID_AUTO / NONE ...; union: the turn as received ({ branch: {...} }); drawn: what the HUD
   * drew for it ('highway', 'branch', 'roundabout', 'road', 'arrow', or 'none': not shown).
@@ -73,7 +82,7 @@ class NavProbe {
   try{this.turn('route',provider,events[0],drawn,{events:events.slice(0,6)});}finally{this.recording=was;}
  }
  list(){return this.entries.map(e=>({source:e.source,time:e.time,provider:e.provider,kind:e.kind,fields:e.fields,dist:e.dist,text:e.text,drawn:e.drawn,count:e.count}));}
- status(){return {recording:this.recording,written:this.written,error:this.error,turns:this.list(),route:this.routeInfo?Object.assign({},this.routeInfo):null};}
+ status(){return {arrowChanges:this.arrowChanges||0,arrowHidden:this.arrowHidden||0,recording:this.recording,written:this.written,error:this.error,turns:this.list(),route:this.routeInfo?Object.assign({},this.routeInfo):null};}
 }
 /** What the HUD draws for a decoded turn (nav-draw): 'highway', 'branch', 'roundabout', 'road', 'arrow' or 'none'. */
 function drawnOf(decoded){if(!decoded||!decoded.maneuver)return 'none';let k=null;try{k=require('./nav-draw').diagramKind(Object.assign({visible:true},decoded));}catch(e){return 'arrow';}return k||'arrow';}
