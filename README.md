@@ -57,7 +57,7 @@ Plays GIFs uploaded from your phone in the home-screen widget and on its Animati
 The Spotify Connect player and cover-art library of hexlay/idrive7-custom-apps in Korean, with a Hangul font so Korean song titles show. Needs the internet.
 → **[Guide (Korean)](apps/spotify/README.ko.md)**
 
-### Seats Easy Access 0.7.10 · iDrive 7·8 · English/Korean
+### Seats Easy Access 0.7.12 · iDrive 7·8 · English/Korean
 
 <img src="apps/seats_easy_access/screenshots/driver-en.jpg" width="640" alt="Seats Easy Access">
 
@@ -87,4 +87,5 @@ The pictures in the guides are drawn by the apps' own drawing code from the actu
 - **GIF player**: GPL-3.0, as the original GIF Home (NamelsMissing/mgu-apps) ([NOTICE](NOTICE.gif-home.md)).
 - **Spotify (Korean edition)**: GPL-3.0, as the original Spotify (hexlay/idrive7-custom-apps) ([NOTICE](NOTICE.spotify.md)).
 - **8게임즈**: MIT, as the original Parked Games Maksim (GitHub: MaxxxFoka)([NOTICE](apps/parked_games/NOTICE)).
-- The other apps and the runtime kit: MIT ([LICENSE](LICENSE)). MGU Monitor's sources: [NOTICE](apps/storage/NOTICE).
+- **MGU Monitor**: the app sources the repository owner was given (the community mgu_storage demo and the app author's code) came with no license. This repository's MIT license does not cover them; only the Korean localization and Store packaging are this repository's work ([NOTICE](apps/storage/NOTICE)).
+- The other apps and the runtime kit: MIT ([LICENSE](LICENSE)).

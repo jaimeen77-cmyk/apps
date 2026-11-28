@@ -48,3 +48,6 @@ Test by hand on the unit (root): `/var/opt/redline-lead/current/redline-someip 0
   older `.1` part first, and both together as `redline-logs.tar.gz`. Only those two names in an
   `/var/opt/public/oap/oap_<n>/data` folder; a symlink is never followed (the app's folder is the app's to write, the
   helper reads as root).
+- 0.8.1: the shared folder's path is tidied (a trailing slash, `..`) and its real place (symlinks resolved) checked and
+  then used; a refused folder is reported with its path (`folder not allowed: ...`), which the app shows. On the user's
+  car the 0.8.0 page did not open.

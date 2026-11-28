@@ -64,7 +64,7 @@ const HEADWAY_KEYS=Object.keys(D.defaults).filter(k=>/^hudHeadway/.test(k));
 const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White',lime:'Neon'};
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
 const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','clusterYieldAcc','hudHideWaze','hudCarCams','hudRoadAlerts','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen','bcHmi','bcPages','bcHudPages','bcStart',
- // (1.3.101) the options added since that a favourite left out: drive-mode display, BC follow, lane lines, the 3D icons, the
+ // (1.3.104) the options added since that a favourite left out: drive-mode display, BC follow, lane lines, the 3D icons, the
  // next-turn box's place, the calm clock's tone, the greetings, My picture's GIFs (checks, logs and the car's state stay out)
  'hudModeSetup','clusterModeSetup','bcFollow','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','hudThenOffsetX','hudThenOffsetY','hudThenScale','hudThenHidden','calmTone','greetHello','greetBye','myPicIds'].concat(DOOR_KEYS,HEADWAY_KEYS).concat(TURN_KEYS,ALERT_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
@@ -599,7 +599,7 @@ class SettingsPage{
   cv.text(tr('Standing behind a car that moves off: Moving off in green for 3 s.'),330,122,18,'#3ddc6a',{literal:true});
   {const hh=this.liveState&&this.liveState.headway;
    if(hh&&hh.unsupported)cv.text(tr('Neither the radar nor the Drive assist view is offered to apps on this car (the cluster gets them directly): the badge cannot show here.'),100,284,19,'#ffad45',{literal:true});
-   else cv.text(tr('Under 1.0 s red · 1.0 to 1.5 s amber · 1.5 s and over cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}
+   else cv.text(tr('Colours only while closing in: fast (5 km/h+) under 1.0 s red, under 1.5 s amber; slowly under 1.0 s amber. The same speed: cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}
   // what arrives: the raw values, to check the signal on this car
   const h=this.liveState&&this.liveState.headway,r=h&&h.raw||{},f=v=>v===null||v===undefined?'-':String(v);
   cv.text(this.headwayValue(cfg),100,322,21,h&&h.unsupported?'#ffad45':'#c1cddd',{literal:true});
@@ -615,7 +615,7 @@ class SettingsPage{
   if(h&&cfg.hudHeadway!=='off'&&h.helper){const x=h.helper,cm=x.cam||{},rd=x.radar||{},on=x.state==='connected'||x.lines>0;
    cv.text(tr('Lead-car helper')+': '+(!on?tr('not installed (Store: Cluster Redline lead-car helper)'):tr('connected')+' · '+tr('camera')+' '+tr('received')+' '+(cm.rx||0)+(cm.lead?' · '+tr('car followed')+' #'+cm.lead.id+' '+cm.lead.m+' m':' · '+tr('no car ahead'))+(typeof cm.objects==='number'?' · '+tr('road users')+' '+cm.objects:' · '+tr('helper 0.2 (update)'))+' · '+tr('radar')+' '+(rd.rx||0)+(rd.gapX!==null&&rd.gapX!==undefined?' (gapX '+rd.gapX+')':'')),100,426,16,on?(cm.lead?'#5ee08f':'#c1cddd'):'#ffad45',{literal:true});}
   if(h&&cfg.hudHeadway!=='off')cv.text(tr('From the car')+': '+tr('received')+' '+(h.received||0)+' · status '+f(r.status)+' · gap '+f(r.gap)+' · gapX '+f(r.gapX)+' · object '+f(r.object)+' · qualifier '+f(r.qualifier)+(r.kind?' · '+r.kind:''),100,344,16,'#7f8b9a',{literal:true});
-   // (1.3.101) how soon the moving-off alert comes: one button, each press the next (off → faster → quick → relaxed)
+   // (1.3.104) how soon the moving-off alert comes: one button, each press the next (off → faster → quick → relaxed)
    {const DEP=[['off','Off'],['faster','Faster (1 m)'],['quick','Quick (1.5 m)'],['relaxed','Relaxed (3 m)']],cur=DEP.findIndex(o=>o[0]===(cfg.hudHeadwayDepart||'quick'));
     this.button(cv,local,tr('Moving-off alert')+' · '+tr(DEP[cur<0?2:cur][1]),796,448,402,64,()=>set('hudHeadwayDepart',DEP[((cur<0?2:cur)+1)%DEP.length][0]),false,'headway-depart');}
   this.button(cv,local,tr('Position / size'),84,448,700,64,()=>{this.layoutKind='headway';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Headway']);this.setPreview(true);this.changed();},false,'headway-layout');
@@ -665,7 +665,8 @@ class SettingsPage{
   const kb=n=>typeof n==='number'?Math.max(1,Math.round(n/1024))+' KB':tr('no file yet');
   cv.text(tr('QR log collection'),100,126,32,'#ef4050',{literal:true});
   [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,'QR '+tr(o[1]),84+i*266,146,254,64,()=>set('navShare',o[0]),cfg.navShare===o[0],'qrlog-'+o[0]));
-  const st=!x||cfg.navShare!=='on'?tr('QR off'):x.state!=='connected'?tr('Lead-car helper')+': '+tr('not installed (Store: Cluster Redline lead-car helper)'):!x.listening?tr('opening the page'):tr('Page open')+' · '+tr('scan the code with the phone on the same Wi-Fi as the car');
+  // (1.3.102) the helper's own error (a refused folder, a port in use) shown as it says it
+  const st=!x||cfg.navShare!=='on'?tr('QR off'):x.state==='connected'&&x.error?tr('Lead-car helper')+': '+x.error:x.state!=='connected'?tr('Lead-car helper')+': '+tr('not installed (Store: Cluster Redline lead-car helper)'):!x.listening?tr('opening the page'):tr('Page open')+' · '+tr('scan the code with the phone on the same Wi-Fi as the car');
   const lines=[['nav-probe.log · '+kb(x&&x.navProbeSize)+' · '+tr('Received turns recording')+' '+tr(cfg.navProbeLog==='on'?'On':'Off'),'#c1cddd'],
    ['road-alerts.log · '+kb(rl.size)+' · '+tr('Warning recording')+' '+tr(cfg.roadLog==='on'?'On':'Off')+(rl.saved?' · '+rl.saved+' '+tr('saved'):'')+(rl.error?' · '+rl.error:''),'#c1cddd'],
    [st,x&&x.listening?'#5ee08f':'#ffad45']];
@@ -735,7 +736,7 @@ class SettingsPage{
   // the route's turn list (1.3.67): how many turns it holds; one only (a phone sending just the next turn): no next turn
   {const r=p&&p.route,txt=r?tr('Route turn list')+': '+tr('last')+' '+r.last+' · '+tr('most')+' '+r.max+' · '+r.count+' '+tr('times')+(r.provider?' · '+r.provider:'')+(r.gap!==null?' · '+tr('1st to 2nd')+' '+r.gap+' m':'')+' · '+r.time+' → '+tr(r.max>=2?'next turns arrive':'only one turn: no next turn'):tr('Route turn list')+': '+tr('none received yet');
    cv.text(txt,100,452,18,r?(r.max>=2?'#5ee08f':'#ffad45'):'#91a1b6',{literal:true});}
-  const status=tr('Newest first · the same turn again only updates its distance')+(p&&p.recording?' · nav-probe.log '+p.written+' '+tr('lines saved'):'')+(p&&p.error?' · '+p.error:'');
+  const status=tr('Newest first · the same turn again only updates its distance')+(p&&p.arrowHidden?' · '+tr('arrow hidden')+' '+p.arrowHidden:'')+(p&&p.recording?' · nav-probe.log '+p.written+' '+tr('lines saved'):'')+(p&&p.error?' · '+p.error:'');
   cv.text(status,100,482,18,'#91a1b6',{literal:true});
   this.button(cv,local,tr('QR log collection')+' · '+tr(cfg.navShare==='on'?'On':'Off'),800,448,396,64,()=>{this.open='qrLogs';this.shareIndex=0;this.clearArmed=null;this.choice=0;this.changed();},cfg.navShare==='on','navlog-share');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);

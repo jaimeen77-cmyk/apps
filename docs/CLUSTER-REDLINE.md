@@ -105,7 +105,7 @@ On the HUD (from the left: the default lane colour with teal 1.6 s, the lime gre
 - Choose **Off / Simple / Detailed** on top. **Distance correction** at the top right (− / +, 0 to −3 m in 0.5 m steps, **−2.0 m** by default) is taken off the distance shown: the car measures from its sensor behind the windscreen, so without it a car right in front still reads about 2 m (1.3.91). The time gap and its colour use the corrected distance, which never goes under 0 m.
 - **Where the car ahead comes from**: the **lead-car helper** (`redline-lead`: the front camera's object list and the radar) first; without it, the radar (ACC) service the car offers to apps, the front camera's object list, then the Drive assist view. The lines at the bottom show whether each one arrives, and the values received (before the correction). When the car gives apps none of them, `this car does not give the app the car ahead` shows.
 - **Lead car departure alert** (on with the headway badge): standing (under 1 km/h) for 1 s with a car within 20 m, when that car moves further than its nearest by the set distance (or is lost having been within 12 m), **Moving off** shows in green for 3 s.
-  - The **Moving-off alert** button under the headway screen (1.3.101) steps through **Off** / **Faster** (1 m, 0.2 s) / **Quick** (1.5 m, 0.3 s, the default) / **Relaxed** (3 m, 0.5 s).
+  - The **Moving-off alert** button under the headway screen (1.3.104) steps through **Off** / **Faster** (1 m, 0.2 s) / **Quick** (1.5 m, 0.3 s, the default) / **Relaxed** (3 m, 0.5 s).
   Once per stop; not in P, nor once you move. With the lane lines on, the car ahead turns green with an arrow too.
 - **Position / size**: the badge's place and size. The lane lines move and scale with it.
 
@@ -407,7 +407,7 @@ Save the current settings (design, auxiliary information, position / size, navig
 | **Load** | Applies the slot. If it is already in use, `Already in use` shows; pressed in quick succession, it asks you to wait a moment. |
 | **Check settings** | Shows what the slot holds; it can be loaded from there too. |
 
-- Since 1.3.101 a favourite also keeps the drive-mode display, BC follow, the lane lines (colour, warning sensitivity), the 3D navigation icons, the next-turn box's place, the moving-off alert, the greetings and My picture's GIFs. Checks and logs (Position check, log recording) are not kept.
+- Since 1.3.104 a favourite also keeps the drive-mode display, BC follow, the lane lines (colour, warning sensitivity), the 3D navigation icons, the next-turn box's place, the moving-off alert, the greetings and My picture's GIFs. Checks and logs (Position check, log recording) are not kept.
 - With Settings per driver on, each driver has their own five favourites.
 - In BC mode the screen of the current BC page is shown again right after a load.
 

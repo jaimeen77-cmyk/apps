@@ -1,5 +1,5 @@
 'use strict';
-// redline-lead 0.8.0: Cluster Redline's logs for a phone, read only, while the app asks for it ({t: 'cmd', share: true,
+// redline-lead 0.8.0 (0.8.1: the folder's path tidied and its real place checked): Cluster Redline's logs for a phone, read only, while the app asks for it ({t: 'cmd', share: true,
 // dir: its data folder}). A small page on PORT gives two files of that folder and nothing else:
 //   nav-probe.log    what the navigation sent (Received turns → Record to a file)
 //   road-alerts.log  the cut-in / pedestrian warnings recorded (QR log collection → Warning recording, Save a miss)
@@ -35,10 +35,18 @@ function addresses() {
     Object.keys(all).forEach((n) => (all[n] || []).forEach((a) => { if ((a.family === 'IPv4' || a.family === 4) && !a.internal && isPrivate(a.address)) list.push({ iface: n, ip: a.address }); }));
     return list.sort((a, b) => (a.iface === BRIDGE ? 0 : 1) - (b.iface === BRIDGE ? 0 : 1)).filter((a, i, l) => l.findIndex((o) => o.ip === a.ip) === i);
 }
-/** The folder a command names (dir, or 0.5.0's file), or null when it is not an app's data folder. */
+/** The folder a command names (dir, or 0.5.0's file), or null when it is not an app's data folder. 0.8.1: the path is
+ *  tidied first (a trailing slash, "." / ".."), and its real place (symlinks resolved) is checked too and then used, so
+ *  a data folder reached through a link works and a link out of it does not. */
 function folderOf(c) {
-    if (c && typeof c.dir === 'string' && DIR_OK.test(c.dir)) return c.dir;
-    if (c && typeof c.file === 'string' && ALLOWED.test(c.file)) return path.dirname(c.file);
+    let p = null;
+    if (c && typeof c.dir === 'string' && c.dir) p = c.dir;
+    else if (c && typeof c.file === 'string' && FILES.indexOf(path.basename(c.file)) >= 0) p = path.dirname(c.file);
+    if (!p || p[0] !== '/') return null;
+    const tidy = path.resolve(p);
+    let real = null; try { real = fs.realpathSync(tidy); } catch (e) {}
+    if (real && DIR_OK.test(real)) return real;
+    if (!real && DIR_OK.test(tidy)) return tidy;   // (not there yet: the app makes it)
     return null;
 }
 // a plain file only (no symlink, read without following one: root reads the app's folder), at most 8 MB; null otherwise
@@ -70,7 +78,7 @@ class Share {
     // c: the app's command ({share, dir} or 0.5.0's {share, file})
     sync(on, c) {
         const dir = on ? folderOf(c) : null;
-        if (on && c && !dir) { this.error = 'folder not allowed'; on = false; }
+        if (on && c && !dir) { this.error = 'folder not allowed: ' + String(c.dir || c.file || '').slice(0, 80); on = false; }
         if (on && dir) this.dir = dir;
         if (on && !this.server) {
             const s = http.createServer((q, r) => this.serve(q, r));

@@ -6,7 +6,7 @@ const assert=require('assert'),path=require('path');
 const {LeadVehicle,level,IFACE}=require('../../apps/cluster_redline/lead-vehicle');
 const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
 (async()=>{
- assert.deepStrictEqual([level(0.8),level(1.2),level(1.6),level(null)],['red','amber','ok','ok']);
+ assert.deepStrictEqual([level(0.5),level(0.5,0),level(0.5,2),level(null,-9)],['ok','ok','ok','ok'],'1.3.103: the same speed (or the closing speed unknown): cyan');assert.deepStrictEqual([level(0.8,-6),level(1.2,-6),level(1.6,-6),level(0.8,-3),level(1.2,-3)],['red','amber','ok','amber','ok'],'closing in fast / slowly');
  let t=0,watched=null,shut=0;const signals={loadConfig:(i)=>i===IFACE?{fields:{GapVehicleDrivingAhead:{},DataFrontVehicle:{},DataFrontVehicleExtended:{}}}:(()=>{throw new Error('none');})(),watch:(i,inst,h)=>{watched={i,inst,h};return Promise.resolve({available:true,shutdown(){shut++;}});}};
  const L=new LeadVehicle(signals,null,()=>'1',()=>t);
  L.sync(false);assert.strictEqual(watched,null,'off: nothing read');
@@ -16,9 +16,9 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  let r=L.read(0);assert.strictEqual(r.gap,36);assert.strictEqual(r.headway,1.8);assert.strictEqual(r.level,'ok');
  // closing in: 36 m -> 34 m in 1 s = -7.2 km/h
  t=1000;watched.h.DataFrontVehicle({qualifierEventDataFunctionFrontVehicle:1,frontVehicleObjectID:7,frontVehicleGapX:34/0.0625});r=L.read(1000);
- assert(r.closing<-7&&r.closing>-7.5,'closing '+r.closing);assert.strictEqual(r.level,'ok');
- t=1300;watched.h.DataFrontVehicle({frontVehicleObjectID:7,frontVehicleGapX:18/0.0625});assert.strictEqual(L.read(1300).level,'red','18 m at 72 km/h: 0.9 s, red');
- t=1600;watched.h.DataFrontVehicle({frontVehicleObjectID:7,frontVehicleGapX:26/0.0625});assert.strictEqual(L.read(1600).level,'amber','1.3 s: amber');
+ assert(r.closing<-7&&r.closing>-7.5,'closing '+r.closing);assert.strictEqual(r.level,'ok','1.7 s: cyan');
+ t=1300;watched.h.DataFrontVehicle({frontVehicleObjectID:7,frontVehicleGapX:18/0.0625});assert.strictEqual(L.read(1300).level,'red','18 m at 72 km/h: 0.9 s while closing in at 7 km/h, red');
+ t=1600;watched.h.DataFrontVehicle({frontVehicleObjectID:7,frontVehicleGapX:26/0.0625});assert.strictEqual(L.read(1600).level,'ok','18 m -> 26 m: pulling away, cyan (1.3.103)');
  // another car ahead: its closing speed starts again
  t=1900;watched.h.DataFrontVehicle({frontVehicleObjectID:9,frontVehicleGapX:50/0.0625});assert.strictEqual(L.read(1900).closing,null);
  // nothing ahead: gone; the coarse metres only while the fine distance is not coming
@@ -129,7 +129,7 @@ const flush=async()=>{for(let i=0;i<8;i++)await Promise.resolve();};
  {const {corrected}=require('../../apps/cluster_redline/lead-vehicle'),{settings:S}=require('../../apps/cluster_redline/policy');
   assert.strictEqual(S({}).hudHeadwayCorrection,-2,'-2 m by default');assert.strictEqual(S({hudHeadwayCorrection:-0.7}).hudHeadwayCorrection,-0.5);
   assert.strictEqual(S({hudHeadwayCorrection:-9}).hudHeadwayCorrection,-3);assert.strictEqual(S({hudHeadwayCorrection:2}).hudHeadwayCorrection,0);assert.strictEqual(S({hudHeadwayCorrection:'x'}).hudHeadwayCorrection,-2);
-  const c=corrected({gap:20,headway:1.0,closing:-3,level:'amber'},-2);assert.strictEqual(c.gap,18);assert(Math.abs(c.headway-0.9)<1e-9);assert.strictEqual(c.level,'red','the time gap from the corrected distance');assert.strictEqual(c.closing,-3);
+  const c=corrected({gap:20,headway:1.0,closing:-3,level:'amber'},-2);assert.strictEqual(c.gap,18);assert(Math.abs(c.headway-0.9)<1e-9);assert.strictEqual(c.level,'amber','the time gap from the corrected distance (0.9 s closing in at 3 km/h: amber)');assert.strictEqual(c.closing,-3);
   assert.strictEqual(corrected({gap:2,headway:null,closing:null,level:'ok'},-2).gap,0,'right behind it: 0 m');assert.strictEqual(corrected({gap:1.2,headway:null,level:'ok'},-2).gap,0,'never under 0');
   const raw={gap:20,headway:1,level:'amber'};assert.strictEqual(corrected(raw,0),raw,'0: as the car sends');assert.strictEqual(corrected(null,-2),null);
   assert.deepStrictEqual(corrected({gap:5,go:true},-2),{gap:3,go:true},'the moving-off badge too');}

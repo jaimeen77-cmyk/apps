@@ -77,6 +77,19 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
         assert.equal(screen.comfortLog, undefined);
         await tab(0);
         assert.equal(screen.easy.selectedSeat, 'driver');
+        // The seat photo faces left: ◀ is forward. Comfort's +1 is forward (fore/aft, seen in the car) and up.
+        for (const [axis, x, y, dir, name] of [['SLV', 1015, 330, 1, 'fore/aft ◀'], ['SLV', 1083, 330, -1, 'fore/aft ▶'],
+            ['LNV', 1014, 180, 1, 'backrest ◀'], ['LNV', 1082, 180, -1, 'backrest ▶'],
+            ['SHV', 460, 305, -1, 'height ▼'], ['SHV', 528, 305, 1, 'height ▲'],
+            ['SNV', 275, 320, -1, 'cushion ▼'], ['SNV', 343, 320, 1, 'cushion ▲'],
+            ['KHV', 490, 155, -1, 'headrest ▼'], ['KHV', 558, 155, 1, 'headrest ▲']]) {
+            await screen.render(true);
+            const pos = screen.client.state.seats.pos.driver, before = pos[axis];
+            assert.equal(touch(1, x, y), true, name + ' is a held button');
+            touch(3, x, y);
+            await new Promise((resolve) => setImmediate(resolve));
+            assert.equal(Math.sign(pos[axis] - before), dir, name + ' sends ' + dir);
+        }
         assert.ok(frames.length > 5);
         assert.equal(connections, 0);
     } finally { await screen.close(); }
@@ -117,6 +130,8 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
     assert.equal(touch(1, 1015, 330), true, 'a motor-only seat still supports held adjustment');
     await new Promise((resolve) => setTimeout(resolve, 300));
     assert.ok(car.sent.filter((q) => q.op === 'jog').length >= 2, 'the hold refreshes its Comfort command');
+    assert.deepStrictEqual(car.sent.filter((q) => q.op === 'jog').pop(), { op: 'jog', seat: 'driver', axis: 'SLV', dir: 1 },
+        'fore/aft ◀ (the photo faces left) moves the seat forward');
     touch(3, 1015, 330);
     assert.equal(stops(), 1, 'releasing sends stop');
     await new Promise((resolve) => setImmediate(resolve));

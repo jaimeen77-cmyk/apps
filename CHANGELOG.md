@@ -2,13 +2,52 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
-## Cluster Redline 1.3.101 (moving-off alert speed; favourites keep the options added since)
+## Cluster Redline 1.3.104 (moving-off alert speed; favourites keep the options added since)
 
 - **New: how soon the moving-off alert comes.** The headway screen's bottom row has a **Moving-off alert** button (출발 알림); each press goes to the next:
   - **Off** · **Faster** (the car ahead 1 m further, held 0.2 s) · **Quick** (1.5 m, 0.3 s: the 1.3.95 values, the default) · **Relaxed** (3 m, 0.5 s: as before 1.3.95).
   - Standing, the gap the camera measures moves 0.15 m at most (the user's clips of 2026-11-27), so Faster stays clear of it.
 - **Favourites (and drivers' settings) keep the options added since they were made**: drive-mode display (HUD and cluster), BC follow, lane lines (on / off, lane colour, warning sensitivity), the 3D navigation icons, the next-turn box's place and size, the calm clock's tone, the greetings, My picture's GIFs and the moving-off alert. Checks, logs and the car's own state (Position check, nav-probe and log recording, the BC page in step) stay out.
 - Tests: `lead-departure` (each speed in order, the default, off, no alert from the camera at rest; the setting's range; the favourite keys).
+## Seats Easy Access 0.7.12 (◀ moves the seat and the backrest forward)
+
+- **Fix: fore/aft arrows were reversed** (the user, with a photo). The seat picture faces left, but ◀ under "Fore / aft" sent Comfort's −1, which moved the seat back. ◀ now moves the seat forward and ▶ back.
+- **Backrest arrows follow the same rule**: ◀ sent −1 like fore/aft. Comfort's +1 is forward (fore/aft, seen in the car), so ◀ now sends +1 (backrest forward, more upright) and ▶ −1 (reclines). Not yet checked in the car.
+- Height, cushion and headrest (▼ / ▲) are unchanged: ▲ sends +1, the same "up / forward is +1" rule.
+- Driver's and passenger's seat alike. 0.7.11 (fore/aft only) was not released.
+- Test: `seats-screen` presses every arrow and checks the direction each one sends.
+
+## Cluster Redline 1.3.103 (lead car cyan at the same speed; the lamps keep their place across drive modes)
+
+- **Lead-car headway: cyan at the same speed** (the user). The colours now come only while closing in on the car ahead:
+  - closing at **5 km/h or more**: red under 1.0 s, amber under 1.5 s;
+  - closing at 2-5 km/h: amber under 1.0 s;
+  - the same speed, pulling away, or the closing speed not known yet: **cyan**, however close.
+- **Fix: Comfort → Sport → Comfort moved the lane picture** (the user; a favourite put it back). With the HUD in BC mode in Sport, the BC page's screen was written into the settings with every HUD place it had kept, the lead-car headway / lane picture's included, and nothing put them back.
+  - A BC page's screen and a drive mode's own screen now carry only the design's own places. The HUD lamps (lead-car headway and lane lines, turn signals and blind spot, door, vehicle alerts) and the navigation parts (arrow, text, then, lanes) always keep the place set for them.
+  - A place already moved this way stays until set again (or a favourite is loaded).
+- Tests: `headway` (colours only while closing in), `lamp-places` (a BC page and a drive mode's screen leave the lamps' places alone).
+
+## Cluster Redline 1.3.102 (lead-car colours calmer; QR log collection fixed; cut-in warnings eased)
+
+- **Lead-car headway: red nearly all the time in town** (the user). It was red under a 1.0 s time gap, amber under 1.5 s; with the -2 m correction (1.3.91) a car followed at 1 s in town showed red.
+  - **Red** now only under **0.6 s**, or under **1.0 s while closing in** at 5 km/h or more.
+  - **Amber** under 1.0 s; cyan otherwise. The Lead-car headway screen says so.
+- **QR log collection did not open** (the user). Since 1.3.100 the app sends its data folder and the helper checks it exactly; a path written another way (a trailing slash, a link) was refused, and the screen did not say so.
+  - The helper (**0.8.1**) tidies the path and checks its real place (still only the two logs of an app's own data folder, never a symlink).
+  - A refusal from the helper is shown on the QR log collection screen as it says it.
+- **Cut-in warnings: hardly ever** (the user). Eased to the values that gave the same result on the 32 recorded scenes (replayed again: still the one real cut-in, nothing else): from **15 km/h** (was 20), beside us **0.6 s** (was 1 s), coming in at **0.3 m/s** and more (was 0.5). Easing further needs recorded misses: QR log collection → Warning recording on, and Save a miss when one is missed.
+- Cluster Redline requires redline-lead 0.8.1.
+- Tests: `headway` (the new colour steps), `road-alerts` (15 km/h).
+
+## Cluster Redline 1.3.101 (the nav-probe log tells why the HUD arrow went away)
+
+- The user saw the HUD's turn arrow go away and come back while guiding. nav-probe.log only had a line when a new turn came, so those moments left nothing.
+- **Now each time the arrow goes away or comes back**, while Received turns recording is on (Basic settings → QR log collection), nav-probe.log gets one line `{"source": "arrow", "event": "hidden" | "shown", "why": ...}` with:
+  - **why**: `guidance_inactive` / the guidance's own reason (guidance off or calculating), `provider_unknown`, `drive_mode` (not shown in this drive mode), `hud_view_not_a_turn` (the navigation's HUD view sent something other than a turn, such as traffic or lane content), `no_turn` (no turn read in time), `parts_hidden`.
+  - the provider (BMW, CarPlay, Android Auto), the guidance state, the HUD view's read state and error, the content types its views sent, the route list's state, how old the last turn was, whether the phone guides.
+- Received turns shows how many times the arrow went away since the app started.
+- Tests: `nav-probe` (one line each while recording, counted either way).
 
 ## Cluster Redline 1.3.100 (cut-in and pedestrian / cyclist warnings on the lane picture; QR log collection)
 

@@ -11,11 +11,17 @@
 // taken); not yet seen on this car, so the settings screen shows what arrives. Read only: nothing is ever sent.
 const {AssistView}=require('./assist-view'),{CameraObjects}=require('./camera-objects'),{LeadHelper}=require('./lead-helper');
 const IFACE='de.bmw.dass.GapVehicleAhead',FIELDS=['GapVehicleDrivingAhead','DataFrontVehicle','DataFrontVehicleExtended'];
-const STALE_MS=2500,FINE_MS=900,MIN_M=0.4,MAX_M=260,SLOW_KMH=12,RED_S=1.0,AMBER_S=1.5;
+const STALE_MS=2500,FINE_MS=900,MIN_M=0.4,MAX_M=260,SLOW_KMH=12,RED_S=0.6,AMBER_S=1.5,CLOSE_RED_S=1.0,CLOSING_KMH=5,CLOSING_SLOW_KMH=2;
 const num=(v)=>typeof v==='number'&&isFinite(v)?v:null;
 const names=(v,re)=>typeof v==='string'&&re.test(v);
-/** The time gap's colour step: 'red' under 1.0 s, 'amber' under 1.5 s, else 'ok' (also without a time gap). */
-function level(headway){return headway===null?'ok':headway<RED_S?'red':headway<AMBER_S?'amber':'ok';}
+/** The time gap's colour step (1.3.103, the user: at the same speed it stays cyan). Only a car we are closing in on
+ *  colours: closing at 5 km/h or more (closing: km/h, negative closing in) red under 1.0 s, amber under 1.5 s; closing at
+ *  2-5 km/h amber under 1.0 s; at the same speed, pulling away, or the closing speed not known yet: 'ok' (cyan). */
+function level(headway,closing){
+ if(headway===null||typeof closing!=='number'||closing>-CLOSING_SLOW_KMH)return 'ok';
+ if(closing<=-CLOSING_KMH)return headway<CLOSE_RED_S?'red':headway<AMBER_S?'amber':'ok';
+ return headway<CLOSE_RED_S?'amber':'ok';
+}
 class LeadVehicle {
     // clock: the worker's monotonic ms (the same as read()'s now)
     constructor(signals,log,instanceOf,clock) {
@@ -119,7 +125,7 @@ class LeadVehicle {
         if(this.state==='off'||this.gap===null||this.at===null||now-this.at>STALE_MS)return null;
         const speed=this.speedAt!==null&&now-this.speedAt<=STALE_MS?this.speed:null;
         const headway=speed!==null&&speed>=SLOW_KMH?Math.max(0.1,Math.min(9.9,this.gap/(speed/3.6))):null;
-        return {gap:this.gap,headway,closing:this.closing,level:level(headway),type:this.type===undefined?null:this.type};   // (type: the camera's class, 1.3.87)
+        return {gap:this.gap,headway,closing:this.closing,level:level(headway,this.closing),type:this.type===undefined?null:this.type};   // (type: the camera's class, 1.3.87)
     }
     // nothing of the car ahead offered to the app at all, 10 s after subscribing (1.3.70): the radar's service and the
     // Drive assist view's two sources not offered (or not in the catalog), nothing received. The user's car is so:
@@ -141,7 +147,7 @@ class LeadVehicle {
 function corrected(v,offset){
     if(!v||typeof v.gap!=='number'||!offset)return v;
     const out=Object.assign({},v,{gap:Math.max(0,v.gap+offset)});
-    if(typeof v.headway==='number'&&v.gap>0){out.headway=Math.max(0.1,Math.min(9.9,v.headway*out.gap/v.gap));out.level=level(out.headway);}
+    if(typeof v.headway==='number'&&v.gap>0){out.headway=Math.max(0.1,Math.min(9.9,v.headway*out.gap/v.gap));out.level=level(out.headway,v.closing);}
     return out;
 }
 module.exports={LeadVehicle,level,corrected,IFACE,FIELDS,STALE_MS,SLOW_KMH,RED_S,AMBER_S};

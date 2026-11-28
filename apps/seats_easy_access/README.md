@@ -1,4 +1,4 @@
-# Seats Easy Access 0.7.10 guide
+# Seats Easy Access 0.7.12 guide
 
 [한국어](README.ko.md) · [Installation](../../docs/INSTALL.md) · [The apps](../../README.md)
 

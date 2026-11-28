@@ -116,7 +116,7 @@ class BcFollow {
    if(!this.bcOn(d)||!shared.now[d])return;const setup=pagesOf(this.get(PAGES_KEY[d]),hmi,d)[page];if(setup.kind!=='redline')return;
    const v={};if(setup.design)v[d+'Design']=setup.design;if(setup.aux)v[d+'AuxConfig']=setup.aux;if(setup.alert)v[d+'AlertStyle']=setup.alert;
    // a page set up with its own positions and sizes (1.3.41): those too, after the design's own layout
-   if(setup.layout&&typeof setup.layout==='object')Object.keys(setup.layout).forEach(k=>{if(k.indexOf(d)===0&&/(OffsetX|OffsetY|WidthScale|HeightScale|Hidden)$/.test(k))v[k]=setup.layout[k];});
+   if(setup.layout&&typeof setup.layout==='object')Object.keys(setup.layout).forEach(k=>{if(k.indexOf(d)===0&&require('./display-config').designKey(k)&&/(OffsetX|OffsetY|WidthScale|HeightScale|Hidden)$/.test(k))v[k]=setup.layout[k];});   // (1.3.103) never the HUD lamps' or the navigation's places
    if(Object.keys(v).length)try{this.apply(v,d);}catch(e){this.log.warn('bc follow: '+e);}
   });
  }

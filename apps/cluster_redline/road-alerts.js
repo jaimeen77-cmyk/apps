@@ -7,9 +7,9 @@
 // drift a bend or our own lane change gives cars far ahead. Cases it should warn at but does not could not be checked
 // (there was only that one).
 //
-// Cut-in (a vehicle: type 2-5): we at 20 km/h or more; it 3-35 m ahead; it drove beside us in the next lane (2.0-4.5 m to
-// the side, its own speed over 3 m/s, moving sideways less than a quarter of that) for at least 1 s (remembered 1.5 s
-// after it leaves that band), now coming in at 0.5-2.5 m/s, |y| - inward x 1.5 s under 1.2 m, |y| under 3.2 m, not
+// Cut-in (a vehicle: type 2-5): we at 15 km/h or more (1.3.102; 20 before); it 3-35 m ahead; it drove beside us in the next lane (2.0-4.5 m to
+// the side, its own speed over 3 m/s, moving sideways less than a quarter of that) for at least 0.6 s (remembered 1.5 s
+// after it leaves that band), now coming in at 0.3-2.5 m/s, |y| - inward x 1.5 s under 1.2 m, |y| under 3.2 m, not
 // pulling away (relative speed ahead at most +1 m/s). A bend: y less x tan(lane angle), the angle the median of the last
 // 0.4 s of both nearest lines' mean (only when they agree within 2 degrees; 0 after 0.8 s without). Our own lane change
 // (any line within 0.6 m of the car): nothing for 2 s.
@@ -17,7 +17,9 @@
 // it would be then (or is now) within 1.3 m of the car's axis.
 // One object warns again only after 3 s. A warning stays up to 2.5 s, following the object while it is seen.
 const VEH = [2, 3, 4, 5], VRU = [0, 1];
-const P = { cutV: 20, cutX: 35, cutGx: 3, cutLat: 0.5, cutTt: 1.5, sideMs: 1000, away: 1.0, vruV: 5, vruX: 30, vruTtc: 2.5 };
+// (1.3.102, the user: it hardly ever warns) eased to the values the other session found gave the same result on the
+// 32 scenes: from 15 km/h, beside us 0.6 s, coming in at 0.3 m/s and more
+const P = { cutV: 15, cutX: 35, cutGx: 3, cutLat: 0.3, cutTt: 1.5, sideMs: 600, away: 1.0, vruV: 5, vruX: 30, vruTtc: 2.5 };
 const HIST_MS = 1500, SIDE_KEEP_MS = 1500, ONLINE_MS = 2000, AGAIN_MS = 3000, SHOW_MS = 2500;
 const median = (a) => { const s = a.slice().sort((x, y) => x - y), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : 0; };
 class RoadAlerts {
