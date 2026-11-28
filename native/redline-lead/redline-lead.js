@@ -33,7 +33,7 @@ const net = require('net'), fs = require('fs'), path = require('path'), { spawn 
 const DIR = process.env.REDLINE_LEAD_DIR || '/run/redline-lead', SOCK = path.join(DIR, 'lead.sock');
 const BIN = process.env.REDLINE_SOMEIP || path.join(__dirname, 'redline-someip');
 // 0.5.0: the app's nav-probe.log for a phone (share.js), while the app asks for it (0.4.0's scene clips are gone)
-const VERSION = '0.8.0', { Share } = require('./share');
+const VERSION = '0.8.1', { Share } = require('./share');
 const SPECS = ['0xf139:1:2:1:0x8001,0x8002', '0x3539:1:1:1:0x8001:f', '0x3539:1:1:2:0x8002:f', '0xd024:1:1:3:0x8003'];
 const ACC_SPECS = ['0xb50e:1:1:2:0x8002:f'];   // instance 1 (offered on the user's car)
 const POS_SPECS = ['0xfb0c:128:4:1:0x8001:f', '0xfb0c:128:4:4:0x8004:f'];

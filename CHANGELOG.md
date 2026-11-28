@@ -2,6 +2,18 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.102 (lead-car colours calmer; QR log collection fixed; cut-in warnings eased)
+
+- **Lead-car headway: red nearly all the time in town** (the user). It was red under a 1.0 s time gap, amber under 1.5 s; with the -2 m correction (1.3.91) a car followed at 1 s in town showed red.
+  - **Red** now only under **0.6 s**, or under **1.0 s while closing in** at 5 km/h or more.
+  - **Amber** under 1.0 s; cyan otherwise. The Lead-car headway screen says so.
+- **QR log collection did not open** (the user). Since 1.3.100 the app sends its data folder and the helper checks it exactly; a path written another way (a trailing slash, a link) was refused, and the screen did not say so.
+  - The helper (**0.8.1**) tidies the path and checks its real place (still only the two logs of an app's own data folder, never a symlink).
+  - A refusal from the helper is shown on the QR log collection screen as it says it.
+- **Cut-in warnings: hardly ever** (the user). Eased to the values that gave the same result on the 32 recorded scenes (replayed again: still the one real cut-in, nothing else): from **15 km/h** (was 20), beside us **0.6 s** (was 1 s), coming in at **0.3 m/s** and more (was 0.5). Easing further needs recorded misses: QR log collection → Warning recording on, and Save a miss when one is missed.
+- Cluster Redline requires redline-lead 0.8.1.
+- Tests: `headway` (the new colour steps), `road-alerts` (15 km/h).
+
 ## Cluster Redline 1.3.101 (the nav-probe log tells why the HUD arrow went away)
 
 - The user saw the HUD's turn arrow go away and come back while guiding. nav-probe.log only had a line when a new turn came, so those moments left nothing.

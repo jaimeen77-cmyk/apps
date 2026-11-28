@@ -596,7 +596,7 @@ class SettingsPage{
   cv.text(tr('Standing behind a car that moves off: Moving off in green for 3 s.'),330,122,18,'#3ddc6a',{literal:true});
   {const hh=this.liveState&&this.liveState.headway;
    if(hh&&hh.unsupported)cv.text(tr('Neither the radar nor the Drive assist view is offered to apps on this car (the cluster gets them directly): the badge cannot show here.'),100,284,19,'#ffad45',{literal:true});
-   else cv.text(tr('Under 1.0 s red · 1.0 to 1.5 s amber · 1.5 s and over cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}
+   else cv.text(tr('Under 0.6 s, or under 1.0 s while closing in, red · under 1.0 s amber · else cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}
   // what arrives: the raw values, to check the signal on this car
   const h=this.liveState&&this.liveState.headway,r=h&&h.raw||{},f=v=>v===null||v===undefined?'-':String(v);
   cv.text(this.headwayValue(cfg),100,322,21,h&&h.unsupported?'#ffad45':'#c1cddd',{literal:true});
@@ -659,7 +659,8 @@ class SettingsPage{
   const kb=n=>typeof n==='number'?Math.max(1,Math.round(n/1024))+' KB':tr('no file yet');
   cv.text(tr('QR log collection'),100,126,32,'#ef4050',{literal:true});
   [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,'QR '+tr(o[1]),84+i*266,146,254,64,()=>set('navShare',o[0]),cfg.navShare===o[0],'qrlog-'+o[0]));
-  const st=!x||cfg.navShare!=='on'?tr('QR off'):x.state!=='connected'?tr('Lead-car helper')+': '+tr('not installed (Store: Cluster Redline lead-car helper)'):!x.listening?tr('opening the page'):tr('Page open')+' · '+tr('scan the code with the phone on the same Wi-Fi as the car');
+  // (1.3.102) the helper's own error (a refused folder, a port in use) shown as it says it
+  const st=!x||cfg.navShare!=='on'?tr('QR off'):x.state==='connected'&&x.error?tr('Lead-car helper')+': '+x.error:x.state!=='connected'?tr('Lead-car helper')+': '+tr('not installed (Store: Cluster Redline lead-car helper)'):!x.listening?tr('opening the page'):tr('Page open')+' · '+tr('scan the code with the phone on the same Wi-Fi as the car');
   const lines=[['nav-probe.log · '+kb(x&&x.navProbeSize)+' · '+tr('Received turns recording')+' '+tr(cfg.navProbeLog==='on'?'On':'Off'),'#c1cddd'],
    ['road-alerts.log · '+kb(rl.size)+' · '+tr('Warning recording')+' '+tr(cfg.roadLog==='on'?'On':'Off')+(rl.saved?' · '+rl.saved+' '+tr('saved'):'')+(rl.error?' · '+rl.error:''),'#c1cddd'],
    [st,x&&x.listening?'#5ee08f':'#ffad45']];
