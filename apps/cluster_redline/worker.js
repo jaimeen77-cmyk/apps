@@ -104,7 +104,7 @@ function start(ctx) {
     // My picture's GIFs go in <data>/my-pictures/ (made here, so tools/my-pictures.js finds it; my-picture.js loads with the layout)
     if(ctx.dataDir){try{fs.mkdirSync(path.join(ctx.dataDir,'my-pictures'));}catch(e){}}
     // the HUD headway badge (lead-vehicle.js): made once the manifest's instances can be read, below
-    let lead=null,position=null;const headwayOverlay=new HeadwayOverlay(client);
+    let lead=null,position=null;const headwayOverlay=new HeadwayOverlay(client),launchOverlay=new (require('./launch-overlay').LaunchOverlay)(client),launchTimer=new (require('./launch-timer').LaunchTimer)(config.launchBest);let launchSpeedAt=null,launchBestCfg=config.launchBest;
     // the HUD lane lines (lane-lines.js, 1.3.77): from the root helper, only while on
     const laneLines=new LaneLines(mono),laneOverlay=new LaneOverlay(client),departure=new LeadDeparture();let departureOn=false;
     // (1.3.95) the nav-probe.log for a phone, through the root helper's page (its own connection, not the car ahead's)
@@ -280,7 +280,7 @@ function start(ctx) {
     }catch(e){ /* No lane capability: existing arrows/RPM continue normally. */ }
     function stop() {
         if (stopped) return;
-        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); vehicleAlerts.stop(); alertOverlay.close(); greetingOverlay.close(); clusterGreeting.close(); if (lead) lead.sync(false); headwayOverlay.close(); laneLines.sync(false); laneOverlay.close(); shareHelper.sync(false); doorOverlay.close(); blindSpot.release(); blindSpotOverlay.close(); turnOverlay.close(); controller.close();
+        stopped = true; collectors.stop(); lanes.stop(); batteryVoltage.stop(); clearTimeout(timer); hudGuidance.stop(); routeEvents.stop(); vehicleAlerts.stop(); alertOverlay.close(); greetingOverlay.close(); clusterGreeting.close(); if (lead) lead.sync(false); headwayOverlay.close(); launchOverlay.close(); laneLines.sync(false); laneOverlay.close(); shareHelper.sync(false); doorOverlay.close(); blindSpot.release(); blindSpotOverlay.close(); turnOverlay.close(); controller.close();
         process.removeListener('exit', stop);
         if (ctx.app && ctx.app.removeListener) ctx.app.removeListener('shutdown', stop);
         subs.forEach((s) => { try { s.shutdown(); } catch (e) {} });
@@ -505,6 +505,16 @@ function start(ctx) {
              if (posOn) position.fromHelper(shareHelper.last && shareHelper.last.position, at, shareHelper.state);}
             // (1.3.91) shown from the bumper: the correction (Lead-car headway, -2 m by default) on the distance and the time gap
             const leadShown = leadNow ? Object.assign({}, corrected(leadNow, config.hudHeadwayCorrection), { go: going }) : going ? corrected({ gap: departure.nearest || 0, go: true }, config.hudHeadwayCorrection) : null;
+            // (1.3.105) the 0-100 screen: timed from the vehicle speed's own samples, the g from CDS2; a new best kept
+            {const launchOn = live && config.appEnabled && config.hudLaunch === 'on';
+             if (config.launchBest !== launchBestCfg) { launchBestCfg = config.launchBest; launchTimer.best = config.launchBest > 0 ? config.launchBest : null; }
+             if (launchOn && carSpeed.at !== null && carSpeed.at !== launchSpeedAt) { launchSpeedAt = carSpeed.at; const was = launchTimer.state, nb = launchTimer.sample(carSpeed.at, carSpeed.v);
+                 const store = ctx.settings && typeof ctx.settings.set === 'function';
+                 if (nb && store) { launchBestCfg = nb; try { ctx.settings.set('launchBest', nb); } catch (e) {} }
+                 // a run just finished: kept with the others (the last 10, newest first; the settings screen lists them)
+                 if (store && was === 'run' && launchTimer.state === 'done') { try { ctx.settings.set('launchRuns', JSON.stringify([{ t: launchTimer.result, at: Date.now() }].concat(D.launchRuns(config)).slice(0, 10))); } catch (e) {} } }
+             const gl = controller.aux && typeof controller.aux.gLong === 'number' ? controller.aux.gLong : null;
+             launchOverlay.tick(launchOn ? Object.assign({ speed: speedKmh, g: gl }, launchTimer.view(at)) : null, config, !!(pv && pv.part === 'Launch'));}
             headwayOverlay.tick(headwayOn ? leadShown : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));
             laneLines.sync(lanesOn);
             const lanesNow = lanesOn ? laneLines.read(at, controller.turn && controller.turn.indicator, { speed: speedKmh, sensitivity: config.hudLaneSensitivity }) : null;

@@ -2,6 +2,25 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.105 (the 0-100 screen on the HUD)
+
+- **New: 0-100 screen** (HUD lamps → **0-100 screen**, off by default), after the user's reference picture:
+  - the **speed** large, slanted and glowing, km/h under it;
+  - **ACCEL** with the longitudinal acceleration in g, over a bevelled bar (cyan into lime, 0-1 g);
+  - **0–100** and its **time** large in cyan: counting while running, kept when done, green with **NEW BEST** for a new best; the best time small.
+  - Its own **Position / size** (moved and sized like the lead-car headway); dark parts are see-through on the HUD glass.
+- **The runs as a table** on the 0-100 screen's settings (right half, like a sheet): the **BEST** on top with its date and time, then **the last 10** newest first (date, time, run, and how far behind the best); **Clear the runs** (pressed twice) clears them and the best.
+- **Timing**: from the moment the car leaves 1 km/h (standing still at least 0.5 s before) until 100 km/h, both moments interpolated between the speed samples; the clock runs between samples. Slowing down by 10 km/h (or over 30 s) drops the run. The best time is kept (shown on the screen and its settings row).
+- The speed and the longitudinal acceleration are read only while the screen is on. A drive mode's screen or a BC page never moves it.
+- Tests: `launch` (the timer, the read signals, the overlay, its place, the settings screen).
+
+## Cluster Redline 1.3.104 (Calm clock easier to read)
+
+- **The Calm clock layout's letters were too thin to read** (the user), on the HUD most of all: the time, the gear, the speed and the readouts' values were in the light face.
+  - **The time**: the bold face, drawn a little apart a few times so it is thicker still (the user's pick of four samples).
+  - **The gear, the speed and the readouts' values**: the bold face (thicker than that, small figures run together).
+  - The date, the drive mode and the readouts' names were already bold. The cluster's Calm clock gets the same.
+
 ## Seats Easy Access 0.7.12 (◀ moves the seat and the backrest forward)
 
 - **Fix: fore/aft arrows were reversed** (the user, with a photo). The seat picture faces left, but ◀ under "Fore / aft" sent Comfort's −1, which moved the seat back. ◀ now moves the seat forward and ▶ back.

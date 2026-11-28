@@ -40,6 +40,8 @@ function demand(base,mode){
  // Speeding and children signs: the vehicle speed and the camera's sign recognition (traffic-signs.js);
  // speed cameras: the navigation's route events by query.
  if(carAlerts&&cfg.hudCarAlerts!=='camera')require('./traffic-signs').FIELDS.forEach(([i,f])=>add(i,f));
+ // (1.3.105) the 0-100 screen: the vehicle speed and the longitudinal acceleration (CDS2)
+ if(enabled&&cfg.hudLaunch==='on'&&!cfg.hudLaunchHidden){add('de.bmw.infotainment.vehicle.Vehicle2','statusCarSpeed2');SOURCES.forEach(s=>{if(Object.keys(s.members).includes('gLong'))add(s.iface,s.field);});}
  if(carAlerts&&(cfg.hudCarAlerts==='camera'||cfg.hudCarAlerts==='all'))add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');
  // the door-open HUD warning: the door switches, whenever it is on (also standing still)
  const doorAlert=enabled&&cfg.hudDoorAlert!=='off';if(doorAlert)add('de.bmw.body.DoorsWindowsRoofMirrors','CentralLockingSystemAndPanelStatus');
