@@ -515,8 +515,25 @@ async function delayedPhoneGuidanceKeepsRpm(){
   }finally{h.worker.stop();await flush();h.stopped();}
  }
 }
+async function emptyTurnListGapHoldsArrow(){
+ // (1.3.106) a fresh reply with no turn while still guiding: the last arrow stays up to 3 s, then goes
+ const replies=[],h=harness({withManeuvers:true,phoneStatus:true,routeEvents:true,config:{hudCarAlerts:'off'},queryContent:()=>{const d=deferred();replies.push(d);return d.promise;}});
+ const empty={maneuver:{pointOfInterest:{category:'SERVICE_AREA',formattedDistance:{distance:'',unit:'NONE'}}}};
+ const reply=events=>({GuidanceEventListError:'NO_ERROR',viewContent:[{eventsInView:events}]}),turn={intersection:{direction:'RIGHT',formattedDistance:{distance:'55',unit:'METER'}}};
+ try{
+  await flush();h.navigate('INACTIVE');h.feeds[PROJECTED.ANDROID_AUTO.iface].projectedGuidanceActive(true);h.feeds[guidance.INTERFACE].guidingProvider('ANDROID_AUTO');h.feeds[guidance.INTERFACE].conclusiveDart(empty);
+  h.tick(1000);await flush();replies[0].resolve(reply([turn]));await flush();h.tick(1050);h.both();
+  const hud=h.worker.controller.hud.ref;assert.strictEqual(h.displayed.get(hud)[0],1);
+  h.tick(2000);await flush();replies[1].resolve(reply([]));await flush();h.tick(2050);h.both();
+  assert.strictEqual(h.displayed.get(hud)[0],1,'an empty turn list for a moment keeps the arrow');
+  h.tick(3000);await flush();replies[2].resolve(reply([]));await flush();h.tick(3050);h.both();
+  assert.strictEqual(h.displayed.get(hud)[0],1,'still held within 3 s');
+  h.tick(4000);await flush();replies[3].resolve(reply([]));await flush();h.tick(5100);await flush();h.both();
+  assert.strictEqual(h.displayed.get(hud)[0],0,'gone after 3 s without a turn');
+ }finally{h.worker.stop();await flush();h.stopped();}
+}
 (async () => {
     await slowAuxiliaryCadence();await notifierOnlyOutsideTemperature();await outsideTemperatureLikeEDrive();
-    await lanesOnlyNeedsNoHiddenRpmOrTurnData();await hiddenComponentsStopTheirStreams();await carplayLaneFeed();await delayedPhoneGuidanceKeepsRpm();await unusedAuxiliaryDoesNotCompeteWithNavigation();await optionalAuxiliaryWorker();await queriedRouteEventFallback();await actualHudViewFallback();await reportedProjectedGuidanceWithNativeInactive();await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
+    await lanesOnlyNeedsNoHiddenRpmOrTurnData();await hiddenComponentsStopTheirStreams();await carplayLaneFeed();await delayedPhoneGuidanceKeepsRpm();await emptyTurnListGapHoldsArrow();await unusedAuxiliaryDoesNotCompeteWithNavigation();await optionalAuxiliaryWorker();await queriedRouteEventFallback();await actualHudViewFallback();await reportedProjectedGuidanceWithNativeInactive();await repeatedNotificationsWhilePolling();await composedNavigation();await eventYield(); await optionalReadSafety(); await pollingAndRaces(); await providerReconnectRace(); await lateReadsAndSubscriptions();
     console.log('PASS: actual worker native-guidance getter gating/instance, immediate HUD-only yield, fresh recovery, optional/stale/provider safety, bounded polling, event/read/provider-reconnect races and complete late-work shutdown');
 })().catch(error => { console.error(error); process.exitCode = 1; });
