@@ -186,7 +186,8 @@ HUD에는 이렇게 보입니다(왼쪽부터: 기본 바닥색과 청록 1.6초
 
 ![HUD 디자인](../screenshots/cluster_redline/manual/t1-hud-design-ko.jpg)
 
-- 목록 맨 앞의 **잼상단알림선 / 잼원형알림**은 이 앱의 기본 디자인이고, 나머지는 Redline 앱 레이아웃(HUD 18종, 모두 20종)입니다. 그림은 [10. 디자인 전체 목록](#hud-20종). 각 칸 오른쪽 위에 **게이지 지원 / 텍스트만**이 표시됩니다.
+- 목록 맨 앞의 **잼상단알림선 / 잼원형알림**은 이 앱의 기본 디자인이고, 나머지는 Redline 앱 레이아웃(HUD 19종, 모두 21종)입니다. 그림은 [10. 디자인 전체 목록](#hud-21종). 각 칸 오른쪽 위에 **게이지 지원 / 텍스트만**이 표시됩니다.
+- **부가정보만**(1.3.107): RPM 화면 없이 고른 부가정보를 크게 보여 줍니다. 3개까지는 한 줄, 4개는 2×2이고, 차가우면 파랑·뜨거우면 빨강입니다. 기어는 작게, RPM은 변속 시점 1,500 rpm 전부터만 위쪽에 얇은 막대로 나옵니다(위치/크기에서 숨길 수 있음). 예: 오일·냉각수·미션오일 온도만 보기.
 - 디자인을 고르면 바로 **부가정보**를 고릅니다: **게이지**(최대 2개) / **텍스트**(최대 4개) / **부가정보 없음**. 항목을 누른 순서대로 놓이고, **확인**을 눌러야 저장됩니다.
 
 | 부가정보 항목 | 내용 |
@@ -240,7 +241,7 @@ HUD에는 이렇게 보입니다(왼쪽부터: 기본 바닥색과 청록 1.6초
 
 ![계기판 디자인](../screenshots/cluster_redline/manual/t2-cluster-design-ko.jpg)
 
-계기판 디자인은 **24종**입니다(그림은 [10. 디자인 전체 목록](#계기판-24종)): 잼상단알림선, 잼원형알림, 그리고 Redline 앱 레이아웃 22종(스탠다드, 80년대 디지털, VFD 글로우, 벡터 아케이드, 아크(F80 M3/M4), 램프(G80 M3/M4), 다이얼(E60 M5), M 시프트 라이트, 데이터로거, 아날로그 바늘, G-포스 + 회전수 링, 모드 리본, 헥사곤, 스포츠 다이얼, 클래식 다이얼, 럭셔리 아크, 타이어 · 트립, 차분한 시계, 레트로 VU 미터, 길안내 중심, G-G 궤적, **애니메이션**). 애니메이션은 항상 맨 끝입니다.
+계기판 디자인은 **25종**입니다(그림은 [10. 디자인 전체 목록](#계기판-25종)): 잼상단알림선, 잼원형알림, 그리고 Redline 앱 레이아웃 23종(스탠다드, 80년대 디지털, VFD 글로우, 벡터 아케이드, 아크(F80 M3/M4), 램프(G80 M3/M4), 다이얼(E60 M5), M 시프트 라이트, 데이터로거, 아날로그 바늘, G-포스 + 회전수 링, 모드 리본, 헥사곤, 스포츠 다이얼, 클래식 다이얼, 럭셔리 아크, 타이어 · 트립, 차분한 시계, 레트로 VU 미터, 길안내 중심, G-G 궤적, 부가정보만, **애니메이션**). 애니메이션은 항상 맨 끝입니다.
 
 **차분한 시계**(1.3.71, 계기판·HUD): 가운데 큰 시계와 날짜, 아래에 고른 부가정보(최대 4개, 예: 외기·주행 시간·연비), 위에 기어·속도·주행 모드가 작게 나옵니다. 회전수는 평소 보이지 않다가 변속 시점 1,500 rpm 전부터 시계 위에 가는 막대로 나타납니다. 색상은 부가정보 화면에서 **차가운 색 / 따뜻한 색** 중 고릅니다. 시계·속도도 위치/크기에서 따로 옮기고 숨길 수 있습니다.
 
@@ -425,7 +426,7 @@ HUD와 같고, 계기판에는 **Waze map**(레드라인이 비켜서 Waze·순�
 
 1.3.92에서 고를 수 있는 모든 디자인입니다. 그림은 실제 패키지로 그린 예시(4,600 rpm, 3단, 부가정보 텍스트 4개: 부스트·토크·오일 온도·외기)입니다. 부가정보 종류와 위치/크기에 따라 달라집니다.
 
-### 계기판 (24종)
+### 계기판 (25종)
 
 스포츠 다이얼, 클래식 다이얼, 타이어 · 트립, 레트로 VU 미터, 길안내 중심은 계기판 전용입니다(HUD에는 너무 자세해서). 애니메이션은 GIF를 넣지 않았을 때의 M3 그림입니다.
 
@@ -438,9 +439,10 @@ HUD와 같고, 계기판에는 **Waze map**(레드라인이 비켜서 Waze·순�
 | ![G-포스 + 회전수 링](../screenshots/cluster_redline/designs/cluster-rl-rings-ko.jpg)<br>13. **G-포스 + 회전수 링** | ![모드 리본](../screenshots/cluster_redline/designs/cluster-rl-ribbon-ko.jpg)<br>14. **모드 리본** | ![헥사곤](../screenshots/cluster_redline/designs/cluster-rl-hexagon-ko.jpg)<br>15. **헥사곤** |
 | ![스포츠 다이얼](../screenshots/cluster_redline/designs/cluster-rl-sportdial-ko.jpg)<br>16. **스포츠 다이얼** | ![클래식 다이얼](../screenshots/cluster_redline/designs/cluster-rl-classic-ko.jpg)<br>17. **클래식 다이얼** | ![럭셔리 아크](../screenshots/cluster_redline/designs/cluster-rl-luxury-ko.jpg)<br>18. **럭셔리 아크** |
 | ![타이어 · 트립](../screenshots/cluster_redline/designs/cluster-rl-tyres-ko.jpg)<br>19. **타이어 · 트립** | ![차분한 시계](../screenshots/cluster_redline/designs/cluster-rl-calm-ko.jpg)<br>20. **차분한 시계** | ![레트로 VU 미터](../screenshots/cluster_redline/designs/cluster-rl-vu-ko.jpg)<br>21. **레트로 VU 미터** |
-| ![길안내 중심](../screenshots/cluster_redline/designs/cluster-rl-navfocus-ko.jpg)<br>22. **길안내 중심** | ![G-G 궤적](../screenshots/cluster_redline/designs/cluster-rl-gg-ko.jpg)<br>23. **G-G 궤적** | ![애니메이션](../screenshots/cluster_redline/designs/cluster-rl-car-ko.jpg)<br>24. **애니메이션** |
+| ![길안내 중심](../screenshots/cluster_redline/designs/cluster-rl-navfocus-ko.jpg)<br>22. **길안내 중심** | ![G-G 궤적](../screenshots/cluster_redline/designs/cluster-rl-gg-ko.jpg)<br>23. **G-G 궤적** | ![부가정보만](../screenshots/cluster_redline/designs/cluster-rl-aux-ko.jpg)<br>24. **부가정보만** |
+| ![애니메이션](../screenshots/cluster_redline/designs/cluster-rl-car-ko.jpg)<br>25. **애니메이션** |  |  |
 
-### HUD (20종)
+### HUD (21종)
 
 스포츠 HUD는 HUD 전용입니다. HUD에서는 검은 부분이 투명하게 보입니다.
 
@@ -452,7 +454,7 @@ HUD와 같고, 계기판에는 **Waze map**(레드라인이 비켜서 Waze·순�
 | ![M 시프트 라이트](../screenshots/cluster_redline/designs/hud-rl-shift-ko.jpg)<br>10. **M 시프트 라이트** | ![데이터로거](../screenshots/cluster_redline/designs/hud-rl-logger-ko.jpg)<br>11. **데이터로거** | ![아날로그 바늘](../screenshots/cluster_redline/designs/hud-rl-needle-ko.jpg)<br>12. **아날로그 바늘** |
 | ![G-포스 + 회전수 링](../screenshots/cluster_redline/designs/hud-rl-rings-ko.jpg)<br>13. **G-포스 + 회전수 링** | ![모드 리본](../screenshots/cluster_redline/designs/hud-rl-ribbon-ko.jpg)<br>14. **모드 리본** | ![헥사곤](../screenshots/cluster_redline/designs/hud-rl-hexagon-ko.jpg)<br>15. **헥사곤** |
 | ![럭셔리 아크](../screenshots/cluster_redline/designs/hud-rl-luxury-ko.jpg)<br>16. **럭셔리 아크** | ![스포츠 HUD](../screenshots/cluster_redline/designs/hud-rl-sporthud-ko.jpg)<br>17. **스포츠 HUD** | ![차분한 시계](../screenshots/cluster_redline/designs/hud-rl-calm-ko.jpg)<br>18. **차분한 시계** |
-| ![G-G 궤적](../screenshots/cluster_redline/designs/hud-rl-gg-ko.jpg)<br>19. **G-G 궤적** | ![애니메이션](../screenshots/cluster_redline/designs/hud-rl-car-ko.jpg)<br>20. **애니메이션** |  |
+| ![G-G 궤적](../screenshots/cluster_redline/designs/hud-rl-gg-ko.jpg)<br>19. **G-G 궤적** | ![부가정보만](../screenshots/cluster_redline/designs/hud-rl-aux-ko.jpg)<br>20. **부가정보만** | ![애니메이션](../screenshots/cluster_redline/designs/hud-rl-car-ko.jpg)<br>21. **애니메이션** |
 
 ## 문제 해결
 

@@ -550,7 +550,26 @@ function drawGg(cv,f,h){
  if(want(f,'speed')){if(cv.reserve)cv.reserve(80,266,140,32);if(isNum(f.speed))cv.text(f.speed+' km/h',150,290,24,DM,{align:'center',font:'num',literal:true});}
  if(want(f,'rpm'))cv.text(rpmText(d)+' rpm',938,330,24,DM,{align:'center',font:'num',literal:true});
 }
-const DRAW={vu:drawVu,navfocus:drawNavFocus,gg:drawGg,calm:drawCalm,car:drawCar,mypic:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
+// Readouts only (1.3.107, a user's request: oil, coolant and gearbox oil on their own): the chosen auxiliary items big, one
+// row for one to three (with their thermometer / bar in gauge mode), two by two for four; the gear small in the top
+// corner; the rpm only as a thin bar that comes up 1500 rpm before the shift point (flashing at it). Hot red, cold blue.
+function drawAux(cv,f,h){
+ const hud=f.display!=='cluster',dim=hud?'#b4bfcc':C.dim,d=f.d,q=cue(f);
+ if(want(f,'gauge')){const from=f.cue.from,r=isNum(d.rpm)?d.rpm:0,w=680,x0=204;if(cv.reserve)cv.reserve(x0,26,w,18);
+  if(r>=from){const t=clamp((r-from)/Math.max(1,f.cue.at-from),0,1),n=34;
+   for(let i=0;i<n;i++){const on=i/n<t,c=i/n>0.8?h.P.high:i/n>0.5?h.P.mid:h.P.low;cv.fillRect(x0+i*w/n+1,30,w/n-3,10,on?(q.flash?(q.on?h.P.flash:C.off):c):C.off);}}}
+ if(want(f,'gear'))cv.text(h.gearText(d),64,64,40,dim,{align:'center',font:'bold'});
+ const list=f.readouts||[],n=Math.min(4,list.length);
+ const grid=n>3,cols=grid?2:Math.max(1,n),x0=120,x1=1048,y0=grid?70:110,cw=(x1-x0)/cols,ch=grid?200:360,vs=grid?100:n===3?136:156,ls=grid?30:36;
+ for(let i=0;i<n;i++){const it=list[i],id='read'+'ABCD'[i];if(!want(f,id)||!it)continue;
+  const cx=x0+cw*((i%cols)+0.5),top=y0+ch*Math.floor(i/cols),col=it.tone==='hot'?'#ff5a3a':it.tone==='cold'?'#5ab0ff':C.text;
+  cv.text(it.label,cx,top+ls+6,ls,dim,{align:'center',font:'bold'});
+  cv.text(it.value,cx,top+ls+16+vs,vs,col,{align:'center',font:'bold'});
+  if(gb(it)){const bw=Math.min(cw-60,420),by=top+ls+44+vs;
+   if(isTemp(it))thermo(cv,cx-bw/2,by,bw,12,it.frac,it.tone==='hot'?h.P.high:h.P.low,{glass:C.soft});
+   else slants(cv,cx-bw/2,by-4,bw,16,20,6,it.frac,(k,m)=>k>=m-3?h.P.high:h.P.low,null,3);}}
+}
+const DRAW={aux:drawAux,vu:drawVu,navfocus:drawNavFocus,gg:drawGg,calm:drawCalm,car:drawCar,mypic:drawCar,shift:drawShift,logger:drawLogger,needle:drawNeedle,rings:drawRings,ribbon:drawRibbon,hexagon:drawHexagon,sportdial:drawSportDial,classic:drawClassic,luxury:drawLuxury,sporthud:drawSportHud,tyres:drawTyres};
 // Each layout draws in one pass (no separate background layer); the bg layer request draws nothing.
 function drawX(cv,f,layer,h){if(layer==='bg')return;DRAW[f.opts.style](h.scaled(cv,S,0,0),f,h);}
 module.exports={STYLES:Object.keys(DRAW),IH,drawX,CAR,S};

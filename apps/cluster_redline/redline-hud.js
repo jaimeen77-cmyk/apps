@@ -9,11 +9,11 @@ let drawing=null;const kit=()=>drawing||(drawing={DRAW:require('./rl-hud-draw'),
 const {shiftSpec}=require('./shift-alert'),{auxConfig}=require('./display-config'),{gauges}=require('./units'),{language}=require('./strings');
 // The Redline app's layouts (Minimal and Split wings not offered: Standard with parts hidden covers them),
 // then Cluster Redline's own six (rl-hud-x.js, a taller 400x176 image).
-const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','calm','vu','navfocus','gg','car'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','calm','vu','navfocus','gg','car','mypic'];
-const NAMES={vu:'Retro VU meters',navfocus:'Navigation focus',gg:'G-G trail',calm:'Calm clock',car:'Animation',mypic:'Animation',standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
+const STYLES=['standard','digital','vfd','vector','arc','ramp','dial','shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','calm','vu','navfocus','gg','aux','car'],TALL=['shift','logger','needle','rings','ribbon','hexagon','sportdial','classic','luxury','sporthud','tyres','calm','vu','navfocus','gg','car','mypic','aux'];
+const NAMES={aux:'Readouts only',vu:'Retro VU meters',navfocus:'Navigation focus',gg:'G-G trail',calm:'Calm clock',car:'Animation',mypic:'Animation',standard:'Standard',minimal:'Minimal',wings:'Split wings',digital:'80s digital dash',vfd:'VFD glow',vector:'Vector arcade',arc:'Arc (F80 M3/M4)',ramp:'Ramp (G80 M3/M4)',dial:'Dial (E60 M5)',shift:'M shift lights',logger:'Data logger',needle:'Analog needle',rings:'G-force + RPM rings',ribbon:'Mode ribbon',hexagon:'Hexagon',sportdial:'Sport dial',classic:'Classic dial',luxury:'Luxury arc',sporthud:'Sport HUD',tyres:'Tyres & trip'};
 // Layouts made for the cluster only (too detailed for the HUD's glass): not offered on the HUD.
 // Layouts that draw the auxiliary items as bar gauges in gauge mode (the others show them as text).
-const GAUGE_LAYOUTS=['standard','digital','vfd','vector','ramp','shift','logger','ribbon','hexagon','classic','sporthud','sportdial','tyres','car'];
+const GAUGE_LAYOUTS=['standard','digital','vfd','vector','ramp','shift','logger','ribbon','hexagon','classic','sporthud','sportdial','tyres','car','aux'];
 // Layouts whose gauges stand upright: the clock (a horizontal gauge only) is left out of them.
 const VERTICAL_GAUGES=['hexagon','classic'];
 const CLUSTER_ONLY=['sportdial','classic','tyres','vu','navfocus'],HUD_ONLY=['sporthud'],stylesFor=d=>STYLES.filter(s=>!(d==='hud'?CLUSTER_ONLY:HUD_ONLY).includes(s));
@@ -29,7 +29,7 @@ function gearOf(text){
  return {gear:null,stage:null,mode:null};
 }
 const LABEL={boost:'BOOST',torque:'TORQUE',power:'POWER',gforce:'G',outside:'OUT',oil:'OIL',coolant:'WATER',gearbox:'TRANS',batteryCharge:'BATT',batteryVoltage:'VOLT',economy:'ECON',avgSpeed:'AVG SPD',tripTime:'TIME',clock:'CLOCK'};
-const KO={BOOST:'부스트',TORQUE:'토크',POWER:'마력',G:'G',OUT:'외기',OIL:'오일',BATT:'배터리',VOLT:'전압',ECON:'연비','AVG SPD':'평속',TIME:'주행',CLOCK:'시계'};
+const KO={BOOST:'부스트',TORQUE:'토크',POWER:'마력',G:'G',OUT:'외기',OIL:'오일',WATER:'냉각수',TRANS:'미션',BATT:'배터리',VOLT:'전압',ECON:'연비','AVG SPD':'평속',TIME:'주행',CLOCK:'시계'};
 function readouts(state,d){
  const cfg=state.config,a=auxConfig(cfg[(d||'hud')+'AuxConfig']),v=state.aux||{},g=gauges(state),label=id=>{const l=LABEL[id];return language()==='ko'&&KO[l]?KO[l]:l;};
  if(a.mode==='off')return [];
@@ -146,6 +146,7 @@ const ELEMENTS={
  calm:['gauge','clock','gear','speed','mode','readA','readB','readC','readD','mark'],
  vu:['gauge','readA','gear','mode','clock','mark'],navfocus:['nav','gauge','speed','gear','mark'],gg:['gauge','gmeter','gear','speed','rpm','mark'],
  car:['carpic','gauge','gear','mode','rpm','gmeter','readA','readB','readC','readD','mark'],
+ aux:['gauge','gear','readA','readB','readC','readD','mark'],   // (Readouts only, 1.3.107)
  mypic:['carpic','gauge','gear','mode','rpm','gmeter','readA','readB','readC','readD','mark']};   // (My picture: the Car layout with your own GIFs)
 const PART={nav:'RlNav',clock:'RlClock',speed:'RlSpeed',carpic:'RlCarPic',gear:'RlGear',mode:'RlMode',alert:'RlAlert',rpm:'RlRpm',gauge:'RlGauge',read:'RlRead',readA:'RlReadA',readB:'RlReadB',readC:'RlReadC',readD:'RlReadD',gmeter:'RlGMeter',temp:'RlTemp',car:'RlCar',mark:'RlMark'};
 const PART_NAMES=Object.keys(PART).map(k=>PART[k]);

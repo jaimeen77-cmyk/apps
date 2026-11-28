@@ -487,7 +487,7 @@ class SettingsPage{
   let a=null;try{a=JSON.parse(s.aux||'null');}catch(e){}
   const design=s.design&&/^rl-/.test(s.design)?tr(RL.NAMES[s.design.slice(3)]||s.design):s.design==='own'?tr(s.alert==='circle'?JAM['jam-circle']:JAM['jam-bar']):'';
   if(a&&a.mode==='off')return design+' / '+tr('No auxiliary information');
-  const items=a&&Array.isArray(a.items)?a.items.map(id=>t(D.LABELS[id]||id)).join(' · '):'';
+  const items=a&&Array.isArray(a.items)?a.items.map(id=>tr(D.LABELS[id]||id)).join(' · ')   /* tr: the labels added since the templates (Clock, coolant ...) */:'';
   return [design,items].filter(Boolean).join(' / ')+(s.layout&&Object.keys(s.layout).length?' · '+tr('own position'):'')||tr('Redline cluster');
  }
  drawBc(cv,cfg,targets){
@@ -605,7 +605,11 @@ class SettingsPage{
   cv.text(tr('Standing behind a car that moves off: Moving off in green for 3 s.'),330,122,18,'#3ddc6a',{literal:true});
   {const hh=this.liveState&&this.liveState.headway;
    if(hh&&hh.unsupported)cv.text(tr('Neither the radar nor the Drive assist view is offered to apps on this car (the cluster gets them directly): the badge cannot show here.'),100,284,19,'#ffad45',{literal:true});
-   else cv.text(tr('Colours only while closing in: fast (5 km/h+) under 1.0 s red, under 1.5 s amber; slowly under 1.0 s amber. The same speed: cyan. Below 12 km/h the distance only.'),100,284,21,'#91a1b6',{literal:true});}
+   // (1.3.107) two lines: one ran off the screen's right edge; split at the first ' · ' (Korean) or '; ' (English)
+   else{const all=tr('Colours only while closing in: fast (5 km/h+) under 1.0 s red, under 1.5 s amber; slowly under 1.0 s amber. The same speed: cyan. Below 12 km/h the distance only.'),
+     dot=all.indexOf(' · '),semi=all.indexOf('; '),useDot=dot>0&&(semi<0||dot<semi),k=useDot?dot:semi;
+    if(k>0){cv.text(useDot?all.slice(0,k):all.slice(0,k+1),100,270,18,'#91a1b6',{literal:true});cv.text(all.slice(k+(useDot?3:2)),100,292,18,'#91a1b6',{literal:true});}
+    else cv.text(all,100,284,19,'#91a1b6',{literal:true});}}
   // what arrives: the raw values, to check the signal on this car
   const h=this.liveState&&this.liveState.headway,r=h&&h.raw||{},f=v=>v===null||v===undefined?'-':String(v);
   cv.text(this.headwayValue(cfg),100,322,21,h&&h.unsupported?'#ffad45':'#c1cddd',{literal:true});

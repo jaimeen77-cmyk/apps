@@ -186,7 +186,8 @@ From 1.3.84 this screen replaces the two rows **Sport mode RPM display / All mod
 
 ![HUD design](../screenshots/cluster_redline/manual/t1-hud-design-en.jpg)
 
-- The first two, **Jam top alert bar / Jam circle alert**, are this app's own designs; the rest are the Redline app layouts (18 on the HUD, 20 designs in all). Pictures: [10. All designs](#hud-20). Each tile says **Gauge support** or **Text only** at its top right.
+- The first two, **Jam top alert bar / Jam circle alert**, are this app's own designs; the rest are the Redline app layouts (19 on the HUD, 21 designs in all). Pictures: [10. All designs](#hud-21). Each tile says **Gauge support** or **Text only** at its top right.
+- **Readouts only** (1.3.107): the chosen auxiliary items big, without the RPM picture: up to three in a row, four two by two; cold blue, hot red. The gear small; the RPM only as a thin bar from 1,500 rpm before the shift point (both can be hidden in Position / size). For example: oil, coolant and gearbox oil temperatures alone.
 - After a design you choose the **auxiliary information**: **Gauges** (up to 2) / **Text** (up to 4) / **No auxiliary information**. They are placed in the order you press them, and saved only with **OK**.
 
 | Auxiliary information | What it is |
@@ -239,7 +240,7 @@ The same menus as the HUD tab; the cluster and the HUD have **separate** outputs
 
 ![Cluster design](../screenshots/cluster_redline/manual/t2-cluster-design-en.jpg)
 
-The cluster has **24 designs** (pictures: [10. All designs](#cluster-24)): Jam top alert bar, Jam circle alert and 22 Redline app layouts (Standard, 80s digital dash, VFD glow, Vector arcade, Arc (F80 M3/M4), Ramp (G80 M3/M4), Dial (E60 M5), M shift lights, Data logger, Analog needle, G-force + RPM rings, Mode ribbon, Hexagon, Sport dial, Classic dial, Luxury arc, Tyres & trip, Calm clock, Retro VU meters, Navigation focus, G-G trail, **Animation**). Animation is always last.
+The cluster has **25 designs** (pictures: [10. All designs](#cluster-25)): Jam top alert bar, Jam circle alert and 23 Redline app layouts (Standard, 80s digital dash, VFD glow, Vector arcade, Arc (F80 M3/M4), Ramp (G80 M3/M4), Dial (E60 M5), M shift lights, Data logger, Analog needle, G-force + RPM rings, Mode ribbon, Hexagon, Sport dial, Classic dial, Luxury arc, Tyres & trip, Calm clock, Retro VU meters, Navigation focus, G-G trail, Readouts only, **Animation**). Animation is always last.
 
 **Calm clock** (1.3.71, cluster and HUD): the time big and thin with its date, up to four readouts in quiet figures under it (the auxiliary items chosen), the gear, speed and drive mode small at the top. The rpm stays out of sight until 1,500 rpm before the shift point, then a thin bar fills above the clock. **Cool / warm** colours on the Auxiliary information screen. The clock and the speed are Position / size parts of their own.
 
@@ -424,7 +425,7 @@ Save the current settings (design, auxiliary information, position / size, navig
 
 Every design you can choose in 1.3.92, drawn by the actual package with example data (4,600 rpm, 3rd gear, four text values: boost, torque, oil temperature, outside). They change with the auxiliary information and position / size.
 
-### Cluster (24)
+### Cluster (25)
 
 Sport dial, Classic dial, Tyres & trip, Retro VU meters and Navigation focus are cluster only (too detailed for the HUD). Animation is the M3 picture shown without your own GIFs.
 
@@ -437,9 +438,10 @@ Sport dial, Classic dial, Tyres & trip, Retro VU meters and Navigation focus are
 | ![G-force + RPM rings](../screenshots/cluster_redline/designs/cluster-rl-rings-en.jpg)<br>13. **G-force + RPM rings** | ![Mode ribbon](../screenshots/cluster_redline/designs/cluster-rl-ribbon-en.jpg)<br>14. **Mode ribbon** | ![Hexagon](../screenshots/cluster_redline/designs/cluster-rl-hexagon-en.jpg)<br>15. **Hexagon** |
 | ![Sport dial](../screenshots/cluster_redline/designs/cluster-rl-sportdial-en.jpg)<br>16. **Sport dial** | ![Classic dial](../screenshots/cluster_redline/designs/cluster-rl-classic-en.jpg)<br>17. **Classic dial** | ![Luxury arc](../screenshots/cluster_redline/designs/cluster-rl-luxury-en.jpg)<br>18. **Luxury arc** |
 | ![Tyres & trip](../screenshots/cluster_redline/designs/cluster-rl-tyres-en.jpg)<br>19. **Tyres & trip** | ![Calm clock](../screenshots/cluster_redline/designs/cluster-rl-calm-en.jpg)<br>20. **Calm clock** | ![Retro VU meters](../screenshots/cluster_redline/designs/cluster-rl-vu-en.jpg)<br>21. **Retro VU meters** |
-| ![Navigation focus](../screenshots/cluster_redline/designs/cluster-rl-navfocus-en.jpg)<br>22. **Navigation focus** | ![G-G trail](../screenshots/cluster_redline/designs/cluster-rl-gg-en.jpg)<br>23. **G-G trail** | ![Animation](../screenshots/cluster_redline/designs/cluster-rl-car-en.jpg)<br>24. **Animation** |
+| ![Navigation focus](../screenshots/cluster_redline/designs/cluster-rl-navfocus-en.jpg)<br>22. **Navigation focus** | ![G-G trail](../screenshots/cluster_redline/designs/cluster-rl-gg-en.jpg)<br>23. **G-G trail** | ![Readouts only](../screenshots/cluster_redline/designs/cluster-rl-aux-en.jpg)<br>24. **Readouts only** |
+| ![Animation](../screenshots/cluster_redline/designs/cluster-rl-car-en.jpg)<br>25. **Animation** |  |  |
 
-### HUD (20)
+### HUD (21)
 
 Sport HUD is HUD only. On the HUD black is see-through.
 
@@ -451,7 +453,7 @@ Sport HUD is HUD only. On the HUD black is see-through.
 | ![M shift lights](../screenshots/cluster_redline/designs/hud-rl-shift-en.jpg)<br>10. **M shift lights** | ![Data logger](../screenshots/cluster_redline/designs/hud-rl-logger-en.jpg)<br>11. **Data logger** | ![Analog needle](../screenshots/cluster_redline/designs/hud-rl-needle-en.jpg)<br>12. **Analog needle** |
 | ![G-force + RPM rings](../screenshots/cluster_redline/designs/hud-rl-rings-en.jpg)<br>13. **G-force + RPM rings** | ![Mode ribbon](../screenshots/cluster_redline/designs/hud-rl-ribbon-en.jpg)<br>14. **Mode ribbon** | ![Hexagon](../screenshots/cluster_redline/designs/hud-rl-hexagon-en.jpg)<br>15. **Hexagon** |
 | ![Luxury arc](../screenshots/cluster_redline/designs/hud-rl-luxury-en.jpg)<br>16. **Luxury arc** | ![Sport HUD](../screenshots/cluster_redline/designs/hud-rl-sporthud-en.jpg)<br>17. **Sport HUD** | ![Calm clock](../screenshots/cluster_redline/designs/hud-rl-calm-en.jpg)<br>18. **Calm clock** |
-| ![G-G trail](../screenshots/cluster_redline/designs/hud-rl-gg-en.jpg)<br>19. **G-G trail** | ![Animation](../screenshots/cluster_redline/designs/hud-rl-car-en.jpg)<br>20. **Animation** |  |
+| ![G-G trail](../screenshots/cluster_redline/designs/hud-rl-gg-en.jpg)<br>19. **G-G trail** | ![Readouts only](../screenshots/cluster_redline/designs/hud-rl-aux-en.jpg)<br>20. **Readouts only** | ![Animation](../screenshots/cluster_redline/designs/hud-rl-car-en.jpg)<br>21. **Animation** |
 
 ## Troubleshooting
 

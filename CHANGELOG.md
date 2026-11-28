@@ -2,6 +2,15 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.107 (Readouts only design; two settings fixes)
+
+- **New design: Readouts only** (부가정보만), on the HUD and the cluster, just before Animation in the list. The chosen auxiliary items big, without the RPM picture: up to three in a row (with their thermometer / bar in gauge mode), four two by two; hot red, cold blue. The gear small in the top corner; the RPM only as a thin bar that comes up 1,500 rpm before the shift point (flashing at it). Each part moves, sizes and hides in Position / size. Made for a user who wants the oil, coolant and gearbox oil temperatures alone.
+- Redline layouts: the coolant and gearbox oil readouts are labelled in Korean (냉각수, 미션).
+- **Fix: the headway screen's colour line ran off the right edge**: two lines now.
+- **Fix: a BC page's summary showed "Clock" (and the new readouts) in English** in the Korean edition.
+- The user guide's design lists have the new design (cluster 25, HUD 21) with pictures.
+- Tests: `redline-layouts`, `redline-layout-parts` (the new layout); `korean-ui` passes again.
+
 ## Cluster Redline 1.3.106 (coolant and gearbox oil temperature readouts; moving-off alert speed; favourites keep the options added since)
 
 - **New readouts: coolant temperature and gearbox oil temperature** (a user's request: oil, coolant and gearbox oil on their own). Both as text and as gauges (thermometers), and in the Redline layouts (`WATER`, `TRANS`; cold / hot tones: coolant under 60 / over 115 °C, gearbox oil under 50 / over 120 °C).
