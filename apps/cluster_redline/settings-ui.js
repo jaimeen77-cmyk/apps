@@ -11,7 +11,7 @@ const W=1600,H=520,TABS=['Basic settings','HUD display setting','CLUSTER display
 // the Navigation tab has no Vehicle alerts row (always on, placed in its Position / size)
 const GROUPS=[['appEnabled','driverProfiles','hudLamps','vehiclePreset','qrLogs'],['hudModes','design','layout','bcFollow','hudHideWaze'],['clusterModes','design','layout','bcFollow','clusterYieldAcc'],['navDisplayMode','navColor','clusterYieldGuidance','hudCarCams','layout']];
 // menus inside a tab: their rows, opened from the row of the same key, Back to it
-const SUBMENUS={hudLamps:['hudHeadway','hudLaneLines','hudRoadAlerts','turn','hudDoorAlert'],vehiclePreset:['engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm']};
+const SUBMENUS={hudLamps:['hudHeadway','hudLaneLines','hudRoadAlerts','hudLaunch','turn','hudDoorAlert'],vehiclePreset:['engineProfile','powerUnit','torqueUnit','shiftRpm','comfortShiftRpm']};
 const SUBMENU_ITEMS={hudLamps:{key:'hudLamps',label:'HUD lamps',type:'action'},vehiclePreset:{key:'vehiclePreset',label:'Vehicle preset',type:'action'}};
 const RENDERER_NOTICE='Install Cluster renderer (cluster-render) from MGU Store first.';
 const MAP_WARNING='Set Central display area to Map view or Off. Assist or route preview may cover the widget.';
@@ -48,7 +48,7 @@ function navLogLine(e){
 const JAM={'jam-bar':'Jam top alert bar','jam-circle':'Jam circle alert'};
 function designList(display){return Object.keys(JAM).concat(RL.stylesFor(display));}
 function designNow(cfg,display){return RL.active(cfg,display)?RL.style(cfg,display):cfg[display+'AlertStyle']==='circle'?'jam-circle':'jam-bar';}
-const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','navLog','position','headway','bcCheck','bc','myPic','laneLines','modes','navShare','qrLogs'];
+const ACTION_SCREENS=['layout','layoutPresets','turn','navColor','door','driver','navMode','navLog','position','headway','bcCheck','bc','myPic','laneLines','modes','navShare','qrLogs','launch'];
 // The BC button check (bc-diag.js, 1.3.39): what the car sends when BC is pressed; main.js sets page.bcDiag
 const BCCHECK_ITEM={key:'bcCheck',label:'BC button check',type:'action'};
 // Following the BC button (bc-follow.js, 1.3.40): its own screen; main.js sets page.bcFollow
@@ -57,13 +57,16 @@ const BC=require('./bc-follow');
 // The HUD headway badge (1.3.37): a screen of its own; its settings kept outside app.json
 const HEADWAY_ITEM={key:'hudHeadway',label:'Lead-car headway',type:'action'};
 const LANE_ITEM={key:'hudLaneLines',label:'Lane lines',type:'action'};
+// 1.3.105: the 0-100 screen (launch-timer.js, launch-draw.js)
+const LAUNCH_ITEM={key:'hudLaunch',label:'0-100 screen',type:'action'};
 // Drive-mode display (1.3.84): each display's output and screen per group of drive modes
 const MODES_ITEMS={hudModes:{key:'hudModes',label:'Drive-mode display',type:'action'},clusterModes:{key:'clusterModes',label:'Drive-mode display',type:'action'}};
 const MODE_LABELS={sport:'Sport',comfort:'Comfort',eco:'Eco',other:'Other modes'},OUT_LABELS={redline:'Redline app',stock:'Stock display',bc:'BC mode',comfort:'As Comfort'};
 const HEADWAY_KEYS=Object.keys(D.defaults).filter(k=>/^hudHeadway/.test(k));
+const LAUNCH_KEYS=Object.keys(D.defaults).filter(k=>/^hudLaunch/.test(k));
 const NAV_COLOR_LABELS={orange:'Orange',green:'Green',blue:'Blue',white:'White',lime:'Neon'};
 const TURN_STYLE_LABELS={arrow:'Default arrow',chevron3:'<<<  >>>',chevron:'<  >'},TURN_COLOR_LABELS={green:'Green',blue:'Blue',orange:'Orange'};
-const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','clusterYieldAcc','hudHideWaze','hudCarCams','hudRoadAlerts','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen','bcHmi','bcPages','bcHudPages','bcStart'].concat(DOOR_KEYS,HEADWAY_KEYS).concat(TURN_KEYS,ALERT_KEYS);
+const FAV_EXTRA=['clockZone','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','clusterYieldAcc','hudHideWaze','hudCarCams','hudRoadAlerts','hudRlLayouts','clusterRlLayouts','navTextColor','hudNavThen','bcHmi','bcPages','bcHudPages','bcStart'].concat(DOOR_KEYS,HEADWAY_KEYS,LAUNCH_KEYS).concat(TURN_KEYS,ALERT_KEYS);
 function favKeys(schema){const skip=k=>k==='appEnabled'||k==='layoutPreview'||/LayoutSlot\d|^favorite\d|^_/.test(k);return schema.map(s=>s.key).concat(FAV_EXTRA,Object.keys(DEFAULTS).filter(k=>/^(hud|cluster)Rl/.test(k))).filter((k,i,a)=>!skip(k)&&a.indexOf(k)===i);}
 // Settings per driver (driver-profiles.js): the whole setup a favourite keeps, plus the favourites themselves, so each
 // driver has their own five favourites.
@@ -118,11 +121,11 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','clusterYieldAcc','hudHideWaze','hudCarCams','hudRoadAlerts','roadLog','roadLogMissAt','logClearAt','navShare','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','positionCheck','calmTone','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','navShare','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','clusterYieldAcc','hudHideWaze','hudCarCams','hudRoadAlerts','roadLog','roadLogMissAt','logClearAt','navShare','launchBest','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','positionCheck','calmTone','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','navShare','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS,LAUNCH_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:this.sub&&SUBMENUS[this.sub]?SUBMENUS[this.sub]:GROUPS[this.tab];}
  item(){return this.itemOf(this.keys()[this.focus]);}
- itemOf(key){if(SUBMENU_ITEMS[key])return SUBMENU_ITEMS[key];if(key==='turn')return TURN_ITEM;if(key==='hudHeadway')return HEADWAY_ITEM;if(key==='hudLaneLines')return LANE_ITEM;if(MODES_ITEMS[key])return MODES_ITEMS[key];if(key==='bcCheck')return BCCHECK_ITEM;if(key==='bcFollow')return BCFOLLOW_ITEM;if(key==='hudCarAlerts')return ALERT_ITEM;if(key==='driverProfiles')return DRIVER_ITEM;if(key==='hudDoorAlert')return DOOR_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(key==='clusterYieldAcc')return ACC_ITEM;if(key==='hudHideWaze')return WAZE_ITEM;if(key==='hudCarCams')return CAMS_ITEM;if(key==='hudRoadAlerts')return ROAD_ITEM;if(key==='qrLogs')return QRLOG_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
+ itemOf(key){if(SUBMENU_ITEMS[key])return SUBMENU_ITEMS[key];if(key==='turn')return TURN_ITEM;if(key==='hudHeadway')return HEADWAY_ITEM;if(key==='hudLaneLines')return LANE_ITEM;if(key==='hudLaunch')return LAUNCH_ITEM;if(MODES_ITEMS[key])return MODES_ITEMS[key];if(key==='bcCheck')return BCCHECK_ITEM;if(key==='bcFollow')return BCFOLLOW_ITEM;if(key==='hudCarAlerts')return ALERT_ITEM;if(key==='driverProfiles')return DRIVER_ITEM;if(key==='hudDoorAlert')return DOOR_ITEM;if(key==='comfortShiftRpm')return COMFORT_ITEM;if(key==='clusterYieldGuidance')return YIELD_ITEM;if(key==='clusterYieldAcc')return ACC_ITEM;if(key==='hudHideWaze')return WAZE_ITEM;if(key==='hudCarCams')return CAMS_ITEM;if(key==='hudRoadAlerts')return ROAD_ITEM;if(key==='qrLogs')return QRLOG_ITEM;if(['aux','design','layout'].includes(key))return {key,label:{aux:'Auxiliary information',design:'Design',layout:'Position / size'}[key],type:'action'};return this.settings.schema.find(s=>s.key===key);}
  // Keep Basic a normal tab, including repeated taps from older hosts.
  tapBasic(){this.selectTab(0);}
  selectTab(i){if(this.open==='layout'||this.open==='layoutPresets'||this.settings.get('layoutPreview'))this.setPreview(false);this.layoutKind=null;this.sub=null;this.tab=Math.max(0,Math.min(FAV_TAB,i|0));this.favArmed=null;this.focus=0;this.open=null;this.draft=null;this.choice=0;this.changed();}
@@ -143,7 +146,7 @@ class SettingsPage{
   else if(this.open==='auxMode'){this.open='rlDesign';this.choice=Math.max(0,designList(this.display()).indexOf(designNow(this.config(),this.display())));}
   else if(this.open==='auxSelect'){this.open='auxMode';this.draft=null;this.choice=0;}
   else if(this.open==='layoutPresets'){this.open='layout';this.choice=0;this.presetMessage='';}
-  else if(this.open==='layout'&&(this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='headway')){this.setPreview(false);this.open=this.layoutKind;this.layoutKind=null;this.choice=0;}
+  else if(this.open==='layout'&&(this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='headway'||this.layoutKind==='launch')){this.setPreview(false);this.open=this.layoutKind;this.layoutKind=null;this.choice=0;}
   else{if(this.open==='layout')this.setPreview(false);this.open=null;this.draft=null;this.layoutKind=null;}
   this.changed();
  }
@@ -160,7 +163,8 @@ class SettingsPage{
    return tr(JAM[n]||RL.NAMES[n])+' · '+(a.mode==='off'?tr('No auxiliary information'):a.items.map(k=>tr(D.LABELS[k])).join(' / '));}
   if(item.key==='layout')return t('Adjust');
   if(item.key==='qrLogs')return 'QR '+tr(cfg.navShare==='on'?'On':'Off')+' · '+tr('Received turns recording')+' '+tr(cfg.navProbeLog==='on'?'On':'Off')+' · '+tr('Warning recording')+' '+tr(cfg.roadLog==='on'?'On':'Off');
-  if(item.key==='hudLamps')return [[cfg.hudHeadway!=='off','Lead-car headway'],[cfg.hudLaneLines==='on','Lane lines'],[cfg.hudTurnSignals==='on','Turn signals on HUD'],[cfg.hudDoorAlert!=='off','Door-open warning']].filter(x=>x[0]).map(x=>tr(x[1])).join(' · ')||tr('Off');
+  if(item.key==='hudLaunch')return tr(cfg.hudLaunch==='on'?'On':'Off')+(cfg.launchBest>0?' · '+tr('best')+' '+cfg.launchBest.toFixed(2)+' s':'');
+  if(item.key==='hudLamps')return [[cfg.hudHeadway!=='off','Lead-car headway'],[cfg.hudLaneLines==='on','Lane lines'],[cfg.hudLaunch==='on','0-100 screen'],[cfg.hudTurnSignals==='on','Turn signals on HUD'],[cfg.hudDoorAlert!=='off','Door-open warning']].filter(x=>x[0]).map(x=>tr(x[1])).join(' · ')||tr('Off');
   if(item.key==='vehiclePreset'){const e=options(this.settings.schema.find(s=>s.key==='engineProfile'),cfg).find(o=>o[0]===cfg.engineProfile);return (e?t(e[1]):'')+' · '+cfg.powerUnit+' · '+(cfg.torqueUnit==='kgfm'?'kgf·m':'Nm')+' · '+cfg.shiftRpm+' rpm';}
   if(item.key==='driverProfiles')return this.driverValue();
   if(item.key==='hudDoorAlert')return this.doorValue(cfg);
@@ -191,6 +195,7 @@ class SettingsPage{
   else if(item.key==='navDisplayMode')this.open='navMode';
   else if(item.key==='qrLogs'){this.open='qrLogs';this.shareIndex=0;this.clearArmed=null;}
   else if(item.key==='hudHeadway')this.open='headway';
+  else if(item.key==='hudLaunch')this.open='launch';
   else if(item.key==='hudLaneLines')this.open='laneLines';
   else if(MODES_ITEMS[item.key])this.open='modes';
   else if(item.key==='bcCheck'){this.open='bcCheck';if(this.bcDiag)this.bcDiag.start();}
@@ -295,6 +300,7 @@ class SettingsPage{
   else if(this.open==='navLog')this.drawNavLog(cv,cfg,targets);
   else if(this.open==='position')this.drawPosition(cv,cfg,targets);
   else if(this.open==='headway')this.drawHeadway(cv,cfg,targets);
+  else if(this.open==='launch')this.drawLaunch(cv,cfg,targets);
   else if(this.open==='laneLines')this.drawLaneLines(cv,cfg,targets);
   else if(this.open==='modes')this.drawModes(cv,cfg,targets);
   else if(this.open==='navShare')this.drawNavShare(cv,cfg,targets);
@@ -651,6 +657,19 @@ class SettingsPage{
    if(urls.length>1)this.button(cv,local,tr('Next address'),84,448,420,64,()=>{this.shareIndex=(k+1)%urls.length;this.changed();},false,'navshare-next');}
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
+ // The 0-100 screen (1.3.105): on / off, its Position / size, the best time and clearing it
+ drawLaunch(cv,cfg,targets){
+  const local=[],set=(k,v)=>{this.settings.set(k,v);this.changed();};
+  cv.text(tr('0-100 screen'),100,126,32,'#ef4050',{literal:true});
+  [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*266,146,254,64,()=>set('hudLaunch',o[0]),cfg.hudLaunch===o[0],'launch-'+o[0]));
+  cv.text(tr('On the HUD: the speed, the acceleration in g with its bar, and the 0-100 km/h time.'),100,262,21,'#c1cddd',{literal:true});
+  cv.text(tr('Timed from the moment the car moves off until 100 km/h; slowing down 10 km/h drops the run. The best is kept.'),100,294,19,'#91a1b6',{literal:true});
+  cv.text(tr('Best')+': '+(cfg.launchBest>0?cfg.launchBest.toFixed(2)+' s':'-'),100,346,24,cfg.launchBest>0?'#3ddc6a':'#91a1b6',{literal:true});
+  this.button(cv,local,tr('Position / size'),84,448,500,64,()=>{this.layoutKind='launch';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Launch']);this.setPreview(true);this.changed();},false,'launch-layout');
+  const armed=this.launchClearArmed&&Date.now()-this.launchClearArmed<5000;
+  this.button(cv,local,armed?tr('Press again to clear'):tr('Clear the best'),600,448,400,64,()=>{if(armed){this.launchClearArmed=null;set('launchBest',0);}else{this.launchClearArmed=Date.now();this.changed();}},!!armed,'launch-clear');
+  this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
+ }
  // QR log collection (1.3.100): the helper's page (redline-lead 0.8.0) gives nav-probe.log and road-alerts.log to a phone,
  // each or both together; the warning recording (road-log.js) on / off; Save a miss (the last 20 s); Delete logs (pressed
  // twice within 5 s). The logs stay in the app's data folder, at most 1 MB (nav-probe) and 3 MB (warnings).
@@ -801,8 +820,8 @@ class SettingsPage{
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // Parts placed by their own rectangle (navigation, turn signals) rather than measured on the face.
- rectKind(){return this.tab===3||this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='headway';}
- layoutParts(){return this.layoutKind==='headway'?D.HEADWAY_PARTS:this.layoutKind==='door'?D.DOOR_PARTS:this.layoutKind==='turn'?D.TURN_PARTS.concat(D.BLIND_PARTS):this.tab===3?D.NAV_LAYOUT_PARTS:D.partsFor(this.display(),this.config());}
+ rectKind(){return this.tab===3||this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='headway'||this.layoutKind==='launch';}
+ layoutParts(){return this.layoutKind==='launch'?D.LAUNCH_PARTS:this.layoutKind==='headway'?D.HEADWAY_PARTS:this.layoutKind==='door'?D.DOOR_PARTS:this.layoutKind==='turn'?D.TURN_PARTS.concat(D.BLIND_PARTS):this.tab===3?D.NAV_LAYOUT_PARTS:D.partsFor(this.display(),this.config());}
  // Tell the renderer which part is being adjusted so hidden or unused parts are drawn while moving them.
  previewValue(){const p=this.layoutParts()[this.layoutPart];return p?(this.tab===3?'nav':this.display())+':'+p.key+'@'+Date.now():'';}
  // Refresh the marker only when the part changed or it is a minute old (it expires after two).
@@ -996,7 +1015,7 @@ class SettingsPage{
   const refresh=this.previewRefresh();if(refresh.layoutPreview!==undefined)this.settings.set('layoutPreview',refresh.layoutPreview);this.changed();}
  rlRect(cfg,p){const display=this.display(),face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display);if(p.key==='RpmGauge')return layout;const shown=RL.placed({config:cfg,rpm:0,gear:'--',aux:{}},layout,display,face).find(v=>v.key===p.key);if(shown)return shown.r;const e=RL.elements(cfg,display).find(v=>v.key===p.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display);return b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;}
  drawLayout(cv,cfg,targets){
-  const local=[],nav=this.rectKind(),turn=this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='headway',display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
+  const local=[],nav=this.rectKind(),turn=this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='headway'||this.layoutKind==='launch',display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
   // Five columns, or six when a layout has many elements (two rows with Save / load in the last cell).
   const columns=parts.length>=10?6:5,cell=columns===6?243:292;
   parts.forEach((p,i)=>this.button(cv,local,tr(p.label),84+(i%columns)*cell,96+Math.floor(i/columns)*62,cell-14,56,()=>this.selectLayoutPart(i),this.layoutSelected.has(p.key),'part'+i));
@@ -1015,6 +1034,7 @@ class SettingsPage{
   let width,height;
   if(this.layoutKind==='door'){const rect=D.doorRect(cfg);width=rect.w;height=rect.h;}
   else if(this.layoutKind==='headway'){const rect=D.headwayRect(cfg);width=rect.w;height=rect.h;}
+  else if(this.layoutKind==='launch'){const rect=D.launchRect(cfg);width=rect.w;height=rect.h;}
   else if(turn&&/^Blind/.test(selected.key)){const rect=D.blindRect(cfg,selected.key==='BlindRight'?'right':'left');width=rect.w;height=rect.h;}
   else if(turn){const rect=D.turnRect(cfg,selected.key==='TurnRight'?'right':'left');width=rect.w;height=rect.h;}
   else if(nav){const rect=D.navRect(cfg,selected.key);width=rect.w;height=rect.h;}

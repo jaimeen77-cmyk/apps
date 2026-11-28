@@ -31,7 +31,7 @@ MGU Store에서 **Settings → Add source(소스 추가)**를 열고 아래 소�
 
 | Store 목록 이름 | 버전 | iDrive 7 | iDrive 8 | 함께 설치되는 도구 |
 |---|---|:-:|:-:|---|
-| 계기판 레드라인 (한국어) / Cluster Redline (English) | 1.3.104 | ✅ | ✅ | `cluster-render` 0.4.0+, `redline-lead` 0.8.1(이 소스, 앞차·차선 도우미), `mgu-deploy` 0.7.17+ |
+| 계기판 레드라인 (한국어) / Cluster Redline (English) | 1.3.105 | ✅ | ✅ | `cluster-render` 0.4.0+, `redline-lead` 0.8.1(이 소스, 앞차·차선 도우미), `mgu-deploy` 0.7.17+ |
 | MGU 모니터 (한국어) / MGU Monitor (English) | 1.1.10 | ✅ | ✅ | `mgu-monitor-names` 0.1.0(이 소스), `mgu-deploy` |
 | 아이드라이브 회로 (한국어) / iDrive Circuit (English) | 1.0.5 | ✅ | ✅ | `mgu-deploy` |
 | 시트 Easy Access (한국어) / Seats Easy Access (English) | 0.7.10 | ✅ | ✅ | `iteriodev-comfort` 0.6.1+, `mgu-deploy` 0.7.11+ |
