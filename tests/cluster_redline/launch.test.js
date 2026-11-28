@@ -41,5 +41,8 @@ if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/ja
  page.activate(page.keys().indexOf('hudLaunch'));assert.strictEqual(page.open,'launch');const scr=()=>{const cv=new Canvas(1600,520);page.draw(cv,'',{});return cv.targets;};
  scr().find(t=>t.id==='launch-on').run();assert.strictEqual(v.hudLaunch,'on');
  scr().find(t=>t.id==='launch-layout').run();assert.strictEqual(page.open,'layout');assert(/:Launch@/.test(v.layoutPreview),'preview: '+v.layoutPreview);page.adjust(0,1);assert.strictEqual(v.hudLaunchOffsetX,10);page.back();assert.strictEqual(page.open,'launch');
- v.launchBest=4.08;scr().find(t=>t.id==='launch-clear').run();assert.strictEqual(v.launchBest,4.08,'once: armed');scr().find(t=>t.id==='launch-clear').run();assert.strictEqual(v.launchBest,0,'twice: cleared');}
-console.log('PASS: 0-100 screen: timer (moving off to 100 km/h, dropped when slowing, the best), demand, overlay (new picture on change, off, preview), its place, the settings screen');
+ v.launchBest=4.08;v.launchRuns=JSON.stringify([{t:4.31,at:Date.UTC(2026,10,28,8,0)},{t:4.08,at:Date.UTC(2026,10,27,8,0)}]);
+ {const texts=[],cv=new Canvas(1600,520),tx=cv.text;cv.text=function(t){texts.push(String(t));return tx.apply(this,arguments);};page.draw(cv,'',{});assert(texts.some(t=>/1\.\s+4\.31 s/.test(t))&&texts.some(t=>/2\.\s+4\.08 s/.test(t)),'the last runs listed, newest first');}
+ scr().find(t=>t.id==='launch-clear').run();assert.strictEqual(v.launchBest,4.08,'once: armed');scr().find(t=>t.id==='launch-clear').run();assert.strictEqual(v.launchBest,0,'twice: cleared');assert.strictEqual(v.launchRuns,'[]','and the runs');}
+{const D2=require('../../apps/cluster_redline/display-config');assert.deepStrictEqual(D2.launchRuns(settings({launchRuns:JSON.stringify([{t:4.1,at:1},{t:'x'},{t:5,at:2}].concat(Array(12).fill({t:6,at:3})))})).length,10,'at most 10, broken ones left out');}
+console.log('PASS: 0-100 screen: the last 10 runs listed and cleared; timer (moving off to 100 km/h, dropped when slowing, the best), demand, overlay (new picture on change, off, preview), its place, the settings screen');

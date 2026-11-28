@@ -508,8 +508,11 @@ function start(ctx) {
             // (1.3.105) the 0-100 screen: timed from the vehicle speed's own samples, the g from CDS2; a new best kept
             {const launchOn = live && config.appEnabled && config.hudLaunch === 'on';
              if (config.launchBest !== launchBestCfg) { launchBestCfg = config.launchBest; launchTimer.best = config.launchBest > 0 ? config.launchBest : null; }
-             if (launchOn && carSpeed.at !== null && carSpeed.at !== launchSpeedAt) { launchSpeedAt = carSpeed.at; const nb = launchTimer.sample(carSpeed.at, carSpeed.v);
-                 if (nb && ctx.settings && typeof ctx.settings.set === 'function') { launchBestCfg = nb; try { ctx.settings.set('launchBest', nb); } catch (e) {} } }
+             if (launchOn && carSpeed.at !== null && carSpeed.at !== launchSpeedAt) { launchSpeedAt = carSpeed.at; const was = launchTimer.state, nb = launchTimer.sample(carSpeed.at, carSpeed.v);
+                 const store = ctx.settings && typeof ctx.settings.set === 'function';
+                 if (nb && store) { launchBestCfg = nb; try { ctx.settings.set('launchBest', nb); } catch (e) {} }
+                 // a run just finished: kept with the others (the last 10, newest first; the settings screen lists them)
+                 if (store && was === 'run' && launchTimer.state === 'done') { try { ctx.settings.set('launchRuns', JSON.stringify([{ t: launchTimer.result, at: Date.now() }].concat(D.launchRuns(config)).slice(0, 10))); } catch (e) {} } }
              const gl = controller.aux && typeof controller.aux.gLong === 'number' ? controller.aux.gLong : null;
              launchOverlay.tick(launchOn ? Object.assign({ speed: speedKmh, g: gl }, launchTimer.view(at)) : null, config, !!(pv && pv.part === 'Launch'));}
             headwayOverlay.tick(headwayOn ? leadShown : null, config, config.hudHeadway === 'simple' ? 'simple' : 'detail', !!(pv && pv.part === 'Headway'));

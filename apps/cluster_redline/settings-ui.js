@@ -121,7 +121,7 @@ function vector(cv,x,y,s){
 }
 class SettingsPage{
  constructor(settings,changed,version){this.settings=settings;this.changed=changed||(()=>{});this.version=version;this.tab=0;this.focus=0;this.open=null;this.choice=0;this.layoutPart=0;this.layoutParam=0;this.draft=null;this.layoutActions=[];this.layoutSelected=new Set();}
- config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','clusterYieldAcc','hudHideWaze','hudCarCams','hudRoadAlerts','roadLog','roadLogMissAt','logClearAt','navShare','launchBest','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','positionCheck','calmTone','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','navShare','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS,LAUNCH_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
+ config(){const raw={};this.settings.schema.forEach(s=>{raw[s.key]=this.settings.get(s.key);});['clockZone','layoutPreview','hudDesign','clusterDesign','comfortShiftRpm','clusterYieldGuidance','clusterYieldAcc','hudHideWaze','hudCarCams','hudRoadAlerts','roadLog','roadLogMissAt','logClearAt','navShare','launchBest','launchRuns','navTextColor','greetHello','greetBye','hudNavThen','myPicIds','navProbeLog','positionCheck','calmTone','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','navShare','hudModeSetup','clusterModeSetup','bcFollow','bcHmi','bcPages','bcHudPages','bcStart','bcIndex','bcCluster'].concat(RL_KEYS,TURN_KEYS,ALERT_KEYS,DOOR_KEYS,HEADWAY_KEYS,LAUNCH_KEYS).forEach(k=>{if(raw[k]===undefined)raw[k]=this.settings.get(k);});return effective(raw);}
  display(){return this.tab===2?'cluster':'hud';}
  keys(){return this.tab===FAV_TAB?[]:this.sub&&SUBMENUS[this.sub]?SUBMENUS[this.sub]:GROUPS[this.tab];}
  item(){return this.itemOf(this.keys()[this.focus]);}
@@ -664,10 +664,15 @@ class SettingsPage{
   [['off','Off'],['on','On']].forEach((o,i)=>this.button(cv,local,tr(o[1]),84+i*266,146,254,64,()=>set('hudLaunch',o[0]),cfg.hudLaunch===o[0],'launch-'+o[0]));
   cv.text(tr('On the HUD: the speed, the acceleration in g with its bar, and the 0-100 km/h time.'),100,262,21,'#c1cddd',{literal:true});
   cv.text(tr('Timed from the moment the car moves off until 100 km/h; slowing down 10 km/h drops the run. The best is kept.'),100,294,19,'#91a1b6',{literal:true});
-  cv.text(tr('Best')+': '+(cfg.launchBest>0?cfg.launchBest.toFixed(2)+' s':'-'),100,346,24,cfg.launchBest>0?'#3ddc6a':'#91a1b6',{literal:true});
+  cv.text(tr('Best')+': '+(cfg.launchBest>0?cfg.launchBest.toFixed(2)+' s':'-'),1110,188,24,cfg.launchBest>0?'#3ddc6a':'#91a1b6',{literal:true});
+  // the last 10 runs, newest first, in two columns (the best in green), with the day and time
+  {const runs=D.launchRuns(cfg),day=at=>{const d=new Date(cfg.clockZone==='utc9'?at+9*3600000:at),u=cfg.clockZone==='utc9';return (u?d.getUTCMonth():d.getMonth())+1+'/'+(u?d.getUTCDate():d.getDate())+' '+D.clockText(cfg,new Date(at));};
+   cv.text(tr('Last 10 runs')+(runs.length?'':' · '+tr('none yet')),100,330,20,'#91a1b6',{literal:true});
+   runs.forEach((r,i)=>{const x=100+Math.floor(i/5)*560,y=360+(i%5)*20,b=cfg.launchBest>0&&Math.abs(r.t-cfg.launchBest)<0.005;
+    cv.text((i+1)+'.  '+r.t.toFixed(2)+' s   '+day(r.at),x,y,17,b?'#3ddc6a':'#c1cddd',{literal:true});});}
   this.button(cv,local,tr('Position / size'),84,448,500,64,()=>{this.layoutKind='launch';this.open='layout';this.layoutPart=0;this.layoutParam=0;this.layoutSelected=new Set(['Launch']);this.setPreview(true);this.changed();},false,'launch-layout');
   const armed=this.launchClearArmed&&Date.now()-this.launchClearArmed<5000;
-  this.button(cv,local,armed?tr('Press again to clear'):tr('Clear the best'),600,448,400,64,()=>{if(armed){this.launchClearArmed=null;set('launchBest',0);}else{this.launchClearArmed=Date.now();this.changed();}},!!armed,'launch-clear');
+  this.button(cv,local,armed?tr('Press again to clear'):tr('Clear the runs'),600,448,400,64,()=>{if(armed){this.launchClearArmed=null;this.settings.set('launchRuns','[]');set('launchBest',0);}else{this.launchClearArmed=Date.now();this.changed();}},!!armed,'launch-clear');
   this.layoutActions=local;targets.push.apply(targets,local);this.backButton(cv,targets);
  }
  // QR log collection (1.3.100): the helper's page (redline-lead 0.8.0) gives nav-probe.log and road-alerts.log to a phone,

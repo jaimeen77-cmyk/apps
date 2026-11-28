@@ -9,7 +9,8 @@ Version history is kept here. For current usage, see [Cluster Redline](docs/CLUS
   - **ACCEL** with the longitudinal acceleration in g, over a bevelled bar (cyan into lime, 0-1 g);
   - **0–100** and its **time** large in cyan: counting while running, kept when done, green with **NEW BEST** for a new best; the best time small.
   - Its own **Position / size** (moved and sized like the lead-car headway); dark parts are see-through on the HUD glass.
-- **Timing**: from the moment the car leaves 1 km/h (standing still at least 0.5 s before) until 100 km/h, both moments interpolated between the speed samples; the clock runs between samples. Slowing down by 10 km/h (or over 30 s) drops the run. The best time is kept (shown on the screen and its settings row) and can be cleared there (pressed twice).
+- **The last 10 runs** are kept with their day and time and listed on the 0-100 screen's settings (newest first, the best in green); **Clear the runs** (pressed twice) clears them and the best.
+- **Timing**: from the moment the car leaves 1 km/h (standing still at least 0.5 s before) until 100 km/h, both moments interpolated between the speed samples; the clock runs between samples. Slowing down by 10 km/h (or over 30 s) drops the run. The best time is kept (shown on the screen and its settings row).
 - The speed and the longitudinal acceleration are read only while the screen is on. A drive mode's screen or a BC page never moves it.
 - Tests: `launch` (the timer, the read signals, the overlay, its place, the settings screen).
 
