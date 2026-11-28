@@ -1,5 +1,5 @@
 'use strict';
-// The gearbox oil temperature readout (1.3.104), from the first source that has it, as appsKOR's Warm-Up reads it
+// The gearbox oil temperature readout (1.3.106), from the first source that has it, as appsKOR's Warm-Up reads it
 // (apps/warmup/gearbox.js; the facts are its, this code is written anew):
 //   1. the gearbox unit (EGS, 0x18), READ ONLY through the kit's ReadOnlyDiag (nothing but 22 / OBD 01 / 09 can leave the
 //      head unit): 22 6000 (ZF 8HP: °C + 40, read on a G22), else 22 DA12 (°C + 48, not confirmed on a car: taken only

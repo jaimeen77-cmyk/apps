@@ -23,7 +23,7 @@ function tripTime(value){
 const CORNERS=['FL','FR','RL','RR'];
 const SOURCES=[
  {iface:FES,field:'statusSwitchDriveDynamicSport2',members:{boost:['displayBoostPressure',0.01,0,255]}},
- // (1.3.104) the coolant temperature comes in the same field as the oil's, as Live Data reads it
+ // (1.3.106) the coolant temperature comes in the same field as the oil's, as Live Data reads it
  {iface:CDS,field:'statusEngineTemperature',members:{oil:['temperatureEngineOilDrive',1,-48,255],coolant:['temperatureEngineDrive',1,-48,255]}},
  {iface:CDS2,field:'statusInjectionVolume',members:{oilFallback:['oilTemperature',1,-48,255]}},
  {iface:CDS2,field:'statusLongitudinalAccelerationMassCenter',members:{gLong:['longitudinalAccelerationCentreOfGravity',0.002/9.80665,-65/9.80665,65535]}},
@@ -34,7 +34,7 @@ const SOURCES=[
  {iface:KOMBI,field:'statusBordcomputerAverage',members:{economy:[],avgSpeed:[]},decode:{economy,avgSpeed}},
  {iface:KOMBI,field:'statusBordcomputerTravelData',members:{tripTime:[]},decode:{tripTime},optionalField:true},
  // Tyre temperatures (°C + 40) and pressures (0.1 bar a step), as Live Data reads them (x_call reads TPMS, never subscribes).
- // (1.3.104) the gearbox oil temperature as the car sends it (°C + 48, 255 none), added at install where the catalog
+ // (1.3.106) the gearbox oil temperature as the car sends it (°C + 48, 255 none), added at install where the catalog
  // has it (traffic-config.js); gearbox-temp.js asks the gearbox unit first and takes this one only once it has moved
  {iface:BDS,field:'basicDataSet',members:{gearboxSignal:['valueTemperatureTransmissionOil',1,-48,255]},subscribe:true,keepLast:true},
  {iface:TPMS,field:'statusTyreTemperature',members:Object.assign({},...CORNERS.map(c=>({['t'+c]:['actualValueTemperatureTyre'+c+'H',1,-40,65535,150]}))),poll:true,optionalField:true},

@@ -28,7 +28,7 @@ const INPUTS=[
  // the front camera's object list (camera-objects.js, 1.3.73): the same camera's signs already reach the app
  ['de.bmw.environmentalmodel.ObjectRecognitionFrontCamera2','ObjectRecognition','event'],
  ['de.bmw.environmentalmodel.ObjectRecognitionFrontCamera2','ObjectPosition','event'],
- // the gearbox oil temperature readout (aux-info.js, gearbox-temp.js, 1.3.104): as appsKOR's Warm-Up reads it
+ // the gearbox oil temperature readout (aux-info.js, gearbox-temp.js, 1.3.106): as appsKOR's Warm-Up reads it
  ['de.bmw.infrastructure.analytics.BasicDataSet','basicDataSet','field'],
 ];
 const validId=(n,lo,hi)=>Number.isInteger(n)&&n>=lo&&n<=hi;

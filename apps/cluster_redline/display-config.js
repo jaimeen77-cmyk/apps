@@ -46,6 +46,12 @@ const HEADWAY_PARTS=[{key:'Headway',label:'Lead-car headway',prefix:'hudHeadway'
 // Lane lines (lane-lines.js, 1.3.77): just above the headway badge, at its size
 function laneRect(cfg){const h0=headwayRect(cfg),s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(84*s);return {x:Math.max(0,Math.min(800-w,Math.round(h0.x+(h0.w-w)/2))),y:Math.max(0,h0.y-h-4),w,h};}
 function headwayRect(cfg){const s=(cfg.hudHeadwayScale||100)/100,w=Math.round(112*s),h=Math.round(60*s);return {x:Math.max(0,Math.min(800-w,Math.round((800-w)/2+(cfg.hudHeadwayOffsetX||0)))),y:Math.max(0,Math.min(480-h,Math.round(238+(cfg.hudHeadwayOffsetY||0)))),w,h};}
+// (1.3.105) the 0-100 screen (launch-timer.js, launch-draw.js): speed, acceleration in g with its bar, the 0-100 km/h
+// time; HUD lamps → 0-100 screen, moved and sized in its Position / size. 240 x 160 at 100 %, centred above the
+// lead-car headway's place by default.
+const LAUNCH_PARTS=[{key:'Launch',label:'0-100 screen',prefix:'hudLaunch',scale:'hudLaunchScale',w:240,h:160}];
+function launchRect(cfg){const s=(cfg.hudLaunchScale||100)/100,w=Math.round(240*s),h=Math.round(160*s);return {x:Math.max(0,Math.min(800-w,Math.round((800-w)/2+(cfg.hudLaunchOffsetX||0)))),y:Math.max(0,Math.min(480-h,Math.round(100+(cfg.hudLaunchOffsetY||0)))),w,h};}
+Object.assign(defaults,{hudLaunch:'off',hudLaunchOffsetX:0,hudLaunchOffsetY:0,hudLaunchScale:100,hudLaunchHidden:false,launchBest:0,launchRuns:'[]'});
 Object.assign(defaults,{hudHeadway:'off',hudHeadwayCorrection:-2,hudHeadwayOffsetX:0,hudHeadwayOffsetY:0,hudHeadwayScale:100,hudHeadwayHidden:false,hudHeadwayDepart:'quick'});
 // Following the BC button (bc-follow.js, 1.3.40): on / off, the head unit's list (ID7 / ID8), each page's setup (JSON),
 // where the next drive starts (the page reached last / the first page); bcIndex: the page in step now; bcCluster: what
@@ -110,10 +116,10 @@ function normalize(raw,out){
  out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.navProbeLog=raw.navProbeLog==='on'?'on':'off';out.positionCheck=raw.positionCheck==='on'?'on':'off';out.calmTone=raw.calmTone==='warm'?'warm':'cool';out.hudLaneLines=raw.hudLaneLines==='on'?'on':'off';out.hudLaneSurface=raw.hudLaneSurface==='green'?'green':'dark';out.hudLaneSensitivity=raw.hudLaneSensitivity==='off'||raw.hudLaneSensitivity==='normal'?raw.hudLaneSensitivity:'low';out.navShare=raw.navShare==='on'?'on':'off';out.navProbeReset95=raw.navProbeReset95===true;out.myPicIds=typeof raw.myPicIds==='string'&&raw.myPicIds.length<2000?raw.myPicIds:'';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
  // the distance correction (1.3.91, issue appsKOR#5): the car measures from its sensor behind the windscreen, not from
  // the bumper; 0 to -3 m in 0.5 m steps, -2 m by default
- out.hudHeadwayDepart=['off','faster','quick','relaxed'].includes(raw.hudHeadwayDepart)?raw.hudHeadwayDepart:'quick';   // the moving-off alert's speed (1.3.104)
+ out.hudHeadwayDepart=['off','faster','quick','relaxed'].includes(raw.hudHeadwayDepart)?raw.hudHeadwayDepart:'quick';   // the moving-off alert's speed (1.3.106)
  {const v=raw.hudHeadwayCorrection;out.hudHeadwayCorrection=typeof v==='number'&&isFinite(v)?Math.max(-3,Math.min(0,Math.round(v*2)/2)):-2;}
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudHeadway'+s];if(typeof v==='number'&&isFinite(v))out['hudHeadway'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
- if(typeof raw.hudHeadwayScale==='number'&&isFinite(raw.hudHeadwayScale))out.hudHeadwayScale=Math.max(20,Math.min(200,Math.round(raw.hudHeadwayScale/5)*5));out.greetHello=raw.greetHello==='off'?'off':'on';out.greetBye=raw.greetBye==='off'?'off':'on';
+ if(typeof raw.hudHeadwayScale==='number'&&isFinite(raw.hudHeadwayScale))out.hudHeadwayScale=Math.max(20,Math.min(200,Math.round(raw.hudHeadwayScale/5)*5));out.hudLaunch=raw.hudLaunch==='on'?'on':'off';['hudLaunchOffsetX','hudLaunchOffsetY'].forEach(k=>{const v=raw[k];if(typeof v==='number'&&isFinite(v))out[k]=Math.max(-1000,Math.min(1000,Math.round(v)));});if(typeof raw.hudLaunchScale==='number'&&isFinite(raw.hudLaunchScale))out.hudLaunchScale=Math.max(20,Math.min(200,Math.round(raw.hudLaunchScale/5)*5));out.launchBest=typeof raw.launchBest==='number'&&raw.launchBest>0&&raw.launchBest<60?raw.launchBest:0;out.launchRuns=typeof raw.launchRuns==='string'?raw.launchRuns:'[]';out.greetHello=raw.greetHello==='off'?'off':'on';out.greetBye=raw.greetBye==='off'?'off':'on';
  out.hudDoorAlert=raw.hudDoorAlert==='off'?'off':'on';out.hudDoorHidden=raw.hudDoorHidden===true;
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudDoor'+s];if(typeof v==='number'&&isFinite(v))out['hudDoor'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  BLIND_PARTS.forEach(p=>{['OffsetX','OffsetY'].forEach(s=>{const v=raw[p.prefix+s];if(typeof v==='number'&&isFinite(v))out[p.prefix+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});out[p.prefix+'Hidden']=raw[p.prefix+'Hidden']===true;});
@@ -167,7 +173,7 @@ function bcModeNow(cfg,mode,name){return modeEntry(cfg,dispOf(name||'Cluster'),m
 // (1.3.103) the HUD lamps (lead-car headway and lane lines, turn signals and blind spot, door, vehicle alerts) and the
 // navigation parts (arrow, text, then, lanes) keep their own place whatever the design, drive mode or BC page: a screen
 // or a BC page's layout never carries them (a BC page in BC mode moved the lane picture for good: the user, 1.3.102)
-const LAMP_KEY=/^(hud|cluster)(Headway|Lanes|Turn|Door|CarAlert|Nav|Text|Then)(?![a-z])/;
+const LAMP_KEY=/^(hud|cluster)(Headway|Lanes|Turn|Door|CarAlert|Nav|Text|Then|Launch)(?![a-z])/;
 const designKey=(k)=>!LAMP_KEY.test(k);
 function screenValues(screen,d){if(!screen)return null;const v={};v[d+'Design']=screen.design;if(screen.aux!==undefined)v[d+'AuxConfig']=screen.aux;if(screen.alert!==undefined)v[d+'AlertStyle']=screen.alert;
  Object.keys(screen.layout||{}).forEach(k=>{if(k.indexOf(d)===0&&designKey(k)&&/(OffsetX|OffsetY|WidthScale|HeightScale|Hidden)$/.test(k))v[k]=screen.layout[k];});return v;}
@@ -211,4 +217,6 @@ function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig'])
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
 function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !cfg[d+'RpmGaugeHidden']&&partsFor(d,cfg).some(p=>p.key!=='RpmGauge'&&!cfg[d+p.key+'Hidden']);return partsFor(d,cfg).some(p=>!cfg[d+p.key+'Hidden'])||(d==='hud'?!cfg.hudMarkLineHidden:!cfg.clusterMarkTopLineHidden||!cfg.clusterMarkBottomLineHidden);}
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
-module.exports={designKey,LAMP_KEY,MODE_GROUPS,MODE_OUTS,groupOf,modeSetup,modeEntry,screenValues,legacyOut,laneRect,carMeterFaces,bcModeNow,HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+// the last 10 runs (1.3.105): [{t: seconds, at: ms since 1970}], newest first
+function launchRuns(cfg){let a=[];try{a=JSON.parse(cfg.launchRuns||'[]');}catch(e){}return Array.isArray(a)?a.filter(r=>r&&typeof r.t==='number'&&r.t>0&&r.t<60&&typeof r.at==='number').slice(0,10):[];}
+module.exports={launchRuns,LAUNCH_PARTS,launchRect,designKey,LAMP_KEY,MODE_GROUPS,MODE_OUTS,groupOf,modeSetup,modeEntry,screenValues,legacyOut,laneRect,carMeterFaces,bcModeNow,HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

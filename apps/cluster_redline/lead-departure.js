@@ -4,7 +4,7 @@
 // half a second, and we still stand: an alert for 3 s, once a stop. Not in P. Moving off (over 5 km/h) starts again.
 // (1.3.95, from the user's drive: none in 26 minutes before) quicker: 1 s standing, a car within 20 m, 1.5 m further for
 // 0.3 s (or lost from within 12 m); a speed that stops coming while we stand (the car sends none at rest) is still a stand
-// (1.3.104) how soon (the setting, 앞차 간격 → 출발 알림): faster 1 m for 0.2 s, quick 1.5 m for 0.3 s (the 1.3.95 values,
+// (1.3.106) how soon (the setting, 앞차 간격 → 출발 알림): faster 1 m for 0.2 s, quick 1.5 m for 0.3 s (the 1.3.95 values,
 // the default), relaxed 3 m for 0.5 s (as before 1.3.95); off: none. Standing, the gap the camera measures moves 0.15 m at most
 // (the user's clips, 2026-11-27), so 1 m is well clear of it.
 const STAND_KMH = 1, STAND_MS = 1000, NEAR_M = 20, LOST_NEAR_M = 12, AWAY_M = 1.5, HOLD_MS = 300, SHOW_MS = 3000, GONE_KMH = 5;

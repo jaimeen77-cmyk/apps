@@ -27,7 +27,7 @@ steps=[];for(let t=0;t<=6000;t+=100)steps.push([t,t<500?0:null,t<3000?6:9]);asse
  lv.helper.last.cam.at=3000;assert.strictEqual(lv.frontGap(1500),null,'an old list: none');}
 // the next stop alerts again
 const d=new LeadDeparture();let n=0;const go=(t0)=>{for(let t=t0;t<t0+7000;t+=100)if(d.tick(t,0,'D',t<t0+3000?4:9))n++;for(let t=t0+7000;t<t0+9000;t+=100)d.tick(t,30,'D',20);};go(0);const first=n;go(10000);assert(n>first,'again at the next stop');
-// (1.3.104) how soon: faster 1 m / 0.2 s, quick 1.5 m / 0.3 s (default), relaxed 3 m / 0.5 s, off none
+// (1.3.106) how soon: faster 1 m / 0.2 s, quick 1.5 m / 0.3 s (default), relaxed 3 m / 0.5 s, off none
 {const pull=(level)=>{const d=new LeadDeparture();for(let t=0;t<=9000;t+=100){const g=t<4000?4:4+(t-4000)/1000;if(d.tick(t,0,'D',g,level))return t;}return null;};   // 1 m a second
  const f=pull('faster'),q=pull('quick'),r=pull('relaxed'),dflt=pull(undefined);
  assert(f>=5000&&f<=5300,'faster: 1 m then 0.2 s '+f);assert(q>=5500&&q<=5900,'quick: 1.5 m then 0.3 s '+q);assert(r>=7000&&r<=7600,'relaxed: 3 m then 0.5 s '+r);
@@ -42,7 +42,7 @@ if(process.argv[2]){const dir=path.join(path.resolve(process.argv[2]),'source/ja
  const none=X.draw(base,112,84),car=X.draw(Object.assign({},base,{lead:{gap:12,level:'ok',type:3}}),112,84);assert(lit(car)>lit(none),'the car ahead drawn');
  const truck=X.draw(Object.assign({},base,{lead:{gap:12,level:'ok',type:4}}),112,84);assert(lit(truck)>lit(car),'a truck is wider');
  assert(A.loadedSets().includes('veh'),'the road users set read once drawn');
- // (1.3.104) the setting: kept in range, in favourites and drivers' settings with the options added since
+ // (1.3.106) the setting: kept in range, in favourites and drivers' settings with the options added since
  const D=require(path.join(dir,'display-config')),{settings}=require(path.join(dir,'policy')),UI=require(path.join(dir,'settings-ui'));
  assert.strictEqual(settings({}).hudHeadwayDepart,'quick');assert.strictEqual(settings({hudHeadwayDepart:'faster'}).hudHeadwayDepart,'faster');assert.strictEqual(settings({hudHeadwayDepart:'x'}).hudHeadwayDepart,'quick');
  const fav=UI.favKeys([]);['hudHeadwayDepart','hudModeSetup','clusterModeSetup','bcFollow','hudLaneLines','hudLaneSurface','hudLaneSensitivity','navArrowStyle','hudThenOffsetX','hudThenScale','calmTone','greetHello','myPicIds','clusterYieldAcc','hudHideWaze','hudRoadAlerts'].forEach(k=>assert(fav.includes(k),'favourites keep '+k));

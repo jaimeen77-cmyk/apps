@@ -45,7 +45,7 @@ async function scenario(live, version, backend, withProgram, stopEarly, target, 
         if (name === './guidance') return require('../../apps/cluster_redline/guidance');
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if(name==='./battery-voltage')return require('../../apps/cluster_redline/battery-voltage');
-        if(['./gearbox-temp','./demand-signals','./data-demand','./turn-signal','./turn-overlay','./preview-presence','./vehicle-alerts','./alert-overlay','./traffic-signs','./traffic-live','./greeting-overlay','./driver-greeting','./door-alert','./blind-spot','./blind-spot-overlay','./lead-vehicle','./position','./headway-overlay','./lane-lines','./lead-departure','./lead-helper','./speed-cams','./road-alerts','./road-log','./bc-follow','./nav-probe'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
+        if(['./gearbox-temp','./demand-signals','./data-demand','./turn-signal','./turn-overlay','./preview-presence','./vehicle-alerts','./alert-overlay','./traffic-signs','./traffic-live','./greeting-overlay','./driver-greeting','./door-alert','./blind-spot','./blind-spot-overlay','./lead-vehicle','./position','./headway-overlay','./lane-lines','./lead-departure','./lead-helper','./speed-cams','./road-alerts','./road-log','./launch-overlay','./launch-timer','./bc-follow','./nav-probe'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
         throw new Error('Unexpected dependency ' + name);
     }, process: { hrtime: () => [Math.floor(time / 1000), Math.floor((time % 1000) * 1000000)], once() {}, removeListener() {} },
     setTimeout: (fn, ms) => { timer = fn; delay = ms; return 1; }, clearTimeout: () => { timer = null; }, console };

@@ -15,7 +15,7 @@ function demand(base,mode){
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-gg'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlGMeterHidden'])aux.add('gforce');});   // (G-G trail, 1.3.72)
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-car'&&!cfg[d+'RpmGaugeHidden']&&(!cfg[d+'RlCarPicHidden']||!cfg[d+'RlGMeterHidden']))aux.add('gforce');});
  // (its GIFs on the cluster, my-picture.js, follow the gear and speed and, for the turns, the same sideways G)
- // the blind spot warning reads the mirror lamps (and the gearbox oil readout its unit, 1.3.104) only while the engine runs: it needs the engine speed
+ // the blind spot warning reads the mirror lamps (and the gearbox oil readout its unit, 1.3.106) only while the engine runs: it needs the engine speed
  const rpm=faces.some(d=>D.faceRpmNeeded(cfg,d))||aux.has('batteryVoltage')||aux.has('gearbox')||enabled&&cfg.hudTurnBlindSpot==='on',torque=aux.has('torque')||aux.has('power'),gear=faces.some(d=>!cfg[d+'GearHidden']);
  const navAny=enabled&&(nav.direction||nav.text||nav.lanes),turns=enabled&&(nav.direction||nav.text);
  const navPotential=enabled&&cfg.hudNavigationEnabled&&cfg.navDisplayMode!=='stock'&&D.NAV_PARTS.some(p=>p.key!=='Then'&&!cfg[p.prefix+'Hidden']);
@@ -40,6 +40,8 @@ function demand(base,mode){
  // Speeding and children signs: the vehicle speed and the camera's sign recognition (traffic-signs.js);
  // speed cameras: the navigation's route events by query.
  if(carAlerts&&cfg.hudCarAlerts!=='camera')require('./traffic-signs').FIELDS.forEach(([i,f])=>add(i,f));
+ // (1.3.105) the 0-100 screen: the vehicle speed and the longitudinal acceleration (CDS2)
+ if(enabled&&cfg.hudLaunch==='on'&&!cfg.hudLaunchHidden){add('de.bmw.infotainment.vehicle.Vehicle2','statusCarSpeed2');SOURCES.forEach(s=>{if(Object.keys(s.members).includes('gLong'))add(s.iface,s.field);});}
  if(carAlerts&&(cfg.hudCarAlerts==='camera'||cfg.hudCarAlerts==='all'))add('de.bmw.infotainment.navigation.guiding.GuidanceEventList');
  // the door-open HUD warning: the door switches, whenever it is on (also standing still)
  const doorAlert=enabled&&cfg.hudDoorAlert!=='off';if(doorAlert)add('de.bmw.body.DoorsWindowsRoofMirrors','CentralLockingSystemAndPanelStatus');

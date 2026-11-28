@@ -1,5 +1,5 @@
 'use strict';
-// Coolant and gearbox oil temperature readouts (1.3.104): the coolant from the engine temperature field the oil comes in;
+// Coolant and gearbox oil temperature readouts (1.3.106): the coolant from the engine temperature field the oil comes in;
 // the gearbox oil from the gearbox unit (read only, 22 6000 then 22 DA12) else the car's BasicDataSet signal once it moves;
 // both as auxiliary items (gauges and text, thermometers, Redline layouts' tones); the signal added at install.
 const assert=require('assert'),path=require('path');
