@@ -112,9 +112,14 @@ function room(face,d){return d==='cluster'||!face||!face.tw?face:{x:0,y:0,w:face
 // lift: an element's extra [x, y] (or y) in presses of 10,
 // and the readouts (and Hexagon's RPM number) this much larger. Added to what Position / size stores, so
 // stored 0 / 100 % is this default and Reset brings it back.
-const HUD_BASE={standard:{y:10},vector:{y:10},digital:{y:10},vfd:{y:10},arc:{y:30},ramp:{y:10},dial:{y:20},
- shift:{y:30,read:200,lift:{RlRead:-40}},logger:{y:30},needle:{y:20,read:150,lift:{RlReadA:[60,-60],RlReadB:[-60,-60],RlReadC:[60,50],RlReadD:[-60,50]}},rings:{y:40,read:120,lift:{RlRead:-20}},ribbon:{y:20,read:120},hexagon:{y:30,read:200,rpm:150,lift:{RlReadA:[50,-20],RlReadB:[50,-30],RlReadC:[-50,-20],RlReadD:[-50,-30]},
-  gauge:{read:140,centre:true,lift:{RlReadA:[40,-10],RlReadB:[-40,-10]}}}};   // gauge mode: one tall box each side
+// (1.3.107, the user: every layout should sit in the middle of the HUD looking right without any setting) each layout's
+// drawn extent is the same height as Standard's (about 124 px, at most 400 px wide), its middle on the same line
+// (Standard's, tuned on the car): scale % and y below. Before, the taller ones (Shift, Logger, Rings, Hexagon, Arc...)
+// sat lower and reached past the window's bottom.
+const HUD_BASE={standard:{y:11},vector:{y:11},digital:{y:10},vfd:{y:11},arc:{y:11,scale:89},ramp:{y:11,scale:105},dial:{y:10},
+ shift:{y:10,scale:86,read:200,lift:{RlRead:-40}},logger:{y:11,scale:86},needle:{y:11,scale:86,read:150,lift:{RlReadA:[60,-60],RlReadB:[-60,-60],RlReadC:[60,50],RlReadD:[-60,50]}},rings:{y:10,scale:86,read:120,lift:{RlRead:-20}},ribbon:{y:10,scale:91,read:120},hexagon:{y:11,scale:86,read:200,rpm:150,lift:{RlReadA:[50,-20],RlReadB:[50,-30],RlReadC:[-50,-20],RlReadD:[-50,-30]},
+  gauge:{read:140,centre:true,lift:{RlReadA:[40,-10],RlReadB:[-40,-10]}}},
+ luxury:{y:11,scale:86},sporthud:{y:11,scale:86},calm:{y:11,scale:89},gg:{y:10,scale:86},car:{y:11,scale:86}};   // gauge mode: one tall box each side
 // Cluster defaults per layout: the whole layout at scale %, parts at size % (Tyres & trip: 150 %, the car 110 %).
 const CLUSTER_BASE={tyres:{scale:150,size:{RlCar:110}}};
 function hudBase(cfg,d){if(d==='cluster')return CLUSTER_BASE[style(cfg,d)]||{};const b=HUD_BASE[style(cfg,d)]||{};return b.gauge&&auxConfig(cfg[(d||'hud')+'AuxConfig']).mode==='gauges'?Object.assign({},b,b.gauge):b;}

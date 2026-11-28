@@ -32,7 +32,7 @@ const NAV_LAYOUT_PARTS=NAV_PARTS.concat([ALERT_PART]);
 // The door-open warning's picture (door-alert.js): placed by its own rectangle like the turn signals, in the middle
 // of the HUD below the RPM face by default; moved and sized in Basic → Door-open warning → Position / size.
 const DOOR_PARTS=[{key:'Door',label:'Door-open warning',prefix:'hudDoor',scale:'hudDoorScale',w:120,h:150}];
-function doorRect(cfg){const s=(cfg.hudDoorScale||75)/100,w=Math.round(120*s),h=Math.round(150*s);return {x:Math.round((800-w)/2+(cfg.hudDoorOffsetX||0)),y:Math.round(286+(cfg.hudDoorOffsetY||0)),w,h};}
+function doorRect(cfg){const s=(cfg.hudDoorScale||75)/100,w=Math.round(120*s),h=Math.round(150*s);return onHud({x:Math.round((800-w)/2+(cfg.hudDoorOffsetX||0)),y:Math.round(286+(cfg.hudDoorOffsetY||0)),w,h});}
 // The blind spot signs (blind-spot-overlay.js): their own place and size, not the turn arrows' (1.3.24). By default each
 // sits under the default place of its side's turn arrow; moved and sized in HUD turn signals → Position / size, next to the arrows.
 const BLIND_PARTS=[{key:'Blind',label:'Both blind spot signs',prefix:'hudTurnBlind',scale:'hudTurnBlindScale'},{key:'BlindLeft',label:'Left blind spot sign',prefix:'hudTurnBlindLeft',scale:'hudTurnBlindScale'},{key:'BlindRight',label:'Right blind spot sign',prefix:'hudTurnBlindRight',scale:'hudTurnBlindScale'}];
@@ -209,9 +209,11 @@ function navVisible(cfg,mode){const on=navAllowed(cfg,mode);return {direction:on
 function layoutPreview(cfg,now){const m=/^(hud|cluster|nav):([A-Za-z]+)@([0-9]+)$/.exec(cfg.layoutPreview||'');if(!m)return null;const at=Number(m[3]),t=typeof now==='number'?now:Date.now();return t>=at-5000&&t-at<=120000?{display:m[1]==='nav'?'hud':m[1],tab:m[1],part:m[2]}:null;}
 // HH:MM in the head unit's local time, or fixed UTC+9 when the system clock has no Korean time zone.
 function clockText(cfg,date){const d=date||new Date(),t=cfg.clockZone==='utc9'?new Date(d.getTime()+9*3600000):d,h=cfg.clockZone==='utc9'?t.getUTCHours():t.getHours(),m=cfg.clockZone==='utc9'?t.getUTCMinutes():t.getMinutes();return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+// (1.3.107) a part moved or enlarged stays on the HUD (800 x 480): it stops at the edge instead of going off it
+function onHud(r){const w=Math.min(800,r.w),h=Math.min(480,r.h);return {x:Math.max(0,Math.min(800-w,r.x)),y:Math.max(0,Math.min(480-h,r.y)),w,h};}
 function navRect(cfg,key){const p=NAV_LAYOUT_PARTS.find(p=>p.key===key),s=cfg[p.scale]/100,w=Math.round(p.w*s),h=Math.round(p.h*s);
- if(key==='Then'){const d=navRect(cfg,'Direction'),k=d.w/240;return {x:Math.round(d.x+108*k+cfg.hudThenOffsetX),y:Math.round(d.y+66*k+cfg.hudThenOffsetY),w,h};}
- return {x:Math.round((800-w)/2+cfg[p.prefix+'OffsetX']),y:Math.round(240+cfg[p.prefix+'OffsetY']),w,h};}
+ if(key==='Then'){const d=navRect(cfg,'Direction'),k=d.w/240;return onHud({x:Math.round(d.x+108*k+cfg.hudThenOffsetX),y:Math.round(d.y+66*k+cfg.hudThenOffsetY),w,h});}
+ return onHud({x:Math.round((800-w)/2+cfg[p.prefix+'OffsetX']),y:Math.round(240+cfg[p.prefix+'OffsetY']),w,h});}
 function visibleMetrics(cfg,display){const a=auxConfig(cfg[display+'AuxConfig']);if(a.mode==='off')return [];
  // A Redline app layout shows its readouts whatever the default design's Aux left / right hide settings are.
  if(cfg[display+'Design']&&cfg[display+'Design']!=='own')return a.items.slice(0,4);return metricSlots(a.items).filter(s=>!cfg[display+(s.side?'AuxRight':'AuxLeft')+'Hidden']).map(s=>s.id);}
@@ -219,4 +221,4 @@ function faceVisible(cfg,d){if(cfg[d+'Design']&&cfg[d+'Design']!=='own')return !
 function faceRpmNeeded(cfg,d){return !cfg[d+'RpmGaugeHidden']||!cfg[d+'RpmValueHidden']||!cfg[d+'AlertHidden']&&(d!=='hud'||cfg.hudAlertStyle!=='circle'||!cfg.hudGearHidden)||visibleMetrics(cfg,d).includes('power');}
 // the last 10 runs (1.3.105): [{t: seconds, at: ms since 1970}], newest first
 function launchRuns(cfg){let a=[];try{a=JSON.parse(cfg.launchRuns||'[]');}catch(e){}return Array.isArray(a)?a.filter(r=>r&&typeof r.t==='number'&&r.t>0&&r.t<60&&typeof r.at==='number').slice(0,10):[];}
-module.exports={launchRuns,LAUNCH_PARTS,launchRect,designKey,LAMP_KEY,MODE_GROUPS,MODE_OUTS,groupOf,modeSetup,modeEntry,screenValues,legacyOut,laneRect,carMeterFaces,bcModeNow,HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};
+module.exports={onHud,launchRuns,LAUNCH_PARTS,launchRect,designKey,LAMP_KEY,MODE_GROUPS,MODE_OUTS,groupOf,modeSetup,modeEntry,screenValues,legacyOut,laneRect,carMeterFaces,bcModeNow,HEADWAY_PARTS,headwayRect,BLIND_PARTS,blindRect,DOOR_PARTS,doorRect,NAV_COLORS,NAV_COLOR_NAMES,ALERT_MODES,ALERT_PART,NAV_LAYOUT_PARTS,allOutput,rpmOutputPossible,TURN_STYLES,TURN_COLORS,TURN_PARTS,turnRect,turnSides,turnCount,METRICS,GAUGE_ONLY,HUD_DESIGNS,layoutPreview,clockText,LABELS,PARTS,PART_LABELS,NAV_PARTS,RL_PARTS,defaults,normalize,auxConfig,metricSlots,sportMode,navAllowed,navVisible,navRect,rpmOutput,partsFor,visibleMetrics,faceVisible,faceRpmNeeded};

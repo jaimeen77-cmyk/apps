@@ -17,8 +17,10 @@ const images={};
 for(const st of RL.stylesFor('hud')){
  const cfg=settings({hudDesign:'rl-'+st,hudAuxConfig:JSON.stringify({mode:'gauges',items:['boost','clock']})}),state=Object.assign({},base,{config:cfg});
  const hf=placement(cfg,'hud',face),r=RL.rect(cfg,hf,'hud'),sa=RL.safe(hf,'hud');
- if(RL.heightOf(st)===RL.IH)assert.deepStrictEqual([r.w,r.h],[400,RL.IH],'400 × 130 at the default HUD size');
- else assert(r.w<=400&&r.w>=320&&Math.abs(r.h/r.w-RL.heightOf(st)/400)<0.01,st+': a taller layout keeps its shape, shrunk only to stay in the HUD');
+ assert(Math.abs(r.h/r.w-RL.heightOf(st)/400)<0.01,st+': a layout keeps its shape');
+ // (1.3.107) every layout the same drawn height as Standard's, at most 400 px wide, its middle on Standard's line
+ {const u=RL.extent(cfg,'hud'),k=r.w/RL.IW,dh=(u.y1-u.y0)*k,dw=(u.x1-u.x0)*k,cy=r.y+(u.y0+u.y1)/2*k,cx=r.x+(u.x0+u.x1)/2*k;
+  assert(dh>=118&&dh<=126&&dw<=401,st+': '+Math.round(dw)+' x '+Math.round(dh)+' drawn, like Standard');assert(Math.abs(cy-157)<=2&&Math.abs(cx-400)<=2,st+': in the middle, on one line');}
  {const u=RL.extent(cfg,'hud'),k=r.w/RL.IW;const down=((RL.HUD_BASE[st]||{}).y||0)*hf.h/240;assert(r.x+u.x0*k>=sa.x-1&&r.y+u.y0*k>=sa.y-1&&r.x+u.x1*k<=sa.x+sa.w+1&&r.y+u.y1*k<=sa.y+sa.h+down+1,st+' starts in the default design area, lowered by its tuned default');}
  const direct=HUD.draw(state),cached=HUD.draw(Object.assign({},state,{renderCache:HUD.createCache()}));
  assert(alpha(direct,r.x,r.y,r.x+r.w,r.y+r.h)>800,st+' draws its layout');

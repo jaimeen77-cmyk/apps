@@ -1004,8 +1004,10 @@ class SettingsPage{
   // A Redline layout element held at the edge of the HUD does not keep counting offsets it cannot show,
   // so the way back (and every other direction) answers on the first press.
   // Pressing back from a stored overshoot skips the steps that would not move it.
-  if(param<2&&!nav&&RL.active(cfg,this.display())&&step){
-   const at=v=>{const c=Object.assign({},cfg);edits.forEach(e=>{c[e.key]=Math.max(e.lo,Math.min(e.hi,e.value+v));});return JSON.stringify(parts.map(p=>this.rlRect(c,p)));},now=at(0);
+  // (1.3.107) the same for the HUD lamps (navigation, vehicle alerts, turn signals, door, headway, 0-100), which stop at the HUD's edge
+  const lamp=param<2&&nav&&step&&parts.every(p=>this.lampRect(cfg,p));
+  if(param<2&&(lamp||!nav&&RL.active(cfg,this.display()))&&step){
+   const at=v=>{const c=Object.assign({},cfg);edits.forEach(e=>{c[e.key]=Math.max(e.lo,Math.min(e.hi,e.value+v));});return JSON.stringify(parts.map(p=>lamp?this.lampRect(c,p):this.rlRect(c,p)));},now=at(0);
    let v=step,n=0;while(at(v)===now&&n<200&&edits.some(e=>e.value+v>e.lo&&e.value+v<e.hi)){v+=step;n++;}
    if(at(v)===now)return;edits.forEach(e=>{changes[e.key]=Math.max(e.lo,Math.min(e.hi,e.value+v));});
   }
@@ -1037,6 +1039,11 @@ class SettingsPage{
  selectAllParts(){const parts=this.layoutParts().filter(p=>!p.uniform),all=parts.every(p=>this.layoutSelected.has(p.key));
   this.layoutSelected=new Set(all?[parts[0].key]:parts.map(p=>p.key));this.layoutPart=Math.max(0,this.layoutParts().findIndex(p=>this.layoutSelected.has(p.key)));
   const refresh=this.previewRefresh();if(refresh.layoutPreview!==undefined)this.settings.set('layoutPreview',refresh.layoutPreview);this.changed();}
+ // A HUD lamp part's place (null for anything else)
+ lampRect(cfg,p){const k=this.layoutKind,key=p&&p.key;
+  if(k==='door')return D.doorRect(cfg);if(k==='headway')return D.headwayRect(cfg);if(k==='launch')return D.launchRect(cfg);
+  if(k==='turn'){const f=/^Blind/.test(key)?D.blindRect:D.turnRect,sides=/Right$/.test(key)?['right']:/Left$/.test(key)?['left']:['left','right'];return sides.map(sd=>f(cfg,sd));}
+  if(this.tab===3&&D.NAV_LAYOUT_PARTS.some(n=>n.key===key))return D.navRect(cfg,key);return null;}
  rlRect(cfg,p){const display=this.display(),face=display==='hud'?placement(cfg,'hud',HUD):{x:0,y:0,w:CLUSTER.W,h:CLUSTER.H},layout=RL.rect(cfg,face,display);if(p.key==='RpmGauge')return layout;const shown=RL.placed({config:cfg,rpm:0,gear:'--',aux:{}},layout,display,face).find(v=>v.key===p.key);if(shown)return shown.r;const e=RL.elements(cfg,display).find(v=>v.key===p.key),b=e&&RL.bounds({config:cfg,rpm:0,gear:'--',aux:{}},e.id,display);return b?RL.clampTo(RL.partRect(cfg,layout,b,e.key,display),RL.room(face,display)):layout;}
  drawLayout(cv,cfg,targets){
   const local=[],nav=this.rectKind(),turn=this.layoutKind==='turn'||this.layoutKind==='door'||this.layoutKind==='headway'||this.layoutKind==='launch',display=this.display(),parts=this.layoutParts();this.layoutPart=Math.min(this.layoutPart,parts.length-1);
