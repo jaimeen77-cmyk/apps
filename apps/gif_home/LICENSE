@@ -1,3 +1,10 @@
+This file is the license of qr_vendor.js (QR Code Generator by Kazuhiko Arase) only.
+GIF 플레이어(GIF Home) itself is GPL-3.0: LICENSE.GPL-3.0 in the package,
+LICENSES/GPL-3.0-or-later.txt in the repository; see NOTICE.
+이 파일은 qr_vendor.js(QR 생성기)의 라이선스입니다. GIF 플레이어 앱 자체는 GPL-3.0입니다(NOTICE 참고).
+
+--------------------------------------------------------------------------------
+
 MIT License
 
 Copyright (c) 2009 Kazuhiko Arase

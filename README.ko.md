@@ -88,4 +88,5 @@ Spotify Connect로 재생 중인 곡을 차에서 보고 조작하며, 플레이
 - **GIF 플레이어**: 원본 GIF Home(NamelsMissing/mgu-apps)의 GPL-3.0을 따릅니다([NOTICE](NOTICE.gif-home.md)).
 - **스포티파이**: 원본 Spotify(hexlay/idrive7-custom-apps)의 GPL-3.0을 따릅니다([NOTICE](NOTICE.spotify.md)).
 - **8게임즈**: 원작 Parked Games의 MIT([NOTICE](apps/parked_games/NOTICE)).
-- 그 밖의 앱과 런타임 킷: MIT([LICENSE](LICENSE)). MGU 모니터의 출처는 [NOTICE](apps/storage/NOTICE).
+- **MGU 모니터**: 저장소 소유자가 받은 앱 소스(커뮤니티 mgu_storage 데모와 원작자의 코드)에 별도의 라이선스가 없었습니다. 그 부분에는 이 저장소의 MIT가 적용되지 않으며, 한국어화와 Store 패키징만 이 저장소의 작업입니다([NOTICE](apps/storage/NOTICE)).
+- 그 밖의 앱과 런타임 킷: MIT([LICENSE](LICENSE)).
