@@ -2,6 +2,13 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.104 (Calm clock easier to read)
+
+- **The Calm clock layout's letters were too thin to read** (the user), on the HUD most of all: the time, the gear, the speed and the readouts' values were in the light face.
+  - **The time**: the bold face, drawn a little apart a few times so it is thicker still (the user's pick of four samples).
+  - **The gear, the speed and the readouts' values**: the bold face (thicker than that, small figures run together).
+  - The date, the drive mode and the readouts' names were already bold. The cluster's Calm clock gets the same.
+
 ## Cluster Redline 1.3.103 (lead car cyan at the same speed; the lamps keep their place across drive modes)
 
 - **Lead-car headway: cyan at the same speed** (the user). The colours now come only while closing in on the car ahead:

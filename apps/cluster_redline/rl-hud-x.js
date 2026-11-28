@@ -456,16 +456,17 @@ function drawCalm(cv,f,h){
    for(let i=0;i<n;i++){const on=i/n<t,c=i/n>0.8?'#ff5a4a':i/n>0.5?'#ffb43a':T.accent;cv.fillRect(x0+i*w/n+1,96,w/n-3,5,on&&!lit?c:T.off);}
    cv.text(rpmText(d),cx+w/2+14,103,16,t>0.8?'#ff5a4a':T.dim,{align:'left',font:'num',literal:true});}}
  if(want(f,'clock')&&f.clock){const c=f.clock,hh=String(c.h).padStart(2,'0')+':'+String(c.m).padStart(2,'0');
-  cv.text(hh,cx,250,150,T.text,{align:'center',font:'light',literal:true});
+  // (1.3.104, the user: too thin to read) the bold face, drawn a little apart a few times to be thicker still
+  for(let dx=-2;dx<=2;dx+=1)for(let dy=-1;dy<=1;dy+=1)cv.text(hh,cx+dx,250+dy,150,T.text,{align:'center',font:'bold',literal:true});
   const date=c.mo?(ko?c.mo+'월 '+c.day+'일 '+WEEK_KO[c.wd]+'요일':WEEK_EN[c.wd]+' '+c.day+' '+MON_EN[c.mo-1]):'';
   if(date)cv.text(date,cx,294,24,T.dim,{align:'center',font:'bold',literal:true});}
- if(want(f,'gear'))cv.text(h.gearText(d),cx-200,64,30,T.dim,{align:'center',font:'light',literal:true});
- if(want(f,'speed')){if(cv.reserve)cv.reserve(cx-70,40,140,30);if(isNum(f.speed))cv.text(f.speed+' km/h',cx,64,22,T.dim,{align:'center',font:'light',literal:true});}
+ if(want(f,'gear'))cv.text(h.gearText(d),cx-200,64,30,T.dim,{align:'center',font:'bold',literal:true});
+ if(want(f,'speed')){if(cv.reserve)cv.reserve(cx-70,40,140,30);if(isNum(f.speed))cv.text(f.speed+' km/h',cx,64,22,T.dim,{align:'center',font:'bold',literal:true});}
  if(want(f,'mode')){const dm=carMode(f.drive);if(cv.reserve)cv.reserve(cx+130,44,140,26);if(dm.word)cv.text(dm.word,cx+200,64,18,T.dim,{align:'center',font:'bold',literal:true,spacing:1});}
  const list=f.readouts||[],n=Math.min(4,list.length);
  for(let i=0;i<n;i++){const it=list[i],id='read'+'ABCD'[i];if(!want(f,id)||!it)continue;const x=cx+(i-(n-1)/2)*(n>3?150:190);
   cv.line(x-70,320,x+70,320,1.5,T.rule);   // a short rule over each (each readout moves on its own)
-  cv.text(it.value,x,372,34,it.tone==='hot'?'#ff6a52':it.tone==='cold'?'#7cc2ff':T.text,{align:'center',font:'light',literal:true});
+  cv.text(it.value,x,372,34,it.tone==='hot'?'#ff6a52':it.tone==='cold'?'#7cc2ff':T.text,{align:'center',font:'bold',literal:true});
   cv.text(it.label,x,400,17,T.dim,{align:'center',font:'bold',literal:true});}
 }
 // Retro VU meters (1.3.72, cluster): two lit cream meters as on a hi-fi amplifier, the rpm and the first readout
