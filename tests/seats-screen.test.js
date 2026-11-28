@@ -117,6 +117,8 @@ net.createConnection = () => { connections++; throw new Error('Preview must neve
     assert.equal(touch(1, 1015, 330), true, 'a motor-only seat still supports held adjustment');
     await new Promise((resolve) => setTimeout(resolve, 300));
     assert.ok(car.sent.filter((q) => q.op === 'jog').length >= 2, 'the hold refreshes its Comfort command');
+    assert.deepStrictEqual(car.sent.filter((q) => q.op === 'jog').pop(), { op: 'jog', seat: 'driver', axis: 'SLV', dir: 1 },
+        'fore/aft ◀ (the photo faces left) moves the seat forward');
     touch(3, 1015, 330);
     assert.equal(stops(), 1, 'releasing sends stop');
     await new Promise((resolve) => setImmediate(resolve));

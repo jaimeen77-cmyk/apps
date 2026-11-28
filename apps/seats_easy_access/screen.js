@@ -178,7 +178,8 @@ async function start(ctx, options) {
             const supported = state && state.seats.axes[who].indexOf(a) >= 0;
             const enabled = ready && supported && !easy.actionReady(who, false, false);
             cv.text(tr(labels[a][2]), x + 61, y - 13, 21, '#d4dce5', { align: 'center', literal: true });
-            [-1, 1].forEach((dir, i) => {
+            // the photo faces left: on fore/aft the left arrow is forward, which Comfort calls +1 (car: -1 went back)
+            (a === 'SLV' ? [1, -1] : [-1, 1]).forEach((dir, i) => {
                 const bx = x + 68 * i;
                 const id = a + (i ? '_PLUS' : '_MINUS');
                 if (enabled) jogTargets.push({ id, axis: a, dir, x: bx, y, size: 54 });

@@ -58,7 +58,7 @@ BMW iDrive 7·8 헤드유닛의 **MGU Store**에서 설치하는 앱 모음입�
 Spotify Connect로 재생 중인 곡을 차에서 보고 조작하며, 플레이리스트와 좋아요 표시한 곡을 커버 아트와 함께 고릅니다. 한글 곡 제목도 표시합니다. 인터넷이 필요합니다. 원본: hexlay/idrive7-custom-apps.
 → **[설명서](apps/spotify/README.ko.md)**
 
-### 시트 Easy Access 0.7.10 · iDrive 7·8 · 한국어/English
+### 시트 Easy Access 0.7.11 · iDrive 7·8 · 한국어/English
 
 <img src="apps/seats_easy_access/screenshots/driver-ko.jpg" width="640" alt="시트 Easy Access">
 
