@@ -411,9 +411,9 @@ class SettingsPage{
  }
  drawAuxSelect(cv,cfg,targets){
   const draft=this.draft,limit=draft.mode==='gauges'?2:4;cv.text(t(draft.mode==='gauges'?'Select gauges':'Select text items')+' (1–'+limit+')',100,128,32,'#ef4050',{literal:true});
-  D.METRICS.forEach((id,i)=>{const index=draft.items.indexOf(id),x=84+(i%4)*369,y=152+Math.floor(i/4)*80,blocked=this.auxBlocked(id,cfg);
-   this.button(cv,targets,index>=0?(index+1)+'. '+tr(D.LABELS[id]):D.GAUGE_ONLY.includes(id)?tr(D.LABELS[id])+' · '+tr('Horizontal gauges only'):tr(D.LABELS[id]),x,y,343,70,()=>this.toggleMetric(id),index>=0,'metric-'+id);
-   if(blocked&&index<0)cv.roundRect(x,y,343,70,6,[0,0,0,150]);   // can't be chosen here: dimmed
+  D.METRICS.forEach((id,i)=>{const index=draft.items.indexOf(id),x=84+(i%5)*292,y=152+Math.floor(i/5)*80,blocked=this.auxBlocked(id,cfg);   // (1.3.104) five a row: 14 items in three rows
+   this.button(cv,targets,index>=0?(index+1)+'. '+tr(D.LABELS[id]):D.GAUGE_ONLY.includes(id)?tr(D.LABELS[id])+' · '+tr('Horizontal gauges only'):tr(D.LABELS[id]),x,y,280,70,()=>this.toggleMetric(id),index>=0,'metric-'+id);
+   if(blocked&&index<0)cv.roundRect(x,y,280,70,6,[0,0,0,150]);   // can't be chosen here: dimmed
   });
   if(draft.mode==='gauges'&&this.auxBlocked('clock',cfg))cv.text(tr('Upright gauges on this layout: no clock.'),1516,410,22,'#ff8a8a',{align:'right'});
   cv.text('Selection order sets the left and right positions.',100,410,24,'#a8b6c8');
@@ -424,7 +424,7 @@ class SettingsPage{
  preview(cv,cfg,x,y,width,display){
   const painter=display==='cluster'?CLUSTER:HUD,clean=Object.assign({},cfg);
   D.PARTS.forEach(p=>['OffsetX','OffsetY','WidthScale','HeightScale'].forEach(k=>{clean[display+p+k]=D.defaults[display+p+k];}));
-  const s=width/painter.W,state={config:clean,rpm:Math.round(cfg.shiftRpm*0.92/10)*10,gear:'M3',shift:false,flash:true,torqueNm:300,powerPS:180,torquePeak:380,powerPeak:220,aux:{boost:0.85,oil:95,outside:18,gforce:0.35,gLat:0.25,gLong:0.24}};
+  const s=width/painter.W,state={config:clean,rpm:Math.round(cfg.shiftRpm*0.92/10)*10,gear:'M3',shift:false,flash:true,torqueNm:300,powerPS:180,torquePeak:380,powerPeak:220,aux:{boost:0.85,oil:95,coolant:90,gearbox:78,outside:18,gforce:0.35,gLat:0.25,gLong:0.24}};
   const target=vector(cv,x,y,s);target.part=(cfg,d,name,bounds,paint)=>paint(vector(cv,x+(cfg[d+name+'OffsetX']||0)*s,y+(cfg[d+name+'OffsetY']||0)*s,s));painter.draw(state,target);
  }
  previewHUD(cv,cfg,x,y,width){this.preview(cv,cfg,x,y,width,'hud');}
@@ -440,7 +440,7 @@ class SettingsPage{
  // The Redline app's nine HUD layouts with live previews (sample: 6300 rpm, 3rd gear).
  drawRedlineDesigns(cv,cfg,targets){
   cv.text(tr('Redline app layouts'),100,126,32,'#ef4050',{literal:true});
-  const d=this.display(),current=RL.style(cfg,d),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,outside:18,clock:'23:00'}};
+  const d=this.display(),current=RL.style(cfg,d),sample=Object.assign({},cfg),state={config:sample,rpm:6300,gear:'M3',shift:false,flash:false,mode:'SPORT',torqueNm:380,powerPS:260,aux:{boost:1.1,oil:96,coolant:92,gearbox:81,outside:18,clock:'23:00'}};
   // Four columns: the Redline app's nine, then Cluster Redline's five; each preview fitted to its cell.
   // Rows shrink when the list needs a fifth row (the cluster's seventeen layouts).
   const list=designList(d),rows=Math.ceil(list.length/4),pitch=Math.min(80,Math.floor(304/rows)),bh=pitch-4;

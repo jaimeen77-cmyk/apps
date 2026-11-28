@@ -13,8 +13,8 @@ function metric(state,id){
  if(id==='tripTime'){const m=v.tripTime;return {id,label:tr(LABELS.tripTime),text:valid(m)?Math.floor(m/60)+':'+String(m%60).padStart(2,'0'):'--:--',unit:'h',value:valid(m)?m:null,decimals:0,minimum:0,maximum:300};}
  if(id==='avgSpeed')return {id,label:tr(LABELS.avgSpeed),value:v.avgSpeed,unit:'km/h',decimals:0,minimum:0,maximum:200};
  if(id==='clock')return {id,label:tr(LABELS.clock),text:typeof v.clock==='string'&&/^\d\d:\d\d$/.test(v.clock)?v.clock:'--:--',unit:''};
- const spec={boost:[v.boost,'bar',2,0,2.5],gforce:[v.gforce,'g',2,0,2],outside:[v.outside,'°C',1,-40,60],oil:[v.oil,'°C',0,0,180],batteryCharge:[v.batteryCharge,'%',0,0,100],batteryVoltage:[v.batteryVoltage,'V',2,0,18],economy:[v.economy,'km/L',1,0,50]}[id];
- return {id,label:id==='outside'?'Outside temp':id==='oil'?'Oil temp':LABELS[id],value:spec&&spec[0],unit:spec&&spec[1],decimals:spec&&spec[2],minimum:spec&&spec[3],maximum:spec&&spec[4]};
+ const spec={boost:[v.boost,'bar',2,0,2.5],gforce:[v.gforce,'g',2,0,2],outside:[v.outside,'°C',1,-40,60],oil:[v.oil,'°C',0,0,180],coolant:[v.coolant,'°C',0,0,140],gearbox:[v.gearbox,'°C',0,0,150],batteryCharge:[v.batteryCharge,'%',0,0,100],batteryVoltage:[v.batteryVoltage,'V',2,0,18],economy:[v.economy,'km/L',1,0,50]}[id];
+ return {id,label:id==='outside'?'Outside temp':id==='oil'?'Oil temp':id==='coolant'?'Coolant temp':id==='gearbox'?'Gearbox temp':LABELS[id],value:spec&&spec[0],unit:spec&&spec[1],decimals:spec&&spec[2],minimum:spec&&spec[3],maximum:spec&&spec[4]};
 }
 function valid(v){return typeof v==='number'&&isFinite(v);}
 function valueY(h,cfg,s,shift){return (s.rows===2?(h?(cfg.hudAlertStyle==='circle'?(s.row?184:126):(s.row?204:159)):(s.row?385:315)):h?(cfg.hudAlertStyle==='circle'?146:180):370)+shift;}
@@ -106,7 +106,7 @@ function drawAux(cv,state,display,geometry){
     c.text(item.label,x,labelY,fit(c,item.label,labelSize,11,w-vw-uw-14,bold),DIM,bold);
     c.text(text,x+w-uw-5,labelY,numberSize,WHITE,{font:'num',literal:true,align:'right'});c.text(item.unit,x+w,labelY,unitSize,DIM,{align:'right',literal:true});
     const fraction=valid(item.value)?Math.max(0,Math.min(1,(item.value-item.minimum)/(item.maximum-item.minimum))):0;
-    const scale=s.id==='outside'||s.id==='oil'?thermometer(c,item,gx,y,gw,bh,fraction):s.id==='gforce'?gforceGauge(c,item,gx,y,gw,bh,state):s.id==='batteryCharge'?batteryGauge(c,item,gx,y,gw,bh,fraction):barGauge(c,item,gx,y,gw,bh,fraction);
+    const scale=s.id==='outside'||s.id==='oil'||s.id==='coolant'||s.id==='gearbox'?thermometer(c,item,gx,y,gw,bh,fraction):s.id==='gforce'?gforceGauge(c,item,gx,y,gw,bh,state):s.id==='batteryCharge'?batteryGauge(c,item,gx,y,gw,bh,fraction):barGauge(c,item,gx,y,gw,bh,fraction);
     [0,0.5,1].forEach(f=>{const px=scale.from+scale.span*f;c.line(px,y+bh+3,px,y+bh+6,1,DIM);c.text((s.id==='gforce'?(f-0.5)*4:item.minimum+(item.maximum-item.minimum)*f).toFixed(s.id==='gforce'?1:item.decimals),px,columns.bottom,scaleSize,DIM,{align:'center',font:'num',literal:true});});
    });
   });

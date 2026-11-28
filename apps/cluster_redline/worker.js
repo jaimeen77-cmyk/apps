@@ -39,6 +39,7 @@ const {HeadwayOverlay} = require('./headway-overlay');
 const {LaneLines, LaneOverlay} = require('./lane-lines');
 const {LeadDeparture} = require('./lead-departure');
 const {BlindSpot} = require('./blind-spot');
+const {GearboxTemp} = require('./gearbox-temp');
 const {BlindSpotOverlay} = require('./blind-spot-overlay');
 const driverGreeting = require('./driver-greeting');
 const {TrafficSigns,FIELDS:TRAFFIC_FIELDS} = require('./traffic-signs');
@@ -54,7 +55,7 @@ function start(ctx) {
     const collectors=new DemandSignals(ctx.signals),log = ctx.log, signals = collectors.signals;
     const client = new ClusterRender('cluster-redline'), controller = new Outputs(client, painter, hudPainter);
     const gearbox = new gear.GearState(), navigation = new guidance.GuidanceState(), maneuvers = new NativeNavigation();
-    const auxSetup={},auxInfo=new AuxInfo(),auxSubs=[],batteryVoltage=new BatteryVoltage(signals,log,mono);
+    const auxSetup={},auxInfo=new AuxInfo(),auxSubs=[],batteryVoltage=new BatteryVoltage(signals,log,mono),gearboxTemp=new GearboxTemp(signals,log);
     const projectionSubs={},projectionFields={},projectionPending={},projectionLastPoll={},projectionEpoch={},projectionEvents={};
     const navigationFields = [], lastNavigationValues = {}, navigationEventRevisions = {}, navigationSeenAt = {}, navigationReadState = {};
     function refreshProjection(provider){
@@ -347,7 +348,11 @@ function start(ctx) {
                 },()=>{if(!stopped&&entry.epoch===epoch&&entry.revision===revision)auxInfo.clearSource(source,'read_failed');}).then(()=>{entry.pending=false;});
             });
             const voltageWanted=live&&neededAux.has('batteryVoltage');
-            batteryVoltage.tick(at,voltageWanted,controller.policy.rpm>0&&controller.policy.rpmAt!==null&&at-controller.policy.rpmAt<=2500);controller.aux=Object.assign(auxInfo.read(at),{batteryVoltage:batteryVoltage.read(at)},neededAux.has('clock')?{clock:clockText(config)}:{});
+            const engineOn=controller.policy.rpm>0&&controller.policy.rpmAt!==null&&at-controller.policy.rpmAt<=2500,auxNow=auxInfo.read(at);
+            batteryVoltage.tick(at,voltageWanted,engineOn);
+            // (1.3.104) the gearbox oil temperature: the gearbox unit (read only) while its readout shows and the engine runs, else the car's signal
+            gearboxTemp.tick(at,live&&neededAux.has('gearbox')&&engineOn,auxNow.gearboxSignal);
+            controller.aux=Object.assign(auxNow,{batteryVoltage:batteryVoltage.read(at),gearbox:gearboxTemp.read(at)},neededAux.has('clock')?{clock:clockText(config)}:{});
             // The Car layout's picture (car-meter.js: the car's state, held against noise, and frame) or My picture's
             // GIFs (my-picture.js: stop / drive / reverse, the folder looked at every 5 s), per display
             // the speed for Calm clock (1.3.71), Navigation focus and G-G trail (1.3.72): the vehicle speed the alerts read, whole km/h, only while that layout is on
@@ -546,7 +551,7 @@ function start(ctx) {
                     outputs: state.outputs, laneLines: Object.assign({ on: config.hudLaneLines === 'on', road: Object.assign({ on: config.hudRoadAlerts !== 'off' }, roadAlerts.status()) }, laneLines.status(at)), departure: Object.assign({ on: departureOn }, departure.status(at)), navShare: Object.assign({ on: config.navShare === 'on', roadLog: Object.assign({ on: config.roadLog === 'on' }, roadLog.status()), navProbeSize: (() => { let k = null; if (navProbeFile) [navProbeFile + '.1', navProbeFile].forEach((p) => { try { k = (k || 0) + fs.statSync(p).size; } catch (e) {} }); return k; })() }, shareHelper.status(), (shareHelper.last && shareHelper.last.share) || {}), position: position ? position.status(at) : null, headway: lead ? Object.assign({ mode: config.hudHeadway, now: corrected(lead.read(at), config.hudHeadwayCorrection) }, lead.status(at)) : { mode: config.hudHeadway, state: 'not_started' }, blindSpot: Object.assign({ on: config.hudTurnBlindSpot === 'on' }, blindSpot.status(at), blindSpot.read(at)), doors: { state: doorSub ? (doorSub.error ? 'error' : 'subscribed') : doorState, received: doors.received, open: doors.open.slice(), lids: Object.assign({}, doors.lidNames), names: doors.names.slice(0, 24) }, vehicleAlerts: Object.assign({ mode: config.hudCarAlerts, cams: config.hudCarCams, list: speedCams.status(), overlay: alertOverlay.status(), signs: trafficSubs.map((e) => ({ field: e.field, configured: e.configured, received: e.received, live: trafficLive(e, at) })), diagnostics: traffic.diagnostics(at) }, vehicleAlerts.status(at)), turnSignal: Object.assign({ state: lightSub ? (lightSub.error ? 'error' : lightSub.proxy ? 'subscribed' : 'waiting') : lightState, available: lightSub ? lightSub.available : null, received: turnSignal.received, raw: turnSignal.raw, subscribed: !!lightSub && !lightSub.error, overlay: turnOverlay.status(), drawnIn: controller.turnPainted && controller.hudShown ? 'redline-hud' : 'overlay' }, controller.turn || {}), clusterYield: Object.assign({ setting: config.clusterYieldGuidance, active: !!controller.guidanceYield }, controller.guidanceYieldDetail || {}), navigation: navigationState, maneuver: maneuverState, commonManeuver: commonManeuver, hudGuidance: hudGuidance.status(at), routeEvents: routeEvents.status(at), projectedNavigation: maneuvers.projectedStatus(at),
                     laneGuidance:lanes.status(at),
                     navProbe:navProbe.status(),
-                    auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
+                    auxiliary:{values:controller.aux,diagnostics:auxInfo.diag,setup:auxSetup,gearbox:gearboxTemp.status(at),sources:auxSubs.map(e=>({field:e.source.field,available:!!(e.sub&&e.sub.available&&!e.sub.error),wanted:!!e.wanted,pending:!!e.pending,notifyOnly:!!e.notifyOnly,received:e.received||0,lastAgeMs:e.lastAt?Math.round(at-e.lastAt):null,error:e.sub&&e.sub.error?String(e.sub.error).slice(0,120):null})),missingOptional:Object.keys(SOURCES.reduce((o,s)=>{o[s.iface]=1;return o;},{})).filter(i=>!auxSubs.some(e=>e.source.iface===i))},
                     collection:{fields:Array.from(collection.fields),metrics:Array.from(collection.aux),subscriptions:collectors.status()},
                     navigationInputs: {fields:navigationFields.filter(field=>collection.fields.has(guidance.INTERFACE+'.'+field)),available:navigationAvailable,pending:guidancePending,reads:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationReadState[field];return out;},{}),
                         agesMs:navigationFields.reduce((out,field)=>{if(collection.fields.has(guidance.INTERFACE+'.'+field))out[field]=navigationSeenAt[field]===undefined?null:Math.max(0,at-navigationSeenAt[field]);return out;},{})}, nativeStatus: nativeStatus,

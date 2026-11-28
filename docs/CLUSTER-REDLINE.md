@@ -194,7 +194,7 @@ From 1.3.84 this screen replaces the two rows **Sport mode RPM display / All mod
 | Boost | Boost pressure (bar) |
 | Torque / Power* | Engine torque; power estimated from torque and rpm |
 | G-force | Lateral and longitudinal acceleration |
-| Outside / oil temperature | °C |
+| Coolant / gearbox oil temperature | °C (1.3.104). The gearbox oil is read, read only, from the gearbox unit (EGS, ZF 8HP), else from the car's signal; `--` when the car has neither |
 | 12 V battery charge / battery voltage | The 12 V battery (not the high-voltage battery) |
 | Average consumption / average speed / trip time | Trip (journey 1) values |
 | Clock | Horizontal gauges only. UTC+9 (Korea) / head-unit time |

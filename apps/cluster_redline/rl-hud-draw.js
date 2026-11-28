@@ -230,7 +230,7 @@ function drawReadouts(cv, x0, x1, y, items, P, layer, clear, style) {
             cv.text(it.label, cx, y + (clear ? 15 : 13), s, clear ? P.text : withAlpha(P.text, 0.9), lo);
         }
         if (layer !== 'bg') cv.text(it.value, cx, y + 40, 26 * Math.max(0.8, k), P[it.tone] || P.text, { align: 'center', font: 'bold' });
-        if (layer !== 'bg' && it.gauge && it.frac !== null && it.frac !== undefined) miniGauge(cv, style, cx - colw / 2 + 8, y + 48, colw - 16, 8, it.frac, P, it.tone, it.id === 'oil' || it.id === 'outside');
+        if (layer !== 'bg' && it.gauge && it.frac !== null && it.frac !== undefined) miniGauge(cv, style, cx - colw / 2 + 8, y + 48, colw - 16, 8, it.frac, P, it.tone, it.id === 'oil' || it.id === 'outside' || it.id === 'coolant' || it.id === 'gearbox');
     });
 }
 
