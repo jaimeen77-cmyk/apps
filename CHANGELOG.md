@@ -2,6 +2,15 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.101 (the nav-probe log tells why the HUD arrow went away)
+
+- The user saw the HUD's turn arrow go away and come back while guiding. nav-probe.log only had a line when a new turn came, so those moments left nothing.
+- **Now each time the arrow goes away or comes back**, while Received turns recording is on (Basic settings → QR log collection), nav-probe.log gets one line `{"source": "arrow", "event": "hidden" | "shown", "why": ...}` with:
+  - **why**: `guidance_inactive` / the guidance's own reason (guidance off or calculating), `provider_unknown`, `drive_mode` (not shown in this drive mode), `hud_view_not_a_turn` (the navigation's HUD view sent something other than a turn, such as traffic or lane content), `no_turn` (no turn read in time), `parts_hidden`.
+  - the provider (BMW, CarPlay, Android Auto), the guidance state, the HUD view's read state and error, the content types its views sent, the route list's state, how old the last turn was, whether the phone guides.
+- Received turns shows how many times the arrow went away since the app started.
+- Tests: `nav-probe` (one line each while recording, counted either way).
+
 ## Cluster Redline 1.3.100 (cut-in and pedestrian / cyclist warnings on the lane picture; QR log collection)
 
 - **New: cut-in and pedestrian / cyclist warnings** on the HUD lane picture, **on by default**. HUD lamps → **Cut-in and pedestrian warnings** (끼어들기·보행자 경고) turns them off. They show with the lane lines (from the lead-car helper's camera objects and lane lines).

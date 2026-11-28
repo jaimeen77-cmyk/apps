@@ -60,3 +60,12 @@ if(process.argv[2]){
  scr().targets.find(t=>t.id==='navprobe-on').run();assert.strictEqual(v.navProbeLog,'on');scr().targets.find(t=>t.id==='navprobe-off').run();assert.strictEqual(v.navProbeLog,'off');
 }
 console.log('PASS: navigation record: raw values per turn, newest first, one line per turn, the file while on (whole turn, route list once, 1 MB + .1, errors shown), the setting, Received turns screen'+(process.argv[2]?'':' (no package: screen not checked)'));
+// 1.3.101: the arrow going away and coming back, one line each while recording, with why; counted either way
+{const N=require('../../apps/cluster_redline/nav-probe'),files={};const fsx={statSync:f=>{if(!files[f])throw new Error('none');return {size:files[f].length};},appendFileSync:(f,t)=>{files[f]=(files[f]||'')+t;},renameSync(){}};
+ const p=new N.NavProbe({fs:fsx,file:'/d/nav-probe.log',wall:()=>new Date(0)});
+ p.arrow(false,{why:'hud_view_not_a_turn',views:[{ui:3,type:2}]});assert.strictEqual(files['/d/nav-probe.log'],undefined,'not recording: nothing written');assert.strictEqual(p.status().arrowHidden,1,'but counted');
+ p.record(true);p.arrow(false,{why:'no_turn',provider:'CAR_PLAY'});p.arrow(true,{why:'shown'});
+ const L=files['/d/nav-probe.log'].trim().split('\n').map(l=>JSON.parse(l));const a=L.filter(l=>l.source==='arrow');
+ assert.strictEqual(a.length,2);assert.strictEqual(a[0].event,'hidden');assert.strictEqual(a[0].why,'no_turn');assert.strictEqual(a[0].provider,'CAR_PLAY');assert.strictEqual(a[1].event,'shown');
+ assert.strictEqual(p.status().arrowHidden,2);assert.strictEqual(p.status().arrowChanges,3);
+ console.log('PASS: nav-probe 1.3.101: the arrow hidden / shown with why, one line each while recording, counted');}
