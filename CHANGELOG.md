@@ -2,6 +2,17 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.103 (lead car cyan at the same speed; the lamps keep their place across drive modes)
+
+- **Lead-car headway: cyan at the same speed** (the user). The colours now come only while closing in on the car ahead:
+  - closing at **5 km/h or more**: red under 1.0 s, amber under 1.5 s;
+  - closing at 2-5 km/h: amber under 1.0 s;
+  - the same speed, pulling away, or the closing speed not known yet: **cyan**, however close.
+- **Fix: Comfort → Sport → Comfort moved the lane picture** (the user; a favourite put it back). With the HUD in BC mode in Sport, the BC page's screen was written into the settings with every HUD place it had kept, the lead-car headway / lane picture's included, and nothing put them back.
+  - A BC page's screen and a drive mode's own screen now carry only the design's own places. The HUD lamps (lead-car headway and lane lines, turn signals and blind spot, door, vehicle alerts) and the navigation parts (arrow, text, then, lanes) always keep the place set for them.
+  - A place already moved this way stays until set again (or a favourite is loaded).
+- Tests: `headway` (colours only while closing in), `lamp-places` (a BC page and a drive mode's screen leave the lamps' places alone).
+
 ## Cluster Redline 1.3.102 (lead-car colours calmer; QR log collection fixed; cut-in warnings eased)
 
 - **Lead-car headway: red nearly all the time in town** (the user). It was red under a 1.0 s time gap, amber under 1.5 s; with the -2 m correction (1.3.91) a car followed at 1 s in town showed red.
