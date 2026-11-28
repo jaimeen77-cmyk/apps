@@ -1,12 +1,12 @@
 'use strict';
-const METRICS=['boost','torque','power','gforce','outside','oil','batteryCharge','batteryVoltage','economy','avgSpeed','tripTime','clock'];
+const METRICS=['boost','torque','power','gforce','outside','oil','coolant','gearbox','batteryCharge','batteryVoltage','economy','avgSpeed','tripTime','clock'];
 // The clock is a gauge-only item (it has no text-mode form).
 const GAUGE_ONLY=['clock'];
 // HUD designs: Cluster Redline's own face, or a Redline app layout (redline-hud.js).
 const HUD_DESIGNS=['own','rl-standard','rl-digital','rl-vfd','rl-vector','rl-arc','rl-ramp','rl-dial','rl-shift','rl-logger','rl-needle','rl-rings','rl-ribbon','rl-hexagon','rl-sportdial','rl-classic','rl-luxury','rl-sporthud','rl-tyres','rl-calm','rl-vu','rl-navfocus','rl-gg','rl-car','rl-mypic'];
 // The HUD offers every layout but the cluster-only ones.
 const HUD_ONLY_DESIGNS=HUD_DESIGNS.filter(d=>d!=='rl-sportdial'&&d!=='rl-classic'&&d!=='rl-tyres'&&d!=='rl-vu'&&d!=='rl-navfocus'&&d!=='rl-mypic');
-const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outside:'Outside temperature',oil:'Oil temperature',batteryCharge:'12 V battery charge',batteryVoltage:'Battery voltage',economy:'Average fuel economy',avgSpeed:'Average speed',tripTime:'Driving time',clock:'Clock'};
+const LABELS={boost:'Boost',torque:'Torque',power:'Power*',gforce:'G-force',outside:'Outside temperature',oil:'Oil temperature',coolant:'Coolant temperature',gearbox:'Gearbox oil temperature',batteryCharge:'12 V battery charge',batteryVoltage:'Battery voltage',economy:'Average fuel economy',avgSpeed:'Average speed',tripTime:'Driving time',clock:'Clock'};
 const PARTS=['RpmGauge','Gear','Alert','AuxLeft','AuxRight','RpmValue','Mark','MarkTop','MarkBottom'];
 const PART_LABELS=['RPM gauge','Gear','RPM alert','Auxiliary left','Auxiliary right','RPM number','M mark','Upper M mark','Lower M mark'];
 const LEGACY_PARTS=['Aux'];
@@ -52,7 +52,7 @@ function headwayRect(cfg){const s=(cfg.hudHeadwayScale||100)/100,w=Math.round(11
 const LAUNCH_PARTS=[{key:'Launch',label:'0-100 screen',prefix:'hudLaunch',scale:'hudLaunchScale',w:240,h:160}];
 function launchRect(cfg){const s=(cfg.hudLaunchScale||100)/100,w=Math.round(240*s),h=Math.round(160*s);return {x:Math.max(0,Math.min(800-w,Math.round((800-w)/2+(cfg.hudLaunchOffsetX||0)))),y:Math.max(0,Math.min(480-h,Math.round(100+(cfg.hudLaunchOffsetY||0)))),w,h};}
 Object.assign(defaults,{hudLaunch:'off',hudLaunchOffsetX:0,hudLaunchOffsetY:0,hudLaunchScale:100,hudLaunchHidden:false,launchBest:0,launchRuns:'[]'});
-Object.assign(defaults,{hudHeadway:'off',hudHeadwayCorrection:-2,hudHeadwayOffsetX:0,hudHeadwayOffsetY:0,hudHeadwayScale:100,hudHeadwayHidden:false});
+Object.assign(defaults,{hudHeadway:'off',hudHeadwayCorrection:-2,hudHeadwayOffsetX:0,hudHeadwayOffsetY:0,hudHeadwayScale:100,hudHeadwayHidden:false,hudHeadwayDepart:'quick'});
 // Following the BC button (bc-follow.js, 1.3.40): on / off, the head unit's list (ID7 / ID8), each page's setup (JSON),
 // where the next drive starts (the page reached last / the first page); bcIndex: the page in step now; bcCluster: what
 // it asks of the cluster ('redline' shows it in every mode, 'yield' steps it aside for Waze / the stock map, '' leaves
@@ -116,6 +116,7 @@ function normalize(raw,out){
  out.hudNavThen=raw.hudNavThen==='off'?'off':'on';out.navProbeLog=raw.navProbeLog==='on'?'on':'off';out.positionCheck=raw.positionCheck==='on'?'on':'off';out.calmTone=raw.calmTone==='warm'?'warm':'cool';out.hudLaneLines=raw.hudLaneLines==='on'?'on':'off';out.hudLaneSurface=raw.hudLaneSurface==='green'?'green':'dark';out.hudLaneSensitivity=raw.hudLaneSensitivity==='off'||raw.hudLaneSensitivity==='normal'?raw.hudLaneSensitivity:'low';out.navShare=raw.navShare==='on'?'on':'off';out.navProbeReset95=raw.navProbeReset95===true;out.myPicIds=typeof raw.myPicIds==='string'&&raw.myPicIds.length<2000?raw.myPicIds:'';out.hudHeadway=['simple','detail'].indexOf(raw.hudHeadway)>=0?raw.hudHeadway:'off';out.hudHeadwayHidden=raw.hudHeadwayHidden===true;
  // the distance correction (1.3.91, issue appsKOR#5): the car measures from its sensor behind the windscreen, not from
  // the bumper; 0 to -3 m in 0.5 m steps, -2 m by default
+ out.hudHeadwayDepart=['off','faster','quick','relaxed'].includes(raw.hudHeadwayDepart)?raw.hudHeadwayDepart:'quick';   // the moving-off alert's speed (1.3.106)
  {const v=raw.hudHeadwayCorrection;out.hudHeadwayCorrection=typeof v==='number'&&isFinite(v)?Math.max(-3,Math.min(0,Math.round(v*2)/2)):-2;}
  ['OffsetX','OffsetY'].forEach(s=>{const v=raw['hudHeadway'+s];if(typeof v==='number'&&isFinite(v))out['hudHeadway'+s]=Math.max(-1000,Math.min(1000,Math.round(v)));});
  if(typeof raw.hudHeadwayScale==='number'&&isFinite(raw.hudHeadwayScale))out.hudHeadwayScale=Math.max(20,Math.min(200,Math.round(raw.hudHeadwayScale/5)*5));out.hudLaunch=raw.hudLaunch==='on'?'on':'off';['hudLaunchOffsetX','hudLaunchOffsetY'].forEach(k=>{const v=raw[k];if(typeof v==='number'&&isFinite(v))out[k]=Math.max(-1000,Math.min(1000,Math.round(v)));});if(typeof raw.hudLaunchScale==='number'&&isFinite(raw.hudLaunchScale))out.hudLaunchScale=Math.max(20,Math.min(200,Math.round(raw.hudLaunchScale/5)*5));out.launchBest=typeof raw.launchBest==='number'&&raw.launchBest>0&&raw.launchBest<60?raw.launchBest:0;out.launchRuns=typeof raw.launchRuns==='string'?raw.launchRuns:'[]';out.greetHello=raw.greetHello==='off'?'off':'on';out.greetBye=raw.greetBye==='off'?'off':'on';

@@ -21,7 +21,7 @@ const gb=it=>!!(it&&it.gauge&&it.frac!==null&&it.frac!==undefined);
 function slants(cv,x,y,w,h,n,sl,frac,on,off,gap){const pitch=w/n,lit=Math.round(clamp(frac,0,1)*n);for(let i=0;i<n;i++){const bx=x+i*pitch,c=typeof on==='function'?on(i,n):on;cv.quad([[bx+sl,y],[bx+pitch-(gap||3)+sl,y],[bx+pitch-(gap||3),y+h],[bx,y+h]],i<lit?c:off||fade(c,0.25));}}
 const {withAlpha:fade}=require('./kit/canvas');
 // a temperature (oil, outside) is drawn as a thermometer: a bulb at the low end of its bar
-const isTemp=it=>!!it&&(it.id==='oil'||it.id==='outside'),{thermo}=require('./rl-thermo');
+const isTemp=it=>!!it&&(it.id==='oil'||it.id==='outside'||it.id==='coolant'||it.id==='gearbox'),{thermo}=require('./rl-thermo');
 function readout(cv,it,x,y,ls,vs,align,col){if(!it)return;const o={align,font:'bold'};cv.text(it.label,x,y,ls,C.dim,o);cv.text(it.value,x,y+vs*0.95,vs,col||C.text,o);}
 
 function drawShift(cv,f,h){

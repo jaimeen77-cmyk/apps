@@ -15,8 +15,8 @@ function demand(base,mode){
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-gg'&&!cfg[d+'RpmGaugeHidden']&&!cfg[d+'RlGMeterHidden'])aux.add('gforce');});   // (G-G trail, 1.3.72)
  faces.forEach(d=>{if(cfg[d+'Design']==='rl-car'&&!cfg[d+'RpmGaugeHidden']&&(!cfg[d+'RlCarPicHidden']||!cfg[d+'RlGMeterHidden']))aux.add('gforce');});
  // (its GIFs on the cluster, my-picture.js, follow the gear and speed and, for the turns, the same sideways G)
- // the blind spot warning reads the mirror lamps only while the engine runs: it needs the engine speed
- const rpm=faces.some(d=>D.faceRpmNeeded(cfg,d))||aux.has('batteryVoltage')||enabled&&cfg.hudTurnBlindSpot==='on',torque=aux.has('torque')||aux.has('power'),gear=faces.some(d=>!cfg[d+'GearHidden']);
+ // the blind spot warning reads the mirror lamps (and the gearbox oil readout its unit, 1.3.106) only while the engine runs: it needs the engine speed
+ const rpm=faces.some(d=>D.faceRpmNeeded(cfg,d))||aux.has('batteryVoltage')||aux.has('gearbox')||enabled&&cfg.hudTurnBlindSpot==='on',torque=aux.has('torque')||aux.has('power'),gear=faces.some(d=>!cfg[d+'GearHidden']);
  const navAny=enabled&&(nav.direction||nav.text||nav.lanes),turns=enabled&&(nav.direction||nav.text);
  const navPotential=enabled&&cfg.hudNavigationEnabled&&cfg.navDisplayMode!=='stock'&&D.NAV_PARTS.some(p=>p.key!=='Then'&&!cfg[p.prefix+'Hidden']);
  const modeNeeded=navPotential||enabled&&['hud','cluster'].some(d=>D.faceVisible(cfg,d)&&D.rpmOutputPossible(cfg,d==='hud'?'Hud':'Cluster'));

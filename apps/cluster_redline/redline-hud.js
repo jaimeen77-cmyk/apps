@@ -28,7 +28,7 @@ function gearOf(text){
  if(t==='D')return {gear:null,stage:'D',mode:null};
  return {gear:null,stage:null,mode:null};
 }
-const LABEL={boost:'BOOST',torque:'TORQUE',power:'POWER',gforce:'G',outside:'OUT',oil:'OIL',batteryCharge:'BATT',batteryVoltage:'VOLT',economy:'ECON',avgSpeed:'AVG SPD',tripTime:'TIME',clock:'CLOCK'};
+const LABEL={boost:'BOOST',torque:'TORQUE',power:'POWER',gforce:'G',outside:'OUT',oil:'OIL',coolant:'WATER',gearbox:'TRANS',batteryCharge:'BATT',batteryVoltage:'VOLT',economy:'ECON',avgSpeed:'AVG SPD',tripTime:'TIME',clock:'CLOCK'};
 const KO={BOOST:'부스트',TORQUE:'토크',POWER:'마력',G:'G',OUT:'외기',OIL:'오일',BATT:'배터리',VOLT:'전압',ECON:'연비','AVG SPD':'평속',TIME:'주행',CLOCK:'시계'};
 function readouts(state,d){
  const cfg=state.config,a=auxConfig(cfg[(d||'hud')+'AuxConfig']),v=state.aux||{},g=gauges(state),label=id=>{const l=LABEL[id];return language()==='ko'&&KO[l]?KO[l]:l;};
@@ -37,7 +37,9 @@ function readouts(state,d){
   let value='--',tone='text';
   if(id==='torque'||id==='power'){const x=g[id];value=x&&isNum(x.value)?String(Math.round(x.value)):'--';}
   else if(id==='clock')value=typeof v.clock==='string'?v.clock:'--:--';
-  else if(id==='oil'||id==='outside'){if(isNum(v[id])){value=Math.round(v[id])+'°';if(id==='oil')tone=v[id]<70?'cold':v[id]>130?'hot':'text';}}
+  else if(id==='oil'||id==='outside'||id==='coolant'||id==='gearbox'){if(isNum(v[id])){value=Math.round(v[id])+'°';const t=v[id];
+   // cold / hot: oil under 70 / over 130, coolant (1.3.106) under 60 / over 115, gearbox oil under 50 / over 120
+   if(id==='oil')tone=t<70?'cold':t>130?'hot':'text';else if(id==='coolant')tone=t<60?'cold':t>115?'hot':'text';else if(id==='gearbox')tone=t<50?'cold':t>120?'hot':'text';}}
   else if(id==='boost')value=isNum(v.boost)?v.boost.toFixed(2):'--';
   else if(id==='gforce')value=isNum(v.gforce)?v.gforce.toFixed(2):'--';
   else if(id==='batteryCharge')value=isNum(v.batteryCharge)?Math.round(v.batteryCharge)+'%':'--';

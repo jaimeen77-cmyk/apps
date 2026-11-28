@@ -60,7 +60,7 @@ function harness(options) {
         if (name === './gear') return require('../../apps/cluster_redline/gear');
         if (name === './renderer') return { inspect: () => ({ compatible: true, version: '0.4.0', hudGuidanceSafe: true }) };
         if(name==='./battery-voltage')return require('../../apps/cluster_redline/battery-voltage');
-        if(['./demand-signals','./data-demand','./turn-signal','./turn-overlay','./preview-presence','./vehicle-alerts','./alert-overlay','./traffic-signs','./traffic-live','./greeting-overlay','./driver-greeting','./door-alert','./blind-spot','./blind-spot-overlay','./lead-vehicle','./position','./headway-overlay','./lane-lines','./lead-departure','./lead-helper','./speed-cams','./road-alerts','./road-log','./launch-overlay','./launch-timer','./bc-follow','./nav-probe'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
+        if(['./gearbox-temp','./demand-signals','./data-demand','./turn-signal','./turn-overlay','./preview-presence','./vehicle-alerts','./alert-overlay','./traffic-signs','./traffic-live','./greeting-overlay','./driver-greeting','./door-alert','./blind-spot','./blind-spot-overlay','./lead-vehicle','./position','./headway-overlay','./lane-lines','./lead-departure','./lead-helper','./speed-cams','./road-alerts','./road-log','./launch-overlay','./launch-timer','./bc-follow','./nav-probe'].includes(name))return require('../../apps/cluster_redline/'+name.slice(2));
         throw new Error('Unexpected dependency ' + name);
     }, process: {
         hrtime: () => [Math.floor(time / 1000), Math.round((time % 1000) * 1000000)],
@@ -407,7 +407,9 @@ async function optionalAuxiliaryWorker(){
   h.config.clusterAuxConfig=JSON.stringify({mode:'values',items:['batteryCharge','economy','tripTime','torque']});h.config.clusterDesign='rl-tyres';
   await flush();h.navigate('INACTIVE');h.tick(1000);await flush();h.tick(1025);await flush();
   const watched=h.watches.filter(w=>Object.keys(w.handlers).every(f=>SOURCES.some(s=>s.iface===w.iface&&s.field===f)));
-  assert.strictEqual(watched.length,new Set(SOURCES.map(s=>s.iface)).size,'auxiliary fields reuse one proxy per interface');assert.strictEqual(h.auxReads.length,SOURCES.length);
+  // (1.3.106) the gearbox oil signal (BasicDataSet) is added only at install, from the car's catalog (traffic-config.js): not here
+  const own=SOURCES.filter(s=>s.iface!=='de.bmw.infrastructure.analytics.BasicDataSet');
+  assert.strictEqual(watched.length,new Set(own.map(s=>s.iface)).size,'auxiliary fields reuse one proxy per interface');assert.strictEqual(h.auxReads.length,own.length);
   const boost=watched.find(w=>w.handlers.statusSwitchDriveDynamicSport2);boost.handlers.statusSwitchDriveDynamicSport2({displayBoostPressure:85});
   for(const read of h.auxReads){const source=SOURCES.find(s=>s.iface===read.iface&&s.field===read.field),value={};for(const [name,spec] of Object.entries(source.members))value[spec[0]]=name==='boost'?40:name==='oil'||name==='oilFallback'?143:name==='outside'?116:32500;read.resolve(value);}
   await flush();h.tick(1050);assert.strictEqual(h.worker.controller.aux.boost,0.85,'an older getter must not overwrite a newer notification');assert.strictEqual(h.worker.controller.aux.oil,95);assert.strictEqual(h.worker.controller.aux.outside,18);
