@@ -109,7 +109,7 @@ function start(ctx) {
     // the HUD lane lines (lane-lines.js, 1.3.77): from the root helper, only while on
     const laneLines=new LaneLines(mono),laneOverlay=new LaneOverlay(client),departure=new LeadDeparture();let departureOn=false;
     // (1.3.95) the nav-probe.log for a phone, through the root helper's page (its own connection, not the car ahead's)
-    const shareHelper=new (require('./lead-helper').LeadHelper)(null,mono),navProbeFile=ctx.dataDir?path.join(ctx.dataDir,'nav-probe.log'):null;let navArrow=null,shareCmdAt=-Infinity,accSeenAt=-Infinity,camAlert=null;const speedCams=new (require('./speed-cams').SpeedCams)(),roadAlerts=new (require('./road-alerts').RoadAlerts)(),roadLog=new (require('./road-log').RoadLog)({dir:ctx.dataDir||null,version:(ctx.spec&&ctx.spec.version)||''});let logStamps=null;const ACC_HOLD_MS=2000;
+    const shareHelper=new (require('./lead-helper').LeadHelper)(null,mono),navProbeFile=ctx.dataDir?path.join(ctx.dataDir,'nav-probe.log'):null;let navArrow=null,arrowHold=null,shareCmdAt=-Infinity,accSeenAt=-Infinity,camAlert=null;const speedCams=new (require('./speed-cams').SpeedCams)(),roadAlerts=new (require('./road-alerts').RoadAlerts)(),roadLog=new (require('./road-log').RoadLog)({dir:ctx.dataDir||null,version:(ctx.spec&&ctx.spec.version)||''});let logStamps=null;const ACC_HOLD_MS=2000,ARROW_HOLD_MS=3000;
     const vehicleAlerts=new VehicleAlerts(mono,(proxy,method,args,timeout)=>signals.call(proxy,method,args,timeout)),alertOverlay=new AlertOverlay(client),greetingOverlay=new GreetingOverlay(client),clusterGreeting=new GreetingOverlay(client,'map'),doors=new DOOR.DoorState(),doorOverlay=new DOOR.DoorOverlay(client),blindSpot=new BlindSpot(signals,log),blindSpotOverlay=new BlindSpotOverlay(client);let doorSub=null,doorState='not_installed',greetingNow=null;
     const turnSignal=new TurnSignal(),turnOverlay=new TurnOverlay(client);let lightSub=null,lightSeenAvailable=false,lightState='not_installed';
     const subs = [], errors = [];
@@ -418,7 +418,15 @@ function start(ctx) {
             routeEvents.tick(at,routeKey||(config.hudNavThen!=='off'?turnKey:null));
             hudGuidance.tick(at,turnKey);
             const hudEvent=routeKey?routeEvents.read(at,routeKey)||hudGuidance.read(at,turnKey):hudGuidance.read(at,turnKey);
-            const maneuverState=!commonManeuver.visible&&hudEvent?Object.assign({},hudEvent,{provider:commonManeuver.provider}):commonManeuver;
+            let maneuverState=!commonManeuver.visible&&hudEvent?Object.assign({},hudEvent,{provider:commonManeuver.provider}):commonManeuver;
+            // (1.3.106) the user's nav-probe log (Android Auto): 38 of 45 times the arrow went away it came back within 3 s,
+            // most within 1 s (the turn list read empty for a moment while the guidance went on). While still guiding, the
+            // last arrow stays up to 3 s through such a gap; a new provider or the guidance ending lets it go at once.
+            // Only a fresh answer that had no turn is such a gap: a reply that stopped coming (the last one over 2 s old) or a lost turn list lets the arrow go.
+            const srcUp=s=>!!(s&&s.sub&&s.sub.available===true&&!s.sub.error),arrowStalled=[routeKey?routeEvents:null,hudGuidance].some(s=>s&&s.value&&s.at!==null&&at-s.at>2000)||(routeKey?!srcUp(routeEvents):false);
+            if(maneuverState.visible){arrowHold={state:maneuverState,at,key:hudKey};}
+            else if(arrowHold&&hudKey&&!arrowStalled&&arrowHold.key===hudKey&&commonManeuver.active&&at-arrowHold.at<=ARROW_HOLD_MS)maneuverState=Object.assign({},arrowHold.state,{held:true});
+            else arrowHold=null;
             const laneData=lanes.read(at,laneKey);
             const visible=collection.parts.direction&&maneuverState.visible||collection.parts.text&&maneuverState.visible&&!!maneuverState.description||collection.parts.lanes&&!!laneData;
             // Phone guidance (Waze and other CarPlay / Android Auto apps): any of the projection manager's

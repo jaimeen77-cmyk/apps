@@ -2,6 +2,29 @@
 
 Version history is kept here. For current usage, see [Cluster Redline](docs/CLUSTER-REDLINE.ko.md).
 
+## Cluster Redline 1.3.107 (cut-in / pedestrian warnings and the turn arrow from the user's logs; HUD layouts centred; parts stay on the HUD)
+
+- **Every Redline layout in the middle of the HUD, ready to use untouched.**
+  - Each layout is now drawn the same height as Standard (about 124 px, at most 400 px wide).
+  - Every layout's middle sits on Standard's line, which was tuned on the car.
+  - Before, Shift, Logger, Rings, Hexagon, Arc and others sat lower, and their bottom reached past the HUD window.
+  - Moves and sizes set in Position / size are added to the new default; Reset brings it back.
+- **The lead car in the lane picture at our car's scale.** Right behind us it is a little smaller than our car (85 %), and it gets smaller as it gets further away. Before, a close lead car looked bigger than ours. A cut-in car in the warning picture uses the same scale.
+- **Parts stay on the HUD.**
+  - Navigation (direction, road name, lane guidance, next turn), vehicle alerts and the door picture now stop at the HUD's edge however far they are moved or enlarged. Before, they could leave the HUD entirely.
+  - In Position / size, no move past the edge is stored for any HUD part (these, plus the turn signals, blind spot, headway and 0-100), so the first press back moves it.
+
+- **Cut-in and pedestrian warnings, fewer false ones.** The user's road-alerts.log (2026-11-28) had 37 warnings: 24 cut-ins and 13 pedestrians/cyclists, most of them wrong. The rules now need:
+  - **Cut-in:** the car moved in at least 0.5 m from where it drove beside us, and is now within 2.4 m of our axis. A car that was in our lane in the 3 s before it was beside us does not count: that is our lead weaving, or our own lane change. Sideways speeds are measured against the lane lines, so our own drift in the lane is not read as a car coming in. A car pulling away at up to 1.5 m/s still counts.
+  - **Pedestrian / cyclist:** seen for at least 0.8 s (5 frames), within 3 m to the side, and moving sideways at most 4 m/s (a cyclist 8). Faster than that is the camera's noise.
+  - **Result on the recorded data:** 24 cut-ins became about 11, nearly all real. 13 pedestrians became 3: a person crossing 16 m ahead and a cyclist in our lane. The 2026-11-27 real cut-in still warns.
+  - **Fix:** a time of 0 was read as "never", so an object first seen at time 0 skipped its 3 s repeat wait.
+- **The HUD turn arrow no longer flickers.** In the user's nav-probe.log (Android Auto), the arrow went away 45 times and came back within 3 s 38 times, mostly within 1 s, because the turn list was read empty for a moment while guidance went on. The last arrow now stays up to 3 s through such a gap. It still goes at once when:
+  - guidance ends;
+  - the provider changes;
+  - the turn list is lost;
+  - answers stop coming (the last one over 2 s old).
+
 ## Cluster Redline 1.3.106 (coolant and gearbox oil temperature readouts; moving-off alert speed; favourites keep the options added since)
 
 - **New readouts: coolant temperature and gearbox oil temperature** (a user's request: oil, coolant and gearbox oil on their own). Both as text and as gauges (thermometers), and in the Redline layouts (`WATER`, `TRANS`; cold / hot tones: coolant under 60 / over 115 °C, gearbox oil under 50 / over 120 °C).

@@ -88,6 +88,12 @@ const PIC_LANE = 2.2;
 const F = 454, D = 20, EYE = 4.07, HZ = -26, NEAR_D = -3.2, FAR_D = 38, MARK = 0.1, CAR_D = -1.6;
 function project(d, y) { const q = d + D; return [W / 2 - F * y / q, HZ + F * EYE / q]; }
 const px2m = (px, d) => px * (d + D) / F;
+// (1.3.107) a road user ahead drawn to the scale of our own car, a little smaller (85 %, the user: right behind us it still
+// looked a little big): right behind us (gap 0) a car is just narrower than ours, and
+// it gets smaller with the distance (1.3.87-1.3.106 drew it at 0.95 of its size against our car's 0.66, so a car close
+// ahead looked bigger than ours)
+const OWN_K = 0.66 * 0.85, GAP0_D = CAR_D + 4.7;   // our car: 0.66 of its real width (below)
+const vehW = (m, d) => m * F / (CAR_D + D) * OWN_K * (GAP0_D + D) / (d + D);
 function draw(v, w, h) {
     const { ScaledCanvas } = require('./kit/canvas');
     const cv = new ScaledCanvas(W, H, Math.min((w || W) / W, (h || H) / H)); cv.clear([0, 0, 0, 0]);
@@ -159,7 +165,7 @@ function draw(v, w, h) {
     if (v.alert) {
         const A0 = v.alert, art1 = require('./hud-art'), d = Math.min(FAR_D - 2, CAR_D + 4.7 + A0.x), [ax, ay] = project(d, Math.max(-PIC_LANE * 0.9, Math.min(PIC_LANE * 0.9, A0.y * PIC_LANE / 3.3)));
         const T = { 0: ['pedestrian', 0.55], 1: ['bicycle', 0.6], 2: ['motorbike', 0.8], 4: ['truck', 2.5] }[A0.type] || ['car', 1.85];
-        const nm = 'veh/' + T[0], sz = art1.size(nm), aw = T[1] * F / (d + D) * (A0.type <= 1 ? 1.25 : 0.95), ah = aw * sz.h / sz.w, gc = A0.level === 'red' ? [255, 52, 58] : [255, 154, 31];
+        const nm = 'veh/' + T[0], sz = art1.size(nm), aw = vehW(T[1], d) * (A0.type <= 1 ? 1.3 : 1), ah = aw * sz.h / sz.w, gc = A0.level === 'red' ? [255, 52, 58] : [255, 154, 31];
         [[1.3, 28], [1.12, 46], [1.0, 70]].forEach(([k0, a0]) => cv.roundRect(ax - aw * k0 / 2, ay - ah * 0.3 - (k0 - 1) * aw * 0.3, aw * k0, ah * 0.4 + (k0 - 1) * aw * 0.6, aw * 0.25 * k0, gc.concat([a0])));
         art1.paint(cv, nm, ax - aw / 2, ay - ah, aw, ah);
         const col = A0.level === 'red' ? '#ff343a' : '#ff9a1f';
@@ -171,7 +177,7 @@ function draw(v, w, h) {
         const L0 = v.lead, art0 = require('./hud-art'), d = Math.min(FAR_D - 2, CAR_D + 4.7 + L0.gap), [lx, ly] = project(d, 0);
         // the road user seen from behind by its class (camera: 2 motorbike, 3 car, 4 truck / bus / van ...), its real width
         const T = { 0: ['pedestrian', 0.55], 1: ['bicycle', 0.6], 2: ['motorbike', 0.8], 4: ['truck', 2.5] }[L0.type] || ['car', 1.85];
-        const name = 'veh/' + T[0], sz0 = art0.size(name), fit = Math.min(1, (ly - 2) / (T[1] * F / (d + D) * 0.95 * sz0.h / sz0.w)), lw = T[1] * F / (d + D) * 0.95 * fit, lh = lw * sz0.h / sz0.w;   // a tall one kept inside the picture
+        const name = 'veh/' + T[0], sz0 = art0.size(name), base = vehW(T[1], d), fit = Math.min(1, (ly - 2) / (base * sz0.h / sz0.w)), lw = base * fit, lh = lw * sz0.h / sz0.w;   // a tall one kept inside the picture
         // its colour step as a glow on the road under it (green pulling away)
         const gc = L0.go ? [61, 220, 106] : L0.level === 'red' ? [255, 52, 58] : L0.level === 'amber' ? [255, 154, 31] : [62, 200, 245];
         [[1.5, 30], [1.25, 45], [1.05, 70]].forEach(([k0, a0]) => cv.roundRect(lx - lw * k0 / 2, ly - lh * 0.25 - (k0 - 1) * lw * 0.3, lw * k0, lh * 0.35 + (k0 - 1) * lw * 0.6, lw * 0.25 * k0, gc.concat([a0])));
@@ -210,4 +216,4 @@ class LaneOverlay {
     hide() { const l = this.layer; if (l && l.visible) { this.client.set(l.ref, { visible: false }); l.visible = false; } }
     close() { if (this.layer) this.client.drop(this.layer.ref); this.layer = null; }
 }
-module.exports = { LaneLines, LaneOverlay, egoLines, levelOf, draw, HALF_CAR, NEAR_M, NEAR_LOW_M, NEAR_HOLD_MS, NEAR_KMH };
+module.exports = { vehW, OWN_K, LaneLines, LaneOverlay, egoLines, levelOf, draw, HALF_CAR, NEAR_M, NEAR_LOW_M, NEAR_HOLD_MS, NEAR_KMH };
